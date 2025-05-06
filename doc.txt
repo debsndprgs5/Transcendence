@@ -1,0 +1,46 @@
+Majors :
+
+1. Framework backend  (Fastify + Node.js)
+
+2. Multiple players (plus de 2 joueurs simultanés)
+
+3. Remote players (online multi)
+
+4. Live chat
+
+5. AI opponent
+
+6. 2FA + JWT
+
+
+Minors :
+
+1. DB (SQLite)
+
+2. Front (Tailwind)
+
+3. Stats dashboards
+
+4. Multi-language
+(optionnels)
+
+5. Extra browser
+
+
+project/
+├─ src/
+│   ├─ api/           # routes REST (login, register, stats, etc.)
+│   ├─ ws/            # logique WebSocket (Pong, chat, etc.)
+│   ├─ game/          # code du moteur de jeu Pong, IA
+│   ├─ middlewares/   # auth, 2FA, JWT, etc.
+│   ├─ db/            # init, accès SQLite
+│   ├─ front/         # (optionnel) code front si vous gérez build ici
+│   └─ main.ts        # point d’entrée du serveur
+├─ front/ (ou "client/")
+│   ├─ src/           # SPA en TypeScript + Tailwind
+│   └─ ...
+├─ Dockerfile
+├─ package.json
+└─ ...
+
+

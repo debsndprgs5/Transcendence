@@ -1,0 +1,17 @@
+{
+  "name": "transcendence",
+  "version": "1.0.0",
+  "description": "A minimal Node.js + TypeScript + Fastify setup for ft_transcendence",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/main.js",
+    "dev": "ts-node src/main.ts"
+  },
+  "dependencies": {
+    "fastify": "^4.16.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.4",
+    "ts-node": "^10.9.1"
+  }
+}

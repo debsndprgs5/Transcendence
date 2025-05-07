@@ -12,7 +12,7 @@ async function bootstrap() {
   // Start server listening on port 3000
   try {
     await app.listen({ port: 3000, host: '0.0.0.0' });
-    console.log('Server listening on http://localhost:3000');
+    console.log('Server listening on http://:3000');
   } catch (err) {
     console.error('Error starting server:', err);
     process.exit(1);

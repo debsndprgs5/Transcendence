@@ -2,13 +2,13 @@
   "compilerOptions": {
     "target": "ES2020",
     "module": "commonjs",
-    "rootDir": "src",
+    "rootDir": "srcs",
     "outDir": "dist",
     "strict": true,
     "esModuleInterop": true
   },
   "include": [
-    "src/**/*.ts"
+    "srcs/**/*.ts"
   ],
   "exclude": [
     "node_modules"

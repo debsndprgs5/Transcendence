@@ -234,3 +234,51 @@ export class AIService {
 ---
 
 Avec cette **architecture claire** et ce **roadmap**, tu pourras avancer module par module sans t’emmêler les pinceaux. N’hésite pas si tu veux du code sur un de ces points !
+
+
+
+--------------------------------------------------------------------------------------
+POSTMAN :
+
+---------------------------- Requete 1 ----------------------------
+Try register
+
+POST http://77.140.213.235:3000/api/auth/register
+
+raw JSON body
+{
+  "username": "zfavere",
+  "password": "Blob2000"
+}
+
+---------------------------- Requete 2 ----------------------------
+Try login
+
+POST http://77.140.213.235:3000/api/auth/login
+
+raw JSON body
+{
+  "username": "zfavere",
+  "password": "Blob2000"
+}
+
+recuperer le token & need2FA bien present
+
+---------------------------- Requete 3 ----------------------------
+Setup 2FA
+
+POST http://77.140.213.235:3000/api/auth/2fa/setup
+
+ajouter le token en auth 
+pas de body
+
+---------------------------- Requete 4 ----------------------------
+Verify 2FA
+
+POST http://77.140.213.235:3000/api/auth/2fa/verify
+
+ajouter le token en auth 
+
+raw JSON body
+
+{ "code": "983512" }

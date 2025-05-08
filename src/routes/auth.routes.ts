@@ -40,40 +40,41 @@ export async function authRoutes(fastify: FastifyInstance) {
     return reply.code(201).send({ message: 'Registered successfully', userId: id })
   })
 
-  // 2) Route POST /api/auth/login ------------------------------------------ LOGIN
-  fastify.post('/api/auth/login', async (request, reply) => {
-    const { username, password } = request.body as { username: string, password: string }
-    if (!username || !password) {
-      return reply.code(400).send({ error: 'Incomplete Username or Password' })
-    }
+	// 2) Route POST /api/auth/login ------------------------------------------ LOGIN
+	fastify.post('/api/auth/login', async (request, reply) => {
+	  const { username, password } = request.body as { username: string, password: string }
+	  if (!username || !password) {
+	    return reply.code(400).send({ error: 'Incomplete Username or Password' })
+	  }
 
-    // a) Look for user in table (actually map)
-    const user = Array.from(users.values()).find(u => u.username === username)
-    if (!user) {
-      return reply.code(401).send({ error: 'Invalid Username or Password' })
-    }
+	  // a) Look for user in map (soon db)
+	  const user = Array.from(users.values()).find(u => u.username === username)
+	  if (!user) {
+	    return reply.code(401).send({ error: 'Invalid Username or Password' })
+	  }
 
-    // b) Compare the given password with user's password hash
-    const valid = await bcrypt.compare(password, user.passwordHash)
-    if (!valid) {
-      return reply.code(401).send({ error: 'Invalid Username or Password' })
-    }
+	  // b) Compare pass and passhash with bcrypt
+	  const valid = await bcrypt.compare(password, user.passwordHash)
+	  if (!valid) {
+	    return reply.code(401).send({ error: 'Invalid Username or Password' })
+	  }
 
-    // c) If user didnt config 2FA yet
-    if (!user.totpSecret) {
-      // We create a short-life token "pending 2FA"
-      const pendingToken = jwt.sign(
-        { sub: user.id, step: '2fa' },
-        JWT_SECRET,
-        { expiresIn: '5m' }
-      )
-      return reply.send({ token: pendingToken, need2FA: true })
-    }
+	  // c) Create pending 2fa token. User HAS to provide 2FA
+	  const pendingToken = jwt.sign(
+	    { sub: user.id, step: '2fa' },
+	    JWT_SECRET,
+	    { expiresIn: '5m' }
+	  )
 
-    // d) Else return final JWT
-    const token = jwt.sign({ sub: user.id }, JWT_SECRET, { expiresIn: '1h' })
-    return reply.send({ token })
-  })
+	  // d) Tell client if he needs to setup 2FA or just verify it
+	  const has2FA = Boolean(user.totpSecret)
+	  return reply.send({
+	    token: pendingToken,
+	    need2FASetup: !has2FA,   // true if never config
+	    need2FAVerify: has2FA    // true if already config
+	  })
+	})
+
 
   // 3) Route POST /api/auth/2fa/setup ------------------------------------------- SETUP 2FA
   fastify.post('/api/auth/2fa/setup', async (request, reply) => {
@@ -91,19 +92,19 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.code(400).send({ error: 'Token says 2FA is not in setup mode : Did you already setup 2FA ?' })
     }
 
-    // b) On récupère l’utilisateur
+    // b) Get the user
     const user = users.get(payload.sub)
     if (!user) {
       return reply.code(404).send({ error: 'Invalid User' })
     }
 
-    // c) Génération du secret TOTP
+    // c) Generate TOTP token
     const secret = speakeasy.generateSecret({
       name: `ft_transcendence(${user.username})`
     })
     user.totpSecret = secret.base32
 
-    // d) On envoie la donnée pour le QR code
+    // d) Send the data to create QRcode
     return reply.send({
       otpauth_url: secret.otpauth_url,
       base32: secret.base32

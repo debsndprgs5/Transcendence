@@ -27,20 +27,206 @@ Minors :
 5. Extra browser
 
 
-project/
-├─ src/
-│   ├─ api/           # routes REST (login, register, stats, etc.)
-│   ├─ ws/            # logique WebSocket (Pong, chat, etc.)
-│   ├─ game/          # code du moteur de jeu Pong, IA
-│   ├─ middlewares/   # auth, 2FA, JWT, etc.
-│   ├─ db/            # init, accès SQLite
-│   ├─ front/         # (optionnel) code front si vous gérez build ici
-│   └─ main.ts        # point d’entrée du serveur
-├─ front/ (ou "client/")
-│   ├─ src/           # SPA en TypeScript + Tailwind
-│   └─ ...
-├─ Dockerfile
-├─ package.json
-└─ ...
+## 1. Architecture générale
 
+```
+transcendence/
+├── src/
+│   ├── main.ts                # point d’entrée Fastify + plugins
+│   ├── config/                # lecture .env, constantes
+│   ├── db/                    # init SQLite et accès (better-sqlite3)
+│   │   └── schema.sql
+│   ├── models/                # définitions TypeScript des entités (User, Match…)
+│   ├── services/              # logique métier (auth, 2FA, AI, matchmaking…)
+│   │   ├── auth.service.ts
+│   │   ├── game.service.ts
+│   │   ├── ai.service.ts
+│   │   └── chat.service.ts
+│   ├── routes/                # routes REST
+│   │   ├── auth.routes.ts
+│   │   ├── user.routes.ts
+│   │   ├── stats.routes.ts
+│   │   └── i18n.routes.ts      # pour changer/langue
+│   ├── websockets/            # sockets Fastify + channels
+│   │   ├── game.socket.ts
+│   │   └── chat.socket.ts
+│   └── utils/                 # helpers (jwt, totp, i18n loader…)
+├── public/                    # fichiers statiques (si tu sers ton front ici)
+│   └── index.html
+├── client/                    # SPA TypeScript + Tailwind
+│   ├── src/
+│   │   ├── index.tsx
+│   │   ├── pages/             # Login, Lobby, Game, Stats…
+│   │   ├── components/        # ChatBox, GameCanvas, LanguageSwitcher…
+│   │   ├── styles/            # Tailwind CSS config
+│   │   └── i18n/              # fichiers JSON de traduction
+│   └── vite.config.ts
+├── .env                       # secrets (JWT_SECRET, BASE_URL…)
+├── tsconfig.json
+├── package.json
+├── docker-compose.yml         # déploiement local / prod
+├── Dockerfile
+└── Makefile
+```
 
+---
+
+## 2. Base de données (SQLite)
+
+Dans `schema.sql` :
+
+```sql
+CREATE TABLE users (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  username     TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  totp_secret  TEXT,
+  created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE matches (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  players    TEXT NOT NULL,        -- JSON array d’IDs
+  scores     TEXT NOT NULL,        -- JSON array des scores
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE chat_messages (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  from_user  INTEGER NOT NULL,
+  to_user    INTEGER,              -- null = message global
+  content    TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+Tu chargeras ce `schema.sql` au démarrage dans `db/init.ts` pour créer la base.
+
+---
+
+## 3. Authentification & 2FA + JWT
+
+* **lib** : `jsonwebtoken` + `speakeasy`.
+* **Routes** :
+
+  * `POST /api/auth/register` → créer user + bcrypt.hash + totp\_secret via speakeasy.generateSecret()
+  * `POST /api/auth/login` → vérifier password, puis
+
+    1. si 2FA pas validé, retourne un token `jwt_pending` (1 min de vie)
+    2. POST `/api/auth/2fa` avec code TOTP + jwt\_pending → retourne token final
+* **Middleware** : un `preHandler` Fastify qui lit le JWT (`Authorization: Bearer …`) et injecte `request.user`.
+
+---
+
+## 4. WebSockets : Chat & Jeu
+
+Installe `@fastify/websocket` :
+
+```ts
+// src/websockets/game.socket.ts
+import fp from 'fastify-plugin';
+import fastifyWebsocket from '@fastify/websocket';
+export default fp(async (fastify) => {
+  fastify.register(fastifyWebsocket, { 
+    handle: (conn, req) => GameService.handleConnection(conn),
+    options: { /* verify JWT depuis req.headers */ }
+  });
+});
+```
+
+**GameService** gère :
+
+* création / jointure de “rooms”
+* boucle de jeu à 60fps (ou 20fps) modélisée dans le serveur
+* diffusions d’état (`conn.socket.send(JSON.stringify(state))`)
+* réception des commandes joueurs (`moveUp`, `moveDown`).
+
+**ChatService** :
+
+* canal global ou DM
+* stocker en base si tu veux historique
+* event `inviteToGame` qui crée une room et notifie l’invité.
+
+---
+
+## 5. Multiple + Remote players
+
+* **Lobby** (route REST + front) :
+
+  1. `/api/game/create?maxPlayers=4` → renvoie `roomId`
+  2. `/api/game/join/:roomId`
+* **Front** : choix du nombre de joueurs, création/liste des rooms
+* **Game socket** : quand on est 2–4, `GameService.startRoom(roomId)` commence la boucle.
+
+---
+
+## 6. AI Opponent
+
+Dans `ai.service.ts` :
+
+```ts
+export class AIService {
+  static joinWithAI(roomId: string) {
+    const room = RoomManager.get(roomId);
+    room.addPlayer({ id: 'AI-'+roomId, isBot: true });
+    // Boucle TICK réduite : setInterval(() => computeAndSendMove(room), 1000);
+  }
+}
+```
+
+* L’IA **voit** l’état du jeu (balle + positions) **une fois par seconde**, calcule & envoie `moveUp`/`moveDown`.
+
+---
+
+## 7. Stats dashboards
+
+* **Route** : `GET /api/stats/user/:userId` → renvoie `matchesPlayed`, `wins`, `losses`, etc.
+* **Front** : Page “Stats” avec un graphique (Chart.js ou ECharts) pour afficher l’évolution du score ou d’autres métriques.
+
+---
+
+## 8. Front-end (Tailwind + Multi-language)
+
+1. **Tailwind** : configure `tailwind.config.js`, importe `@tailwind base; @tailwind components; @tailwind utilities;` dans `index.css`.
+2. **Multi-langue** :
+
+   * Installe `i18next` + `react-i18next` (ou une autre lib si tu ne fais pas React).
+   * Dossier `client/src/i18n/en.json`, `fr.json`, etc.
+   * Composant `<LanguageSwitcher>` qui change la langue dans le store.
+3. **Structure SPA** : Vite + un routeur minimal (par ex. `Wouter` ou `react-router`).
+
+---
+
+## 9. Déploiement & relance automatique
+
+* **docker-compose.yml** remonte ton service Fastify sur le port 80 avec `restart: always`.
+* Si tu es sur un VPS, ton CI peut faire `ssh server 'cd /app && git pull && docker-compose up -d --build'`.
+
+---
+
+## 10. Plan de travail
+
+1. **Semaine 1**
+
+   * Auth + JWT + 2FA (+ tests Postman)
+   * DB init + schema
+2. **Semaine 2**
+
+   * WebSockets + Live Chat (global + DM)
+   * Front minimal (login, lobby, chat)
+3. **Semaine 3**
+
+   * Game engine (2 joueurs), Remote + Multiple
+   * Intégration AI dans rooms libres
+4. **Semaine 4**
+
+   * Stats dashboards
+   * Multi-language + Tailwind polish
+5. **Semaine 5**
+
+   * Tests cross-browser + responsive
+   * Dockerize & déploiement
+
+---
+
+Avec cette **architecture claire** et ce **roadmap**, tu pourras avancer module par module sans t’emmêler les pinceaux. N’hésite pas si tu veux du code sur un de ces points !

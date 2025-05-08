@@ -210,18 +210,22 @@ export class AIService {
 
    * Auth + JWT + 2FA (+ tests Postman)
    * DB init + schema
+
 2. **Semaine 2**
 
    * WebSockets + Live Chat (global + DM)
    * Front minimal (login, lobby, chat)
+
 3. **Semaine 3**
 
    * Game engine (2 joueurs), Remote + Multiple
    * Intégration AI dans rooms libres
+
 4. **Semaine 4**
 
    * Stats dashboards
    * Multi-language + Tailwind polish
+   
 5. **Semaine 5**
 
    * Tests cross-browser + responsive

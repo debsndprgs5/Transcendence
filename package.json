@@ -1,17 +1,23 @@
 {
   "name": "transcendence",
   "version": "1.0.0",
-  "description": "A minimal Node.js + TypeScript + Fastify setup for ft_transcendence",
+  "description": "A minimal Node.js + TypeScript + Fastify setup",
   "scripts": {
     "build": "tsc",
     "start": "node dist/main.js",
     "dev": "ts-node src/main.ts"
   },
   "dependencies": {
-    "fastify": "^4.16.3"
+    "bcrypt": "^5.1.1",
+    "fastify": "^4.16.3",
+    "jsonwebtoken": "^9.0.2",
+    "speakeasy": "^2.0.0"
   },
   "devDependencies": {
-    "typescript": "^5.0.4",
-    "ts-node": "^10.9.1"
+    "@types/bcrypt": "^5.0.2",
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/speakeasy": "^2.0.10",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.0.4"
   }
 }

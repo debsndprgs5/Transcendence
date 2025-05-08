@@ -16,7 +16,10 @@ deploy:
 install:
 	@echo "Installing dependencies..."
 	npm install
-
+	# Auth + JWT + 2FA requirements
+	npm install bcrypt jsonwebtoken speakeasy 
+	npm install -D @types/bcrypt @types/jsonwebtoken #
+	npm install --save-dev @types/speakeasy
 # Run in development (TS live via ts-node or nodemon)
 dev:
 	@echo "Starting development server..."
@@ -46,3 +49,4 @@ docker-run:
 clean:
 	@echo "Cleaning up node_modules and dist..."
 	rm -rf node_modules dist
+	rm -rf package-lock.json

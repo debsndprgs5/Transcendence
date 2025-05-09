@@ -35,6 +35,9 @@ FROM node:18-alpine
 
 ENV NODE_ENV=production
 
+# Install sqlite3 CLI tool
+RUN apt-get update && apt-get install -y sqlite3
+
 
 WORKDIR /app
 
@@ -45,6 +48,9 @@ COPY package*.json ./
 # Install production requirements only
 
 RUN npm install --only=production
+
+# Initialize SQLite database
+RUN sqlite3 src/db/userdata.db < src/db/schema.sql
 
 # Get back the compiled build from step 1
 

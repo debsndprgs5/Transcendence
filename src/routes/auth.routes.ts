@@ -2,15 +2,9 @@ import { FastifyInstance } from 'fastify'
 import bcrypt from 'bcrypt' // Blowfish encrypting
 import jwt from 'jsonwebtoken' // Json web token -> one-time token
 import speakeasy from 'speakeasy' // lib that supports 2fa using time based one-time pass (TOTP) and HOTP
+import { getUserByName, setPassword } from '../db/db'
 
-// Temp memory storage until sql
-interface User {
-  id: string
-  username: string
-  passwordHash: string
-  totpSecret?: string
-}
-const users = new Map<string,User>()
+
 
 // SECRET KEY to sign JWT (.env)
 const JWT_SECRET = 'jaimelespates123'
@@ -20,18 +14,20 @@ export async function authRoutes(fastify: FastifyInstance) {
   // 1) Route POST /api/auth/register ------------------------------------ REGISTER
   fastify.post('/api/auth/register', async (request, reply) => {
     // a) Read Json body as request.body
-    const { username, password } = request.body as { username: string, password: string }
+    const { username,email, password } = request.body as { username: string, email: string , password: string }
 
     // b) Micro verif if password & username are set
     if (!username || !password) {
       return reply.code(400).send({ error: 'Incomplete Username or Password' })
     }
 
-    // a) Look for user in map (soon db)
-    // const user = Array.from(users.values()).find(u => u.username === username)
-    // if (!user) {
-    //   return reply.code(401).send({ error: 'User already registered' })
-    // }
+    // a) Look for user in db
+    if(getUserByName(username)){
+		return reply.code(400).send({error : 'Name allready in use'})
+	}
+
+	//b) No user in bd with same name, we create a new user 
+		addUser(username, email)
 
     // c) Password hashing using bcrypt
     const passwordHash = await bcrypt.hash(password, 12)
@@ -40,7 +36,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     const id = `${Date.now()}-${Math.floor(Math.random()*1000)}`
 
     // e) Stock in map -> soon to be replaced by sql inshallah
-    users.set(id, { id, username, passwordHash })
+    setPassword(username, passwordHash)
 
     // f) Success feedback
     return reply.code(201).send({ message: 'Registered successfully', userId: id })

@@ -1,4 +1,5 @@
 import Fastify from 'fastify'
+import './db/db.ts'
 import { authRoutes } from './routes/auth.routes'
 
 async function bootstrap() {

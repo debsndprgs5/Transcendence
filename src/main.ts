@@ -17,7 +17,7 @@ async function bootstrap() {
   // 4) Start server
   try {
     await app.listen({ port: 3000, host: '0.0.0.0' })
-    console.log('Server listening on http://77.140.213.235/:3000')
+    console.log('Server listening on http://ip/:3000')
   } catch (err) {
     console.error('Error starting server:', err)
     process.exit(1)

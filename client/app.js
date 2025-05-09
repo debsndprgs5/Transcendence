@@ -14,9 +14,9 @@ function LoginView() {
   return `
     <h1 class="text-3xl font-bold text-primary">Connexion</h1>
     <form id="loginForm" class="space-y-4">
-      <input name="username" placeholder="Utilisateur" class="border p-2 w-full" /><br/>
-      <input type="password" name="password" placeholder="Mot de passe" class="border p-2 w-full" /><br/>
-      <button class="w-full px-4 py-2 bg-accent text-white rounded">Envoyer</button>
+      <input name="username" placeholder="Username" class="border p-2 w-full" /><br/>
+      <input type="password" name="password" placeholder="Password" class="border p-2 w-full" /><br/>
+      <button class="w-full px-4 py-2 bg-accent text-white rounded">Send</button>
     </form>
   `;
 }

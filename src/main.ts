@@ -1,27 +1,34 @@
+import path from 'path'
 import Fastify from 'fastify'
+import fastifyStatic from '@fastify/static'
 import { authRoutes } from './routes/auth.routes'
 
 async function bootstrap() {
-  // 1) Create Fastify instance
   const app = Fastify()
 
-  // 2) test path on root
-  app.get('/', async (request, reply) => {
-    return { message: 'Hello from ft_transcendence!' }
+  // sert tous les fichiers de client/ (CSS, app.js, etc.)
+  app.register(fastifyStatic, {
+    root: path.join(__dirname, '../client'),
+    prefix: '/'
   })
 
-  // 3) Register the auth routes, fastify will summon and mount all POST/ap/auth routes
-  // await because authroutes is async and therefore fastify will wait for any async plugin or call inside
-  await app.register(authRoutes)
+  // Toutes les routes API
+  app.register(async (fastify) => {
+    fastify.get('/api/health', () => ({ ok: true }))
+    await fastify.register(authRoutes)
+    // ... autres routes /api/*
+  }, { prefix: '/api' })
 
-  // 4) Start server
-  try {
-    await app.listen({ port: 3000, host: '0.0.0.0' })
-    console.log('Server listening on http://ip/:3000')
-  } catch (err) {
-    console.error('Error starting server:', err)
-    process.exit(1)
-  }
+  // Pour toute autre requête GET (non /api), on renvoie index.html
+  app.setNotFoundHandler((request, reply) => {
+    if (request.method === 'GET' && !request.url.startsWith('/api')) {
+      return reply.sendFile('index.html')
+    }
+    reply.callNotFound()
+  })
+
+  await app.listen({ port: 3000, host: '0.0.0.0' })
+  console.log('🚀 Server listening on http://0.0.0.0:3000')
 }
 
 bootstrap()

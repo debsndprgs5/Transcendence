@@ -1,57 +1,68 @@
 ############################
-# Step 1 : BUILD
+# Stage 1 : builder-front
 ############################
-
-FROM node:18-alpine AS builder
+FROM node:18-alpine AS builder-front
 
 WORKDIR /app
 
-# Copy package.json only and lock for cache install
+# Copie package.json + Tailwind config
+COPY package*.json tailwind.config.js postcss.config.js ./
 
-COPY package*.json ./
-
-# Install all requirements
-
+# Installe Tailwind (et autres deps front si besoin)
 RUN npm install
 
+# Copie ton CSS source
+COPY client/src/input.css ./client/src/
 
-# Copy rest of source code
-
-COPY tsconfig.json ./
-COPY src ./src
-
-# TypeScript compil
-
-RUN npm run build
-
+# Build du CSS Tailwind en minifié
+RUN npx tailwindcss -i ./client/src/input.css \
+    -o ./client/dist/output.css \
+    --minify
 
 ############################
-# Step 2 : RUN
+# Stage 2 : builder-back
 ############################
-
-FROM node:18-alpine
-
-# Env var for fastify
-
-ENV NODE_ENV=production
-
+FROM node:18-alpine AS builder-back
 
 WORKDIR /app
 
-# Copy package.json only to install prod requirements
-
+# Copie package.json + install deps back+dev
 COPY package*.json ./
+RUN npm install
 
-# Install production requirements only
+# Copie le code TS
+COPY tsconfig.json ./
+COPY src ./src
+COPY routes ./routes
 
+# Compile TS → dist/
+RUN npm run build
+
+############################
+# Stage 3 : runtime
+############################
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Mode prod
+ENV NODE_ENV=production
+
+# Copie les deps prod uniquement
+COPY package*.json ./
 RUN npm install --only=production
 
-# Get back the compiled build from step 1
+# Copie le back compilé
+COPY --from=builder-back /app/dist ./dist
 
-COPY --from=builder /app/dist ./dist
+# Copie le CSS buildé + tout client
+COPY --from=builder-front /app/client ./client
 
-# Expose fastify's port
+# Plugin static pour Fastify
+RUN npm install @fastify/static
+
+# Ouvre le port
 EXPOSE 3000
 
-# Final launch
+# Démarrage
 CMD ["node", "dist/main.js"]

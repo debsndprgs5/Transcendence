@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Transcendence SPA</title>
+  <link rel="stylesheet" href="/dist/output.css" />
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <nav class="bg-white shadow p-4 flex space-x-4">
+    <a href="/" data-link class="text-primary font-medium">Accueil</a>
+    <a href="/login" data-link class="text-primary font-medium">Connexion</a>
+  </nav>
+ <!-- app.js injects content here-->
+  <div id="app" class="p-8"></div>
+
+  <!-- Load SPA script-->
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

@@ -1,49 +1,53 @@
-
 # Variables
 IMAGE_NAME = transcendence
 PORT       = 3000
 
-.PHONY: all install dev build start docker-build docker-run clean
+.PHONY: install clean dev prod docker-build docker-run
 
-all: install build
-
-deploy:
-	sudo ufw reload
-
+# -------------------------------------------------------------------
+# install : install backend + Tailwind + plugin static (v4)
+# -------------------------------------------------------------------
 install:
-	@echo "Installing dependencies..."
+	@echo "🔧 Installing dependencies…"
+	# fastify v4 + plugin static compatible
+	npm install fastify@^4 fastify-static@^4
+	# le reste (TS, Tailwind, PostCSS…)
 	npm install
-	# Auth + JWT + 2FA requirements
-	npm install bcrypt jsonwebtoken speakeasy 
-	npm install -D @types/bcrypt @types/jsonwebtoken #
-	npm install --save-dev @types/speakeasy
-# Run in development (TS live via ts-node or nodemon)
-dev:
-	@echo "Starting development server..."
+
+# -------------------------------------------------------------------
+# clean : delete modules & builds
+# -------------------------------------------------------------------
+clean:
+	@echo "🧹 Cleaning…"
+	rm -rf node_modules dist public/dist
+
+# -------------------------------------------------------------------
+# dev : dev-server + watch-css
+# -------------------------------------------------------------------
+dev: install
+	@echo "▶️  Dev mode: starting CSS watch + TS server"
+	# 1) watch Tailwind CSS en JIT
+	npm run build:css -- --watch &
+	# 2) démarrage du serveur en mode dev (ts-node)
 	npm run dev
 
-# Compile TypeScript to JavaScript
-build:
-	@echo "Building project..."
+# -------------------------------------------------------------------
+# prod : complete build then start
+# -------------------------------------------------------------------
+prod: install
+	@echo "📦 Building for production…"
+	# build TS + CSS
 	npm run build
-
-# Run the built app
-start:
-	@echo "Starting production server..."
+	@echo "🚀 Starting production server…"
 	npm run start
 
-# Docker: build the container image
+# -------------------------------------------------------------------
+# Docker : build + run
+# -------------------------------------------------------------------
 docker-build:
-	@echo "Building Docker image '$(IMAGE_NAME)'..."
+	@echo "🐳 Building Docker image '$(IMAGE_NAME)'…"
 	docker build -t $(IMAGE_NAME) .
 
-# Docker: run the container
 docker-run:
-	@echo "Running Docker container on port $(PORT)..."
+	@echo "🐳 Running Docker container on port $(PORT)…"
 	docker run -it --rm -p $(PORT):$(PORT) --name $(IMAGE_NAME) $(IMAGE_NAME)
-
-# Clean local artifacts
-clean:
-	@echo "Cleaning up node_modules and dist..."
-	rm -rf node_modules dist
-	rm -rf package-lock.json

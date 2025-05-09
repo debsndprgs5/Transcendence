@@ -8,9 +8,6 @@ PORT       = 3000
 all: install build
 
 deploy:
-	scp docker-compose.yml user@77.140.213.235:/home/user/transcendence
-	ssh user@77.140.213.235 "cd /home/user/transcendence && docker-compose pull && docker-compose up -d"
-	sudo ufw allow 80/tcp
 	sudo ufw reload
 
 install:

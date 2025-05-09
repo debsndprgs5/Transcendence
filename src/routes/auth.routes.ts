@@ -27,6 +27,12 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.code(400).send({ error: 'Incomplete Username or Password' })
     }
 
+    // a) Look for user in map (soon db)
+    // const user = Array.from(users.values()).find(u => u.username === username)
+    // if (!user) {
+    //   return reply.code(401).send({ error: 'User already registered' })
+    // }
+
     // c) Password hashing using bcrypt
     const passwordHash = await bcrypt.hash(password, 12)
 

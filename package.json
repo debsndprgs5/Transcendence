@@ -10,13 +10,16 @@
   "dependencies": {
     "bcrypt": "^5.1.1",
     "fastify": "^4.16.3",
+    "fastify-plugin": "^4.0.0",
     "jsonwebtoken": "^9.0.2",
-    "speakeasy": "^2.0.0"
+    "speakeasy": "^2.0.0",
+    "sqlite3": "^5.0.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/speakeasy": "^2.0.10",
+    "@types/sqlite3": "^3.1.10",
     "ts-node": "^10.9.1",
     "typescript": "^5.0.4"
   }

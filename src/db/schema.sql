@@ -1,7 +1,7 @@
-/*Here to test stuff  */
 
 CREATE  TABLE IF NOT EXISTS users (
-	id				INTEGER PRIMARY KEY AUTOINCREMENT,
+	our_index		INTEGER PRIMARY KEY AUTOINCREMENT,
+	rand_id			TEXT NOT NULL,
 	username		TEXT UNIQUE NOT NULL,
 	email			TEXT NOT NULL,
 	password_hashed	TEXT NOT NULL,
@@ -18,3 +18,5 @@ CREATE TABLE Chat (
 
 );
 */
+
+			

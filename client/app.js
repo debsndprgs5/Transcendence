@@ -12,7 +12,7 @@ function render(html) {
 
 function HomeView() {
 	if (!authToken) {
-		// non connecté → le hero
+		// not connected
 		return `
 			<section class="bg-white rounded-lg shadow-lg overflow-hidden md:flex">
 				<div class="p-8 md:w-1/2">
@@ -34,15 +34,15 @@ function HomeView() {
 					</div>
 				</div>
 				<div class="md:w-1/2 bg-indigo-50 flex items-center justify-center">
-					<img src="https://tailwindcss.com/_next/static/media/pong.123456.png"
-							 alt="Pong illustration"
+					<img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExMGxybmhtZmdwNTU0YjVqOThnMXdmaGlic3QxdXFod2N0aDZnNTRpNCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o72FkiKGMGauydfyg/giphy.gif"
+							 alt="not implemented yet"
 							 class="w-3/4 h-auto">
 				</div>
 			</section>
 		`;
 	}
 
-	// connecté → lobby + bouton Déconnexion + message perso
+	// connected
   const userName = localStorage.getItem('username') || '';
   return `
     <div class="flex justify-between items-center mb-6">
@@ -50,12 +50,32 @@ function HomeView() {
         Bienvenue, <span class="font-bold">${userName}</span> !
       </h1>
       <button id="logoutBtn"
-              class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition">
+              class="px-4 py-2 bg-red-500 text-black rounded-md hover:bg-red-600 transition">
         Déconnexion
       </button>
     </div>
     <div class="grid gap-6 md:grid-cols-2">
-			<!-- … le reste de ton lobby (games-list, chatForm, etc.) … -->
+      <div class="bg-white p-6 rounded-lg shadow-lg flex flex-col">
+        <h2 class="text-2xl font-semibold text-indigo-600 mb-4">Parties disponibles</h2>
+        <div id="games-list" class="flex-1 overflow-auto space-y-3"></div>
+        <button id="newGameBtn"
+                class="mt-4 px-4 py-2 bg-green-500 text-black rounded-lg hover:bg-green-600 transition">
+          + Créer une partie
+        </button>
+      </div>
+      <!-- Chat -->
+      <div class="bg-white p-6 rounded-lg shadow-lg flex flex-col">
+        <h2 class="text-2xl font-semibold text-indigo-600 mb-4">Chat</h2>
+        <div id="chat" class="flex-1 overflow-auto space-y-2 mb-4"></div>
+        <form id="chatForm" class="flex space-x-2">
+          <input name="message" placeholder="Écrire un message…"
+                 class="flex-1 border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-indigo-300" />
+          <button type="submit"
+                  class="px-4 py-2 bg-indigo-600 text-black rounded-lg hover:bg-indigo-700 transition">
+            Envoyer
+          </button>
+        </form>
+      </div>
 		</div>
 	`;
 }
@@ -133,7 +153,7 @@ function RegisterView() {
 }
 
 function Setup2FAView(otpauth_url, base32) {
-	// on utilise QuickChart pour générer le QR code
+	// using quickchart api to generate qr code
 	const chartUrl = `https://quickchart.io/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(otpauth_url)}`;
 	return `
 		<div class="max-w-md mx-auto mt-12 bg-white shadow-lg rounded-lg overflow-hidden">
@@ -188,7 +208,7 @@ function Verify2FAView() {
 // ─── ROUTER ──────────────────────────────────────────────────────────────────
 function router() {
   const path = window.location.pathname;
-  const token = localStorage.getItem('token');
+  authToken = localStorage.getItem('token');
 
   switch (path) {
     case '/login':
@@ -227,6 +247,7 @@ function setupHomeHandlers() {
     logoutBtn.addEventListener('click', () => {
       localStorage.removeItem('token');
       localStorage.removeItem('username');
+      authToken = null;
       history.pushState(null, '', '/');
       router();
     });
@@ -236,7 +257,7 @@ function setupHomeHandlers() {
 	const newGameBtn = document.getElementById('newGameBtn');
 	if (newGameBtn) {
 		newGameBtn.addEventListener('click', () => {
-			// TODO: call your API to create a new game
+			// call API to create a new game soon inshallah
 			console.log('Create new game clicked');
 		});
 	}
@@ -308,13 +329,12 @@ function setupLoginHandlers() {
 
   form.onsubmit = async e => {
     e.preventDefault();
-    // on récupère username/password
+    // we get username/pass from login form
     const data = Object.fromEntries(new FormData(form).entries());
-    // et on sauvegarde le pseudo pour l'afficher plus tard
+    // save pseudo in cookie to render on home
     localStorage.setItem('username', data.username);
 
     try {
-      // un seul fetch, avec les vraies options
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -332,7 +352,7 @@ function setupLoginHandlers() {
           setupVerify2FAHandlers();
         }
       } else {
-        // afficher l’erreur dans le <p id="login-error">
+        // render error in <p id="login-error">
         const err = document.getElementById('login-error');
         err.textContent = json.error || 'Erreur de connexion';
         err.classList.remove('hidden');

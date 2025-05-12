@@ -7,7 +7,7 @@ WORK_DIR = $(shell pwd)
 
 
 
-.PHONY: install clean dev prod docker-build docker-run
+.PHONY: install clean dev prod docker-build docker-run clear_db
 
 # -------------------------------------------------------------------
 # install : install backend + Tailwind + plugin static (v4)
@@ -26,6 +26,16 @@ install:
 clean:
 	@echo "🧹 Cleaning…"
 	rm -rf node_modules dist client/dist package-lock.json
+
+# -------------------------------------------------------------------
+# clear_db : clear the database
+# -------------------------------------------------------------------
+clear_db:
+	@echo "🧹 Erasing & Re-creating database"
+	rm -rf src/db/userdata.db
+	touch src/db/userdata.db
+
+
 
 # -------------------------------------------------------------------
 # dev : dev-server + watch-css

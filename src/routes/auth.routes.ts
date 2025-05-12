@@ -18,7 +18,7 @@ const JWT_SECRET = 'jaimelespates123'
 // Big function called by main.ts to mount auth routes
 export async function authRoutes(fastify: FastifyInstance) {
   // 1) Route POST /api/auth/register ------------------------------------ REGISTER
-  fastify.post('/api/auth/register', async (request, reply) => {
+  fastify.post('/auth/register', async (request, reply) => {
     // a) Read Json body as request.body
     const { username, password } = request.body as { username: string, password: string }
 
@@ -47,7 +47,7 @@ export async function authRoutes(fastify: FastifyInstance) {
   })
 
 	// 2) Route POST /api/auth/login ------------------------------------------ LOGIN
-	fastify.post('/api/auth/login', async (request, reply) => {
+	fastify.post('/auth/login', async (request, reply) => {
 	  const { username, password } = request.body as { username: string, password: string }
 	  if (!username || !password) {
 	    return reply.code(400).send({ error: 'Incomplete Username or Password' })
@@ -83,7 +83,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 
 
   // 3) Route POST /api/auth/2fa/setup ------------------------------------------- SETUP 2FA
-  fastify.post('/api/auth/2fa/setup', async (request, reply) => {
+  fastify.post('/auth/2fa/setup', async (request, reply) => {
     // a) We get the "pending" token via http Header Authorization: Bearer <token>
     const auth = (request.headers.authorization || '').split(' ')[1] // split to get the token
     if (!auth) return reply.code(401).send({ error: 'No token : 401 Unauthorized' })
@@ -118,7 +118,7 @@ export async function authRoutes(fastify: FastifyInstance) {
   })
 
   // 4) Route POST /api/auth/2fa/verify -------------------------------------------- Verify 2FA
-  fastify.post('/api/auth/2fa/verify', async (request, reply) => {
+  fastify.post('/auth/2fa/verify', async (request, reply) => {
     const { code } = request.body as { code: string }
     const auth = (request.headers.authorization || '').split(' ')[1] // get the token only
     if (!auth) return reply.code(401).send({ error: 'No token' })

@@ -14,6 +14,7 @@ WORK_DIR = $(shell pwd)
 # -------------------------------------------------------------------
 install:
 	@echo "🔧 Installing dependencies…"
+	@echo "WORK_DIR = $(WORK_DIR)" > .env
 	# fastify v4 + plugin static compatible
 	npm install fastify@^4 fastify-static@^4
 	# le reste (TS, Tailwind, PostCSS…)
@@ -24,7 +25,7 @@ install:
 # -------------------------------------------------------------------
 clean:
 	@echo "🧹 Cleaning…"
-	rm -rf node_modules dist public/dist
+	rm -rf node_modules dist client/dist package-lock.json
 
 # -------------------------------------------------------------------
 # dev : dev-server + watch-css

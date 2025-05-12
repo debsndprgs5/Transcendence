@@ -1,298 +1,365 @@
-// Auth state
-let authToken = localStorage.getItem('token');
+// ─── AUTH STATE ──────────────────────────────────────────────────────────────
+let authToken    = localStorage.getItem('token');
+let pendingToken = null;
 
-
-// Rendering function to insert HTML
-function render(content) {
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+function render(html) {
   const app = document.getElementById('app');
-  if (app) {
-      app.innerHTML = content;
-  }
+  if (app) app.innerHTML = html;
 }
 
-// Views
+// ─── VIEWS ────────────────────────────────────────────────────────────────────
 function HomeView() {
-    if (!authToken) {
-        return `
-            <div class="max-w-2xl mx-auto text-center">
-                <h1 class="text-4xl font-bold text-primary mb-8">Bienvenue sur Transcendence</h1>
-                <div class="space-y-4">
-                    <a href="/register" data-link class="block w-full px-4 py-2 bg-accent text-white rounded">Créer un compte</a>
-                    <a href="/login" data-link class="block w-full px-4 py-2 bg-primary text-white rounded">Se connecter</a>
-                </div>
-            </div>
-        `;
-    }
+  if (!authToken) {
     return `
-        <div class="max-w-4xl mx-auto">
-            <h1 class="text-3xl font-bold text-primary mb-6">Lobby</h1>
-            <div class="grid grid-cols-2 gap-4">
-                <div class="bg-white p-6 rounded shadow">
-                    <h2 class="text-xl font-semibold mb-4">Parties disponibles</h2>
-                    <div id="games-list">
-                        <!-- Liste des parties -->
-                    </div>
-                </div>
-                <div class="bg-white p-6 rounded shadow">
-                    <h2 class="text-xl font-semibold mb-4">Chat</h2>
-                    <div id="chat">
-                        <!-- Chat -->
-                    </div>
-                </div>
-            </div>
+      <section class="bg-white rounded-lg shadow-lg overflow-hidden md:flex">
+        <div class="p-8 md:w-1/2">
+          <h1 class="text-4xl font-bold text-indigo-600 mb-4">
+            Bienvenue sur Transcendence
+          </h1>
+          <p class="text-gray-700 mb-6">
+            Rejoignez des parties de Pong en temps réel, discutez avec vos amis et défiez notre IA.
+          </p>
+          <div class="space-x-4">
+            <a href="/register" data-link
+               class="inline-block px-6 py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition">
+              Créer un compte
+            </a>
+            <a href="/login" data-link
+               class="inline-block px-6 py-3 border border-indigo-600 text-indigo-600 font-medium rounded-lg hover:bg-indigo-50 transition">
+              Se connecter
+            </a>
+          </div>
         </div>
+        <div class="md:w-1/2 bg-indigo-50 flex items-center justify-center">
+          <img src="https://tailwindcss.com/_next/static/media/pong.123456.png"
+               alt="Pong illustration"
+               class="w-3/4 h-auto">
+        </div>
+      </section>
     `;
+  }
+  // connecté → Lobby
+  return `
+    <div class="grid gap-6 md:grid-cols-2">
+      <div class="bg-white p-6 rounded-lg shadow-lg flex flex-col">
+        <h2 class="text-2xl font-semibold text-indigo-600 mb-4">Parties disponibles</h2>
+        <div id="games-list" class="flex-1 overflow-auto space-y-3"></div>
+        <button id="newGameBtn"
+                class="mt-4 px-4 py-2 bg-green-500 text-black rounded-lg hover:bg-green-600 transition">
+          + Créer une partie
+        </button>
+      </div>
+      <div class="bg-white p-6 rounded-lg shadow-lg flex flex-col">
+        <h2 class="text-2xl font-semibold text-indigo-600 mb-4">Chat</h2>
+        <div id="chat" class="flex-1 overflow-auto space-y-2 mb-4"></div>
+        <form id="chatForm" class="flex space-x-2">
+          <input name="message" placeholder="Écrire un message…"
+                 class="flex-1 border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-indigo-300" />
+          <button type="submit"
+                  class="px-4 py-2 bg-indigo-600 text-black rounded-lg hover:bg-indigo-700 transition">
+            Envoyer
+          </button>
+        </form>
+      </div>
+    </div>
+  `;
 }
 
 function LoginView() {
-    return `
-        <div class="max-w-md mx-auto bg-white p-8 rounded shadow">
-            <h1 class="text-3xl font-bold text-primary mb-6">Connexion</h1>
-            <form id="loginForm" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium mb-1">Nom d'utilisateur</label>
-                    <input name="username" class="border p-2 w-full rounded" required />
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-1">Mot de passe</label>
-                    <input type="password" name="password" class="border p-2 w-full rounded" required />
-                </div>
-                <button type="submit" class="w-full px-4 py-2 bg-accent text-white rounded">Se connecter</button>
-                <div id="login-error" class="text-red-500 text-sm hidden"></div>
-            </form>
-            <div id="twofa-form" class="hidden space-y-4 mt-4">
-                <input type="text" id="2fa-code" placeholder="Code 2FA" class="border p-2 w-full rounded" />
-                <button id="verify-2fa-btn" class="w-full px-4 py-2 bg-accent text-white rounded">Vérifier 2FA</button>
-            </div>
+  return `
+    <div class="max-w-md mx-auto mt-12 bg-white shadow-lg rounded-lg overflow-hidden">
+      <div class="px-6 py-4 bg-indigo-50">
+        <h2 class="text-2xl font-bold text-indigo-700">Connexion</h2>
+      </div>
+      <form id="loginForm" class="px-6 py-4 space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Nom d’utilisateur</label>
+          <input name="username" required
+                 class="mt-1 block w-full border-gray-300 rounded-md shadow-sm 
+                        focus:ring-indigo-500 focus:border-indigo-500" />
         </div>
-    `;
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Mot de passe</label>
+          <input type="password" name="password" required
+                 class="mt-1 block w-full border-gray-300 rounded-md shadow-sm 
+                        focus:ring-indigo-500 focus:border-indigo-500" />
+        </div>
+        <button type="submit"
+                class="w-full py-2 px-4 bg-indigo-600 text-white font-semibold 
+                       rounded-md hover:bg-indigo-700 transition">
+          Se connecter
+        </button>
+        <p id="login-error" class="text-red-500 text-sm mt-2 hidden"></p>
+      </form>
+      <div class="px-6 py-4 bg-gray-50 text-center">
+        <p class="text-sm">
+          Vous n’avez pas de compte ?
+          <a href="/register" data-link class="text-indigo-600 hover:underline">Inscrivez-vous</a>
+        </p>
+      </div>
+    </div>
+  `;
 }
 
 function RegisterView() {
-    return `
-        <div class="max-w-md mx-auto bg-white p-8 rounded shadow">
-            <h1 class="text-3xl font-bold text-primary mb-6">Inscription</h1>
-            <form id="registerForm" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium mb-1">Nom d'utilisateur</label>
-                    <input name="username" class="border p-2 w-full rounded" required />
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-1">Mot de passe</label>
-                    <input type="password" name="password" class="border p-2 w-full rounded" required />
-                </div>
-                <button type="submit" class="w-full px-4 py-2 bg-accent text-white rounded">S'inscrire</button>
-                <div id="register-error" class="text-red-500 text-sm hidden"></div>
-            </form>
+  return `
+    <div class="max-w-md mx-auto mt-12 bg-white shadow-lg rounded-lg overflow-hidden">
+      <div class="px-6 py-4 bg-green-50">
+        <h2 class="text-2xl font-bold text-green-700">Inscription</h2>
+      </div>
+      <form id="registerForm" class="px-6 py-4 space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Nom d’utilisateur</label>
+          <input name="username" required
+                 class="mt-1 block w-full border-gray-300 rounded-md shadow-sm 
+                        focus:ring-green-500 focus:border-green-500" />
         </div>
-    `;
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Mot de passe</label>
+          <input type="password" name="password" required
+                 class="mt-1 block w-full border-gray-300 rounded-md shadow-sm 
+                        focus:ring-green-500 focus:border-green-500" />
+        </div>
+        <button type="submit"
+                class="w-full py-2 px-4 bg-green-600 text-black font-semibold 
+                       rounded-md hover:bg-green-700 transition">
+          Créer mon compte
+        </button>
+        <p id="register-error" class="text-red-500 text-sm mt-2 hidden"></p>
+      </form>
+      <div class="px-6 py-4 bg-gray-50 text-center">
+        <p class="text-sm">
+          Déjà un compte ?
+          <a href="/login" data-link class="text-green-600 hover:underline">Connectez-vous</a>
+        </p>
+      </div>
+    </div>
+  `;
 }
 
-// Router
+function Setup2FAView(otpauth_url, base32) {
+  // on utilise QuickChart pour générer le QR code
+  const chartUrl = `https://quickchart.io/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(otpauth_url)}`;
+  return `
+    <div class="max-w-md mx-auto mt-12 bg-white shadow-lg rounded-lg overflow-hidden">
+      <div class="px-6 py-4 bg-yellow-50">
+        <h2 class="text-2xl font-bold text-yellow-700">Configurer la 2FA</h2>
+      </div>
+      <div class="px-6 py-4 space-y-4 text-center">
+        <p class="text-gray-700">Scannez ce QR code avec votre application d'authentification :</p>
+        <img src="${chartUrl}" alt="QR Code 2FA" class="mx-auto w-48 h-48" />
+        <p class="text-gray-700">Ou entrez ce code manuellement :</p>
+        <code class="block bg-gray-100 p-2 rounded font-mono text-sm">${base32}</code>
+      </div>
+      <div class="px-6 pb-6 space-y-2">
+        <input id="2fa-setup-code" placeholder="Entrez le code 2FA"
+               class="w-full border-gray-300 rounded-md shadow-sm p-2 
+                      focus:ring-yellow-500 focus:border-yellow-500" />
+        <button id="verify-setup-2fa-btn"
+                class="w-full py-2 px-4 bg-yellow-600 text-black font-semibold 
+                       rounded-md hover:bg-yellow-700 transition">
+          Vérifier le code
+        </button>
+        <p id="setup2fa-error" class="text-red-500 text-sm mt-2 hidden"></p>
+      </div>
+    </div>
+  `;
+}
+
+function Verify2FAView() {
+  return `
+    <div class="max-w-md mx-auto mt-12 bg-white shadow-lg rounded-lg overflow-hidden">
+      <div class="px-6 py-4 bg-yellow-50">
+        <h2 class="text-2xl font-bold text-yellow-700">Vérifier la 2FA</h2>
+      </div>
+      <form id="verifyForm" class="px-6 py-4 space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Code 2FA</label>
+          <input id="2fa-code" name="code" required
+                 class="mt-1 block w-full border-gray-300 rounded-md shadow-sm 
+                        focus:ring-yellow-500 focus:border-yellow-500" />
+        </div>
+        <button type="submit"
+                class="w-full py-2 px-4 bg-yellow-600 text-black font-semibold 
+                       rounded-md hover:bg-yellow-700 transition">
+          Vérifier
+        </button>
+        <p id="verify-error" class="text-red-500 text-sm mt-2 hidden"></p>
+      </form>
+    </div>
+  `;
+}
+
+// ─── ROUTER ──────────────────────────────────────────────────────────────────
 function router() {
-    const path = window.location.pathname;
-    switch (path) {
-        case '/login': render(LoginView()); setupLoginHandlers(); break;
-        case '/register': render(RegisterView()); setupRegisterHandlers(); break;
-        default: render(HomeView()); break;
-    }
-}
-
-// Register handlers
-function setupRegisterHandlers() {
-  const form = document.getElementById('registerForm');
-  if (form) {
-      form.onsubmit = async (e) => {
-          e.preventDefault();
-          const formData = new FormData(form);
-          try {
-              const response = await fetch('/api/auth/register', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                      username: formData.get('username'),
-                      password: formData.get('password')
-                  })
-              });
-              
-              const data = await response.json();
-              if (response.ok) {
-                  // Redirect to login after successful registration
-                  history.pushState(null, '', '/login');
-                  router();
-              } else {
-                  document.getElementById('register-error').textContent = data.error;
-                  document.getElementById('register-error').classList.remove('hidden');
-              }
-          } catch (err) {
-              document.getElementById('register-error').textContent = "Erreur d'inscription";
-              document.getElementById('register-error').classList.remove('hidden');
-          }
-      };
+  const path = window.location.pathname;
+  switch (path) {
+    case '/login':
+      render(LoginView());
+      setupLoginHandlers();
+      break;
+    case '/register':
+      render(RegisterView());
+      setupRegisterHandlers();
+      break;
+    default:
+      render(HomeView());
+      break;
   }
 }
 
-// Auth handlers
-function setupLoginHandlers() {
-    const form = document.getElementById('loginForm');
-    if (form) {
-        form.onsubmit = async (e) => {
-            e.preventDefault();
-            const formData = new FormData(form);
-            try {
-                const response = await fetch('/api/auth/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        username: formData.get('username'),
-                        password: formData.get('password')
-                    })
-                });
-                const data = await response.json();
-                
-                if (data.need2FASetup) {
-                    // Redirect to 2FA setup
-                    setup2FA(data.token);
-                } else if (data.need2FAVerify) {
-                    // Show 2FA verification form
-                    document.getElementById('twofa-form').classList.remove('hidden');
-                    localStorage.setItem('pendingToken', data.token);
-                }
-            } catch (err) {
-                document.getElementById('login-error').textContent = "Erreur de connexion";
-                document.getElementById('login-error').classList.remove('hidden');
-            }
-        };
-    }
-    const verify2FABtn = document.getElementById('verify-2fa-btn');
-    if (verify2FABtn) {
-        verify2FABtn.addEventListener('click', verify2FA);
-    }
-}
-
-// 
-async function verify2FA() {
-    const code = document.getElementById('2fa-code').value;
-    const pendingToken = localStorage.getItem('pendingToken');
-    
-    try {
-        const response = await fetch('/api/auth/2fa/verify', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${pendingToken}`
-            },
-            body: JSON.stringify({ code })
-        });
-        
-        const data = await response.json();
-        if (data.token) {
-            localStorage.setItem('token', data.token);
-            localStorage.removeItem('pendingToken');
-            window.location.href = '/';
-        }
-    } catch (err) {
-        console.error('2FA verification failed', err);
-    }
-}
-
-// Setup 2FA after first login
-async function setup2FA(token) {
-    try {
-        const response = await fetch('/api/auth/2fa/setup', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-        
-        const data = await response.json();
-        if (response.ok) {
-            const qrCodeUrl = `https://quickchart.io/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(data.otpauth_url)}`;
-            
-            render(`
-                <div class="max-w-md mx-auto bg-white p-8 rounded shadow">
-                    <h1 class="text-3xl font-bold text-primary mb-6">Configuration 2FA</h1>
-                    <div class="space-y-4">
-                        <p class="text-sm text-gray-600">Scannez ce QR code avec votre application d'authentification :</p>
-                        <img src="${qrCodeUrl}" alt="QR Code" class="mx-auto" />
-                        <p class="text-sm text-gray-600">Ou entrez ce code manuellement :</p>
-                        <code class="block p-2 bg-gray-100 rounded text-center">${data.base32}</code>
-                        <div class="mt-6">
-                            <input type="text" id="2fa-setup-code" placeholder="Entrez le code" class="border p-2 w-full rounded" />
-                            <button id="verify-setup-2fa-btn" class="w-full mt-2 px-4 py-2 bg-accent text-white rounded">
-                                Vérifier
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `);
-
-            // Add event listener after rendering
-            const verifyBtn = document.getElementById('verify-setup-2fa-btn');
-            if (verifyBtn) {
-                verifyBtn.addEventListener('click', () => verifySetup2FA(token));
-            }
-        } else {
-            throw new Error(data.error || 'Failed to setup 2FA');
-        }
-    } catch (err) {
-        console.error('2FA setup failed:', err);
-        render(`
-            <div class="max-w-md mx-auto bg-white p-8 rounded shadow">
-                <div class="text-red-500">Erreur lors de la configuration 2FA. Veuillez réessayer.</div>
-                <button id="back-to-login" class="mt-4 w-full px-4 py-2 bg-accent text-white rounded">
-                    Retour
-                </button>
-            </div>
-        `);
-        
-        // Add event listener for back button
-        const backBtn = document.getElementById('back-to-login');
-        if (backBtn) {
-            backBtn.addEventListener('click', () => {
-                history.pushState(null, '', '/login');
-                router();
-            });
-        }
-    }
-}
-
-// Verify the 2fa setup
-async function verifySetup2FA(token) {
-    const code = document.getElementById('2fa-setup-code').value;
-    
-    try {
-        const response = await fetch('/api/auth/2fa/verify', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ code })
-        });
-        
-        const data = await response.json();
-        if (response.ok) {
-            localStorage.setItem('token', data.token);
-            window.location.href = '/';
-        } else {
-            throw new Error(data.error || 'Failed to verify 2FA code');
-        }
-    } catch (err) {
-        console.error('2FA verification failed:', err);
-        alert('Code incorrect. Veuillez réessayer.');
-    }
-}
-
-// Event listeners
+// ─── NAVIGATION HELPERS ──────────────────────────────────────────────────────
 document.addEventListener('click', e => {
-    if (e.target.matches('[data-link]')) {
-        e.preventDefault();
-        history.pushState(null, '', e.target.href);
-        router();
-    }
+  const a = e.target.closest('a[data-link]');
+  if (!a) return;
+  e.preventDefault();
+  history.pushState(null, '', a.pathname);
+  router();
 });
-
 window.addEventListener('popstate', router);
 window.addEventListener('DOMContentLoaded', router);
+
+// ─── HANDLERS ────────────────────────────────────────────────────────────────
+function setupRegisterHandlers() {
+  const form = document.getElementById('registerForm');
+  if (!form) return;
+  form.onsubmit = async e => {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(form).entries());
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const json = await res.json();
+      if (res.ok) {
+        history.pushState(null, '', '/login');
+        router();
+      } else {
+        const err = document.getElementById('register-error');
+        err.textContent = json.error;
+        err.classList.remove('hidden');
+      }
+    } catch {
+      const err = document.getElementById('register-error');
+      err.textContent = 'Erreur d’inscription';
+      err.classList.remove('hidden');
+    }
+  };
+}
+
+function setupLoginHandlers() {
+  const form = document.getElementById('loginForm');
+  if (!form) return;
+  form.onsubmit = async e => {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(form).entries());
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const json = await res.json();
+      if (json.need2FASetup) {
+        pendingToken = json.token;
+        await doSetup2FA(pendingToken);
+      } else if (json.need2FAVerify) {
+        pendingToken = json.token;
+        render(Verify2FAView());
+        setupVerify2FAHandlers();
+      }
+    } catch {
+      const err = document.getElementById('login-error');
+      err.textContent = 'Erreur de connexion';
+      err.classList.remove('hidden');
+    }
+  };
+}
+
+async function doSetup2FA(token) {
+  try {
+    const res = await fetch('/api/auth/2fa/setup', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error);
+    render(Setup2FAView(json.otpauth_url, json.base32));
+    setupSetup2FAHandlers();
+  } catch (err) {
+    render(`
+      <div class="max-w-md mx-auto mt-12 bg-white p-8 rounded shadow">
+        <p class="text-red-500">Impossible de configurer 2FA. Réessayez.</p>
+        <button id="back-login" class="mt-4 w-full py-2 px-4 bg-indigo-600 text-black rounded">
+          Retour
+        </button>
+      </div>
+    `);
+    document.getElementById('back-login')
+            .addEventListener('click', () => { history.pushState(null,'','/login'); router(); });
+  }
+}
+
+function setupSetup2FAHandlers() {
+  const btn = document.getElementById('verify-setup-2fa-btn');
+  if (!btn) return;
+  btn.onclick = async () => {
+    const code = document.getElementById('2fa-setup-code').value;
+    try {
+      const res = await fetch('/api/auth/2fa/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${pendingToken}`
+        },
+        body: JSON.stringify({ code })
+      });
+      const json = await res.json();
+      if (res.ok) {
+        localStorage.setItem('token', json.token);
+        authToken = json.token;
+        window.location.href = '/';
+      } else {
+        const err = document.getElementById('setup2fa-error');
+        err.textContent = json.error;
+        err.classList.remove('hidden');
+      }
+    } catch {
+      alert('Erreur lors de la vérification 2FA');
+    }
+  };
+}
+
+function setupVerify2FAHandlers() {
+  const form = document.getElementById('verifyForm');
+  if (!form) return;
+  form.onsubmit = async e => {
+    e.preventDefault();
+    const code = document.getElementById('2fa-code').value;
+    try {
+      const res = await fetch('/api/auth/2fa/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${pendingToken}`
+        },
+        body: JSON.stringify({ code })
+      });
+      const json = await res.json();
+      if (res.ok) {
+        localStorage.setItem('token', json.token);
+        authToken = json.token;
+        window.location.href = '/';
+      } else {
+        const err = document.getElementById('verify-error');
+        err.textContent = json.error;
+        err.classList.remove('hidden');
+      }
+    } catch {
+      alert('Erreur lors de la vérification 2FA');
+    }
+  };
+}

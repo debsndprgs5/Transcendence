@@ -14,7 +14,7 @@ export async function authRoutes(fastify: FastifyInstance) {
   // 1) Route POST /api/auth/register ------------------------------------ REGISTER
   fastify.post('/auth/register', async (request, reply) => {
     // a) Read Json body as request.body
-    const { username,email, password } = request.body as { username: string, email: string , password: string }
+    const { username, password } = request.body as { username: string, password: string }
 
     // b) Micro verif if password & username are set
     if (!username || !password) {
@@ -34,7 +34,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       //Create simple ID (with timestamp + random)
         const id = `${Date.now()}-${Math.floor(Math.random()*1000)}`
       //Create the user in the database
-        await UserManagment.createUser(id, username,email, passwordHash)
+        await UserManagment.createUser(id, username, passwordHash)
 
       //Success feedback
     return reply.code(201).send({ message: 'Registered successfully', userId: id })

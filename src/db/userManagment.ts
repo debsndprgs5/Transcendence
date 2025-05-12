@@ -36,8 +36,6 @@ export const setRandId = (index: number, randId: string) =>
 export const setUserName = (index: number, username: string) =>
   run('UPDATE users SET username = ? WHERE our_index = ?', [username, index]);
 
-export const setEmail = (index: number, email: string) =>
-  run('UPDATE users SET email = ? WHERE our_index = ?', [email, index]);
 
 export const setPasswordH = (index: number, password: string) =>
   run('UPDATE users SET password_hashed = ? WHERE our_index = ?', [password, index]);
@@ -74,16 +72,14 @@ export const getPasswordHByIndex = (index: number) =>
 export const getRandbyIndex = (index: number) =>
   get('SELECT rand_id FROM users WHERE our_index = ?', [index]); 
 
-export const getEmailByIndex = (index: number) =>
-  get('SELECT email FROM users WHERE our_index = ?', [index]);
 
 export const getToptbyIndex = (index: number) =>
   get('SELECT totp_secret FROM users WHERE our_index = ?' , [index]);
 
 // Create User
-export const createUser = (rand_id: string, username: string, email: string, password_hashed: string, totp_secret: string | null = null) =>
+export const createUser = (rand_id: string, username: string, password_hashed: string, totp_secret: string | null = null) =>
   run(
-    `INSERT INTO users (rand_id, username, email, password_hashed, totp_secret)
-     VALUES (?, ?, ?, ?, ?)`,
-    [rand_id, username, email, password_hashed, totp_secret]
+    `INSERT INTO users (rand_id, username, password_hashed, totp_secret)
+     VALUES (?, ?, ?, ?)`,
+    [rand_id, username, password_hashed, totp_secret]
   );

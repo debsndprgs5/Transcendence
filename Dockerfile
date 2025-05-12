@@ -104,14 +104,18 @@ ENV NODE_ENV=production
 COPY package*.json ./
 RUN npm install --only=production
 
+#.env package for .ts files
+RUN npm install dotenv
+
 # Copy build output from builder stage
 COPY --from=builder /app/dist ./dist
+COPY .env ./
 
 
 # Copy DB schema and other needed static files into the proper directory
 # Since the app will run in production from dist, copy the DB schema and the DB file into /app/db
-COPY src/db /app/dist/db
-RUN sqlite3 /app/dist/db/userdata.db < /app/dist/db/schema.sql
+  COPY src/db /app/db
+#  RUN sqlite3 /app/db/userdata.db < /app/db/schema.sql done in db.ts
 # Expose Fastify's port
 EXPOSE 3000
 

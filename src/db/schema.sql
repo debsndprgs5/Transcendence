@@ -9,14 +9,26 @@ CREATE  TABLE IF NOT EXISTS users (
   	created_at   	DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 /*
-CREATE TABLE if not exist Matches (
-	id		INTEGER PRIMARY KEY AUTOINCREMENT,
-	win		INTEGER
-);
 
-CREATE TABLE Chat (
 
-);
-*/
+CREATE TABLE IF NOT EXISTS roomMembers{
+	room_id TEXT NOT NULL,
+	user_id INTEGER NOT NULL
+}
 
-			
+CREATE TABLE IF NOT EXISTS room{
+	room_id  TEXT NOT NULL,
+	roomname TEXT NOT NULL,
+	user_id INTEGER
+};
+
+CREATE TABLE IF NOT EXISTS messages{
+	room_id TEXT NOT NULL,
+	content TEXT,
+	author INTEGER,
+	created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+}
+
+CREATE TABLE IF NOT EXISTS me
+
+*/			

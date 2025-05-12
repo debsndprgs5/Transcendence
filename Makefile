@@ -1,16 +1,21 @@
 
+
 # Variables
 IMAGE_NAME = transcendence
 PORT       = 3000
+WORK_DIR = $(shell pwd)
+
+
 
 .PHONY: all install dev build start docker-build docker-run clean
 
 all: install build
 
-deploy:
+eploy:
 	sudo ufw reload
 
 install:
+	echo "WORK_DIR=$(WORK_DIR)" > .env
 	@echo "Installing dependencies..."
 	npm install
 	# Auth + JWT + 2FA requirements

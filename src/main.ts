@@ -1,6 +1,7 @@
 import path from 'path'
 import Fastify from 'fastify'
 import fastifyStatic from '@fastify/static'
+import './db/db'
 import { authRoutes } from './routes/auth.routes'
 
 async function bootstrap() {

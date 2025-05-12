@@ -1,6 +1,11 @@
+
+
 # Variables
 IMAGE_NAME = transcendence
 PORT       = 3000
+WORK_DIR = $(shell pwd)
+
+
 
 .PHONY: install clean dev prod docker-build docker-run
 

@@ -1,0 +1,34 @@
+
+CREATE  TABLE IF NOT EXISTS users (
+	our_index		INTEGER PRIMARY KEY AUTOINCREMENT,
+	rand_id			TEXT NOT NULL,
+	username		TEXT UNIQUE NOT NULL,
+	email			TEXT NOT NULL,
+	password_hashed	TEXT NOT NULL,
+	totp_secret  	TEXT, --token
+  	created_at   	DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+/*
+
+
+CREATE TABLE IF NOT EXISTS roomMembers{
+	room_id TEXT NOT NULL,
+	user_id INTEGER NOT NULL
+}
+
+CREATE TABLE IF NOT EXISTS room{
+	room_id  TEXT NOT NULL,
+	roomname TEXT NOT NULL,
+	user_id INTEGER
+};
+
+CREATE TABLE IF NOT EXISTS messages{
+	room_id TEXT NOT NULL,
+	content TEXT,
+	author INTEGER,
+	created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+}
+
+CREATE TABLE IF NOT EXISTS me
+
+*/			

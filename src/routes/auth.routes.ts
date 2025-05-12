@@ -2,15 +2,9 @@ import { FastifyInstance } from 'fastify'
 import bcrypt from 'bcrypt' // Blowfish encrypting
 import jwt from 'jsonwebtoken' // Json web token -> one-time token
 import speakeasy from 'speakeasy' // lib that supports 2fa using time based one-time pass (TOTP) and HOTP
+import * as UserManagment from '../db/userManagment';
 
-// Temp memory storage until sql
-interface User {
-  id: string
-  username: string
-  passwordHash: string
-  totpSecret?: string
-}
-const users = new Map<string,User>()
+
 
 // SECRET KEY to sign JWT (.env)
 const JWT_SECRET = 'jaimelespates123'
@@ -20,29 +14,29 @@ export async function authRoutes(fastify: FastifyInstance) {
   // 1) Route POST /api/auth/register ------------------------------------ REGISTER
   fastify.post('/auth/register', async (request, reply) => {
     // a) Read Json body as request.body
-    const { username, password } = request.body as { username: string, password: string }
+    const { username,email, password } = request.body as { username: string, email: string , password: string }
 
     // b) Micro verif if password & username are set
     if (!username || !password) {
       return reply.code(400).send({ error: 'Incomplete Username or Password' })
     }
 
-    // a) Look for user in map (soon db)
-    // const user = Array.from(users.values()).find(u => u.username === username)
-    // if (!user) {
-    //   return reply.code(401).send({ error: 'User already registered' })
-    // }
+    // a) Look for user in db
+    const newUser = await UserManagment.getUserByName(username);
+    if(newUser != null){
+		return reply.code(400).send({error : 'Name allready in use'})
+	}
 
-    // c) Password hashing using bcrypt
-    const passwordHash = await bcrypt.hash(password, 12)
+	//b) No user in bd with same name, we create a new user 	
+      // Password hashing using bcrypt
+        const passwordHash = await bcrypt.hash(password, 12)
 
-    // d) Create simple ID (with timestamp + random)
-    const id = `${Date.now()}-${Math.floor(Math.random()*1000)}`
+      //Create simple ID (with timestamp + random)
+        const id = `${Date.now()}-${Math.floor(Math.random()*1000)}`
+      //Create the user in the database
+        await UserManagment.createUser(id, username,email, passwordHash)
 
-    // e) Stock in map -> soon to be replaced by sql inshallah
-    users.set(id, { id, username, passwordHash })
-
-    // f) Success feedback
+      //Success feedback
     return reply.code(201).send({ message: 'Registered successfully', userId: id })
   })
 
@@ -53,31 +47,32 @@ export async function authRoutes(fastify: FastifyInstance) {
 	    return reply.code(400).send({ error: 'Incomplete Username or Password' })
 	  }
 
-	  // a) Look for user in map (soon db)
-	  const user = Array.from(users.values()).find(u => u.username === username)
-	  if (!user) {
+	  // a) Look for user in db, if not found error 
+	  const RegisterUser = await UserManagment.getUserByName(username)
+	  if (RegisterUser == null) {
 	    return reply.code(401).send({ error: 'Invalid Username or Password' })
 	  }
 
 	  // b) Compare pass and passhash with bcrypt
-	  const valid = await bcrypt.compare(password, user.passwordHash)
+	  const valid = await bcrypt.compare(password, RegisterUser.password_hashed)
 	  if (!valid) {
 	    return reply.code(401).send({ error: 'Invalid Username or Password' })
 	  }
 
 	  // c) Create pending 2fa token. User HAS to provide 2FA
+    const randId = RegisterUser.rand_id
 	  const pendingToken = jwt.sign(
-	    { sub: user.id, step: '2fa' },
+	    { sub:randId,  step: '2fa' },
 	    JWT_SECRET,
 	    { expiresIn: '5m' }
 	  )
 
 	  // d) Tell client if he needs to setup 2FA or just verify it
-	  const has2FA = Boolean(user.totpSecret)
+	  const totp = RegisterUser.totp_secret
 	  return reply.send({
 	    token: pendingToken,
-	    need2FASetup: !has2FA,   // true if never config
-	    need2FAVerify: has2FA    // true if already config
+	    need2FASetup: !totp,   // true if never config
+	    need2FAVerify: totp    // true if already config
 	  })
 	})
 
@@ -99,16 +94,16 @@ export async function authRoutes(fastify: FastifyInstance) {
     }
 
     // b) Get the user
-    const user = users.get(payload.sub)
-    if (!user) {
+    const rand_user = await UserManagment.getUserByRand(payload.sub)
+    if (!rand_user) {
       return reply.code(404).send({ error: 'Invalid User' })
     }
 
     // c) Generate TOTP token
     const secret = speakeasy.generateSecret({
-      name: `ft_transcendence(${user.username})`
+      name: `ft_transcendence(${rand_user.username})`
     })
-    user.totpSecret = secret.base32
+    await UserManagment.setTotp(rand_user.our_index, secret.base32);
 
     // d) Send the data to create QRcode
     return reply.send({
@@ -133,14 +128,14 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.code(400).send({ error: 'Token says 2FA is not in setup mode : Did you already setup 2FA ?' })
     }
 
-    const user = users.get(payload.sub)
-    if (!user || !user.totpSecret) {
+    const user = await UserManagment.getUserByRand(payload.sub)
+    if (!user || !user.totp_secret) {
       return reply.code(404).send({ error: 'Invalid User' })
     }
 
     // Verify code with the stocked secret using speakeasy lib
     const ok = speakeasy.totp.verify({
-      secret: user.totpSecret,
+      secret: user.totp_secret,
       encoding: 'base32',
       token: code
     })
@@ -149,7 +144,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     }
 
     // Final JWT generation
-    const token = jwt.sign({ sub: user.id }, JWT_SECRET, { expiresIn: '1h' })
+    const token = jwt.sign({ sub: user.rand_id }, JWT_SECRET, { expiresIn: '1h' })
     return reply.send({ token })
   })
 }

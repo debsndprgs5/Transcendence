@@ -16,7 +16,7 @@ if (!workDir) {
   throw new Error("WORK_DIR environment variable is not defined");
 }
 
-const dbPath = path.join(workDir, '/src/db/userdata.db'); // Path to the DB file
+const dbPath = path.join(workDir, '/src/db/ourdatabase.db'); // Path to the DB file
 const schemaPath = path.join(workDir,'/src/db/schema.sql'); // Path to the schema file
 
 

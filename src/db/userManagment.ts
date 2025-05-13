@@ -1,6 +1,6 @@
 import sqlite3 from 'sqlite3';
 import { user } from '../types/user';
-const db = new sqlite3.Database('./src/db/userdata.db');
+const db = new sqlite3.Database('./src/db/ourdatabase.db');
 
 function run(query: string, params: any[] = []): Promise<any> {
   return new Promise((resolve, reject) => {

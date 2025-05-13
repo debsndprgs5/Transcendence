@@ -282,3 +282,14 @@ ajouter le token en auth
 raw JSON body
 
 { "code": "983512" }
+
+
+---------------------------Requete JSON-------------------------
+Raw JSON body for post /api/chat/rooms/:roomId/messages
+{
+  chatRoomID;
+  userID;
+  content;
+}
+
+Raw JSON body for post 

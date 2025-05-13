@@ -3,6 +3,7 @@ import Fastify from 'fastify'
 import fastifyStatic from '@fastify/static'
 import './db/db'
 import { authRoutes } from './routes/auth.routes'
+import cookie from '@fastify/cookie';
 
 async function bootstrap() {
   const app = Fastify()
@@ -12,6 +13,12 @@ async function bootstrap() {
     root: path.join(__dirname, '../client'),
     prefix: '/'
   })
+
+  const app = fastify();
+  app.register(cookie, {
+    // Sign the cookies to prevent client to modify-it
+    secret: process.env.COOKIE_SECRET || '&hotzBs@bziCO$oy2xTY0pq7QiBJ9Jz4Clgb$@od0MWzuU*ybL',
+  });
 
   // Toutes les routes API
   app.register(async (fastify) => {

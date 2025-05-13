@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import bcrypt from 'bcrypt' // Blowfish encrypting
+import cookie from '@fastify/cookie';
 import jwt from 'jsonwebtoken' // Json web token -> one-time token
 import speakeasy from 'speakeasy' // lib that supports 2fa using time based one-time pass (TOTP) and HOTP
 import * as UserManagment from '../db/userManagment';
@@ -145,6 +146,23 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     // Final JWT generation
     const token = jwt.sign({ sub: user.rand_id }, JWT_SECRET, { expiresIn: '1h' })
-    return reply.send({ token })
+
+    return reply
+      .setCookie('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        path: '/',
+        sameSite: 'lax',
+        maxAge: 3600, //1h
+      })
+      .setCookie('userId', String(user.our_index), {
+        signed: true,
+        httpOnly: false, // so we can read it in front
+        secure: process.env.NODE_ENV === 'production',
+        path: '/',
+        sameSite: 'lax',
+        maxAge: 3600, //1h
+      })
+      .send({ success:true })
   })
 }

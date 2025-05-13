@@ -1,14 +1,14 @@
-export interface rooms{
+export interface chatRooms{
     roomID: number;
     ownerID: number;
 }
 
-export interface roomMembers{
+export interface chatRoomMembers{
     roomID: number;
     userID: number;
 }
 
-export interface meesages{
+export interface messages{
     roomID?: number;
     authorID: number;
     content: string;

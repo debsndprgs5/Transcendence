@@ -10,13 +10,13 @@ CREATE  TABLE IF NOT EXISTS users (
 );
 
 -- 0 => general , no groups no owner send to all 
-CREATE TABLE IF NOT EXISTS rooms(
+CREATE TABLE IF NOT EXISTS chatRooms(
 	roomID		INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 	ownerID		INTEGER NOT NULL,
 );
 
 --Keep tracks of who is where, one can be everywhere
-CREATE TABLE IF NOT EXISTS roomMembers(
+CREATE TABLE IF NOT EXISTS chatRoomMembers(
 	roomID		INTEGER NOT NULL,
 	userID 		INTEGER NOT NULL,
 	FOREIGN KEY(roomID) REFERENCES rooms(roomID)

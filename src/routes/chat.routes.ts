@@ -1,14 +1,17 @@
 import { FastifyInstance } from 'fastify'
-import * as chatManagment from '../db/chatManagment'
+import * as chatMgr from '../db/chatManagement'
 import * as userManagment from '../db/userManagment'
-
-import { FastifyInstance } from 'fastify';
+import cookie from '@fastify/cookie';
 
 export default async function (fastify: FastifyInstance) {
   // Add friend
   fastify.post('/api/friends/:userId', async (request, reply) => {
     const { userId } = request.params as { userId: string };
-    // const currentUserId = request.user.id; // From your JWT middleware
+    const result = request.unsignCookie(request.cookies.userId);
+    if (!result.valid) {
+      return reply.code(401).send({ error: 'Invalid or missing userId cookie' });
+    }
+    const currentUserId = Number(result.value);
 
     await chatMgr.addFriend(currentUserId, Number(userId));
 
@@ -29,7 +32,11 @@ export default async function (fastify: FastifyInstance) {
   // Block user
   fastify.post('/api/blocks/:userId', async (request, reply) => {
     const { userId } = request.params as { userId: string };
-    // const currentUserId = request.user.id;
+    const result = request.unsignCookie(request.cookies.userId);
+    if (!result.valid) {
+      return reply.code(401).send({ error: 'Invalid or missing userId cookie' });
+    }
+    const currentUserId = Number(result.value);
 
     await chatMgr.blockUser(currentUserId, Number(userId));
 
@@ -39,7 +46,11 @@ export default async function (fastify: FastifyInstance) {
   // Unblock user
   fastify.delete('/api/blocks/:userId', async (request, reply) => {
     const { userId } = request.params as { userId: string };
-    // const currentUserId = request.user.id;
+    const result = request.unsignCookie(request.cookies.userId);
+    if (!result.valid) {
+      return reply.code(401).send({ error: 'Invalid or missing userId cookie' });
+    }
+    const currentUserId = Number(result.value);
 
    await chatMgr.unblockUser(currentUserId, Number(userId));
 
@@ -48,7 +59,11 @@ export default async function (fastify: FastifyInstance) {
 
   // Get friends list
   fastify.get('/api/friends', async (request, reply) => {
-    // const currentUserId = request.user.id;
+    const result = request.unsignCookie(request.cookies.userId);
+    if (!result.valid) {
+      return reply.code(401).send({ error: 'Invalid or missing userId cookie' });
+    }
+    const currentUserId = Number(result.value);
 
    const friends = await chatMgr.getFriends(currentUserId);
 
@@ -57,7 +72,11 @@ export default async function (fastify: FastifyInstance) {
 
   // Get blocked users
   fastify.get('/api/blocks', async (request, reply) => {
-    // const currentUserId = request.user.id;
+   const result = request.unsignCookie(request.cookies.userId);
+   if (!result.valid) {
+   return reply.code(401).send({ error: 'Invalid or missing userId cookie' });
+   }
+   const currentUserId = Number(result.value);
 
    const blocks = await chatMgr.getBlockedUsers(currentUserId);
 
@@ -69,7 +88,11 @@ export default async function (fastify: FastifyInstance) {
 export default async function (fastify: FastifyInstance) {
    // Create a room
   fastify.post('/api/chat/rooms', async (request, reply) => {
-    const ownerId = request.user.id;
+    const result = request.unsignCookie(request.cookies.userId);
+    if (!result.valid) {
+      return reply.code(401).send({ error: 'Invalid or missing userId cookie' });
+    }
+    const ownerId = Number(result.value);
     const { name } = request.body as { name?: string };
     const result = await chatMgr.createChatRoom(ownerId, name);
     return reply.code(201).send({ roomID: result.lastID });
@@ -78,7 +101,11 @@ export default async function (fastify: FastifyInstance) {
 
   // ─ List the rooms belonging to a user
   fastify.get('/api/chat/rooms', async (request, reply) => {
-    const ownerId = request.user.id;
+    const result = request.unsignCookie(request.cookies.userId);
+    if (!result.valid) {
+      return reply.code(401).send({ error: 'Invalid or missing userId cookie' });
+    }
+    const ownerId = Number(result.value);
     const rooms = await chatMgr.getChatRoomsByOwner(ownerId);
     return rooms; 
   });
@@ -94,7 +121,11 @@ export default async function (fastify: FastifyInstance) {
   // ─ Add member to room
   fastify.post('/api/chat/rooms/:roomId/members', async (request, reply) => {
     const roomId = Number((request.params as any).roomId);
-    const userId = request.user.id;                // Pour auto-join, ou changer selon payload
+    const result = request.unsignCookie(request.cookies.userId);
+    if (!result.valid) {
+      return reply.code(401).send({ error: 'Invalid or missing userId cookie' });
+    }
+    const ownerId = Number(result.value);
     await chatMgr.createChatRoomMember(roomId, userId);
     return { success: true };
   });
@@ -117,7 +148,11 @@ export default async function (fastify: FastifyInstance) {
   // ─ Send a message in a room
   fastify.post('/api/chat/rooms/:roomId/messages', async (request, reply) => {
     const roomId   = Number((request.params as any).roomId);
-    const authorId = request.user.id;
+    const result = request.unsignCookie(request.cookies.userId);
+    if (!result.valid) {
+      return reply.code(401).send({ error: 'Invalid or missing userId cookie' });
+    }
+    const ownerId = Number(result.value);
     const { content } = request.body as { content: string };
     await chatMgr.createMessage(roomId, authorId, content);
     return reply.code(201).send({ success: true });

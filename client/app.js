@@ -49,10 +49,6 @@ function HomeView() {
       <h1 class="text-2xl font-semibold text-indigo-600">
         Bienvenue, <span class="font-bold">${userName}</span> !
       </h1>
-      <button id="logoutBtn"
-              class="px-4 py-2 bg-red-500 text-black rounded-md hover:bg-red-600 transition">
-        Déconnexion
-      </button>
     </div>
     <div class="grid gap-6 md:grid-cols-2">
       <div class="bg-white p-6 rounded-lg shadow-lg flex flex-col">
@@ -81,76 +77,94 @@ function HomeView() {
 }
 
 function LoginView() {
-	return `
-		<div class="max-w-md mx-auto mt-12 bg-white shadow-lg rounded-lg overflow-hidden">
-			<div class="px-6 py-4 bg-indigo-50">
-				<h2 class="text-2xl font-bold text-indigo-700">Connexion</h2>
-			</div>
-			<form id="loginForm" class="px-6 py-4 space-y-4">
-				<div>
-					<label class="block text-sm font-medium text-gray-700">Nom d’utilisateur</label>
-					<input name="username" required
-								 class="mt-1 block w-full border-gray-300 rounded-md shadow-sm 
-												focus:ring-indigo-500 focus:border-indigo-500" />
-				</div>
-				<div>
-					<label class="block text-sm font-medium text-gray-700">Mot de passe</label>
-					<input type="password" name="password" required
-								 class="mt-1 block w-full border-gray-300 rounded-md shadow-sm 
-												focus:ring-indigo-500 focus:border-indigo-500" />
-				</div>
-				<button type="submit"
-								class="w-full py-2 px-4 bg-indigo-600 text-white font-semibold 
-											 rounded-md hover:bg-indigo-700 transition">
-					Se connecter
-				</button>
-				<p id="login-error" class="text-red-500 text-sm mt-2 hidden"></p>
-			</form>
-			<div class="px-6 py-4 bg-gray-50 text-center">
-				<p class="text-sm">
-					Vous n’avez pas de compte ?
-					<a href="/register" data-link class="text-indigo-600 hover:underline">Inscrivez-vous</a>
-				</p>
-			</div>
-		</div>
-	`;
+  return `
+    <div class="min-h-screen flex items-start justify-center pt-10 bg-gradient-to-r from-indigo-500 to-blue-500 p-4">
+      <div class="bg-white rounded-xl shadow-xl overflow-hidden w-full max-w-md transform -translate-y-4">
+        <!-- En-tête coloré -->
+        <div class="px-8 py-6 bg-indigo-600 text-white text-center">
+          <h2 class="text-3xl font-bold">Connexion</h2>
+          <p class="mt-2">Accédez à votre compte</p>
+        </div>
+        <!-- Formulaire -->
+        <form id="loginForm" class="px-8 py-6 space-y-6 bg-white">
+          <div>
+            <label for="username" class="block text-sm font-medium text-gray-700">Nom d’utilisateur</label>
+            <input id="username" name="username" type="text" required
+                   class="mt-1 block w-full px-4 py-2 border-2 border-indigo-300 rounded-lg
+                          focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"/>
+          </div>
+          <div>
+            <label for="password" class="block text-sm font-medium text-gray-700">Mot de passe</label>
+            <input id="password" name="password" type="password" required
+                   class="mt-1 block w-full px-4 py-2 border-2 border-indigo-300 rounded-lg
+                          focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"/>
+          </div>
+          <button type="submit"
+                  class="w-full py-3 bg-indigo-600 text-white rounded-lg font-semibold 
+                         hover:bg-indigo-700 transition">
+            Se connecter
+          </button>
+          <p id="login-error" class="text-red-500 text-sm text-center hidden"></p>
+        </form>
+        <!-- Lien bas de carte -->
+        <div class="px-8 py-4 bg-gray-100 text-center">
+          <p class="text-sm text-gray-600">
+            Vous n’avez pas de compte ?
+            <a href="/register" data-link class="text-indigo-600 font-medium hover:underline">
+              Inscrivez-vous
+            </a>
+          </p>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 function RegisterView() {
-	return `
-		<div class="max-w-md mx-auto mt-12 bg-white shadow-lg rounded-lg overflow-hidden">
-			<div class="px-6 py-4 bg-green-50">
-				<h2 class="text-2xl font-bold text-green-700">Inscription</h2>
-			</div>
-			<form id="registerForm" class="px-6 py-4 space-y-4">
-				<div>
-					<label class="block text-sm font-medium text-gray-700">Nom d’utilisateur</label>
-					<input name="username" required
-								 class="mt-1 block w-full border-gray-300 rounded-md shadow-sm 
-												focus:ring-green-500 focus:border-green-500" />
-				</div>
-				<div>
-					<label class="block text-sm font-medium text-gray-700">Mot de passe</label>
-					<input type="password" name="password" required
-								 class="mt-1 block w-full border-gray-300 rounded-md shadow-sm 
-												focus:ring-green-500 focus:border-green-500" />
-				</div>
-				<button type="submit"
-								class="w-full py-2 px-4 bg-green-600 text-black font-semibold 
-											 rounded-md hover:bg-green-700 transition">
-					Créer mon compte
-				</button>
-				<p id="register-error" class="text-red-500 text-sm mt-2 hidden"></p>
-			</form>
-			<div class="px-6 py-4 bg-gray-50 text-center">
-				<p class="text-sm">
-					Déjà un compte ?
-					<a href="/login" data-link class="text-green-600 hover:underline">Connectez-vous</a>
-				</p>
-			</div>
-		</div>
-	`;
+  return `
+    <div class="min-h-screen flex items-start justify-center pt-10 bg-gradient-to-r from-purple-500 to-purple-700 p-4">
+      <div class="bg-white rounded-xl shadow-xl overflow-hidden w-full max-w-md transform -translate-y-4">
+        <!-- En-tête violet -->
+        <div class="px-8 py-6 bg-indigo-600 text-white text-center">
+          <h2 class="text-3xl font-bold">Inscription</h2>
+          <p class="mt-2">Créez votre compte</p>
+        </div>
+        <!-- Formulaire -->
+        <form id="registerForm" class="px-8 py-6 space-y-6 bg-white">
+          <div>
+            <label for="username" class="block text-sm font-medium text-gray-700">Nom d’utilisateur</label>
+            <input id="username" name="username" type="text" required
+                   class="mt-1 block w-full px-4 py-2 border-2 border-purple-300 rounded-lg
+                          focus:outline-none focus:ring-2 focus:ring-purple-400 transition"/>
+          </div>
+          <div>
+            <label for="password" class="block text-sm font-medium text-gray-700">Mot de passe</label>
+            <input id="password" name="password" type="password" required
+                   class="mt-1 block w-full px-4 py-2 border-2 border-purple-300 rounded-lg
+                          focus:outline-none focus:ring-2 focus:ring-purple-400 transition"/>
+          </div>
+          <button type="submit"
+                  class="w-full py-3 bg-indigo-600 text-white rounded-lg font-semibold 
+                         hover:bg-indigo-700 transition">
+            Créer mon compte
+          </button>
+          <p id="register-error" class="text-red-500 text-sm text-center hidden"></p>
+        </form>
+        <!-- Lien en bas -->
+        <div class="px-8 py-4 bg-gray-100 text-center">
+          <p class="text-sm text-gray-600">
+            Déjà un compte ?
+            <a href="/login" data-link class="text-indigo-600 font-medium hover:underline">
+              Connectez-vous
+            </a>
+          </p>
+        </div>
+      </div>
+    </div>
+  `;
 }
+
+
 
 function Setup2FAView(otpauth_url, base32) {
 	// using quickchart api to generate qr code
@@ -210,24 +224,24 @@ function router() {
   const path = window.location.pathname;
   authToken = localStorage.getItem('token');
 
+  // update nav before render
+  updateNav();
+
   switch (path) {
     case '/login':
       render(LoginView());
       setupLoginHandlers();
       break;
-
     case '/register':
       render(RegisterView());
       setupRegisterHandlers();
       break;
-
     default:
       render(HomeView());
       setupHomeHandlers();
       break;
   }
 }
-
 // ─── NAVIGATION HELPERS ──────────────────────────────────────────────────────
 document.addEventListener('click', e => {
 	const a = e.target.closest('a[data-link]');
@@ -238,6 +252,51 @@ document.addEventListener('click', e => {
 });
 window.addEventListener('popstate', router);
 window.addEventListener('DOMContentLoaded', router);
+
+document.addEventListener('DOMContentLoaded', () => {
+  router();
+});
+window.addEventListener('popstate', router);
+document.addEventListener('click', e => {
+  const a = e.target.closest('a[data-link]');
+  if (!a) return;
+  e.preventDefault();
+  history.pushState(null, '', a.pathname);
+  router();
+});
+
+// ─── NAV UPDATE ──────────────────────────────────────────────────────────────
+function updateNav() {
+  const authNav = document.getElementById('auth-nav');
+  if (!authNav) return;
+  authToken = localStorage.getItem('token');
+  if (!authToken) {
+    authNav.innerHTML = `
+      <a href="/register" data-link
+         class="px-4 py-2 border border-indigo-600 text-indigo-600 rounded hover:bg-indigo-50 transition">
+        Inscription
+      </a>
+      <a href="/login" data-link
+         class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition">
+        Connexion
+      </a>
+    `;
+  } else {
+    authNav.innerHTML = `
+      <button id="logoutNavBtn"
+              class="px-4 py-2 bg-red-500 text-black rounded hover:bg-red-600 transition">
+        Déconnexion
+      </button>
+    `;
+    document.getElementById('logoutNavBtn').addEventListener('click', () => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('username');
+      authToken = null;
+      history.pushState(null, '', '/');
+      router();
+    });
+  }
+}
 
 // ─── HANDLERS ────────────────────────────────────────────────────────────────
 function setupHomeHandlers() {

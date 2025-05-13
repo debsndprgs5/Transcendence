@@ -12,7 +12,7 @@ function render(html) {
 
 function HomeView() {
 	if (!authToken) {
-		// not connected
+		// user not connected
 		return `
 			<section class="bg-white rounded-lg shadow-lg overflow-hidden md:flex">
 				<div class="p-8 md:w-1/2">
@@ -42,7 +42,7 @@ function HomeView() {
 		`;
 	}
 
-	// connected
+	// user connected
   const userName = localStorage.getItem('username') || '';
   return `
     <div class="flex justify-between items-center mb-6">
@@ -50,6 +50,7 @@ function HomeView() {
         Bienvenue, <span class="font-bold">${userName}</span> !
       </h1>
     </div>
+    <!------ Game ------>
     <div class="grid gap-6 md:grid-cols-2">
       <div class="bg-white p-6 rounded-lg shadow-lg flex flex-col">
         <h2 class="text-2xl font-semibold text-indigo-600 mb-4">Parties disponibles</h2>
@@ -59,7 +60,7 @@ function HomeView() {
           + Créer une partie
         </button>
       </div>
-      <!-- Chat -->
+      <!------ Chat ------>
       <div class="bg-white p-6 rounded-lg shadow-lg flex flex-col">
         <h2 class="text-2xl font-semibold text-indigo-600 mb-4">Chat</h2>
         <div id="chat" class="flex-1 overflow-auto space-y-2 mb-4"></div>
@@ -80,12 +81,12 @@ function LoginView() {
   return `
     <div class="min-h-screen flex items-start justify-center pt-10 bg-gradient-to-r from-indigo-500 to-blue-500 p-4">
       <div class="bg-white rounded-xl shadow-xl overflow-hidden w-full max-w-md transform -translate-y-4">
-        <!-- En-tête coloré -->
+        <!------ Colored header ------>
         <div class="px-8 py-6 bg-indigo-600 text-white text-center">
           <h2 class="text-3xl font-bold">Connexion</h2>
           <p class="mt-2">Accédez à votre compte</p>
         </div>
-        <!-- Formulaire -->
+        <!------ Form ------>
         <form id="loginForm" class="px-8 py-6 space-y-6 bg-white">
           <div>
             <label for="username" class="block text-sm font-medium text-gray-700">Nom d’utilisateur</label>
@@ -106,7 +107,7 @@ function LoginView() {
           </button>
           <p id="login-error" class="text-red-500 text-sm text-center hidden"></p>
         </form>
-        <!-- Lien bas de carte -->
+        <!------ Transit to register ------>
         <div class="px-8 py-4 bg-gray-100 text-center">
           <p class="text-sm text-gray-600">
             Vous n’avez pas de compte ?
@@ -124,12 +125,12 @@ function RegisterView() {
   return `
     <div class="min-h-screen flex items-start justify-center pt-10 bg-gradient-to-r from-purple-500 to-purple-700 p-4">
       <div class="bg-white rounded-xl shadow-xl overflow-hidden w-full max-w-md transform -translate-y-4">
-        <!-- En-tête violet -->
+        <!------ Colored header ------>
         <div class="px-8 py-6 bg-indigo-600 text-white text-center">
           <h2 class="text-3xl font-bold">Inscription</h2>
           <p class="mt-2">Créez votre compte</p>
         </div>
-        <!-- Formulaire -->
+        <!------ Form ------>
         <form id="registerForm" class="px-8 py-6 space-y-6 bg-white">
           <div>
             <label for="username" class="block text-sm font-medium text-gray-700">Nom d’utilisateur</label>
@@ -150,7 +151,7 @@ function RegisterView() {
           </button>
           <p id="register-error" class="text-red-500 text-sm text-center hidden"></p>
         </form>
-        <!-- Lien en bas -->
+        <!------ Transit to login ------>
         <div class="px-8 py-4 bg-gray-100 text-center">
           <p class="text-sm text-gray-600">
             Déjà un compte ?
@@ -224,7 +225,7 @@ function router() {
   const path = window.location.pathname;
   authToken = localStorage.getItem('token');
 
-  // update nav before render
+  // update nav before render -> to render either login/register or disconnect
   updateNav();
 
   switch (path) {
@@ -266,6 +267,8 @@ document.addEventListener('click', e => {
 });
 
 // ─── NAV UPDATE ──────────────────────────────────────────────────────────────
+
+// update nav before render -> to render either login/register or disconnect
 function updateNav() {
   const authNav = document.getElementById('auth-nav');
   if (!authNav) return;
@@ -299,6 +302,7 @@ function updateNav() {
 }
 
 // ─── HANDLERS ────────────────────────────────────────────────────────────────
+
 function setupHomeHandlers() {
 	// Logout button
   const logoutBtn = document.getElementById('logoutBtn');
@@ -312,7 +316,7 @@ function setupHomeHandlers() {
     });
   }
 
-	// "Create game" button (stub)
+	// "Create game" button -> a modifier pour integrer le jeu
 	const newGameBtn = document.getElementById('newGameBtn');
 	if (newGameBtn) {
 		newGameBtn.addEventListener('click', () => {
@@ -321,7 +325,7 @@ function setupHomeHandlers() {
 		});
 	}
 
-	// Chat form submission
+	// Chat form submission -> a modifier pour integrer chat
 	const chatForm = document.getElementById('chatForm');
 	if (chatForm) {
 		chatForm.addEventListener('submit', async e => {

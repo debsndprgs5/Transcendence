@@ -1,7 +1,7 @@
 import sqlite3 from 'sqlite3';
 import { user } from '../types/user';
 import * as chatType from '../types/chat';
-import { run, get, getAll } from './userManagment';
+import { run, get, getAll } from './userManagement';
 
 const db = new sqlite3.Database('./src/db/userdata.db');
 

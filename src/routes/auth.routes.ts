@@ -1,14 +1,13 @@
 import { FastifyInstance } from 'fastify'
 import bcrypt from 'bcrypt' // Blowfish encrypting
-import cookie from '@fastify/cookie';
 import jwt from 'jsonwebtoken' // Json web token -> one-time token
 import speakeasy from 'speakeasy' // lib that supports 2fa using time based one-time pass (TOTP) and HOTP
-import * as UserManagment from '../db/userManagment';
+import * as UserManagement from '../db/userManagement';
 
 
 
 // SECRET KEY to sign JWT (.env)
-const JWT_SECRET = 'jaimelespates123'
+const JWT_SECRET = 'JnDy&cdiQ*O&NV0vUb*Yve%5#qW3^wPMXWdxQI!P4bC*L6de34'
 
 // Big function called by main.ts to mount auth routes
 export async function authRoutes(fastify: FastifyInstance) {
@@ -23,7 +22,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     }
 
     // a) Look for user in db
-    const newUser = await UserManagment.getUserByName(username);
+    const newUser = await UserManagement.getUserByName(username);
     if(newUser != null){
 		return reply.code(400).send({error : 'Name allready in use'})
 	}
@@ -35,7 +34,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       //Create simple ID (with timestamp + random)
         const id = `${Date.now()}-${Math.floor(Math.random()*1000)}`
       //Create the user in the database
-        await UserManagment.createUser(id, username, passwordHash)
+        await UserManagement.createUser(id, username, passwordHash)
 
       //Success feedback
     return reply.code(201).send({ message: 'Registered successfully', userId: id })
@@ -49,7 +48,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 	  }
 
 	  // a) Look for user in db, if not found error 
-	  const RegisterUser = await UserManagment.getUserByName(username)
+	  const RegisterUser = await UserManagement.getUserByName(username)
 	  if (RegisterUser == null) {
 	    return reply.code(401).send({ error: 'Invalid Username or Password' })
 	  }
@@ -95,7 +94,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     }
 
     // b) Get the user
-    const rand_user = await UserManagment.getUserByRand(payload.sub)
+    const rand_user = await UserManagement.getUserByRand(payload.sub)
     if (!rand_user) {
       return reply.code(404).send({ error: 'Invalid User' })
     }
@@ -104,7 +103,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     const secret = speakeasy.generateSecret({
       name: `ft_transcendence(${rand_user.username})`
     })
-    await UserManagment.setTotp(rand_user.our_index, secret.base32);
+    await UserManagement.setTotp(rand_user.our_index, secret.base32);
 
     // d) Send the data to create QRcode
     return reply.send({
@@ -129,7 +128,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.code(400).send({ error: 'Token says 2FA is not in setup mode : Did you already setup 2FA ?' })
     }
 
-    const user = await UserManagment.getUserByRand(payload.sub)
+    const user = await UserManagement.getUserByRand(payload.sub)
     if (!user || !user.totp_secret) {
       return reply.code(404).send({ error: 'Invalid User' })
     }
@@ -153,16 +152,19 @@ export async function authRoutes(fastify: FastifyInstance) {
         secure: process.env.NODE_ENV === 'production',
         path: '/',
         sameSite: 'lax',
-        maxAge: 3600, //1h
+        maxAge: 3600
       })
       .setCookie('userId', String(user.our_index), {
-        signed: true,
-        httpOnly: false, // so we can read it in front
+        httpOnly: false,
         secure: process.env.NODE_ENV === 'production',
         path: '/',
         sameSite: 'lax',
-        maxAge: 3600, //1h
+        maxAge: 3600,
+        signed: false // Désactivez la signature pour le moment
       })
-      .send({ success:true })
+      .send({ 
+        token,
+        userId: user.our_index // Ajoutez l'userId dans la réponse
+      });
   })
 }

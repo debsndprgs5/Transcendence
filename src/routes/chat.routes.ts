@@ -1,168 +1,134 @@
-import { FastifyInstance } from 'fastify'
-import * as chatMgr from '../db/chatManagement'
-import * as userManagment from '../db/userManagment'
-import cookie from '@fastify/cookie';
+import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import * as chatMgr from '../db/chatManagement';
 
-export default async function (fastify: FastifyInstance) {
-  // Add friend
-  fastify.post('/api/friends/:userId', async (request, reply) => {
-    const { userId } = request.params as { userId: string };
-    const result = request.unsignCookie(request.cookies.userId);
-    if (!result.valid) {
-      return reply.code(401).send({ error: 'Invalid or missing userId cookie' });
-    }
-    const currentUserId = Number(result.value);
-
-    await chatMgr.addFriend(currentUserId, Number(userId));
-
-    return { success: true };
-  });
-
-  // Remove friend
-  fastify.delete('/api/friends/:userId', async (request, reply) => {
-    const { userId } = request.params as { userId: string };
-    // const currentUserId = request.user.id;
-
-    await chatMgr.removeFriend(currentUserId, Number(userId));
-
-
-    return { success: true };
-  });
-
-  // Block user
-  fastify.post('/api/blocks/:userId', async (request, reply) => {
-    const { userId } = request.params as { userId: string };
-    const result = request.unsignCookie(request.cookies.userId);
-    if (!result.valid) {
-      return reply.code(401).send({ error: 'Invalid or missing userId cookie' });
-    }
-    const currentUserId = Number(result.value);
-
-    await chatMgr.blockUser(currentUserId, Number(userId));
-
-    return { success: true };
-  });
-
-  // Unblock user
-  fastify.delete('/api/blocks/:userId', async (request, reply) => {
-    const { userId } = request.params as { userId: string };
-    const result = request.unsignCookie(request.cookies.userId);
-    if (!result.valid) {
-      return reply.code(401).send({ error: 'Invalid or missing userId cookie' });
-    }
-    const currentUserId = Number(result.value);
-
-   await chatMgr.unblockUser(currentUserId, Number(userId));
-
-    return { success: true };
-  });
-
-  // Get friends list
-  fastify.get('/api/friends', async (request, reply) => {
-    const result = request.unsignCookie(request.cookies.userId);
-    if (!result.valid) {
-      return reply.code(401).send({ error: 'Invalid or missing userId cookie' });
-    }
-    const currentUserId = Number(result.value);
-
-   const friends = await chatMgr.getFriends(currentUserId);
-
-    return friends;
-  });
-
-  // Get blocked users
-  fastify.get('/api/blocks', async (request, reply) => {
-   const result = request.unsignCookie(request.cookies.userId);
-   if (!result.valid) {
-   return reply.code(401).send({ error: 'Invalid or missing userId cookie' });
-   }
-   const currentUserId = Number(result.value);
-
-   const blocks = await chatMgr.getBlockedUsers(currentUserId);
-
-    return blocks;
-  });
+// Helper to extract and validate signed userId cookie
+function getUserId(request: FastifyRequest, reply: FastifyReply): number | undefined {
+  const raw = request.cookies?.userId;
+  if (!raw) {
+    reply.code(401).send({ error: 'Missing userId cookie' });
+    return;
+  }
+  const { valid, value } = request.unsignCookie(raw);
+  if (!valid) {
+    reply.code(401).send({ error: 'Invalid userId cookie' });
+    return;
+  }
+  const id = Number(value);
+  if (Number.isNaN(id)) {
+    reply.code(400).send({ error: 'Malformed userId cookie' });
+    return;
+  }
+  return id;
 }
 
-
-export default async function (fastify: FastifyInstance) {
-   // Create a room
-  fastify.post('/api/chat/rooms', async (request, reply) => {
-    const result = request.unsignCookie(request.cookies.userId);
-    if (!result.valid) {
-      return reply.code(401).send({ error: 'Invalid or missing userId cookie' });
-    }
-    const ownerId = Number(result.value);
-    const { name } = request.body as { name?: string };
-    const result = await chatMgr.createChatRoom(ownerId, name);
-    return reply.code(201).send({ roomID: result.lastID });
+export default async function chatRoutes(fastify: FastifyInstance) {
+  // ───── FRIENDS ─────────────────────────────────────────────────────────
+  fastify.post('/friends/:userId', async (request, reply) => {
+    const currentUserId = getUserId(request, reply);
+    if (currentUserId === undefined) return;
+    const targetId = Number((request.params as any).userId);
+    await chatMgr.addFriend(currentUserId, targetId);
+    return reply.send({ success: true });
   });
 
+  fastify.delete('/friends/:userId', async (request, reply) => {
+    const currentUserId = getUserId(request, reply);
+    if (currentUserId === undefined) return;
+    const targetId = Number((request.params as any).userId);
+    await chatMgr.removeFriend(currentUserId, targetId);
+    return reply.send({ success: true });
+  });
 
-  // ─ List the rooms belonging to a user
-  fastify.get('/api/chat/rooms', async (request, reply) => {
-    const result = request.unsignCookie(request.cookies.userId);
-    if (!result.valid) {
-      return reply.code(401).send({ error: 'Invalid or missing userId cookie' });
-    }
-    const ownerId = Number(result.value);
+  fastify.get('/friends', async (request, reply) => {
+    const currentUserId = getUserId(request, reply);
+    if (currentUserId === undefined) return;
+    const friends = await chatMgr.getFriends(currentUserId);
+    return reply.send(friends);
+  });
+
+  // ───── BLOCKS ──────────────────────────────────────────────────────────
+  fastify.post('/blocks/:userId', async (request, reply) => {
+    const currentUserId = getUserId(request, reply);
+    if (currentUserId === undefined) return;
+    const targetId = Number((request.params as any).userId);
+    await chatMgr.blockUser(currentUserId, targetId);
+    return reply.send({ success: true });
+  });
+
+  fastify.delete('/blocks/:userId', async (request, reply) => {
+    const currentUserId = getUserId(request, reply);
+    if (currentUserId === undefined) return;
+    const targetId = Number((request.params as any).userId);
+    await chatMgr.unblockUser(currentUserId, targetId);
+    return reply.send({ success: true });
+  });
+
+  fastify.get('/blocks', async (request, reply) => {
+    const currentUserId = getUserId(request, reply);
+    if (currentUserId === undefined) return;
+    const blocks = await chatMgr.getBlockedUsers(currentUserId);
+    return reply.send(blocks);
+  });
+
+  // ───── CHATROOMS ────────────────────────────────────────────────────────
+  fastify.post('/chat/rooms', async (request, reply) => {
+    const ownerId = getUserId(request, reply);
+    if (ownerId === undefined) return;
+    const { name } = request.body as { name?: string; };
+    const result = await chatMgr.createChatRoom(ownerId, name ?? 'Salon');
+    return reply.code(201).send({ roomID: (result as any).lastID });
+  });
+
+  fastify.get('/chat/rooms', async (request, reply) => {
+    const ownerId = getUserId(request, reply);
+    if (ownerId === undefined) return;
     const rooms = await chatMgr.getChatRoomsByOwner(ownerId);
-    return rooms; 
+    return reply.send(rooms);
   });
 
-  // ─ Get Room details
-  fastify.get('/api/chat/rooms/:roomId', async (request, reply) => {
+  fastify.get('/chat/rooms/:roomId', async (request, reply) => {
     const roomId = Number((request.params as any).roomId);
     const room = await chatMgr.getChatRoomByID(roomId);
     if (!room) return reply.code(404).send({ error: 'Salon non trouvé' });
-    return room;
+    return reply.send(room);
   });
 
-  // ─ Add member to room
-  fastify.post('/api/chat/rooms/:roomId/members', async (request, reply) => {
+  // ─ Add/Remove members ─────────────────────────────────────────────────
+  fastify.post('/chat/rooms/:roomId/members', async (request, reply) => {
+    const userId = getUserId(request, reply);
+    if (userId === undefined) return;
     const roomId = Number((request.params as any).roomId);
-    const result = request.unsignCookie(request.cookies.userId);
-    if (!result.valid) {
-      return reply.code(401).send({ error: 'Invalid or missing userId cookie' });
-    }
-    const ownerId = Number(result.value);
     await chatMgr.createChatRoomMember(roomId, userId);
-    return { success: true };
+    return reply.send({ success: true });
   });
 
-  // ─ Remove member from room
-  fastify.delete('/api/chat/rooms/:roomId/members/:userId', async (request, reply) => {
+  fastify.delete('/chat/rooms/:roomId/members/:userId', async (request, reply) => {
     const roomId = Number((request.params as any).roomId);
-    const userId = Number((request.params as any).userId);
-    await chatMgr.removeChatRoomMember(roomId, userId);
-    return { success: true };
+    const memberId = Number((request.params as any).userId);
+    await chatMgr.removeChatRoomMember(roomId, memberId);
+    return reply.send({ success: true });
   });
 
-  // ─ List room members
-  fastify.get('/api/chat/rooms/:roomId/members', async (request, reply) => {
+  fastify.get('/chat/rooms/:roomId/members', async (request, reply) => {
     const roomId = Number((request.params as any).roomId);
     const members = await chatMgr.getChatRoomMembers(roomId);
-    return members; 
+    return reply.send(members);
   });
 
-  // ─ Send a message in a room
-  fastify.post('/api/chat/rooms/:roomId/messages', async (request, reply) => {
-    const roomId   = Number((request.params as any).roomId);
-    const result = request.unsignCookie(request.cookies.userId);
-    if (!result.valid) {
-      return reply.code(401).send({ error: 'Invalid or missing userId cookie' });
-    }
-    const ownerId = Number(result.value);
+  // ───── MESSAGES ─────────────────────────────────────────────────────────
+  fastify.post('/chat/rooms/:roomId/messages', async (request, reply) => {
+    const authorId = getUserId(request, reply);
+    if (authorId === undefined) return;
+    const roomId = Number((request.params as any).roomId);
     const { content } = request.body as { content: string };
     await chatMgr.createMessage(roomId, authorId, content);
     return reply.code(201).send({ success: true });
   });
 
-  // ─ Get the messages from a room
-  fastify.get('/api/chat/rooms/:roomId/messages', async (request, reply) => {
+  fastify.get('/chat/rooms/:roomId/messages', async (request, reply) => {
     const roomId = Number((request.params as any).roomId);
-    const limit  = Number((request.query as any).limit) || 50;
+    const limit = Number((request.query as any).limit) || 50;
     const messages = await chatMgr.getMessagesByChatRoom(roomId, limit);
-    return messages;
+    return reply.send(messages);
   });
 }

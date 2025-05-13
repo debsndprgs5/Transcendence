@@ -14,13 +14,18 @@ if (!jwtSecret) {
 
 const MappedClients = new Map<number, WebSocket[]>();
 
-// Broadcast message to all users in a chat room
-function broadcastToRoom(roomId: number, message: string) {
+
+function SendGeneralMessage(message: string) {
   for (const [userId, sockets] of MappedClients.entries()) {
     sockets.forEach((ws) => {
       ws.send(message);
     });
   }
+}
+
+function SendChatRoomMessage(roomID:number, authorID:number, message: string){
+    const sendList[] = getChatRoomMembers(roomID);
+    for()
 }
 
 // Handle user connection
@@ -52,7 +57,7 @@ async function handleConnection(socket: WebSocket, request: any) {
     room: 0,
     message: `👋 ${fullUser.username} joined general chat.`,
   });
-  broadcastToRoom(0, welcomeMsg);
+  SendGeneralMessage(welcomeMsg);
 
   // Handle disconnect
   socket.on("close", () => handleDisconnect(userId, fullUser.username, socket));
@@ -60,7 +65,7 @@ async function handleConnection(socket: WebSocket, request: any) {
   // Message dispatcher placeholder
   socket.on("message", (data) => {
     const parsed = JSON.parse(data.toString());
-    // TODO: Handle based on parsed.type / room / etc.
+    
   });
 }
 
@@ -81,7 +86,7 @@ function handleDisconnect(userId: number, username: string, socket: WebSocket) {
     room: 0,
     message: `👋 ${username} left general chat.`,
   });
-  broadcastToRoom(0, byeMsg);
+  SendGeneralMessage( byeMsg);
 }
 
 export default fp(async (fastify) => {

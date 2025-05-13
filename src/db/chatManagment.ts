@@ -28,11 +28,11 @@ export const createChatRoomMember = (roomID: number, userID: number) =>
   
   // Get all members of a room
   export const getChatRoomMembers = (roomID: number) =>
-    getAll(`SELECT * FROM chatRoomMembers WHERE roomID = ?`, [roomID]);
+    getAll(`SELECT userID FROM chatRoomMembers WHERE roomID = ?`, [roomID]);
   
   // Get all rooms for a given user
   export const getChatRoomsForUser = (userID: number) =>
-    getAll(`SELECT * FROM chatRoomMembers WHERE userID = ?`, [userID]);
+    getAll(`SELECT roomID FROM chatRoomMembers WHERE userID = ?`, [userID]);
   
 // ########################
 // #       MESSAGES       #

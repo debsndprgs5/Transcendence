@@ -23,10 +23,31 @@ function SendGeneralMessage(message: string) {
   }
 }
 
-function SendChatRoomMessage(roomID:number, authorID:number, message: string){
-    const sendList[] = getChatRoomMembers(roomID);
-    for()
-}
+async function SendChatRoomMessage(roomID: number, authorID: number, message: string) {
+    if (roomID === 0) {
+      SendGeneralMessage(message);
+      return;
+    }
+  
+    try {
+      const members = await getChatRoomMembers(roomID); // [{ userID: 1 }, { userID: 2 }, ...]
+      for (const member of members) {
+        const sockets = MappedClients.get(member.userID);
+        if (sockets) {
+          for (const socket of sockets) {
+            socket.send(JSON.stringify({
+              type: 'chatRoomMessage',
+              roomID,
+              from: authorID,
+              content: message
+            }));
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error sending chat room message:", err);
+    }
+  }
 
 // Handle user connection
 async function handleConnection(socket: WebSocket, request: any) {
@@ -62,11 +83,34 @@ async function handleConnection(socket: WebSocket, request: any) {
   // Handle disconnect
   socket.on("close", () => handleDisconnect(userId, fullUser.username, socket));
 
-  // Message dispatcher placeholder
-  socket.on("message", (data) => {
-    const parsed = JSON.parse(data.toString());
-    
-  });
+  socket.on("message", async (data) => {
+    let parsed;
+    try {
+      parsed = JSON.parse(data.toString());
+    } catch (err) {
+      socket.send(JSON.stringify({ error: "Invalid JSON" }));
+      return;
+    }
+  
+    const { chatRoomID, userID, content } = parsed;
+  
+    if (
+      typeof chatRoomID !== "number" ||
+      typeof userID !== "number" ||
+      typeof content !== "string" ||
+      content.trim() === ""
+    ) {
+      socket.send(JSON.stringify({ error: "Invalid message format" }));
+      return;
+    }
+  
+    try {
+      await SendChatRoomMessage(chatRoomID, userID, content);
+    } catch (err) {
+      console.error("Failed to send chat room message:", err);
+      socket.send(JSON.stringify({ error: "Failed to deliver message" }));
+    }
+  }); 
 }
 
 // Handle user disconnection

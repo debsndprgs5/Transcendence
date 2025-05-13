@@ -292,4 +292,9 @@ Raw JSON body for post /api/chat/rooms/:roomId/messages
   content;
 }
 
-Raw JSON body for post 
+Raw JSON body for post api/chat/
+{
+  type;(friends/unfriends/block/unblock)
+  ownerID;
+  target_name;
+}

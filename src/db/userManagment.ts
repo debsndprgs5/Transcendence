@@ -28,6 +28,22 @@ function get(query: string, params: any[] = []): Promise<any> {
   });
 }
 
+function getAll(query: string, params: any[] = []): Promise<any[]> {
+  return new Promise((resolve, reject) => {
+    db.all(query, params, (err, rows) => {
+      if (err) {
+        console.error('Database error:', err);
+        reject(err);
+      } else {
+        resolve(rows);
+      }
+    });
+  });
+}
+
+export { run, get, getAll };
+
+
 
 // Setters
 export const setRandId = (index: number, randId: string) =>

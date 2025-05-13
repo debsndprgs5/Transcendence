@@ -4,6 +4,7 @@ export interface user {
     username: string;
     password_hashed: string;
     totp_secret?: string;
+    jwtToken: string;
     created_at: string;
   }
   

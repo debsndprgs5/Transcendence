@@ -53,13 +53,20 @@ async function SendChatRoomMessage(roomID: number, authorID: number, message: st
 }
 
 async function handleConnection(ws: WebSocket, request: any) {
-  const token = (request.headers.authorization || "").split(' ')[1];
-  if (!token) return ws.close(1008, 'No token');
+  // Extract token from URL parameters instead of headers
+  const url = new URL(request.url, `http://${request.headers.host}`);
+  const token = url.searchParams.get('token');
+  
+  if (!token) {
+    console.log('Connection rejected: No token provided');
+    return ws.close(1008, 'No token');
+  }
 
   let payload: JwtPayload;
   try {
     payload = jwt.verify(token, jwtSecret) as JwtPayload;
-  } catch {
+  } catch (error) {
+    console.log('Connection rejected: Invalid token', error);
     return ws.close(1008, 'Invalid token');
   }
 

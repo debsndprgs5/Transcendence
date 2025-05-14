@@ -268,18 +268,23 @@ function router() {
 
 // Read cookie's userId
 function getUserIdFromCookie() {
-		try {
-				const cookies = document.cookie.split(';');
-				for (const cookie of cookies) {
-						const [name, value] = cookie.trim().split('=');
-						if (name === 'userId') {
-								return Number(value);
-						}
-				}
-		} catch (error) {
-				console.error('Error parsing userId cookie:', error);
-		}
-		return null;
+    try {
+        const cookies = document.cookie.split(';');
+        for (const cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'userId') {
+                console.log('Found userId cookie:', value); // Debug log
+                const userId = Number(value);
+                if (!isNaN(userId)) {
+                    return userId;
+                }
+            }
+        }
+        console.log('No userId cookie found in:', document.cookie); // Debug log
+    } catch (error) {
+        console.error('Error parsing userId cookie:', error);
+    }
+    return null;
 }
 
 // ─── API FETCH HELPER ─────────────────────────────────────────────────────────
@@ -389,39 +394,61 @@ function setupHomeHandlers() {
 		});
 	}
 
-	// Chat: Load rooms
-	const loadRooms = async () => {
-			try {
-					const rooms = await apiFetch('/api/chat/rooms', { 
-							headers: { 'Authorization': `Bearer ${authToken}` } 
-					});
-					const ul = document.getElementById('room-list');
-					if (!ul) return;
-					
-					ul.innerHTML = rooms.map(r => 
-							`<li data-id="${r.roomID}" class="cursor-pointer hover:bg-gray-100 p-2 rounded">
-									${r.name || `Salon #${r.roomID}`}
-							</li>`
-					).join('');
-					
-					document.querySelectorAll('#room-list li').forEach(li => {
-							li.addEventListener('click', () => selectRoom(Number(li.dataset.id)));
-					});
-			} catch (error) {
-					console.error('Error loading rooms:', error);
-					const ul = document.getElementById('room-list');
-					if (ul) {
-							ul.innerHTML = '<li class="text-red-500">Erreur de chargement des salons</li>';
-					}
-			}
+  // Load rooms immediately when entering home view
+	let loadRooms = async () => {
+	    try {
+	        const rooms = await apiFetch('/api/chat/rooms', { 
+	            headers: { 'Authorization': `Bearer ${authToken}` } 
+	        });
+	        const ul = document.getElementById('room-list');
+	        if (!ul) return;
+	        
+	        ul.innerHTML = rooms.map(r => 
+	            `<li data-id="${r.roomID}" class="cursor-pointer hover:bg-gray-100 p-2 rounded ${currentRoom === r.roomID ? 'bg-indigo-100' : ''}">
+	                ${r.name || `Salon #${r.roomID}`}
+	            </li>`
+	        ).join('');
+	        
+	        document.querySelectorAll('#room-list li').forEach(li => {
+	            li.addEventListener('click', () => selectRoom(Number(li.dataset.id)));
+	        });
+	    } catch (error) {
+	        console.error('Error loading rooms:', error);
+	        const ul = document.getElementById('room-list');
+	        if (ul) {
+	            ul.innerHTML = '<li class="text-red-500">Erreur de chargement des salons</li>';
+	        }
+	    }
 	};
+
+  // Call loadRooms immediately and set up WebSocket
+  if (authToken) {
+      loadRooms();
+      initWebSocket();
+  }
+  
 
 	// Chat: New room
 	const newChatRoomBtn = document.getElementById('newChatRoomBtn');
-	if (newChatRoomBtn) newChatRoomBtn.addEventListener('click', async () => {
-		await apiFetch('/api/chat/rooms', { method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` } });
-		loadRooms();
-	});
+	if (newChatRoomBtn) {
+	    newChatRoomBtn.addEventListener('click', async () => {
+	        try {
+	            const roomName = prompt('Nom du salon :') || 'Nouveau salon';
+	            await apiFetch('/api/chat/rooms', { 
+	                method: 'POST', 
+	                headers: { 
+	                    'Authorization': `Bearer ${authToken}`,
+	                    'Content-Type': 'application/json'
+	                },
+	                body: JSON.stringify({ name: roomName })
+	            });
+	            await loadRooms(); // Recharger la liste des salons après la création
+	        } catch (error) {
+	            console.error('Error creating chat room:', error);
+	            alert('Erreur lors de la création du salon: ' + error.message);
+	        }
+	    });
+	}
 
 
 
@@ -513,70 +540,102 @@ function setupRegisterHandlers() {
 }
 
 function setupLoginHandlers() {
-	const form = document.getElementById('loginForm');
-	if (!form) return;
+    const form = document.getElementById('loginForm');
+    if (!form) return;
 
-	form.onsubmit = async e => {
-		e.preventDefault();
-		// we get username/pass from login form
-		const data = Object.fromEntries(new FormData(form).entries());
-		// save pseudo in cookie to render on home
-		localStorage.setItem('username', data.username);
+    form.onsubmit = async e => {
+        e.preventDefault();
+        const data = Object.fromEntries(new FormData(form).entries());
+        localStorage.setItem('username', data.username);
 
-		try {
-			const res = await fetch('/api/auth/login', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(data)
-			});
-			const json = await res.json();
+        try {
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const json = await res.json();
 
-			if (res.ok) {
-				if (json.need2FASetup) {
-					pendingToken = json.token;
-					await doSetup2FA(pendingToken);
-				} else if (json.need2FAVerify) {
-					pendingToken = json.token;
-					render(Verify2FAView());
-					setupVerify2FAHandlers();
-				}
-			} else {
-				// render error in <p id="login-error">
-				const err = document.getElementById('login-error');
-				err.textContent = json.error || 'Erreur de connexion';
-				err.classList.remove('hidden');
-			}
-		} catch (err) {
-			const errEl = document.getElementById('login-error');
-			errEl.textContent = 'Erreur réseau, réessayez.';
-			errEl.classList.remove('hidden');
-		}
-	};
+            if (res.ok) {
+                if (json.need2FASetup) {
+                    console.log('2FA setup needed, token received:', json.token);
+                    pendingToken = json.token;
+                    await doSetup2FA(pendingToken);
+                } else if (json.need2FAVerify) {
+                    console.log('2FA verification needed');
+                    pendingToken = json.token;
+                    render(Verify2FAView());
+                    setupVerify2FAHandlers();
+                } else {
+                    localStorage.setItem('token', json.token);
+                    authToken = json.token;
+                    history.pushState(null, '', '/');
+                    router();
+                }
+            } else {
+                console.error('Login failed:', json.error);
+                const err = document.getElementById('login-error');
+                err.textContent = json.error || 'Erreur de connexion';
+                err.classList.remove('hidden');
+            }
+        } catch (err) {
+            console.error('Login error:', err);
+            const errEl = document.getElementById('login-error');
+            errEl.textContent = 'Erreur réseau, réessayez.';
+            errEl.classList.remove('hidden');
+        }
+    };
 }
 
 
+
 async function doSetup2FA(token) {
-	try {
-		const res = await fetch('/api/auth/2fa/setup', {
-			method: 'POST',
-			headers: { Authorization: `Bearer ${token}` }
-		});
-		const json = await res.json();
-		if (!res.ok) throw new Error(json.error);
-		render(Setup2FAView(json.otpauth_url, json.base32));
-		setupSetup2FAHandlers();
-	} catch (err) {
-		render(`
-			<div class="max-w-md mx-auto mt-12 bg-white p-8 rounded shadow">
-				<p class="text-red-500">Impossible de configurer 2FA. Réessayez.</p>
-				<button id="back-login" class="mt-4 w-full py-2 px-4 bg-indigo-600 text-black rounded">
-					Retour
-				</button>
-			</div>
-		`);
-		document.getElementById('back-login')
-						.addEventListener('click', () => { history.pushState(null,'','/login'); router(); });
-	}
+    if (!token) {
+        console.error('No token provided for 2FA setup');
+        return;
+    }
+
+    try {
+        console.log('Sending 2FA setup request with token:', token);
+        const res = await fetch('/api/auth/2fa/setup', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({})
+        });
+        
+        if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
+        }
+        
+        const json = await res.json();
+        console.log('2FA setup response:', json);
+        
+        if (!json.otpauth_url || !json.base32) {
+            throw new Error('Invalid server response: missing required 2FA data');
+        }
+        
+        render(Setup2FAView(json.otpauth_url, json.base32));
+        setupSetup2FAHandlers(); // Utiliser la fonction existante
+    } catch (err) {
+        console.error('2FA setup error:', err);
+        render(`
+            <div class="max-w-md mx-auto mt-12 bg-white p-8 rounded shadow">
+                <p class="text-red-500">Impossible de configurer 2FA. Erreur: ${err.message}</p>
+                <button id="back-login" class="mt-4 w-full py-2 px-4 bg-indigo-600 text-black rounded">
+                    Retour
+                </button>
+            </div>
+        `);
+        document.getElementById('back-login')
+            .addEventListener('click', () => { 
+                history.pushState(null,'','/login'); 
+                router(); 
+            });
+    }
 }
 
 function setupSetup2FAHandlers() {
@@ -610,62 +669,88 @@ function setupSetup2FAHandlers() {
 }
 
 function setupVerify2FAHandlers() {
-	const form = document.getElementById('verifyForm');
-	if (!form) return;
-	form.onsubmit = async e => {
-		e.preventDefault();
-		const code = document.getElementById('2fa-code').value;
-		try {
-			const res = await fetch('/api/auth/2fa/verify', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `Bearer ${pendingToken}`
-				},
-				body: JSON.stringify({ code })
-			});
-			const json = await res.json();
-			if (res.ok) {
-				localStorage.setItem('token', json.token);
-				authToken = json.token;
-				initWebSocket(); // start websocket
-				window.location.href = '/';
-			} else {
-				const err = document.getElementById('verify-error');
-				err.textContent = json.error;
-				err.classList.remove('hidden');
-			}
-		} catch {
-			alert('Erreur lors de la vérification 2FA');
-		}
-	};
+    const form = document.getElementById('verifyForm');
+    if (!form) return;
+    form.onsubmit = async e => {
+        e.preventDefault();
+        const code = document.getElementById('2fa-code').value;
+        try {
+            const res = await fetch('/api/auth/2fa/verify', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${pendingToken}`
+                },
+                body: JSON.stringify({ code })
+            });
+            const json = await res.json();
+            if (res.ok) {
+                localStorage.setItem('token', json.token);
+                authToken = json.token;
+                
+                // Initialiser le WebSocket après l'authentification
+                initWebSocket();
+                
+                // Rediriger vers la page d'accueil
+                history.pushState(null, '', '/');
+                router();
+            } else {
+                const err = document.getElementById('verify-error');
+                err.textContent = json.error;
+                err.classList.remove('hidden');
+            }
+        } catch {
+            alert('Erreur lors de la vérification 2FA');
+        }
+    };
 }
+
 
 // ─── WEBSOCKETS ────────────────────────────────────────────────────────────────
 
 
 // Initialize WS if both userId and authtoken are setup
-function initWebSocket() {
+async function initWebSocket() {
     if (!authToken) {
         console.warn('WebSocket: pas de token d\'authentification');
         return;
     }
 
-    userId = getUserIdFromCookie();
-    if (!userId) {
-        console.warn('WebSocket: userId manquant dans le cookie');
-        // Optionnel : tenter de récupérer l'userId via une requête API
-        return;
-    }
-
-    const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-    const wsUrl = `${protocol}://${location.host}/?token=${authToken}`;
-    
     try {
+        // get userId unsigned via API
+        const response = await fetch('/api/auth/me', {
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to get userId');
+        }
+        
+        const data = await response.json();
+        userId = data.userId;
+
+        if (!userId) {
+            console.warn('WebSocket: userId non obtenu');
+            return;
+        }
+
+        const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
+        const wsUrl = `${protocol}://${location.host}/ws?token=${encodeURIComponent(authToken)}`;
+        
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.close();
+        }
+        
         socket = new WebSocket(wsUrl);
+        
         
         socket.onopen = () => {
             console.log('WebSocket connecté');
+            if (typeof loadRooms === 'function') {
+                loadRooms();
+            }
         };
         
         socket.onmessage = (event) => {
@@ -677,9 +762,12 @@ function initWebSocket() {
             }
         };
         
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 5;
+        
         socket.onclose = (event) => {
             console.log('WebSocket déconnecté:', event.reason);
-        };
+          };
         
         socket.onerror = (error) => {
             console.error('Erreur WebSocket:', error);

@@ -142,7 +142,7 @@ export default async function (fastify: FastifyInstance) {
   fastify.get('/api/chat/rooms/:roomId/members', async (request, reply) => {
     const roomId = Number((request.params as any).roomId);
     const members = await chatMgr.getChatRoomMembers(roomId);
-    return members; 
+    return members;
   });
 
   // ─ Send a message in a room

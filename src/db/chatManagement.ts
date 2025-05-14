@@ -1,9 +1,14 @@
 import sqlite3 from 'sqlite3';
 import { user } from '../types/user';
 import * as chatType from '../types/chat';
-import { run, get, getAll } from './userManagment';
+import { run, get, getAll } from './userManagement';
 
-const db = new sqlite3.Database('./src/db/userdata.db');
+
+let db: sqlite3.Database;
+
+export function setDb(database: sqlite3.Database) {
+  db = database;
+}
 
 // ########################
 // #         ROOMS        #
@@ -20,11 +25,11 @@ export const createChatRoom = (
 
 // Get room by ID
 export const getChatRoomByID = (roomID: number) =>
-  get(`SELECT * FROM chatRooms WHERE roomID = ?`, [roomID]);
+  get<chatType.chatRooms>(`SELECT * FROM chatRooms WHERE roomID = ?`, [roomID]);
 
 // Get all rooms for a user
 export const getChatRoomsByOwner = (ownerID: number) =>
-  getAll(`SELECT * FROM chatRooms WHERE ownerID = ?`, [ownerID]);
+  getAll<chatType.chatRooms>(`SELECT * FROM chatRooms WHERE ownerID = ?`, [ownerID]);
 
 // ########################
 // #     ROOM MEMBERS     #
@@ -35,11 +40,11 @@ export const createChatRoomMember = (roomID: number, userID: number) =>
 
 // Get all members of a room
 export const getChatRoomMembers = (roomID: number) =>
-  getAll(`SELECT userID FROM chatRoomMembers WHERE roomID = ?`, [roomID]);
+  getAll<chatType.chatRoomMembers>(`SELECT userID FROM chatRoomMembers WHERE roomID = ?`, [roomID]);
 
 // Get all rooms for a given user
 export const getChatRoomsForUser = (userID: number) =>
-  getAll(`SELECT * FROM chatRoomMembers WHERE userID = ?`, [userID]);
+  getAll<chatType.chatRoomMembers>(`SELECT * FROM chatRoomMembers WHERE userID = ?`, [userID]);
 
 // Remove member from a room
 export const removeChatRoomMember = (roomID: number, userID: number) =>
@@ -57,14 +62,14 @@ export const createMessage = (roomID: number, authorID: number, content: string)
 
 // Get messages for a room
 export const getMessagesByChatRoom = (roomID: number, limit: number = 50) =>
-  getAll(
+  getAll<chatType.chatRoomMembers>(
     `SELECT * FROM messages WHERE roomID = ? ORDER BY created_at DESC LIMIT ?`,
     [roomID, limit]
   );
 
 // Get messages by a specific user in a room
 export const getMessagesByUserInChatRoom = (authorID: number, roomID: number) =>
-  getAll(
+  getAll<chatType.chatRoomMembers>(
     `SELECT * FROM messages WHERE roomID = ? AND authorID = ? ORDER BY created_at DESC`,
     [roomID, authorID]
   );
@@ -88,7 +93,7 @@ export const removeFriend = (userID: number, friendID: number) =>
 
 // Get friends list for a user
 export const getFriends = (userID: number) =>
-  getAll(
+  getAll<chatType.user_relationships>(
     `SELECT u.id, u.username FROM users u
      JOIN user_relationships r ON u.id = r.related_user_id
      WHERE r.user_id = ? AND r.type = 'friend'`,
@@ -98,7 +103,6 @@ export const getFriends = (userID: number) =>
 // ########################
 // #        BLOCKS        #
 // ########################
-// Block a user
 export const blockUser = (userID: number, blockedID: number) =>
   run(
     `INSERT INTO user_relationships (user_id, related_user_id, type) VALUES (?, ?, 'block')`,
@@ -114,9 +118,10 @@ export const unblockUser = (userID: number, blockedID: number) =>
 
 // Get blocked users list for a user
 export const getBlockedUsers = (userID: number) =>
-  getAll(
+  getAll<chatType.user_relationships>(
     `SELECT u.id, u.username FROM users u
      JOIN user_relationships r ON u.id = r.related_user_id
      WHERE r.user_id = ? AND r.type = 'block'`,
     [userID]
   );
+

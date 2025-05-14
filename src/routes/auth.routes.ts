@@ -1,14 +1,21 @@
 import { FastifyInstance } from 'fastify'
 import bcrypt from 'bcrypt' // Blowfish encrypting
-import cookie from '@fastify/cookie';
 import jwt from 'jsonwebtoken' // Json web token -> one-time token
 import speakeasy from 'speakeasy' // lib that supports 2fa using time based one-time pass (TOTP) and HOTP
-import * as UserManagment from '../db/userManagment';
+import * as UserManagement from '../db/userManagement';
+import * as dotenv from 'dotenv';
+import path from 'path';
 
-
+dotenv.config({
+  path: path.resolve(process.cwd(), '.env'),
+});
 
 // SECRET KEY to sign JWT (.env)
-const JWT_SECRET = 'jaimelespates123'
+const JWT_SECRET = process.env.JWT_SECRET!;
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable is not defined");
+}
+
 
 // Big function called by main.ts to mount auth routes
 export async function authRoutes(fastify: FastifyInstance) {
@@ -23,7 +30,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     }
 
     // a) Look for user in db
-    const newUser = await UserManagment.getUserByName(username);
+    const newUser = await UserManagement.getUserByName(username);
     if(newUser != null){
 		return reply.code(400).send({error : 'Name allready in use'})
 	}
@@ -35,83 +42,114 @@ export async function authRoutes(fastify: FastifyInstance) {
       //Create simple ID (with timestamp + random)
         const id = `${Date.now()}-${Math.floor(Math.random()*1000)}`
       //Create the user in the database
-        await UserManagment.createUser(id, username, passwordHash)
+        await UserManagement.createUser(id, username, passwordHash)
 
       //Success feedback
     return reply.code(201).send({ message: 'Registered successfully', userId: id })
   })
 
 	// 2) Route POST /api/auth/login ------------------------------------------ LOGIN
-	fastify.post('/auth/login', async (request, reply) => {
-	  const { username, password } = request.body as { username: string, password: string }
-	  if (!username || !password) {
-	    return reply.code(400).send({ error: 'Incomplete Username or Password' })
-	  }
+  fastify.post('/auth/login', async (request, reply) => {
+      try {
+          const { username, password } = request.body as { username: string, password: string };
+          
+          if (!username || !password) {
+              return reply.code(400).send({ error: 'Username and password are required' });
+          }
 
-	  // a) Look for user in db, if not found error 
-	  const RegisterUser = await UserManagment.getUserByName(username)
-	  if (RegisterUser == null) {
-	    return reply.code(401).send({ error: 'Invalid Username or Password' })
-	  }
+          const user = await UserManagement.getUserByName(username);
+          if (!user) {
+              return reply.code(401).send({ error: 'Invalid credentials' });
+          }
 
-	  // b) Compare pass and passhash with bcrypt
-	  const valid = await bcrypt.compare(password, RegisterUser.password_hashed)
-	  if (!valid) {
-	    return reply.code(401).send({ error: 'Invalid Username or Password' })
-	  }
+          const valid = await bcrypt.compare(password, user.password_hashed);
+          if (!valid) {
+              return reply.code(401).send({ error: 'Invalid credentials' });
+          }
 
-	  // c) Create pending 2fa token. User HAS to provide 2FA
-    const randId = RegisterUser.rand_id
-	  const pendingToken = jwt.sign(
-	    { sub:randId,  step: '2fa' },
-	    JWT_SECRET,
-	    { expiresIn: '5m' }
-	  )
+          // Création du token avec le bon format
+          const token = jwt.sign(
+              { 
+                  sub: user.rand_id,
+                  step: '2fa'  // Important: this flag indicates 2FA setup/verify is needed
+              },
+              JWT_SECRET,
+              { expiresIn: '5m' }
+          );
 
-	  // d) Tell client if he needs to setup 2FA or just verify it
-	  const totp = RegisterUser.totp_secret
-	  return reply.send({
-	    token: pendingToken,
-	    need2FASetup: !totp,   // true if never config
-	    need2FAVerify: totp    // true if already config
-	  })
-	})
+          return reply.send({
+              token,
+              need2FASetup: !user.totp_secret,
+              need2FAVerify: !!user.totp_secret
+          });
+      } catch (error) {
+          console.error('Login error:', error);
+          return reply.code(500).send({ error: 'Internal server error' });
+      }
+  });
 
 
-  // 3) Route POST /api/auth/2fa/setup ------------------------------------------- SETUP 2FA
-  fastify.post('/auth/2fa/setup', async (request, reply) => {
-    // a) We get the "pending" token via http Header Authorization: Bearer <token>
-    const auth = (request.headers.authorization || '').split(' ')[1] // split to get the token
-    if (!auth) return reply.code(401).send({ error: 'No token : 401 Unauthorized' })
+// 3) Route POST /api/auth/2fa/setup
+fastify.post('/auth/2fa/setup', async (request, reply) => {
+    try {        
+        // Vérification du token d'autorisation
+        const auth = request.headers.authorization;
+        
+        if (!auth) {
+            return reply.code(401).send({ error: 'No token provided' });
+        }
 
-    let payload: any
-    try {
-      payload = jwt.verify(auth, JWT_SECRET)
-    } catch {
-      return reply.code(401).send({ error: 'Invalid Token' })
+        const token = auth.split(' ')[1];
+        if (!token) {
+            return reply.code(401).send({ error: 'Invalid authorization format' });
+        }
+
+        let payload: any;
+        try {
+            payload = jwt.verify(token, JWT_SECRET);
+        } catch (error) {
+            console.error('Token verification failed:', error);
+            return reply.code(401).send({ error: 'Invalid token' });
+        }
+
+        if (payload.step !== '2fa') {
+            return reply.code(400).send({ 
+                error: 'Token not in 2FA setup mode',
+                details: 'Current step: ' + payload.step 
+            });
+        }
+
+        // Récupération de l'utilisateur
+        const rand_user = await UserManagement.getUserByRand(payload.sub);
+        if (!rand_user) {
+            return reply.code(404).send({ error: 'User not found' });
+        }
+
+        // Génération du secret TOTP
+        const secret = speakeasy.generateSecret({
+            name: encodeURIComponent(`ft_transcendence(${rand_user.username})`)
+        });
+
+        // Sauvegarde du secret dans la base de données
+        try {
+            await UserManagement.setTotp(rand_user.our_index, secret.base32);
+        } catch (error) {
+            console.error('Failed to save TOTP secret:', error);
+            return reply.code(500).send({ error: 'Failed to save 2FA configuration' });
+        }
+
+        // Envoi de la réponse
+        return reply.send({
+            otpauth_url: secret.otpauth_url,
+            base32: secret.base32
+        });
+    } catch (error) {
+        console.error('2FA setup error:', error);
+        return reply.code(500).send({ 
+            error: 'Internal server error during 2FA setup',
+        });
     }
-    if (payload.step !== '2fa') { 
-      return reply.code(400).send({ error: 'Token says 2FA is not in setup mode : Did you already setup 2FA ?' })
-    }
-
-    // b) Get the user
-    const rand_user = await UserManagment.getUserByRand(payload.sub)
-    if (!rand_user) {
-      return reply.code(404).send({ error: 'Invalid User' })
-    }
-
-    // c) Generate TOTP token
-    const secret = speakeasy.generateSecret({
-      name: `ft_transcendence(${rand_user.username})`
-    })
-    await UserManagment.setTotp(rand_user.our_index, secret.base32);
-
-    // d) Send the data to create QRcode
-    return reply.send({
-      otpauth_url: secret.otpauth_url,
-      base32: secret.base32
-    })
-  })
+});
 
   // 4) Route POST /api/auth/2fa/verify -------------------------------------------- Verify 2FA
   fastify.post('/auth/2fa/verify', async (request, reply) => {
@@ -129,7 +167,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.code(400).send({ error: 'Token says 2FA is not in setup mode : Did you already setup 2FA ?' })
     }
 
-    const user = await UserManagment.getUserByRand(payload.sub)
+    const user = await UserManagement.getUserByRand(payload.sub)
     if (!user || !user.totp_secret) {
       return reply.code(404).send({ error: 'Invalid User' })
     }
@@ -153,16 +191,40 @@ export async function authRoutes(fastify: FastifyInstance) {
         secure: process.env.NODE_ENV === 'production',
         path: '/',
         sameSite: 'lax',
-        maxAge: 3600, //1h
+        maxAge: 3600
       })
       .setCookie('userId', String(user.our_index), {
-        signed: true,
-        httpOnly: false, // so we can read it in front
+        httpOnly: false,
         secure: process.env.NODE_ENV === 'production',
         path: '/',
         sameSite: 'lax',
-        maxAge: 3600, //1h
+        maxAge: 3600,
+        signed: true
       })
-      .send({ success:true })
+      .send({ 
+        token,
+        userId: user.our_index // Ajoutez l'userId dans la réponse
+      });
   })
+  // Helper API to get the userId (i couldnt unsign the userId token in front)
+  fastify.get('/auth/me', async (request, reply) => {
+      const raw = request.cookies?.userId;
+      if (!raw) {
+          return reply.code(401).send({ error: 'Missing userId cookie' });
+      }
+      
+      const { valid, value } = request.unsignCookie(raw);
+      if (!valid) {
+          return reply.code(401).send({ error: 'Invalid userId cookie' });
+      }
+      
+      const userId = Number(value);
+      if (isNaN(userId)) {
+          return reply.code(400).send({ error: 'Malformed userId cookie' });
+      }
+      
+      return reply.send({ userId });
+  });
 }
+
+

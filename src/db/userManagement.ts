@@ -1,13 +1,19 @@
+import { FastifyInstance } from 'fastify';
 import sqlite3 from 'sqlite3';
 import { user } from '../types/user';
-const db = new sqlite3.Database('./src/db/ourdatabase.db');
+
+let db: sqlite3.Database;
+
+export function setDb(database: sqlite3.Database) {
+  db = database;
+}
 
 function run(query: string, params: any[] = []): Promise<any> {
   return new Promise((resolve, reject) => {
-    db.run(query, params, function (err) {
+    db.run(query, params, function (err: Error | null) {
       if (err) {
-        console.error('Database error:', err);  // Log the error for debugging purposes
-        reject(err);  // Reject with error
+        console.error('Database error:', err);
+        reject(err);
       } else {
         resolve({ lastID: this.lastID, changes: this.changes });
       }
@@ -15,22 +21,22 @@ function run(query: string, params: any[] = []): Promise<any> {
   });
 }
 
-function get(query: string, params: any[] = []): Promise<any> {
+function get<T>(query: string, params: any[] = []): Promise<T | null> {
   return new Promise((resolve, reject) => {
-    db.get(query, params, (err, row) => {
+    db.get(query, params, (err: Error | null, row: T | undefined) => {
       if (err) {
-        console.error('Database error:', err);  // Log the error for debugging purposes
-        reject(err);  // Reject with error
+        console.error('Database error:', err);
+        reject(err);
       } else {
-        resolve(row);  // Resolve with the row
+        resolve(row ?? null);
       }
     });
   });
 }
 
-function getAll(query: string, params: any[] = []): Promise<any[]> {
+function getAll<T>(query: string, params: any[] = []): Promise<T[]> {
   return new Promise((resolve, reject) => {
-    db.all(query, params, (err, rows) => {
+    db.all(query, params, (err: Error | null, rows: T[]) => {
       if (err) {
         console.error('Database error:', err);
         reject(err);
@@ -64,33 +70,33 @@ export const setTotp = (index: number, token: string) =>
 // needed call this wil returns all as the interface declared in types/user and can be use 
 // as user object
 export const getUserByName = (username: string): Promise<user | null> =>
-  get('SELECT * FROM users WHERE username = ?', [username])
+  get<user>('SELECT * FROM users WHERE username = ?', [username])
     .then(row => row ?? null);
 
 
 export const getUserByRand = (username: string): Promise<user | null> =>
-  get('SELECT * FROM users WHERE rand_id = ?', [username])
+  get<user>('SELECT * FROM users WHERE rand_id = ?', [username])
     .then(row => row ?? null);
 
 export const getIndexByUname = (username: string): Promise<number | null> =>
-  get('SELECT our_index FROM users WHERE username = ?', [username])
+  get<user>('SELECT our_index FROM users WHERE username = ?', [username])
     .then(row => row?.our_index ?? null);
 
 export const getIdByIndex = (index: number) =>
-  get('SELECT rand_id FROM users WHERE our_index = ?', [index]);
+  get<user>('SELECT rand_id FROM users WHERE our_index = ?', [index]);
 
 export const getUnameByIndex = (index: number) =>
-  get('SELECT username FROM users WHERE our_index = ?', [index]);
+  get<user>('SELECT username FROM users WHERE our_index = ?', [index]);
 
 export const getPasswordHByIndex = (index: number) =>
-  get('SELECT password_hashed FROM users WHERE our_index = ?', [index]);
+  get<user>('SELECT password_hashed FROM users WHERE our_index = ?', [index]);
 
 export const getRandbyIndex = (index: number) =>
-  get('SELECT rand_id FROM users WHERE our_index = ?', [index]); 
+  get<user>('SELECT rand_id FROM users WHERE our_index = ?', [index]); 
 
 
 export const getToptbyIndex = (index: number) =>
-  get('SELECT totp_secret FROM users WHERE our_index = ?' , [index]);
+  get<user>('SELECT totp_secret FROM users WHERE our_index = ?' , [index]);
 
 // Create User
 export const createUser = (rand_id: string, username: string, password_hashed: string, totp_secret: string | null = null) =>

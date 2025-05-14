@@ -14,3 +14,11 @@ export interface messages{
     content: string;
     created_at: string;
 }
+
+export interface user_relationships{
+    id:             number;
+    userID:         number;
+    related_userID: number;
+    type:           string;
+    created_at:     string; 
+}

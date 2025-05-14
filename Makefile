@@ -14,9 +14,17 @@ WORK_DIR = $(shell pwd)
 # -------------------------------------------------------------------
 install:
 	@echo "🔧 Installing dependencies…"
-	@echo "WORK_DIR = $(WORK_DIR)" > .env
+	@touch .env
+	@if grep -q '^WORK_DIR=' .env; then \
+	  sed -i 's|^WORK_DIR=.*|WORK_DIR=$(WORK_DIR)|' .env; \
+	else \
+	  echo "WORK_DIR=$(WORK_DIR)" >> .env; \
+	fi
 	# fastify v4 + plugin static compatible
 	npm install fastify@^4 fastify-static@^4
+	# Websockets
+	npm install ws
+	npm install -D @types/ws
 	# le reste (TS, Tailwind, PostCSS…)
 	npm install
 

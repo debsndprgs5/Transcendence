@@ -1,9 +1,65 @@
 // ─── AUTH STATE ──────────────────────────────────────────────────────────────
-let authToken    = localStorage.getItem('token');
+let authToken    = null;
 let pendingToken = null;
 let socket;           // global WebSocket
 let userId;           // read from the cookie
 let currentRoom = 0;  // selected room
+
+// ─── AUTH HELPERS ──────────────────────────────────────────────────────────────
+function isAuthenticated() {
+    authToken = localStorage.getItem('token');
+    return !!authToken;
+}
+
+
+// Add an event listener for localStorage changes
+window.addEventListener('storage', (event) => {
+    if (event.key === 'token') {
+        // Token was changed in another tab
+        authToken = event.newValue;
+        if (!authToken) {
+            // Token was removed, force logout
+            handleLogout();
+        }
+    }
+});
+
+// Centralized logout handling
+function handleLogout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('username');
+    authToken = null;
+    userId = null;
+    currentRoom = 0;
+    updateNav();
+
+    // Close WebSocket if it's open
+    if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.close();
+    }
+    
+    render(HomeView());
+}
+
+
+// Check token validity every minute
+function startTokenValidation() {
+    setInterval(async () => {
+        if (isAuthenticated()) {
+            try {
+                await apiFetch('/api/auth/me');
+            } catch (error) {
+                handleLogout();
+            }
+        }
+    }, 60000); // Check every minute
+}
+
+// Call this when the app starts
+document.addEventListener('DOMContentLoaded', () => {
+    router();
+    startTokenValidation();
+});
 
 // ─── RENDER ──────────────────────────────────────────────────────────────────
 function render(html) {
@@ -14,7 +70,7 @@ function render(html) {
 // ─── VIEWS ────────────────────────────────────────────────────────────────────
 
 function HomeView() {
-	if (!authToken) {
+	if (!isAuthenticated()) {
 		// user not connected
 		return `
 			<section class="bg-white rounded-lg shadow-lg overflow-hidden md:flex">
@@ -243,25 +299,48 @@ function Verify2FAView() {
 // ─── ROUTER ──────────────────────────────────────────────────────────────────
 function router() {
 	const path = window.location.pathname;
-	authToken = localStorage.getItem('token');
+
+    // // Check authentication state
+    // if (!isAuthenticated()) {
+    //     // If not authenticated and trying to access protected routes
+    //     if (path !== '/login' && path !== '/register' && path !== '/') {
+    //         history.pushState(null, '', '/');
+    //         render(LoginView());
+    //         setupLoginHandlers();
+    //         return;
+    //     }
+    // }
 
 	// update nav before render -> to render either login/register or disconnect
 	updateNav();
 
-	switch (path) {
-		case '/login':
-			render(LoginView());
-			setupLoginHandlers();
-			break;
-		case '/register':
-			render(RegisterView());
-			setupRegisterHandlers();
-			break;
-		default:
-			render(HomeView());
-			setupHomeHandlers();
-			break;
-	}
+    switch (path) {
+        case '/login':
+            if (isAuthenticated()) {
+                // If already authenticated, redirect to home
+                history.pushState(null, '', '/');
+                render(HomeView());
+                setupHomeHandlers();
+            } else {
+                render(LoginView());
+                setupLoginHandlers();
+            }
+            break;
+        case '/register':
+            if (isAuthenticated()) {
+                history.pushState(null, '', '/');
+                render(HomeView());
+                setupHomeHandlers();
+            } else {
+                render(RegisterView());
+                setupRegisterHandlers();
+            }
+            break;
+        default:
+            render(HomeView());
+            setupHomeHandlers();
+            break;
+    }
 }
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
@@ -289,26 +368,32 @@ function getUserIdFromCookie() {
 
 // ─── API FETCH HELPER ─────────────────────────────────────────────────────────
 async function apiFetch(url, options = {}) {
-		try {
-				const response = await fetch(url, {
-						...options,
-						headers: {
-								'Content-Type': 'application/json',
-								...options.headers
-						}
-				});
-				
-				const data = await response.json();
-				
-				if (!response.ok) {
-						throw new Error(data.error || 'Une erreur est survenue');
-				}
-				
-				return data;
-		} catch (error) {
-				console.error('apiFetch error:', error);
-				throw error;
-		}
+    try {
+        const response = await fetch(url, {
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+        
+        if (response.status === 401) {
+            // Unauthorized, token is invalid or expired
+            handleLogout();
+            throw new Error('Session expired. Please log in again.');
+        }
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Une erreur est survenue');
+        }
+        
+        return data;
+    } catch (error) {
+        console.error('apiFetch error:', error);
+        throw error;
+    }
 }
 
 // ─── NAVIGATION HELPERS ──────────────────────────────────────────────────────
@@ -341,7 +426,7 @@ function updateNav() {
 	const authNav = document.getElementById('auth-nav');
 	if (!authNav) return;
 	authToken = localStorage.getItem('token');
-	if (!authToken) {
+	if (!isAuthenticated()) {
 		authNav.innerHTML = `
 			<a href="/register" data-link
 				 class="px-4 py-2 border border-indigo-600 text-indigo-600 rounded hover:bg-indigo-50 transition">

@@ -468,8 +468,6 @@ function setupHomeHandlers() {
 			router();
 		});
 	}
-	// Once home is loaded for a logged user, init WS
-	initWebSocket();
 	// "Create game" button -> a modifier pour integrer le jeu
 	const newGameBtn = document.getElementById('newGameBtn');
 	if (newGameBtn) {
@@ -581,12 +579,6 @@ function setupHomeHandlers() {
 				userID: userId,
 				content: content
 			}));
-
-			// Optionnel : afficher immédiatement en local
-			const chatDiv = document.getElementById('chat');
-			const p = document.createElement('p');
-			p.textContent = `Moi: ${content}`;
-			chatDiv.appendChild(p);
 
 			chatForm.reset();
 		});
@@ -773,9 +765,6 @@ function setupVerify2FAHandlers() {
                 localStorage.setItem('token', json.token);
                 authToken = json.token;
                 
-                // Initialiser le WebSocket après l'authentification
-                initWebSocket();
-                
                 // Rediriger vers la page d'accueil
                 history.pushState(null, '', '/');
                 router();
@@ -876,24 +865,47 @@ function handleWebSocketMessage(msg) {
             chatDiv.appendChild(systemMsg);
             break;
             
-			case 'chatRoomMessage':
-				if (msg.roomID === currentRoom) {
-					const messageP = document.createElement('p');
-			
-					if (msg.from === userId) {
-						// Your own message: align right, bold, and green
-						messageP.className = 'text-right text-green-600 font-semibold mb-1';
-						messageP.textContent = `Moi: ${msg.content}`;
-					} else {
-						// Other user's message: align left, normal styling
-						messageP.className = 'text-left text-gray-800 mb-1';
-						messageP.textContent = `${msg.name_from}: ${msg.content}`;
-					}
-			
-					chatDiv.appendChild(messageP);
-				}
-				break;
-			
+        case 'chatRoomMessage':
+            if (msg.roomID === currentRoom) {
+                const messageP = document.createElement('p');
+                
+                if (msg.from === userId) {
+                    // Your own message: align right
+                    messageP.className = 'text-right mb-1';
+                    
+                    // Create separate spans for prefix and content
+                    const prefixSpan = document.createElement('span');
+                    prefixSpan.className = 'text-green-600 font-semibold';
+                    prefixSpan.textContent = 'Moi: ';
+                    
+                    const contentSpan = document.createElement('span');
+                    contentSpan.className = 'text-gray-800';
+                    contentSpan.textContent = msg.content;
+                    
+                    // Append both spans to the message paragraph
+                    messageP.appendChild(prefixSpan);
+                    messageP.appendChild(contentSpan);
+                } else {
+                    // Other user's message: align left
+                    messageP.className = 'text-left mb-1';
+                    
+                    // Create separate spans for prefix and content
+                    const prefixSpan = document.createElement('span');
+                    prefixSpan.className = 'text-blue-600 font-semibold';
+                    prefixSpan.textContent = `${msg.name_from}: `;
+                    
+                    const contentSpan = document.createElement('span');
+                    contentSpan.className = 'text-gray-800';
+                    contentSpan.textContent = msg.content;
+                    
+                    // Append both spans to the message paragraph
+                    messageP.appendChild(prefixSpan);
+                    messageP.appendChild(contentSpan);
+                }
+                
+                chatDiv.appendChild(messageP);
+            }
+            break;
             
         default:
             console.warn('Type de message WebSocket non géré:', msg.type);

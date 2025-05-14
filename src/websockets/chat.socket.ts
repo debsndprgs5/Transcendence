@@ -28,11 +28,13 @@ function SendGeneralMessage(message: string) {
 }
 
 async function SendChatRoomMessage(roomID: number, authorID: number, message: string) {
+  const authorname = await UserManagement.getUnameByIndex(authorID)
   if (roomID === 0) {
     SendGeneralMessage(JSON.stringify({
       type: 'chatRoomMessage',
       roomID:0,
       from : authorID,
+      name_from: authorname?.username ??`Utilisateur ${authorID}`,
       content: message
     }));
     return;
@@ -47,6 +49,7 @@ async function SendChatRoomMessage(roomID: number, authorID: number, message: st
             type: 'chatRoomMessage',
             roomID:roomID,
             from: authorID,
+            name_from: authorname?.username ??`Utilisateur ${authorID}`,
             content: message
           }));
         }
@@ -104,6 +107,7 @@ async function handleConnection(ws: WebSocket, request: any) {
     if (
       typeof chatRoomID !== 'number' ||
       typeof userID   !== 'number' ||
+      //typeof author_name !== 'string' ||
       typeof content  !== 'string' ||
       !content.trim()
     ) {

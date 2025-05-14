@@ -791,13 +791,24 @@ function handleWebSocketMessage(msg) {
             chatDiv.appendChild(systemMsg);
             break;
             
-        case 'chatRoomMessage':
-            if (msg.roomID === currentRoom) {
-                const messageP = document.createElement('p');
-                messageP.textContent = `${msg.from === userId ? 'Moi' : msg.from}: ${msg.content}`;
-                chatDiv.appendChild(messageP);
-            }
-            break;
+			case 'chatRoomMessage':
+				if (msg.roomID === currentRoom) {
+					const messageP = document.createElement('p');
+			
+					if (msg.from === userId) {
+						// Your own message: align right, bold, and green
+						messageP.className = 'text-right text-green-600 font-semibold mb-1';
+						messageP.textContent = `Moi: ${msg.content}`;
+					} else {
+						// Other user's message: align left, normal styling
+						messageP.className = 'text-left text-gray-800 mb-1';
+						messageP.textContent = `${msg.name_from}: ${msg.content}`;
+					}
+			
+					chatDiv.appendChild(messageP);
+				}
+				break;
+			
             
         default:
             console.warn('Type de message WebSocket non géré:', msg.type);

@@ -40,8 +40,8 @@ clean:
 # -------------------------------------------------------------------
 clear_db:
 	@echo "🧹 Erasing & Re-creating database"
-	rm -rf src/db/userdata.db
-	touch src/db/userdata.db
+	rm -rf src/db/ourdatabase.db
+	touch src/db/ourdatabase.db
 
 
 

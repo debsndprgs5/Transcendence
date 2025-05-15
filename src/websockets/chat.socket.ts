@@ -29,11 +29,10 @@ async function getRightSockets(authorID: number): Promise<Map<number, WebSocket[
     const blocked = await chatManagement.getBlockedUsers(clientID); // Who this client blocked
     const hasBlocked = blocked.some(user => user.related_userID === authorID);
 
-    if (!hasBlocked) {
+    if (!hasBlocked || clientID === authorID) {
       filtered.set(clientID, sockets);
     }
   }
-
   return filtered;
 }
 
@@ -65,10 +64,10 @@ async function SendGeneralMessage(authorID: number, message: string) {
       const members = await getChatRoomMembers(roomID);
       const allowedMap = await getRightSockets(authorID);
   
-      for (const member of members) {
-        const sockets = allowedMap.get(member.userID);
-        if (sockets) {
-          sockets.forEach(ws => ws.send(payload));
+      for (const socketMaped of allowedMap.values()) {
+        if (socketMaped) {
+          console.log('Attenting to send payload');
+          socketMaped.forEach(ws => ws.send(payload));
         }
       }
   

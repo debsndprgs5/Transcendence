@@ -899,7 +899,7 @@ function handleWebSocketMessage(msg) {
             break;
             
         case 'chatRoomMessage':
-            if (msg.roomID === currentRoom) {
+            if (msg.roomID === currentRoom ) {
                 appendMessageToChat(chatDiv, {
                     isOwnMessage: msg.from === userId,
                     name: msg.from === userId ? 'Moi' : msg.name_from,

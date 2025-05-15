@@ -78,68 +78,114 @@ async function SendGeneralMessage(authorID: number, message: string) {
   }
   
 
-async function handleConnection(ws: WebSocket, request: any) {
-  // Extract token from URL parameters instead of headers
-  const url = new URL(request.url, `http://${request.headers.host}`);
-  const token = url.searchParams.get('token');
+  async function handleConnection(ws: WebSocket, request: any) {
+    console.log('New WS connection attempt from:', request.socket.remoteAddress);
+    const url = new URL(request.url, `http://${request.headers.host}`);
+    const token = url.searchParams.get('token');
   
-  if (!token) {
-    console.log('Connection rejected: No token provided');
-    return ws.close(1008, 'No token');
-  }
-
-  let payload: JwtPayload;
-  try {
-    payload = jwt.verify(token, jwtSecret) as JwtPayload;
-  } catch (error) {
-    console.log('Connection rejected: Invalid token', error);
-    return ws.close(1008, 'Invalid token');
-  }
-
-  const rand_id = payload.sub as string;
-  const fullUser: user | null = await UserManagement.getUserByRand(rand_id);
-  if (!fullUser) {
-    return ws.close(1008, 'User not found');
-  }
-
-  const userId = fullUser.our_index;
-  if (!MappedClients.has(userId)) MappedClients.set(userId, []);
-  MappedClients.get(userId)!.push(ws);
-
-  SendGeneralMessage(0,JSON.stringify({
-    type: 'system',
-    message: `👋 ${fullUser.username} joined general chat.`
-  }));
-
-  ws.on('close', () => handleDisconnect(userId, fullUser.username, ws));
-
-  ws.on('message', async (data: RawData) => {
-    let parsed: any;
+    if (!token) {
+      console.log('Connection rejected: No token provided');
+      return ws.close(1008, 'No token');
+    }
+  
+    let payload: JwtPayload;
     try {
-      parsed = JSON.parse(data.toString());
-    } catch {
-      return ws.send(JSON.stringify({ error: 'Invalid JSON' }));
+      payload = jwt.verify(token, jwtSecret) as JwtPayload;
+    } catch (error) {
+      console.log('Connection rejected: Invalid token', error);
+      return ws.close(1008, 'Invalid token');
     }
-
-    const { chatRoomID, userID, content } = parsed;
-    if (
-      typeof chatRoomID !== 'number' ||
-      typeof userID   !== 'number' ||
-      typeof content  !== 'string' ||
-      !content.trim()
-    ) {
-      return ws.send(JSON.stringify({ error: 'Invalid message format' }));
+  
+    const rand_id = payload.sub as string;
+    const fullUser: user | null = await UserManagement.getUserByRand(rand_id);
+    if (!fullUser) {
+      return ws.close(1008, 'User not found');
     }
-
-    try {
-      await SendChatRoomMessage(chatRoomID, userID, content);
-    } catch (err) {
-      console.error('Failed to send chat room message:', err);
-      ws.send(JSON.stringify({ error: 'Failed to deliver message' }));
-    }
-  });
-}
-
+  
+    const userId = fullUser.our_index;
+    if (!MappedClients.has(userId)) MappedClients.set(userId, []);
+    MappedClients.get(userId)!.push(ws);
+  
+    SendGeneralMessage(0, JSON.stringify({
+      type: 'system',
+      message: `👋 ${fullUser.username} joined general chat.`
+    }));
+  
+    ws.on('close', () => handleDisconnect(userId, fullUser.username, ws));
+  
+    ws.on('message', async (data: RawData) => {
+      console.log('Message received from client:', data.toString());
+      let parsed: any;
+      try {
+        parsed = JSON.parse(data.toString());
+      } catch {
+        return ws.send(JSON.stringify({ error: 'Invalid JSON' }));
+      }
+  
+      // --- Handle message types ---
+      switch (parsed.type) {
+        case 'chatRoomMessage': {
+          const { chatRoomID, userID, content } = parsed;
+  
+          if (
+            typeof chatRoomID !== 'number' ||
+            typeof userID !== 'number' ||
+            typeof content !== 'string' ||
+            !content.trim()
+          ) {
+            return ws.send(JSON.stringify({ error: 'Invalid message format' }));
+          }
+  
+          try {
+            await SendChatRoomMessage(chatRoomID, userID, content);
+          } catch (err) {
+            console.error('Failed to send chat room message:', err);
+            ws.send(JSON.stringify({ error: 'Failed to deliver message' }));
+          }
+          break;
+        }
+  
+        case 'loadHistory': {
+          const { roomID, limit } = parsed;
+          if (typeof roomID !== 'number' || (limit !== undefined && typeof limit !== 'number')) {
+            return ws.send(JSON.stringify({ error: 'Invalid history request' }));
+          }
+  
+          try {
+            const messages = await chatManagement.getMessagesByChatRoom(roomID, limit ?? 10);
+            const result = [];
+  
+            for (const msg of messages.reverse()) {
+              const blocked = await chatManagement.isBlocked(userId, msg.authorID);
+              if (blocked === true) continue;
+  
+              const author = await UserManagement.getUnameByIndex(msg.authorID);
+              result.push({
+                roomID,
+                from: msg.authorID,
+                name_from: author?.username ?? `Utilisateur ${msg.authorID}`,
+                content: msg.content
+              });
+            }
+  
+            ws.send(JSON.stringify({
+              type: 'chatHistory',
+              roomID,
+              messages: result
+            }));
+          } catch (err) {
+            console.error('Failed to load history:', err);
+            ws.send(JSON.stringify({ type: 'system', message: 'Erreur chargement historique.' }));
+          }
+          break;
+        }
+  
+        default:
+          ws.send(JSON.stringify({ error: 'Unknown message type' }));
+      }
+    });
+  }
+  
 function handleDisconnect(userId: number, username: string, ws: WebSocket) {
   const sockets = MappedClients.get(userId) || [];
   const updated = sockets.filter(s => s !== ws);

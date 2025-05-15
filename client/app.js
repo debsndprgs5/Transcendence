@@ -791,17 +791,17 @@ async function initWebSocket() {
     }
 
     try {
-        // get userId unsigned via API
+        // Get userId via API
         const response = await fetch('/api/auth/me', {
             headers: {
                 'Authorization': `Bearer ${authToken}`
             }
         });
-        
+
         if (!response.ok) {
             throw new Error('Failed to get userId');
         }
-        
+
         const data = await response.json();
         userId = data.userId;
 
@@ -812,38 +812,52 @@ async function initWebSocket() {
 
         const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
         const wsUrl = `${protocol}://${location.host}/ws?token=${encodeURIComponent(authToken)}`;
-        
+
+        // Close old socket if already open
         if (socket && socket.readyState === WebSocket.OPEN) {
             socket.close();
         }
-        
+
         socket = new WebSocket(wsUrl);
-        
-        
+
+        // ✅ Correctly scoped reconnect logic
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 5;
+
         socket.onopen = () => {
             console.log('WebSocket connecté');
+
             if (typeof loadRooms === 'function') {
                 loadRooms();
             }
-        };
-        
-        socket.onmessage = (event) => {
-			console.log('WebSocket message received:', event.data);
-            try {
-                const msg = JSON.parse(event.data);
-                handleWebSocketMessage(msg);
-            } catch (error) {
-                console.warn('Message WebSocket invalide:', error);
+
+            // Ask server for last messages in general
+            if (socket.readyState === WebSocket.OPEN) {
+                console.log('Sending loadHistory request...');
+                socket.send(JSON.stringify({
+                    type: 'loadHistory',
+                    roomID: 0,
+                    limit: 10
+                }));
+            } else {
+                console.warn('Socket not ready when trying to send loadHistory');
             }
         };
-        
-        let reconnectAttempts = 0;
-        const maxReconnectAttempts = 5;
-        
+
+		socket.onmessage = (event) => {
+			console.log('Message brut reçu du WebSocket:', event.data);
+			try {
+				const parsed = JSON.parse(event.data);
+				handleWebSocketMessage(parsed);
+			} catch (e) {
+				console.error('Erreur de parsing du message WebSocket:', e);
+			}
+		};
+
         socket.onclose = (event) => {
-            console.log('WebSocket déconnecté:', event.reason);
-          };
-        
+            console.log('WebSocket déconnecté:', event.code, event.reason);
+        };
+
         socket.onerror = (error) => {
             console.error('Erreur WebSocket:', error);
         };
@@ -851,6 +865,7 @@ async function initWebSocket() {
         console.error('Erreur lors de l\'initialisation du WebSocket:', error);
     }
 }
+
 
 // Auxilliary function to handle websocket messages
 function handleWebSocketMessage(msg) {
@@ -904,8 +919,34 @@ function handleWebSocketMessage(msg) {
                 }
                 
                 chatDiv.appendChild(messageP);
+			
             }
             break;
+
+			case 'chatHistory':
+				if (msg.roomID === currentRoom && Array.isArray(msg.messages)) {
+					for (const historyMsg of msg.messages.reverse()) {  // oldest first
+						const messageP = document.createElement('p');
+						messageP.className = (historyMsg.from === userId) ? 'text-right mb-1' : 'text-left mb-1';
+			
+						const prefixSpan = document.createElement('span');
+						prefixSpan.className = (historyMsg.from === userId)
+							? 'text-green-600 font-semibold'
+							: 'text-blue-600 font-semibold';
+						prefixSpan.textContent = (historyMsg.from === userId)
+							? 'Moi: '
+							: `${historyMsg.name_from}: `;
+			
+						const contentSpan = document.createElement('span');
+						contentSpan.className = 'text-gray-800';
+						contentSpan.textContent = historyMsg.content;
+			
+						messageP.appendChild(prefixSpan);
+						messageP.appendChild(contentSpan);
+						chatDiv.appendChild(messageP);
+					}
+				}
+			break;
             
         default:
             console.warn('Type de message WebSocket non géré:', msg.type);

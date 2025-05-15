@@ -62,14 +62,14 @@ export const createMessage = (roomID: number, authorID: number, content: string)
 
 // Get messages for a room
 export const getMessagesByChatRoom = (roomID: number, limit: number = 50) =>
-  getAll<chatType.chatRoomMembers>(
+  getAll<chatType.messages>(
     `SELECT * FROM messages WHERE roomID = ? ORDER BY created_at DESC LIMIT ?`,
     [roomID, limit]
   );
 
 // Get messages by a specific user in a room
 export const getMessagesByUserInChatRoom = (authorID: number, roomID: number) =>
-  getAll<chatType.chatRoomMembers>(
+  getAll<chatType.messages>(
     `SELECT * FROM messages WHERE roomID = ? AND authorID = ? ORDER BY created_at DESC`,
     [roomID, authorID]
   );
@@ -116,6 +116,15 @@ export const unblockUser = (userID: number, blockedID: number) =>
     [userID, blockedID]
   );
 
+
+  export const isBlocked = async (userID: number, authorID: number): Promise<boolean> => {
+    const result = await get<chatType.user_relationships>(
+      `SELECT 1 FROM user_relationships WHERE user_id = ? AND related_user_id = ? AND type = 'block' LIMIT 1`,
+      [userID, authorID]
+    );
+    return result !== null;
+  };
+
 // Get blocked users list for a user
 export const getBlockedUsers = (userID: number) =>
   getAll<chatType.user_relationships>(
@@ -125,3 +134,24 @@ export const getBlockedUsers = (userID: number) =>
     [userID]
   );
 
+
+// ########################
+// #    Multi-db          #
+// ########################
+
+export const getCleanHistory = async (roomID: number, userID: number, limit: number = 50) => {
+  return getAll<chatType.messages>(
+    `
+    SELECT m.*
+    FROM messages m
+    LEFT JOIN user_relationships r
+      ON m.authorID = r.related_user_id
+      AND r.user_id = ?
+      AND r.type = 'block'
+    WHERE m.roomID = ? AND r.id IS NULL
+    ORDER BY m.created_at DESC
+    LIMIT ?
+    `,
+    [userID, roomID, limit]
+  );
+};

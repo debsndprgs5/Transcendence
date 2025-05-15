@@ -125,10 +125,12 @@ export default async function chatRoutes(fastify: FastifyInstance) {
     return reply.code(201).send({ success: true });
   });
 
+  //get all messages from unblock authors
   fastify.get('/chat/rooms/:roomId/messages', async (request, reply) => {
     const roomId = Number((request.params as any).roomId);
+    const userID = Number((request.params as any).userID)
     const limit = Number((request.query as any).limit) || 50;
-    const messages = await chatMgr.getMessagesByChatRoom(roomId, limit);
+    const messages = await chatMgr.getCleanHistory(roomId,userID)
     return reply.send(messages);
   });
 }

@@ -1,6 +1,7 @@
 import { user } from '../types/user';
 import * as UserManagement from '../db/userManagement';
 import { getChatRoomMembers } from '../db/chatManagement';
+import * as chatManagement from '../db/chatManagement';
 import fp from 'fastify-plugin';
 import * as dotenv from 'dotenv';
 import path from 'path';
@@ -21,44 +22,61 @@ if (!jwtSecret) {
 
 const MappedClients = new Map<number, WebSocket[]>();
 
-function SendGeneralMessage(message: string) {
-  for (const sockets of MappedClients.values()) {
-    sockets.forEach(ws => ws.send(message));
+async function getRightSockets(authorID: number): Promise<Map<number, WebSocket[]>> {
+  const filtered = new Map<number, WebSocket[]>();
+
+  for (const [clientID, sockets] of MappedClients.entries()) {
+    const blocked = await chatManagement.getBlockedUsers(clientID); // Who this client blocked
+    const hasBlocked = blocked.some(user => user.related_userID === authorID);
+
+    if (!hasBlocked) {
+      filtered.set(clientID, sockets);
+    }
   }
+
+  return filtered;
 }
 
-async function SendChatRoomMessage(roomID: number, authorID: number, message: string) {
-  const authorname = await UserManagement.getUnameByIndex(authorID)
-  if (roomID === 0) {
-    SendGeneralMessage(JSON.stringify({
-      type: 'chatRoomMessage',
-      roomID:0,
-      from : authorID,
-      name_from: authorname?.username ??`Utilisateur ${authorID}`,
-      content: message
-    }));
-    return;
+
+async function SendGeneralMessage(authorID: number, message: string) {
+    const socketsMap = await getRightSockets(authorID);
+    for (const sockets of socketsMap.values()) {
+      sockets.forEach(ws => ws.send(message));
+    }
   }
-  try {
-    const members = await getChatRoomMembers(roomID);
-    for (const member of members) {
-      const sockets = MappedClients.get(member.userID);
-      if (sockets) {
-        for (const ws of sockets) {
-          ws.send(JSON.stringify({
-            type: 'chatRoomMessage',
-            roomID:roomID,
-            from: authorID,
-            name_from: authorname?.username ??`Utilisateur ${authorID}`,
-            content: message
-          }));
+
+  async function SendChatRoomMessage(roomID: number, authorID: number, message: string) {
+    const authorName = (await UserManagement.getUnameByIndex(authorID))?.username ?? `Utilisateur ${authorID}`;
+  
+    const payload = JSON.stringify({
+      type: 'chatRoomMessage',
+      roomID:roomID,
+      from: authorID,
+      name_from: authorName,
+      content: message
+    });
+  
+    if (roomID === 0) {
+      return await SendGeneralMessage(authorID, payload);
+    }
+  
+    try {
+      const members = await getChatRoomMembers(roomID);
+      const allowedMap = await getRightSockets(authorID);
+  
+      for (const member of members) {
+        const sockets = allowedMap.get(member.userID);
+        if (sockets) {
+          sockets.forEach(ws => ws.send(payload));
         }
       }
+  
+      await chatManagement.createMessage(roomID, authorID, message);
+    } catch (err) {
+      console.error("Error sending chat room message:", err);
     }
-  } catch (err) {
-    console.error("Error sending chat room message:", err);
   }
-}
+  
 
 async function handleConnection(ws: WebSocket, request: any) {
   // Extract token from URL parameters instead of headers
@@ -88,7 +106,7 @@ async function handleConnection(ws: WebSocket, request: any) {
   if (!MappedClients.has(userId)) MappedClients.set(userId, []);
   MappedClients.get(userId)!.push(ws);
 
-  SendGeneralMessage(JSON.stringify({
+  SendGeneralMessage(0,JSON.stringify({
     type: 'system',
     message: `👋 ${fullUser.username} joined general chat.`
   }));
@@ -107,7 +125,6 @@ async function handleConnection(ws: WebSocket, request: any) {
     if (
       typeof chatRoomID !== 'number' ||
       typeof userID   !== 'number' ||
-      //typeof author_name !== 'string' ||
       typeof content  !== 'string' ||
       !content.trim()
     ) {
@@ -133,7 +150,7 @@ function handleDisconnect(userId: number, username: string, ws: WebSocket) {
     MappedClients.set(userId, updated);
   }
 
-  SendGeneralMessage(JSON.stringify({
+  SendGeneralMessage(0,JSON.stringify({
     type: 'system',
     message: `👋 ${username} left general chat.`
   }));

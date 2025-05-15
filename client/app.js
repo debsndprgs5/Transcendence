@@ -336,10 +336,15 @@ function router() {
                 setupRegisterHandlers();
             }
             break;
-        default:
-            render(HomeView());
-            setupHomeHandlers();
-            break;
+		default:
+		    render(HomeView());
+		    if (isAuthenticated()) {
+		        setupHomeHandlers();
+		        // Reset currentRoom
+		        currentRoom = 0;
+		        initWebSocket();
+		    }
+		    break;
     }
 }
 
@@ -487,14 +492,27 @@ function setupHomeHandlers() {
 	        if (!ul) return;
 	        
 	        ul.innerHTML = rooms.map(r => 
-	            `<li data-id="${r.roomID}" class="cursor-pointer hover:bg-gray-100 p-2 rounded ${currentRoom === r.roomID ? 'bg-indigo-100' : ''}">
-	                ${r.name || `Salon #${r.roomID}`}
-	            </li>`
+	            `<li data-id="${r.roomID}" class="cursor-pointer hover:bg-gray-100 p-2 rounded ${currentRoom === r.roomID ? 'bg-indigo-100' : ''}">${r.name || `Salon #${r.roomID}`}</li>`
 	        ).join('');
 	        
+	        // If no room is selected, select general
+	        if (currentRoom === 0 && rooms.length > 0) {
+	            currentRoom = rooms[0].roomID;
+	        }
+	        
+	        // Event listeners
 	        document.querySelectorAll('#room-list li').forEach(li => {
 	            li.addEventListener('click', () => selectRoom(Number(li.dataset.id)));
 	        });
+
+	        // Load current room history
+	        if (socket && socket.readyState === WebSocket.OPEN) {
+	            socket.send(JSON.stringify({
+	                type: 'chatHistory',
+	                roomID: currentRoom,
+	                limit: 50
+	            }));
+	        }
 	    } catch (error) {
 	        console.error('Error loading rooms:', error);
 	        const ul = document.getElementById('room-list');
@@ -525,7 +543,7 @@ function setupHomeHandlers() {
 	                },
 	                body: JSON.stringify({ name: roomName })
 	            });
-	            await loadRooms(); // Recharger la liste des salons après la création
+	            await loadRooms(); // Reload room list after creating one
 	        } catch (error) {
 	            console.error('Error creating chat room:', error);
 	            alert('Erreur lors de la création du salon: ' + error.message);
@@ -537,31 +555,37 @@ function setupHomeHandlers() {
 
 	// Chat: Select room
 	const selectRoom = async (roomId) => {
-			try {
-					currentRoom = roomId;
-					const chatDiv = document.getElementById('chat');
-					if (!chatDiv) return;
-					
-					chatDiv.innerHTML = '<p class="text-gray-500">Chargement des messages...</p>';
-					
-					const messages = await apiFetch(
-							`/api/chat/rooms/${roomId}/messages?limit=50`,
-							{ headers: { 'Authorization': `Bearer ${authToken}` } }
-					);
-					
-					chatDiv.innerHTML = '';
-					messages.reverse().forEach(m => {
-							const p = document.createElement('p');
-							p.textContent = `${m.authorID}: ${m.content}`;
-							chatDiv.appendChild(p);
-					});
-			} catch (error) {
-					console.error('Error selecting room:', error);
-					const chatDiv = document.getElementById('chat');
-					if (chatDiv) {
-							chatDiv.innerHTML = '<p class="text-red-500">Erreur de chargement des messages</p>';
-					}
-			}
+	    try {
+	        currentRoom = roomId;
+	        const chatDiv = document.getElementById('chat');
+	        if (!chatDiv) return;
+	        
+	        chatDiv.innerHTML = '<p class="text-gray-500">Chargement des messages...</p>';
+	        
+	        // Get history
+	        if (socket && socket.readyState === WebSocket.OPEN) {
+	            socket.send(JSON.stringify({
+	                type: 'chatHistory',
+	                roomID: roomId,
+	                limit: 50
+	            }));
+	        }
+	        
+	        // Update visually the selected room
+	        document.querySelectorAll('#room-list li').forEach(li => {
+	            if (Number(li.dataset.id) === roomId) {
+	                li.classList.add('bg-indigo-100');
+	            } else {
+	                li.classList.remove('bg-indigo-100');
+	            }
+	        });
+	    } catch (error) {
+	        console.error('Error selecting room:', error);
+	        const chatDiv = document.getElementById('chat');
+	        if (chatDiv) {
+	            chatDiv.innerHTML = '<p class="text-red-500">Erreur de chargement des messages</p>';
+	        }
+	    }
 	};
 
 	// Chat: form submission via WebSocket
@@ -786,7 +810,7 @@ function setupVerify2FAHandlers() {
 
 // Initialize WS if both userId and authtoken are setup
 async function initWebSocket() {
-    if (!authToken) {
+    if (!isAuthenticated()) {
         console.warn('WebSocket: pas de token d\'authentification');
         return;
     }
@@ -821,30 +845,20 @@ async function initWebSocket() {
 
         socket = new WebSocket(wsUrl);
 
-        // ✅ Correctly scoped reconnect logic
-        let reconnectAttempts = 0;
-        const maxReconnectAttempts = 5;
+		socket.onopen = () => {
+		    console.log('WebSocket connecté');
 
-        socket.onopen = () => {
-            console.log('WebSocket connecté');
-
-            // if (typeof loadRooms === 'function') {
-            //     loadRooms();
-            // }
-
-            // Ask server for last messages in general
-            if (socket.readyState === WebSocket.OPEN) {
-                console.log('Sending loadHistory request...');
-                socket.send(JSON.stringify({
-                    type: 'chatHistory',
-                    roomID: 0,
-                    limit: 10
-                }));
-            }
-			 else {
-                console.warn('Socket not ready when trying to send loadHistory');
-         	 }
-        };
+		    setTimeout(() => {
+		        if (socket.readyState === WebSocket.OPEN) {
+		            console.log('Sending chatHistory request...');
+		            socket.send(JSON.stringify({
+		                type: 'chatHistory',
+		                roomID: currentRoom,
+		                limit: 50
+		            }));
+		        }
+		    }, 100);
+		};
 
 		socket.onmessage = (event) => {
 			console.log('Message brut reçu du WebSocket:', event.data);
@@ -874,6 +888,8 @@ function handleWebSocketMessage(msg) {
     const chatDiv = document.getElementById('chat');
     if (!chatDiv) return;
 
+    const MESSAGE_LIMIT = 15;
+
     switch (msg.type) {
         case 'system':
             const systemMsg = document.createElement('p');
@@ -884,73 +900,57 @@ function handleWebSocketMessage(msg) {
             
         case 'chatRoomMessage':
             if (msg.roomID === currentRoom) {
-                const messageP = document.createElement('p');
-                
-                if (msg.from === userId) {
-                    // Your own message: align right
-                    messageP.className = 'text-right mb-1';
-                    
-                    // Create separate spans for prefix and content
-                    const prefixSpan = document.createElement('span');
-                    prefixSpan.className = 'text-green-600 font-semibold';
-                    prefixSpan.textContent = 'Moi: ';
-                    
-                    const contentSpan = document.createElement('span');
-                    contentSpan.className = 'text-gray-800';
-                    contentSpan.textContent = msg.content;
-                    
-                    // Append both spans to the message paragraph
-                    messageP.appendChild(prefixSpan);
-                    messageP.appendChild(contentSpan);
-                } else {
-                    // Other user's message: align left
-                    messageP.className = 'text-left mb-1';
-                    
-                    // Create separate spans for prefix and content
-                    const prefixSpan = document.createElement('span');
-                    prefixSpan.className = 'text-blue-600 font-semibold';
-                    prefixSpan.textContent = `${msg.name_from}: `;
-                    
-                    const contentSpan = document.createElement('span');
-                    contentSpan.className = 'text-gray-800';
-                    contentSpan.textContent = msg.content;
-                    
-                    // Append both spans to the message paragraph
-                    messageP.appendChild(prefixSpan);
-                    messageP.appendChild(contentSpan);
+                appendMessageToChat(chatDiv, {
+                    isOwnMessage: msg.from === userId,
+                    name: msg.from === userId ? 'Moi' : msg.name_from,
+                    content: msg.content
+                });
+
+                // Keep only the last 15
+                while (chatDiv.children.length > MESSAGE_LIMIT) {
+                    chatDiv.removeChild(chatDiv.firstChild);
                 }
-                
-                chatDiv.appendChild(messageP);
-			
             }
             break;
 
-			case 'chatHistory':
-				if (msg.roomID === currentRoom && Array.isArray(msg.messages)) {
-					for (const historyMsg of msg.messages.reverse()) {  // oldest first
-						const messageP = document.createElement('p');
-						messageP.className = (historyMsg.from === userId) ? 'text-right mb-1' : 'text-left mb-1';
-			
-						const prefixSpan = document.createElement('span');
-						prefixSpan.className = (historyMsg.from === userId)
-							? 'text-green-600 font-semibold'
-							: 'text-blue-600 font-semibold';
-						prefixSpan.textContent = (historyMsg.from === userId)
-							? 'Moi: '
-							: `${historyMsg.name_from}: `;
-			
-						const contentSpan = document.createElement('span');
-						contentSpan.className = 'text-gray-800';
-						contentSpan.textContent = historyMsg.content;
-			
-						messageP.appendChild(prefixSpan);
-						messageP.appendChild(contentSpan);
-						chatDiv.appendChild(messageP);
-					}
-				}
-			break;
+        case 'chatHistory':
+            if (msg.roomID === currentRoom && Array.isArray(msg.messages)) {
+                chatDiv.innerHTML = ''; // empty chat
+                
+                // Get the last 15 messages from history
+                const recentMessages = msg.messages
+                    .slice(-MESSAGE_LIMIT);
+                
+                // Render messages in chronologic order
+                recentMessages.forEach(historyMsg => {
+                    appendMessageToChat(chatDiv, {
+                        isOwnMessage: historyMsg.from === userId,
+                        name: historyMsg.from === userId ? 'Moi' : historyMsg.name_from,
+                        content: historyMsg.content
+                    });
+                });
+            }
+            break;
             
         default:
             console.warn('Type de message WebSocket non géré:', msg.type);
     }
+}
+
+// Auxillary function to append a message to chat
+function appendMessageToChat(chatDiv, { isOwnMessage, name, content }) {
+    const messageP = document.createElement('p');
+    messageP.className = isOwnMessage ? 'text-right mb-1' : 'text-left mb-1';
+
+    const prefixSpan = document.createElement('span');
+    prefixSpan.className = isOwnMessage ? 'text-green-600 font-semibold' : 'text-blue-600 font-semibold';
+    prefixSpan.textContent = `${name}: `;
+
+    const contentSpan = document.createElement('span');
+    contentSpan.className = 'text-gray-800';
+    contentSpan.textContent = content;
+
+    messageP.appendChild(prefixSpan);
+    messageP.appendChild(contentSpan);
+    chatDiv.appendChild(messageP);
 }

@@ -153,7 +153,7 @@ async function SendGeneralMessage(authorID: number, message: string) {
           break;
         }
   
-        case 'loadHistory': {
+        case 'chatHistory': {
           const { roomID, limit } = parsed;
           if (typeof roomID !== 'number' || (limit !== undefined && typeof limit !== 'number')) {
             return ws.send(JSON.stringify({ error: 'Invalid history request' }));

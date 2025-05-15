@@ -509,7 +509,7 @@ function setupHomeHandlers() {
       loadRooms();
       initWebSocket();
   }
-  
+
 
 	// Chat: New room
 	const newChatRoomBtn = document.getElementById('newChatRoomBtn');
@@ -828,21 +828,22 @@ async function initWebSocket() {
         socket.onopen = () => {
             console.log('WebSocket connecté');
 
-            if (typeof loadRooms === 'function') {
-                loadRooms();
-            }
+            // if (typeof loadRooms === 'function') {
+            //     loadRooms();
+            // }
 
             // Ask server for last messages in general
             if (socket.readyState === WebSocket.OPEN) {
                 console.log('Sending loadHistory request...');
                 socket.send(JSON.stringify({
-                    type: 'loadHistory',
+                    type: 'chatHistory',
                     roomID: 0,
                     limit: 10
                 }));
-            } else {
-                console.warn('Socket not ready when trying to send loadHistory');
             }
+			 else {
+                console.warn('Socket not ready when trying to send loadHistory');
+         	 }
         };
 
 		socket.onmessage = (event) => {

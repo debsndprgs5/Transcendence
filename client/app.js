@@ -7,58 +7,58 @@ let currentRoom = 0;  // selected room
 
 // ─── AUTH HELPERS ──────────────────────────────────────────────────────────────
 function isAuthenticated() {
-    authToken = localStorage.getItem('token');
-    return !!authToken;
+	authToken = localStorage.getItem('token');
+	return !!authToken;
 }
 
 
 // Add an event listener for localStorage changes
 window.addEventListener('storage', (event) => {
-    if (event.key === 'token') {
-        // Token was changed in another tab
-        authToken = event.newValue;
-        if (!authToken) {
-            // Token was removed, force logout
-            handleLogout();
-        }
-    }
+	if (event.key === 'token') {
+		// Token was changed in another tab
+		authToken = event.newValue;
+		if (!authToken) {
+			// Token was removed, force logout
+			handleLogout();
+		}
+	}
 });
 
 // Centralized logout handling
 function handleLogout() {
-    localStorage.removeItem('token');
-    localStorage.removeItem('username');
-    authToken = null;
-    userId = null;
-    currentRoom = 0;
-    updateNav();
+	localStorage.removeItem('token');
+	localStorage.removeItem('username');
+	authToken = null;
+	userId = null;
+	currentRoom = 0;
+	updateNav();
 
-    // Close WebSocket if it's open
-    if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.close();
-    }
-    
-    render(HomeView());
+	// Close WebSocket if it's open
+	if (socket && socket.readyState === WebSocket.OPEN) {
+		socket.close();
+	}
+	
+	render(HomeView());
 }
 
 
 // Check token validity every minute
 function startTokenValidation() {
-    setInterval(async () => {
-        if (isAuthenticated()) {
-            try {
-                await apiFetch('/api/auth/me');
-            } catch (error) {
-                handleLogout();
-            }
-        }
-    }, 60000); // Check every minute
+	setInterval(async () => {
+		if (isAuthenticated()) {
+			try {
+				await apiFetch('/api/auth/me');
+			} catch (error) {
+				handleLogout();
+			}
+		}
+	}, 60000); // Check every minute
 }
 
 // Call this when the app starts
 document.addEventListener('DOMContentLoaded', () => {
-    router();
-    startTokenValidation();
+	router();
+	startTokenValidation();
 });
 
 // ─── RENDER ──────────────────────────────────────────────────────────────────
@@ -124,8 +124,12 @@ function HomeView() {
 			<!-- Chat section -->
 			<div class="bg-white p-6 rounded-lg shadow-lg flex flex-col">
 				<h2 class="text-2xl font-semibold text-indigo-600 mb-4 flex justify-between items-center">
-					<span>Chat</span>
-					<button id="newChatRoomBtn" class="px-3 py-1 bg-indigo-100 text-indigo-600 rounded hover:bg-indigo-200 transition text-sm">
+					<button id="generalChatBtn" 
+							class="text-indigo-600 hover:text-indigo-800 transition-colors cursor-pointer">
+						Chat
+					</button>
+					<button id="newChatRoomBtn" 
+							class="px-3 py-1 bg-indigo-100 text-indigo-600 rounded hover:bg-indigo-200 transition text-sm">
 						+ Salon
 					</button>
 				</h2>
@@ -300,105 +304,94 @@ function Verify2FAView() {
 function router() {
 	const path = window.location.pathname;
 
-    // // Check authentication state
-    // if (!isAuthenticated()) {
-    //     // If not authenticated and trying to access protected routes
-    //     if (path !== '/login' && path !== '/register' && path !== '/') {
-    //         history.pushState(null, '', '/');
-    //         render(LoginView());
-    //         setupLoginHandlers();
-    //         return;
-    //     }
-    // }
-
 	// update nav before render -> to render either login/register or disconnect
 	updateNav();
 
-    switch (path) {
-        case '/login':
-            if (isAuthenticated()) {
-                // If already authenticated, redirect to home
-                history.pushState(null, '', '/');
-                render(HomeView());
-                setupHomeHandlers();
-            } else {
-                render(LoginView());
-                setupLoginHandlers();
-            }
-            break;
-        case '/register':
-            if (isAuthenticated()) {
-                history.pushState(null, '', '/');
-                render(HomeView());
-                setupHomeHandlers();
-            } else {
-                render(RegisterView());
-                setupRegisterHandlers();
-            }
-            break;
+	switch (path) {
+		case '/login':
+			if (isAuthenticated()) {
+				// If already authenticated, redirect to home
+				history.pushState(null, '', '/');
+				render(HomeView());
+				setupHomeHandlers();
+			} else {
+				render(LoginView());
+				setupLoginHandlers();
+			}
+			break;
+		case '/register':
+			if (isAuthenticated()) {
+				history.pushState(null, '', '/');
+				render(HomeView());
+				setupHomeHandlers();
+			} else {
+				render(RegisterView());
+				setupRegisterHandlers();
+			}
+			break;
 		default:
-		    render(HomeView());
-		    if (isAuthenticated()) {
-		        setupHomeHandlers();
-		        // Reset currentRoom
-		        currentRoom = 0;
-		        initWebSocket();
-		    }
-		    break;
-    }
+			render(HomeView());
+			if (isAuthenticated()) {
+				setupHomeHandlers();
+				// Reset currentRoom
+				currentRoom = 0;
+				initWebSocket();
+			}
+			break;
+	}
 }
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 
 // Read cookie's userId
 function getUserIdFromCookie() {
-    try {
-        const cookies = document.cookie.split(';');
-        for (const cookie of cookies) {
-            const [name, value] = cookie.trim().split('=');
-            if (name === 'userId') {
-                console.log('Found userId cookie:', value); // Debug log
-                const userId = Number(value);
-                if (!isNaN(userId)) {
-                    return userId;
-                }
-            }
-        }
-        console.log('No userId cookie found in:', document.cookie); // Debug log
-    } catch (error) {
-        console.error('Error parsing userId cookie:', error);
-    }
-    return null;
+	try {
+		const cookies = document.cookie.split(';');
+		for (const cookie of cookies) {
+			const [name, value] = cookie.trim().split('=');
+			if (name === 'userId') {
+				console.log('Found userId cookie:', value); // Debug log
+				const userId = Number(value);
+				if (!isNaN(userId)) {
+					return userId;
+				}
+			}
+		}
+		console.log('No userId cookie found in:', document.cookie); // Debug log
+	} catch (error) {
+		console.error('Error parsing userId cookie:', error);
+	}
+	return null;
 }
 
 // ─── API FETCH HELPER ─────────────────────────────────────────────────────────
 async function apiFetch(url, options = {}) {
-    try {
-        const response = await fetch(url, {
-            ...options,
-            headers: {
-                'Content-Type': 'application/json',
-                ...options.headers
-            }
-        });
-        
-        if (response.status === 401) {
-            // Unauthorized, token is invalid or expired
-            handleLogout();
-            throw new Error('Session expired. Please log in again.');
-        }
-        
-        const data = await response.json();
-        
-        if (!response.ok) {
-            throw new Error(data.error || 'Une erreur est survenue');
-        }
-        
-        return data;
-    } catch (error) {
-        console.error('apiFetch error:', error);
-        throw error;
-    }
+	try {
+		const response = await fetch(url, {
+			...options,
+			headers: {
+				'Content-Type': 'application/json',
+				...options.headers
+			}
+		});
+		
+		if (response.status === 401) {
+			// Unauthorized, token is invalid or expired
+			handleLogout();
+			throw new Error('Session expired. Please log in again.');
+		}
+		
+		const data = await response.json();
+		
+		if (!response.ok) {
+			throw new Error(data.error || 'Une erreur est survenue');
+		}
+		
+		return data;
+	} catch (error) {
+		console.error('apiFetch error:', error);
+		throw error;
+	}
 }
 
 // ─── NAVIGATION HELPERS ──────────────────────────────────────────────────────
@@ -484,108 +477,136 @@ function setupHomeHandlers() {
 
   // Load rooms immediately when entering home view
 	let loadRooms = async () => {
-	    try {
-	        const rooms = await apiFetch('/api/chat/rooms', { 
-	            headers: { 'Authorization': `Bearer ${authToken}` } 
-	        });
-	        const ul = document.getElementById('room-list');
-	        if (!ul) return;
-	        
-	        ul.innerHTML = rooms.map(r => 
-	            `<li data-id="${r.roomID}" class="cursor-pointer hover:bg-gray-100 p-2 rounded ${currentRoom === r.roomID ? 'bg-indigo-100' : ''}">${r.name || `Salon #${r.roomID}`}</li>`
-	        ).join('');
-	        
-	        // If no room is selected, select general
-	        if (currentRoom === 0 && rooms.length > 0) {
-	            currentRoom = rooms[0].roomID;
-	        }
-	        
-	        // Event listeners
-	        document.querySelectorAll('#room-list li').forEach(li => {
-	            li.addEventListener('click', () => selectRoom(Number(li.dataset.id)));
-	        });
+		try {
+			const rooms = await apiFetch('/api/chat/rooms', { 
+				headers: { 'Authorization': `Bearer ${authToken}` } 
+			});
+			const ul = document.getElementById('room-list');
+			if (!ul) return;
+			
+			ul.innerHTML = rooms.map(r => 
+				`<li data-id="${r.roomID}" class="cursor-pointer hover:bg-gray-100 p-2 rounded ${currentRoom === r.roomID ? 'bg-indigo-100' : ''}">${r.name || `Salon #${r.roomID}`}</li>`
+			).join('');
+			
+			// If no room is selected, select general
+			if (currentRoom === 0 && rooms.length > 0) {
+				currentRoom = rooms[0].roomID;
+			}
+			
+			// Event listeners
+			document.querySelectorAll('#room-list li').forEach(li => {
+				li.addEventListener('click', () => selectRoom(Number(li.dataset.id)));
+			});
 
-	        // Load current room history
-	        if (socket && socket.readyState === WebSocket.OPEN) {
-	            socket.send(JSON.stringify({
-	                type: 'chatHistory',
-	                roomID: currentRoom,
-	                limit: 50
-	            }));
-	        }
-	    } catch (error) {
-	        console.error('Error loading rooms:', error);
-	        const ul = document.getElementById('room-list');
-	        if (ul) {
-	            ul.innerHTML = '<li class="text-red-500">Erreur de chargement des salons</li>';
-	        }
-	    }
+			// Load current room history
+			if (socket && socket.readyState === WebSocket.OPEN) {
+				socket.send(JSON.stringify({
+					type: 'chatHistory',
+					roomID: currentRoom,
+					limit: 50
+				}));
+			}
+		} catch (error) {
+			console.error('Error loading rooms:', error);
+			const ul = document.getElementById('room-list');
+			if (ul) {
+				ul.innerHTML = '<li class="text-red-500">Erreur de chargement des salons</li>';
+			}
+		}
 	};
 
-  // Call loadRooms immediately and set up WebSocket
-  if (authToken) {
-      loadRooms();
-      initWebSocket();
-  }
-  
+	  // Call loadRooms immediately and set up WebSocket
+	  if (authToken) {
+		  loadRooms();
+		  initWebSocket();
+	  }
+
+	// Chat: button to get back to general chat
+	const generalChatBtn = document.getElementById('generalChatBtn');
+	if (generalChatBtn) {
+		generalChatBtn.addEventListener('click', () => {
+			selectRoom(0); // Select room 0 aka general chat
+			
+			// Visual update on room list
+			document.querySelectorAll('#room-list li').forEach(li => {
+				li.classList.remove('bg-indigo-100');
+				if (li.dataset.id === '0') {
+					li.classList.add('bg-indigo-100');
+				}
+			});
+		});
+	}
 
 	// Chat: New room
 	const newChatRoomBtn = document.getElementById('newChatRoomBtn');
 	if (newChatRoomBtn) {
-	    newChatRoomBtn.addEventListener('click', async () => {
-	        try {
-	            const roomName = prompt('Nom du salon :') || 'Nouveau salon';
-	            await apiFetch('/api/chat/rooms', { 
-	                method: 'POST', 
-	                headers: { 
-	                    'Authorization': `Bearer ${authToken}`,
-	                    'Content-Type': 'application/json'
-	                },
-	                body: JSON.stringify({ name: roomName })
-	            });
-	            await loadRooms(); // Reload room list after creating one
-	        } catch (error) {
-	            console.error('Error creating chat room:', error);
-	            alert('Erreur lors de la création du salon: ' + error.message);
-	        }
-	    });
+		newChatRoomBtn.addEventListener('click', async () => {
+			try {
+				const roomName = prompt('Nom du salon :') || 'Nouveau salon';
+				const newroom = await apiFetch('/api/chat/rooms', { 
+					method: 'POST', 
+					headers: { 
+						'Authorization': `Bearer ${authToken}`,
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({ name: roomName })
+				});
+				addMemberToRoom(newroom.roomID);
+				await loadRooms(); // Reload room list after creating one
+			} catch (error) {
+				console.error('Error creating chat room:', error);
+				alert('Erreur lors de la création du salon: ' + error.message);
+			}
+		});
 	}
 
-
-
-	// Chat: Select room
-	const selectRoom = async (roomId) => {
+	async function addMemberToRoom(roomId) {
 	    try {
-	        currentRoom = roomId;
-	        const chatDiv = document.getElementById('chat');
-	        if (!chatDiv) return;
-	        
-	        chatDiv.innerHTML = '<p class="text-gray-500">Chargement des messages...</p>';
-	        
-	        // Get history
-	        if (socket && socket.readyState === WebSocket.OPEN) {
-	            socket.send(JSON.stringify({
-	                type: 'chatHistory',
-	                roomID: roomId,
-	                limit: 50
-	            }));
-	        }
-	        
-	        // Update visually the selected room
-	        document.querySelectorAll('#room-list li').forEach(li => {
-	            if (Number(li.dataset.id) === roomId) {
-	                li.classList.add('bg-indigo-100');
-	            } else {
-	                li.classList.remove('bg-indigo-100');
+	        await apiFetch(`/api/chat/rooms/${roomId}/members`, { 
+	            method: 'POST',
+	            headers: { 
+	                'Authorization': `Bearer ${authToken}`,
+	                'Content-Type': 'application/json'
 	            }
 	        });
 	    } catch (error) {
-	        console.error('Error selecting room:', error);
-	        const chatDiv = document.getElementById('chat');
-	        if (chatDiv) {
-	            chatDiv.innerHTML = '<p class="text-red-500">Erreur de chargement des messages</p>';
-	        }
+	        console.error('Error adding member :', error);
 	    }
+	}
+
+	// Chat: Select room
+	const selectRoom = async (roomId) => {
+		try {
+			currentRoom = roomId;
+			const chatDiv = document.getElementById('chat');
+			if (!chatDiv) return;
+			
+			chatDiv.innerHTML = '<p class="text-gray-500">Chargement des messages...</p>';
+			
+			// Get history
+			if (socket && socket.readyState === WebSocket.OPEN) {
+				socket.send(JSON.stringify({
+					type: 'chatHistory',
+					roomID: roomId,
+					limit: 50
+				}));
+			}
+			
+			// Update visually the selected room
+			document.querySelectorAll('#room-list li').forEach(li => {
+				if (Number(li.dataset.id) === roomId) {
+					li.classList.add('bg-indigo-100');
+				} else {
+					li.classList.remove('bg-indigo-100');
+				}
+			});
+		} catch (error) {
+			console.error('Error selecting room:', error);
+			const chatDiv = document.getElementById('chat');
+			if (chatDiv) {
+				chatDiv.innerHTML = '<p class="text-red-500">Erreur de chargement des messages</p>';
+			}
+		}
 	};
 
 	// Chat: form submission via WebSocket
@@ -642,102 +663,102 @@ function setupRegisterHandlers() {
 }
 
 function setupLoginHandlers() {
-    const form = document.getElementById('loginForm');
-    if (!form) return;
+	const form = document.getElementById('loginForm');
+	if (!form) return;
 
-    form.onsubmit = async e => {
-        e.preventDefault();
-        const data = Object.fromEntries(new FormData(form).entries());
-        localStorage.setItem('username', data.username);
+	form.onsubmit = async e => {
+		e.preventDefault();
+		const data = Object.fromEntries(new FormData(form).entries());
+		localStorage.setItem('username', data.username);
 
-        try {
-            const res = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            const json = await res.json();
+		try {
+			const res = await fetch('/api/auth/login', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(data)
+			});
+			const json = await res.json();
 
-            if (res.ok) {
-                if (json.need2FASetup) {
-                    console.log('2FA setup needed, token received:', json.token);
-                    pendingToken = json.token;
-                    await doSetup2FA(pendingToken);
-                } else if (json.need2FAVerify) {
-                    console.log('2FA verification needed');
-                    pendingToken = json.token;
-                    render(Verify2FAView());
-                    setupVerify2FAHandlers();
-                } else {
-                    localStorage.setItem('token', json.token);
-                    authToken = json.token;
-                    history.pushState(null, '', '/');
-                    router();
-                }
-            } else {
-                console.error('Login failed:', json.error);
-                const err = document.getElementById('login-error');
-                err.textContent = json.error || 'Erreur de connexion';
-                err.classList.remove('hidden');
-            }
-        } catch (err) {
-            console.error('Login error:', err);
-            const errEl = document.getElementById('login-error');
-            errEl.textContent = 'Erreur réseau, réessayez.';
-            errEl.classList.remove('hidden');
-        }
-    };
+			if (res.ok) {
+				if (json.need2FASetup) {
+					console.log('2FA setup needed, token received:', json.token);
+					pendingToken = json.token;
+					await doSetup2FA(pendingToken);
+				} else if (json.need2FAVerify) {
+					console.log('2FA verification needed');
+					pendingToken = json.token;
+					render(Verify2FAView());
+					setupVerify2FAHandlers();
+				} else {
+					localStorage.setItem('token', json.token);
+					authToken = json.token;
+					history.pushState(null, '', '/');
+					router();
+				}
+			} else {
+				console.error('Login failed:', json.error);
+				const err = document.getElementById('login-error');
+				err.textContent = json.error || 'Erreur de connexion';
+				err.classList.remove('hidden');
+			}
+		} catch (err) {
+			console.error('Login error:', err);
+			const errEl = document.getElementById('login-error');
+			errEl.textContent = 'Erreur réseau, réessayez.';
+			errEl.classList.remove('hidden');
+		}
+	};
 }
 
 
 
 async function doSetup2FA(token) {
-    if (!token) {
-        console.error('No token provided for 2FA setup');
-        return;
-    }
+	if (!token) {
+		console.error('No token provided for 2FA setup');
+		return;
+	}
 
-    try {
-        console.log('Sending 2FA setup request with token:', token);
-        const res = await fetch('/api/auth/2fa/setup', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({})
-        });
-        
-        if (!res.ok) {
-            const errorData = await res.json();
-            throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
-        }
-        
-        const json = await res.json();
-        console.log('2FA setup response:', json);
-        
-        if (!json.otpauth_url || !json.base32) {
-            throw new Error('Invalid server response: missing required 2FA data');
-        }
-        
-        render(Setup2FAView(json.otpauth_url, json.base32));
-        setupSetup2FAHandlers(); // Utiliser la fonction existante
-    } catch (err) {
-        console.error('2FA setup error:', err);
-        render(`
-            <div class="max-w-md mx-auto mt-12 bg-white p-8 rounded shadow">
-                <p class="text-red-500">Impossible de configurer 2FA. Erreur: ${err.message}</p>
-                <button id="back-login" class="mt-4 w-full py-2 px-4 bg-indigo-600 text-black rounded">
-                    Retour
-                </button>
-            </div>
-        `);
-        document.getElementById('back-login')
-            .addEventListener('click', () => { 
-                history.pushState(null,'','/login'); 
-                router(); 
-            });
-    }
+	try {
+		console.log('Sending 2FA setup request with token:', token);
+		const res = await fetch('/api/auth/2fa/setup', {
+			method: 'POST',
+			headers: {
+				'Authorization': `Bearer ${token}`,
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({})
+		});
+		
+		if (!res.ok) {
+			const errorData = await res.json();
+			throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
+		}
+		
+		const json = await res.json();
+		console.log('2FA setup response:', json);
+		
+		if (!json.otpauth_url || !json.base32) {
+			throw new Error('Invalid server response: missing required 2FA data');
+		}
+		
+		render(Setup2FAView(json.otpauth_url, json.base32));
+		setupSetup2FAHandlers(); // Utiliser la fonction existante
+	} catch (err) {
+		console.error('2FA setup error:', err);
+		render(`
+			<div class="max-w-md mx-auto mt-12 bg-white p-8 rounded shadow">
+				<p class="text-red-500">Impossible de configurer 2FA. Erreur: ${err.message}</p>
+				<button id="back-login" class="mt-4 w-full py-2 px-4 bg-indigo-600 text-black rounded">
+					Retour
+				</button>
+			</div>
+		`);
+		document.getElementById('back-login')
+			.addEventListener('click', () => { 
+				history.pushState(null,'','/login'); 
+				router(); 
+			});
+	}
 }
 
 function setupSetup2FAHandlers() {
@@ -771,37 +792,37 @@ function setupSetup2FAHandlers() {
 }
 
 function setupVerify2FAHandlers() {
-    const form = document.getElementById('verifyForm');
-    if (!form) return;
-    form.onsubmit = async e => {
-        e.preventDefault();
-        const code = document.getElementById('2fa-code').value;
-        try {
-            const res = await fetch('/api/auth/2fa/verify', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${pendingToken}`
-                },
-                body: JSON.stringify({ code })
-            });
-            const json = await res.json();
-            if (res.ok) {
-                localStorage.setItem('token', json.token);
-                authToken = json.token;
-                
-                // Rediriger vers la page d'accueil
-                history.pushState(null, '', '/');
-                router();
-            } else {
-                const err = document.getElementById('verify-error');
-                err.textContent = json.error;
-                err.classList.remove('hidden');
-            }
-        } catch {
-            alert('Erreur lors de la vérification 2FA');
-        }
-    };
+	const form = document.getElementById('verifyForm');
+	if (!form) return;
+	form.onsubmit = async e => {
+		e.preventDefault();
+		const code = document.getElementById('2fa-code').value;
+		try {
+			const res = await fetch('/api/auth/2fa/verify', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${pendingToken}`
+				},
+				body: JSON.stringify({ code })
+			});
+			const json = await res.json();
+			if (res.ok) {
+				localStorage.setItem('token', json.token);
+				authToken = json.token;
+				
+				// Rediriger vers la page d'accueil
+				history.pushState(null, '', '/');
+				router();
+			} else {
+				const err = document.getElementById('verify-error');
+				err.textContent = json.error;
+				err.classList.remove('hidden');
+			}
+		} catch {
+			alert('Erreur lors de la vérification 2FA');
+		}
+	};
 }
 
 
@@ -810,54 +831,54 @@ function setupVerify2FAHandlers() {
 
 // Initialize WS if both userId and authtoken are setup
 async function initWebSocket() {
-    if (!isAuthenticated()) {
-        console.warn('WebSocket: pas de token d\'authentification');
-        return;
-    }
+	if (!isAuthenticated()) {
+		console.warn('WebSocket: pas de token d\'authentification');
+		return;
+	}
 
-    try {
-        // Get userId via API
-        const response = await fetch('/api/auth/me', {
-            headers: {
-                'Authorization': `Bearer ${authToken}`
-            }
-        });
+	try {
+		// Get userId via API
+		const response = await fetch('/api/auth/me', {
+			headers: {
+				'Authorization': `Bearer ${authToken}`
+			}
+		});
 
-        if (!response.ok) {
-            throw new Error('Failed to get userId');
-        }
+		if (!response.ok) {
+			throw new Error('Failed to get userId');
+		}
 
-        const data = await response.json();
-        userId = data.userId;
+		const data = await response.json();
+		userId = data.userId;
 
-        if (!userId) {
-            console.warn('WebSocket: userId non obtenu');
-            return;
-        }
+		if (!userId) {
+			console.warn('WebSocket: userId non obtenu');
+			return;
+		}
 
-        const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-        const wsUrl = `${protocol}://${location.host}/ws?token=${encodeURIComponent(authToken)}`;
+		const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
+		const wsUrl = `${protocol}://${location.host}/ws?token=${encodeURIComponent(authToken)}`;
 
-        // Close old socket if already open
-        if (socket && socket.readyState === WebSocket.OPEN) {
-            socket.close();
-        }
+		// Close old socket if already open
+		if (socket && socket.readyState === WebSocket.OPEN) {
+			socket.close();
+		}
 
-        socket = new WebSocket(wsUrl);
+		socket = new WebSocket(wsUrl);
 
 		socket.onopen = () => {
-		    console.log('WebSocket connecté');
+			console.log('WebSocket connecté');
 
-		    setTimeout(() => {
-		        if (socket.readyState === WebSocket.OPEN) {
-		            console.log('Sending chatHistory request...');
-		            socket.send(JSON.stringify({
-		                type: 'chatHistory',
-		                roomID: currentRoom,
-		                limit: 50
-		            }));
-		        }
-		    }, 100);
+			setTimeout(() => {
+				if (socket.readyState === WebSocket.OPEN) {
+					console.log('Sending chatHistory request...');
+					socket.send(JSON.stringify({
+						type: 'chatHistory',
+						roomID: currentRoom,
+						limit: 50
+					}));
+				}
+			}, 100);
 		};
 
 		socket.onmessage = (event) => {
@@ -870,87 +891,87 @@ async function initWebSocket() {
 			}
 		};
 
-        socket.onclose = (event) => {
-            console.log('WebSocket déconnecté:', event.code, event.reason);
-        };
+		socket.onclose = (event) => {
+			console.log('WebSocket déconnecté:', event.code, event.reason);
+		};
 
-        socket.onerror = (error) => {
-            console.error('Erreur WebSocket:', error);
-        };
-    } catch (error) {
-        console.error('Erreur lors de l\'initialisation du WebSocket:', error);
-    }
+		socket.onerror = (error) => {
+			console.error('Erreur WebSocket:', error);
+		};
+	} catch (error) {
+		console.error('Erreur lors de l\'initialisation du WebSocket:', error);
+	}
 }
 
 
 // Auxilliary function to handle websocket messages
 function handleWebSocketMessage(msg) {
-    const chatDiv = document.getElementById('chat');
-    if (!chatDiv) return;
+	const chatDiv = document.getElementById('chat');
+	if (!chatDiv) return;
 
-    const MESSAGE_LIMIT = 15;
+	const MESSAGE_LIMIT = 15;
 
-    switch (msg.type) {
-        case 'system':
-            const systemMsg = document.createElement('p');
-            systemMsg.className = 'italic text-gray-500';
-            systemMsg.textContent = msg.message;
-            chatDiv.appendChild(systemMsg);
-            break;
-            
-        case 'chatRoomMessage':
-            if (msg.roomID === currentRoom) {
-                appendMessageToChat(chatDiv, {
-                    isOwnMessage: msg.from === userId,
-                    name: msg.from === userId ? 'Moi' : msg.name_from,
-                    content: msg.content
-                });
+	switch (msg.type) {
+		case 'system':
+			const systemMsg = document.createElement('p');
+			systemMsg.className = 'italic text-gray-500';
+			systemMsg.textContent = msg.message;
+			chatDiv.appendChild(systemMsg);
+			break;
+			
+		case 'chatRoomMessage':
+			if (msg.roomID === currentRoom) {
+				appendMessageToChat(chatDiv, {
+					isOwnMessage: msg.from === userId,
+					name: msg.from === userId ? 'Moi' : msg.name_from,
+					content: msg.content
+				});
 
-                // Keep only the last 15
-                while (chatDiv.children.length > MESSAGE_LIMIT) {
-                    chatDiv.removeChild(chatDiv.firstChild);
-                }
-            }
-            break;
+				// Keep only the last 15
+				while (chatDiv.children.length > MESSAGE_LIMIT) {
+					chatDiv.removeChild(chatDiv.firstChild);
+				}
+			}
+			break;
 
-        case 'chatHistory':
-            if (msg.roomID === currentRoom && Array.isArray(msg.messages)) {
-                chatDiv.innerHTML = ''; // empty chat
-                
-                // Get the last 15 messages from history
-                const recentMessages = msg.messages
-                    .slice(-MESSAGE_LIMIT);
-                
-                // Render messages in chronologic order
-                recentMessages.forEach(historyMsg => {
-                    appendMessageToChat(chatDiv, {
-                        isOwnMessage: historyMsg.from === userId,
-                        name: historyMsg.from === userId ? 'Moi' : historyMsg.name_from,
-                        content: historyMsg.content
-                    });
-                });
-            }
-            break;
-            
-        default:
-            console.warn('Type de message WebSocket non géré:', msg.type);
-    }
+		case 'chatHistory':
+			if (msg.roomID === currentRoom && Array.isArray(msg.messages)) {
+				chatDiv.innerHTML = ''; // empty chat
+				
+				// Get the last 15 messages from history
+				const recentMessages = msg.messages
+					.slice(-MESSAGE_LIMIT);
+				
+				// Render messages in chronologic order
+				recentMessages.forEach(historyMsg => {
+					appendMessageToChat(chatDiv, {
+						isOwnMessage: historyMsg.from === userId,
+						name: historyMsg.from === userId ? 'Moi' : historyMsg.name_from,
+						content: historyMsg.content
+					});
+				});
+			}
+			break;
+			
+		default:
+			console.warn('Type de message WebSocket non géré:', msg.type);
+	}
 }
 
 // Auxillary function to append a message to chat
 function appendMessageToChat(chatDiv, { isOwnMessage, name, content }) {
-    const messageP = document.createElement('p');
-    messageP.className = isOwnMessage ? 'text-right mb-1' : 'text-left mb-1';
+	const messageP = document.createElement('p');
+	messageP.className = isOwnMessage ? 'text-right mb-1' : 'text-left mb-1';
 
-    const prefixSpan = document.createElement('span');
-    prefixSpan.className = isOwnMessage ? 'text-green-600 font-semibold' : 'text-blue-600 font-semibold';
-    prefixSpan.textContent = `${name}: `;
+	const prefixSpan = document.createElement('span');
+	prefixSpan.className = isOwnMessage ? 'text-green-600 font-semibold' : 'text-blue-600 font-semibold';
+	prefixSpan.textContent = `${name}: `;
 
-    const contentSpan = document.createElement('span');
-    contentSpan.className = 'text-gray-800';
-    contentSpan.textContent = content;
+	const contentSpan = document.createElement('span');
+	contentSpan.className = 'text-gray-800';
+	contentSpan.textContent = content;
 
-    messageP.appendChild(prefixSpan);
-    messageP.appendChild(contentSpan);
-    chatDiv.appendChild(messageP);
+	messageP.appendChild(prefixSpan);
+	messageP.appendChild(contentSpan);
+	chatDiv.appendChild(messageP);
 }

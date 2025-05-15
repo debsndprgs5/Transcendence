@@ -23,14 +23,14 @@ if (!jwtSecret) {
 const MappedClients = new Map<number, WebSocket[]>();
 
 async function getRightSockets(authorID: number): Promise<Map<number, WebSocket[]>> {
-  const filtered = new Map<number, WebSocket[]>();
+  const filtered = new Map<number, WebSocket[]>(MappedClients);
 
   for (const [clientID, sockets] of MappedClients.entries()) {
-    const blocked = await chatManagement.getBlockedUsers(clientID); // Who this client blocked
+    const blocked = await chatManagement.getBlockedUsers(clientID);
     const hasBlocked = blocked.some(user => user.related_userID === authorID);
 
-    if (!hasBlocked) {
-      filtered.set(clientID, sockets);
+    if (hasBlocked) {
+      filtered.delete(clientID);
     }
   }
 

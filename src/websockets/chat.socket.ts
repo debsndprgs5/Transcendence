@@ -118,10 +118,6 @@ async function SendGeneralMessage(authorID: number, message: string) {
   // Set the new socket as the only one
   MappedClients.set(userId, [ws]);
   
-    SendGeneralMessage(0, JSON.stringify({
-      type: 'system',
-      message: `👋 ${fullUser.username} joined general chat.`
-    }));
   
     ws.on('close', () => handleDisconnect(userId, fullUser.username, ws));
   
@@ -173,15 +169,16 @@ async function SendGeneralMessage(authorID: number, message: string) {
   
               const author = await UserManagement.getUnameByIndex(msg.authorID);
               result.push({
-                type : 'chatHisory',
-                roomID,
                 from: msg.authorID,
                 name_from: author?.username ?? `Utilisateur ${msg.authorID}`,
                 content: msg.content
               });
             }
   
-            ws.send(JSON.stringify({result
+            ws.send(JSON.stringify({
+              type: 'chatHistory',
+              roomID: roomID,
+              messages:result
             }));
           } catch (err) {
             console.error('Failed to load history:', err);
@@ -208,14 +205,6 @@ async function SendGeneralMessage(authorID: number, message: string) {
       console.warn(`WebSocket to remove not found for user ${userId}`);
     }
   
-    try {
-      SendGeneralMessage(0, JSON.stringify({
-        type: 'system',
-        message: `👋 ${username} left general chat.`
-      }));
-    } catch (err) {
-      console.error(`Error sending system message on disconnect for ${username}`, err);
-    }
   }
   
 

@@ -94,13 +94,26 @@ export default async function chatRoutes(fastify: FastifyInstance) {
   });
 
   // ─ Add/Remove members ─────────────────────────────────────────────────
-  fastify.post('/chat/rooms/:roomId/members', async (request, reply) => {
+fastify.post('/chat/rooms/:roomId/members', async (request, reply) => {
     const userId = getUserId(request, reply);
-    if (userId === undefined) return;
+    if (userId === undefined) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+    }
     const roomId = Number((request.params as any).roomId);
-    await chatMgr.createChatRoomMember(roomId, userId);
-    return reply.send({ success: true });
-  });
+    if (isNaN(roomId)) {
+        return reply.status(400).send({ error: 'Invalid room ID' });
+    }
+    try {
+        await chatMgr.createChatRoomMember(roomId, userId);
+        return reply.send({ success: true });
+    } catch (error) {
+        console.error('Error adding member to room:', error);
+        return reply.status(500).send({ 
+            error: 'Failed to add member to room',
+            details: error instanceof Error ? error.message : 'Unknown error'
+        });
+    }
+});
 
   fastify.delete('/chat/rooms/:roomId/members/:userId', async (request, reply) => {
     const roomId = Number((request.params as any).roomId);

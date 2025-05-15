@@ -59,8 +59,6 @@ VALUES (0, '0', 'GeneralDummy', '0');
 INSERT OR IGNORE INTO chatRooms(roomID, ownerID)
 VALUES (0, 0);
 
-INSERT OR IGNORE INTO messages(roomID, authorID, content)
-VALUES (0, 0, 'Welcome on our amazing chat');
 /*
 Still needs at least 
 

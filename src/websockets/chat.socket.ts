@@ -57,6 +57,7 @@ async function SendGeneralMessage(authorID: number, message: string) {
     });
   
     if (roomID === 0) {
+      await chatManagement.createMessage(0, authorID, message);
       return await SendGeneralMessage(authorID, payload);
     }
   
@@ -103,8 +104,19 @@ async function SendGeneralMessage(authorID: number, message: string) {
     }
   
     const userId = fullUser.our_index;
-    if (!MappedClients.has(userId)) MappedClients.set(userId, []);
-    MappedClients.get(userId)!.push(ws);
+    // If an old socket exists for this user, close it
+  const existingSockets = MappedClients.get(userId);
+  if (existingSockets && existingSockets.length > 0) {
+    for (const oldWs of existingSockets) {
+      try {
+        oldWs.close(1000, 'New connection established');
+      } catch (e) {
+        console.warn('Failed to close previous socket:', e);
+      }
+    }
+  }
+  // Set the new socket as the only one
+  MappedClients.set(userId, [ws]);
   
     SendGeneralMessage(0, JSON.stringify({
       type: 'system',
@@ -161,6 +173,7 @@ async function SendGeneralMessage(authorID: number, message: string) {
   
               const author = await UserManagement.getUnameByIndex(msg.authorID);
               result.push({
+                type : 'chatHisory',
                 roomID,
                 from: msg.authorID,
                 name_from: author?.username ?? `Utilisateur ${msg.authorID}`,
@@ -168,10 +181,7 @@ async function SendGeneralMessage(authorID: number, message: string) {
               });
             }
   
-            ws.send(JSON.stringify({
-              type: 'chatHistory',
-              roomID,
-              messages: result
+            ws.send(JSON.stringify({result
             }));
           } catch (err) {
             console.error('Failed to load history:', err);
@@ -186,21 +196,28 @@ async function SendGeneralMessage(authorID: number, message: string) {
     });
   }
   
-function handleDisconnect(userId: number, username: string, ws: WebSocket) {
-  const sockets = MappedClients.get(userId) || [];
-  const updated = sockets.filter(s => s !== ws);
-
-  if (updated.length === 0) {
-    MappedClients.delete(userId);
-  } else {
-    MappedClients.set(userId, updated);
+  function handleDisconnect(userId: number, username: string, ws: WebSocket) {
+    const sockets = MappedClients.get(userId) || [];
+    const updated = sockets.filter(s => s !== ws);
+  
+    if (updated.length === 0) {
+      MappedClients.delete(userId);
+    } else if (updated.length < sockets.length) {
+      MappedClients.set(userId, updated);
+    } else {
+      console.warn(`WebSocket to remove not found for user ${userId}`);
+    }
+  
+    try {
+      SendGeneralMessage(0, JSON.stringify({
+        type: 'system',
+        message: `👋 ${username} left general chat.`
+      }));
+    } catch (err) {
+      console.error(`Error sending system message on disconnect for ${username}`, err);
+    }
   }
-
-  SendGeneralMessage(0,JSON.stringify({
-    type: 'system',
-    message: `👋 ${username} left general chat.`
-  }));
-}
+  
 
 export default fp(async fastify => {
   const wss = new WebSocketServer({ noServer: true });

@@ -575,6 +575,7 @@ function setupHomeHandlers() {
 
 			// Envoi JSON attendu par ton serveur WS
 			socket.send(JSON.stringify({
+				type : 'chatRoomMessage',
 				chatRoomID: currentRoom,
 				userID: userId,
 				content: content

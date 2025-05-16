@@ -11,7 +11,7 @@ WORK_DIR = $(shell pwd)
 
 
 
-all: docker-build prod docker-run
+all: docker-build  docker-run
 
 docker-build:
 	docker build -t $(IMAGE_NAME) .

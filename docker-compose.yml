@@ -3,13 +3,14 @@ version: "3.8"
 services:
   app:
     build: .
-    image: transcendence:latest
     ports:
-      - "3000:3000"
+      - "1400:1400"
     restart: always
 
+    env_file:
+      - .env
+
     environment:
-      .env
       - NODE_ENV=production
 
 

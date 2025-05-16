@@ -8,84 +8,19 @@ WORKDIR /app
 # Copie package.json + Tailwind config
 COPY package*.json tailwind.config.js postcss.config.js ./
 
-# Installe Tailwind (et autres deps front si besoin)
 RUN npm install
 
-# Copie ton CSS source
-COPY client/src/input.css ./client/src/
+# Copy frontend source code
+COPY client ./client
 
-# Build du CSS Tailwind en minifié
+# Build Tailwind CSS 
 RUN npx tailwindcss -i ./client/src/input.css \
     -o ./client/dist/output.css \
     --minify
 
+
 ############################
 # Stage 2 : builder-back
-############################
-
-# FROM node:18-alpine AS builder
-
-# WORKDIR /app
-
-# # Copy package.json only and lock for cache install
-
-# COPY package*.json ./
-
-# # Install all requirements
-
-# RUN npm install
-
-
-# # Copy rest of source code
-
-# COPY tsconfig.json ./
-# COPY src ./src
-
-# # TypeScript compil
-
-# RUN npm run build
-
-
-# ############################
-# # Step 2 : RUN
-# ############################
-
-# FROM node:18-alpine
-
-# # Env var for fastify
-
-# ENV NODE_ENV=production
-
-# # Install sqlite3 CLI tool
-# RUN apt-get update && apt-get install -y sqlite3
-
-
-# WORKDIR /app
-
-# # Copy package.json only to install prod requirements
-
-# COPY package*.json ./
-
-# # Install production requirements only
-
-# RUN npm install --only=production
-
-# # Initialize SQLite database
-# RUN sqlite3 src/db/userdata.db < src/db/schema.sql
-
-# # Get back the compiled build from step 1
-
-# COPY --from=builder /app/dist ./dist
-
-# # Expose fastify's port
-# EXPOSE 3000
-
-# # Final launch
-# CMD ["node", "dist/main.js"]
-
-##FREE GPT SHENANIGANS just here to build sql need a proper dockerarchitecture
-############################
-# Step 1 : BUILD
 ############################
 
 FROM node:18-alpine AS builder
@@ -98,49 +33,58 @@ COPY package*.json ./
 # Install all dependencies (including dev for build)
 RUN npm install
 
-# Copy tsconfig and source
+# Copy tsconfig and backend source
 COPY tsconfig.json ./
 COPY src ./src
+
+# Also copy client so that the backend can serve built assets if necessary
+COPY client ./client
 
 # Build TypeScript -> JavaScript
 RUN npm run build
 
 
 ############################
-# Step 2 : RUNTIME
+# Stage 3 : RUNTIME
 ############################
 
 FROM node:18-alpine
 
-# Install SQLite CLI & bash
-RUN apk add --no-cache sqlite sqlite-dev bash
+# Install SQLite CLI and runtime build tools
+RUN apk add --no-cache sqlite sqlite-dev bash python3 make g++ && \
+    ln -sf python3 /usr/bin/python
 
-# Set working directory
 WORKDIR /app
 
-# Set environment
 ENV NODE_ENV=production
 
-# Copy package files and install production-only deps
+# Copy package files and install only production dependencies
 COPY package*.json ./
 RUN npm install --only=production
 
-#.env package for .ts files
-RUN npm install dotenv
+# If dotenv is a prod dependency, add it to your package.json under "dependencies".
+# Otherwise, install it here for runtime only:
+# RUN npm install dotenv
 
-# Copy build output from builder stage
+# Copy built backend (JS) from builder
 COPY --from=builder /app/dist ./dist
+
+# Copy .env if needed
 COPY .env ./
 
+# Copy DB schema and data files
+COPY src/db /app/db
 
-# Copy DB schema and other needed static files into the proper directory
-# Since the app will run in production from dist, copy the DB schema and the DB file into /app/db
-  COPY src/db /app/db
-#  RUN sqlite3 /app/db/userdata.db < /app/db/schema.sql done in db.ts
-# Expose Fastify's port
-EXPOSE 3000
+# Copy built frontend assets from builder-front to public directory
+COPY --from=builder-front /app/client/dist /app/public
 
-# Start the server
+# Copy any other static frontend files (e.g., index.html, favicon) if needed
+COPY client/ /app/public
+
+# Expose backend port
+EXPOSE 1400
+
+# Start your server
 CMD ["node", "dist/main.js"]
 
 

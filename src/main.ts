@@ -83,7 +83,7 @@ async function bootstrap() {
 
   try {
     await app.listen({ 
-      port: 3000, 
+      port: 1400, 
       host: '0.0.0.0'
     });
     console.log('🚀 Server listening on http://0.0.0.0:3000');

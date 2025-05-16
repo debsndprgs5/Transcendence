@@ -11,13 +11,10 @@ import { setDb as setChatDb } from './chatManagement';
 sqlite3.verbose();
 dotenv.config();
 
-const workDir = process.env.WORK_DIR;
-if (!workDir) {
-  throw new Error("WORK_DIR environment variable is not defined");
-}
 
-const dbPath = path.join(workDir, 'src/db/ourdatabase.db');
-const schemaPath = path.join(workDir, 'src/db/schema.sql');
+
+const dbPath = 'db/ourdatabase.db';
+const schemaPath = 'db/schema.sql';
 
 // Extend FastifyInstance with `db`
 declare module 'fastify' {
@@ -27,15 +24,19 @@ declare module 'fastify' {
 }
 
 function initializeDatabase(): sqlite3.Database {
+
   const db = new sqlite3.Database(dbPath, (err) => {
+  console.error('FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF')
     if (err) {
-      console.error('❌ Failed to connect to the database:', err.message);
+      console.error('❌ Failed to coNNect to the database:', err.message);
     } else {
       console.log('✅ Connected to the SQLite database.');
 
       if (fs.existsSync(schemaPath)) {
+	  console.error('FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF')
         const schema = fs.readFileSync(schemaPath, 'utf8');
         db.exec(schema, (err) => {
+		console.error('FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF')
           if (err) {
             console.error('❌ Failed to apply schema:', err.message);
           } else {

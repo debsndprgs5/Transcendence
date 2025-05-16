@@ -1,1 +1,4 @@
 ./src/db/ourdatabse.db
+./node_modules 
+./dist 
+./client/dist

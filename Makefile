@@ -1,13 +1,30 @@
 
 
 # Variables
-IMAGE_NAME = transcendence
-PORT       = 3000
+IMAGE_NAME = zfav_yseb_trans
+PORT       = 1400
 WORK_DIR = $(shell pwd)
 
 
 
-.PHONY: install clean dev prod docker-build docker-run clear_db
+.PHONY: install clean dev prod docker-build docker-run docker-refresh clear_db
+
+
+
+all: docker-build prod docker-run
+
+docker-build:
+	docker build -t $(IMAGE_NAME) .
+
+docker-run:
+	@echo "🐳 Running Docker container on port $(PORT)…"
+	docker run -p $(PORT):$(PORT) \
+	  -v /goinfre/ysebban/$(IMAGE_NAME)/app/ourdatabase.db:/app/db/ourdatabase.db \
+	  $(IMAGE_NAME)
+docker-refresh:
+	@docker ps -q | xargs -r docker stop
+	@docker ps -aq | xargs -r docker rm
+
 
 # -------------------------------------------------------------------
 # install : install backend + Tailwind + plugin static (v4)
@@ -65,13 +82,3 @@ prod: install
 	@echo "🚀 Starting production server…"
 	npm run start
 
-# -------------------------------------------------------------------
-# Docker : build + run
-# -------------------------------------------------------------------
-docker-build:
-	@echo "🐳 Building Docker image '$(IMAGE_NAME)'…"
-	docker build -t $(IMAGE_NAME) .
-
-docker-run:
-	@echo "🐳 Running Docker container on port $(PORT)…"
-	docker run -it --rm -p $(PORT):$(PORT) --name $(IMAGE_NAME) $(IMAGE_NAME)

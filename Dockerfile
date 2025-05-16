@@ -5,50 +5,48 @@ FROM node:18-alpine AS builder-front
 
 WORKDIR /app
 
-# Copie package.json + Tailwind config
-COPY package*.json tailwind.config.js postcss.config.js ./
+# Copy package files and configs
+COPY package*.json tailwind.config.js ./
 
+# Install dependencies
 RUN npm install
 
-# Copy frontend source code
+# Copy client directory
 COPY client ./client
 
-# Build Tailwind CSS 
+# Build Tailwind CSS
 RUN npx tailwindcss -i ./client/src/input.css \
     -o ./client/dist/output.css \
     --minify
 
-
 ############################
 # Stage 2 : builder-back
 ############################
-
 FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copy package.json and lock file
+# Copy package files
 COPY package*.json ./
 
-# Install all dependencies (including dev for build)
+# Install all dependencies
 RUN npm install
 
-# Copy tsconfig and backend source
+# Copy configs and source
 COPY tsconfig.json ./
 COPY src ./src
-
-# Also copy client so that the backend can serve built assets if necessary
 COPY client ./client
-
-# Build TypeScript -> JavaScript
+# Build TypeScript
 RUN npm run build
-
 
 ############################
 # Stage 3 : RUNTIME
 ############################
-
 FROM node:18-alpine
+
+# Set runtime metadata with current time and user
+#LABEL build.date="2025-05-16 19:53:56"
+#LABEL build.user="ysebban"
 
 # Install SQLite CLI and runtime build tools
 RUN apk add --no-cache sqlite sqlite-dev bash python3 make g++ && \
@@ -62,10 +60,6 @@ ENV NODE_ENV=production
 COPY package*.json ./
 RUN npm install --only=production
 
-# If dotenv is a prod dependency, add it to your package.json under "dependencies".
-# Otherwise, install it here for runtime only:
-# RUN npm install dotenv
-
 # Copy built backend (JS) from builder
 COPY --from=builder /app/dist ./dist
 
@@ -75,11 +69,15 @@ COPY .env ./
 # Copy DB schema and data files
 COPY src/db /app/db
 
-# Copy built frontend assets from builder-front to public directory
-COPY --from=builder-front /app/client/dist /app/public
+# First, create the client directory structure
+RUN mkdir -p /app/client/dist
 
-# Copy any other static frontend files (e.g., index.html, favicon) if needed
-COPY client/ /app/public
+# Copy built frontend assets (compiled CSS) from builder-front
+COPY --from=builder-front /app/client/dist/output.css /app/client/dist/
+
+# Copy only necessary static frontend files, specifically excluding src directory
+COPY client/index.html /app/client/
+#COPY client/assets /app/client/assets
 
 # Expose backend port
 EXPOSE 1400

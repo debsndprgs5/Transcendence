@@ -19,7 +19,7 @@ docker-build:
 docker-run:
 	@echo "🐳 Running Docker container on port $(PORT)…"
 	docker run -p $(PORT):$(PORT) \
-	  -v /goinfre/ysebban/$(IMAGE_NAME)/app/ourdatabase.db:/app/db/ourdatabase.db \
+	  -v /goinfre/$(USER)/$(IMAGE_NAME)/app/ourdatabase.db:/app/db/ourdatabase.db \
 	  $(IMAGE_NAME)
 docker-refresh:
 	@docker ps -q | xargs -r docker stop

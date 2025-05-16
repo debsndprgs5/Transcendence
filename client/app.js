@@ -373,34 +373,83 @@ function getUserIdFromCookie() {
 }
 
 // ─── API FETCH ─────────────────────────────────────────────────────────
+// async function apiFetch(url, options = {}) {
+// 	try {
+// 		const response = await fetch(url, {
+// 			...options,
+// 			headers: {
+// 				'Content-Type': 'application/json',
+// 				...options.headers
+// 			}
+// 		});
+		
+// 		if (response.status === 401) {
+// 			// Unauthorized, token is invalid or expired
+// 			handleLogout();
+// 			throw new Error('Session expired. Please log in again.');
+// 		}
+		
+// 		const data = await response.json();
+		
+// 		if (!response.ok) {
+// 			throw new Error(data.error || 'Une erreur est survenue');
+// 		}
+		
+// 		return data;
+// 	} catch (error) {
+// 		console.error('apiFetch error:', error);
+// 		throw error;
+// 	}
+// }
+//  Free GPT version qui mets headers que si body found
 async function apiFetch(url, options = {}) {
 	try {
+		const hasBody = !!options.body;
+
+		const headers = {
+			...options.headers,
+		};
+
+		if (hasBody && !headers['Content-Type']) {
+			headers['Content-Type'] = 'application/json';
+		}
+
 		const response = await fetch(url, {
 			...options,
-			headers: {
-				'Content-Type': 'application/json',
-				...options.headers
-			}
+			headers
 		});
-		
+
 		if (response.status === 401) {
-			// Unauthorized, token is invalid or expired
 			handleLogout();
 			throw new Error('Session expired. Please log in again.');
 		}
-		
-		const data = await response.json();
-		
-		if (!response.ok) {
-			throw new Error(data.error || 'Une erreur est survenue');
+
+		const text = await response.text();
+
+		let data;
+		try {
+			data = JSON.parse(text);
+		} catch (e) {
+			data = text;
 		}
-		
+
+		if (!response.ok) {
+			console.error("Fetch failed", {
+				status: response.status,
+				statusText: response.statusText,
+				body: data,
+				url
+			});
+			throw new Error(data?.error || `HTTP ${response.status}: ${data}`);
+		}
+
 		return data;
 	} catch (error) {
 		console.error('apiFetch error:', error);
 		throw error;
 	}
 }
+
 
 // ─── NAVIGATION HELPERS ──────────────────────────────────────────────────────
 document.addEventListener('click', e => {
@@ -574,7 +623,7 @@ function setupHomeHandlers() {
 				method: 'POST',
 				headers: { 
 					'Authorization': `Bearer ${authToken}`,
-					'Content-Type': 'application/json'
+					//'Content-Type': 'application/json'
 				}
 			});
 		} catch (error) {
@@ -650,7 +699,7 @@ function setupHomeHandlers() {
 
 		try {
 			const userId = await getUserIdByUsername(username);
-
+			console.log('UID found :',userId)
 			const result = await apiFetch(url.replace(':userId', userId), {
 				method,
 				headers: { 'Authorization': `Bearer ${authToken}` }
@@ -670,7 +719,7 @@ function setupHomeHandlers() {
 	    if (!username) throw new Error("Username empty");
 	    try {
 	        const response = await fetch(`/api/users/by-username/${encodeURIComponent(username)}`, {
-	            headers: { 'Authorization': `Bearer ${authToken}` }
+	            headers: { 'Authorization': `Bearer ${authToken}` },
 	        });
 	        
 	        if (!response.ok) {

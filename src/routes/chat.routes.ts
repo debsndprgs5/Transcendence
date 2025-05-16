@@ -26,10 +26,10 @@ export default async function chatRoutes(fastify: FastifyInstance) {
 
 // helper to get id by username
 
-  fastify.get('/api/users/by-username/:username', async (request, reply) => {
+  fastify.get('/users/by-username/:username', async (request, reply) => {
       try {
           const { username } = request.params as { username: string };
-          
+          console.log('Inside route trade id for name :', username)
           if (!username) {
               return reply.code(400).send({ 
                   error: 'Username parameter is required' 
@@ -43,7 +43,7 @@ export default async function chatRoutes(fastify: FastifyInstance) {
                   error: `User "${username}" not found` 
               });
           }
-
+          console.log('Username found :', userobj.username)
           return reply.send({ userId: userobj.our_index });
       } catch (error) {
           console.error('Error in /api/users/by-username:', error);
@@ -55,9 +55,12 @@ export default async function chatRoutes(fastify: FastifyInstance) {
 
   // ───── FRIENDS ─────────────────────────────────────────────────────────
   fastify.post('/friends/:userId', async (request, reply) => {
+    console.log('route for adding friends')
+    console.log('Headers recived :', request.headers)
     const currentUserId = getUserId(request, reply);
     if (currentUserId === undefined) return;
     const targetId = Number((request.params as any).userId);
+    console.log('IDS of linked friends found current: &d target:%d', currentUserId, targetId)
     await chatMgr.addFriend(currentUserId, targetId);
     return reply.send({ success: true });
   });

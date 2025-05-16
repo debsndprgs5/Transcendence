@@ -36,9 +36,22 @@ async function bootstrap() {
 
   // Mount client service (CSS, app.js ...)
   await app.register(fastifyStatic, {
-    root: path.join(__dirname, '../client'),
+    root: '/app/client/',
     prefix: '/'
   })
+// await app.register(fastifyStatic, {
+//   root: path.join(__dirname, '../client'),  // Use relative path from dist/
+//   prefix: '/',
+//   decorateReply: false,
+//   setHeaders: (res, filePath) => {
+//     // Set correct MIME types
+//     if (filePath.endsWith('.js')) {
+//       res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+//     } else if (filePath.endsWith('.css')) {
+//       res.setHeader('Content-Type', 'text/css; charset=utf-8');
+//     }
+//   }
+// })
 
   // Mount WS plugin
   await app.register(wsPlugin);

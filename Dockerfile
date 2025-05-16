@@ -72,8 +72,15 @@ COPY src/db /app/db
 # First, create the client directory structure
 RUN mkdir -p /app/client/dist
 
-# Copy built frontend assets (compiled CSS) from builder-front
+# Copy frontend files with correct structure
 COPY --from=builder-front /app/client/dist/output.css /app/client/dist/
+COPY client/app.js /app/client/
+COPY client/index.html /app/client/
+
+# Ensure correct permissions
+RUN chmod 644 /app/client/app.js && \
+    chmod 644 /app/client/dist/output.css && \
+    chmod 644 /app/client/index.html
 
 # Copy only necessary static frontend files, specifically excluding src directory
 COPY client/index.html /app/client/
@@ -84,5 +91,7 @@ EXPOSE 1400
 
 # Start your server
 CMD ["node", "dist/main.js"]
+
+
 
 

@@ -138,7 +138,7 @@ function HomeView() {
 					<button id="unblockUserBtn" 
 					  class="px-2 py-1 bg-gray-300 text-black rounded hover:bg-gray-400 transition text-xs">Unblock</button>
 					<button id="newChatRoomBtn" 
-					  class="px-3 py-1 bg-indigo-100 text-indigo-600 rounded hover:bg-indigo-200 transition text-sm">+ Salon</button>
+					  class="px-3 py-1 bg-indigo-100 text-indigo-600 rounded hover:bg-indigo-200 transition text-sm">+ Room</button>
 				  </div>
 				</h2>
 				<div class="flex-1 overflow-auto mb-4 flex">
@@ -374,32 +374,39 @@ function getUserIdFromCookie() {
 
 // ─── API FETCH ─────────────────────────────────────────────────────────
 async function apiFetch(url, options = {}) {
-	try {
-		const response = await fetch(url, {
-			...options,
-			headers: {
-				'Content-Type': 'application/json',
-				...options.headers
-			}
-		});
-		
-		if (response.status === 401) {
-			// Unauthorized, token is invalid or expired
-			handleLogout();
-			throw new Error('Session expired. Please log in again.');
-		}
-		
-		const data = await response.json();
-		
-		if (!response.ok) {
-			throw new Error(data.error || 'Une erreur est survenue');
-		}
-		
-		return data;
-	} catch (error) {
-		console.error('apiFetch error:', error);
-		throw error;
-	}
+    try {
+        // Add /api prefix if not present
+        const apiUrl = url.startsWith('/api') ? url : `/api${url}`;
+        
+        const headers = {
+            ...options.headers
+        };
+        
+        if (options.body) {
+            headers['Content-Type'] = 'application/json';
+        }
+
+        const response = await fetch(apiUrl, {
+            ...options,
+            headers
+        });
+        
+        if (response.status === 401) {
+            handleLogout();
+            throw new Error('Session expired. Please log in again.');
+        }
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Une erreur est survenue');
+        }
+        
+        return data;
+    } catch (error) {
+        console.error('apiFetch error:', error);
+        throw error;
+    }
 }
 
 // ─── NAVIGATION HELPERS ──────────────────────────────────────────────────────
@@ -486,14 +493,22 @@ function setupHomeHandlers() {
   // Load rooms immediately when entering home view
 	let loadRooms = async () => {
 		try {
-			const rooms = await apiFetch('/api/chat/rooms', { 
+			const rooms = await apiFetch('/api/chat/rooms/mine', { 
 				headers: { 'Authorization': `Bearer ${authToken}` } 
 			});
 			const ul = document.getElementById('room-list');
 			if (!ul) return;
 			
 			ul.innerHTML = rooms.map(r => 
-				`<li data-id="${r.roomID}" class="cursor-pointer hover:bg-gray-100 p-2 rounded ${currentRoom === r.roomID ? 'bg-indigo-100' : ''}">${r.name || `Salon #${r.roomID}`}</li>`
+			  `<li data-id="${r.roomID}" class="group flex justify-between items-center cursor-pointer hover:bg-gray-100 p-2 rounded ${currentRoom === r.roomID ? 'bg-indigo-100' : ''}">
+				<span class="flex-1 truncate">${r.name || `Room #${r.roomID}`}</span>
+				<div class="flex gap-1 opacity-0 group-hover:opacity-100 transition">
+					<button data-room="${r.roomID}" class="invite-room-btn text-green-600 hover:text-green-800 text-sm">➕</button>
+					${r.ownerID === userId ? 
+						`<button data-room="${r.roomID}" class="delete-room-btn text-red-600 hover:text-red-800 text-sm">❌</button>` : 
+						''}
+				</div>
+			  </li>`
 			).join('');
 			
 			// If no room is selected, select general
@@ -505,6 +520,50 @@ function setupHomeHandlers() {
 			document.querySelectorAll('#room-list li').forEach(li => {
 				li.addEventListener('click', () => selectRoom(Number(li.dataset.id)));
 			});
+
+			// Delete Room Button
+			document.querySelectorAll('.delete-room-btn').forEach(btn => {
+				btn.addEventListener('click', async (e) => {
+					e.stopPropagation(); // Prevent clicking
+					const roomId = btn.dataset.room;
+					if (confirm("Delete this room ?")) {
+						try {
+							await apiFetch(`/api/chat/rooms/${roomId}`, {
+								method: 'DELETE',
+								headers: { 'Authorization': `Bearer ${authToken}` }
+							});
+							await loadRooms(); // refresh list
+						} catch (err) {
+							alert("Error duling delete");
+						}
+					}
+				});
+			});
+
+			// Add user in room button
+			document.querySelectorAll('.invite-room-btn').forEach(btn => {
+				btn.addEventListener('click', async (e) => {
+					e.stopPropagation(); // Prevent clicking
+					const roomId = btn.dataset.room;
+					const username = prompt("Type a user to add to the room");
+					if (!username) return;
+					try {
+						const userIdToInvite = await getUserIdByUsername(username);
+						await apiFetch(`/api/chat/rooms/${roomId}/members`, {
+							method: 'POST',
+							headers: {
+								'Authorization': `Bearer ${authToken}`,
+								'Content-Type': 'application/json'
+							},
+							body: JSON.stringify({ userId: userIdToInvite })
+						});
+						alert(`User ${username} added successfully`);
+					} catch (err) {
+						alert("Erreur lors de l'invitation : " + err.message);
+					}
+				});
+			});
+
 
 			// Load current room history
 			if (socket && socket.readyState === WebSocket.OPEN) {
@@ -523,11 +582,11 @@ function setupHomeHandlers() {
 		}
 	};
 
-	  // Call loadRooms immediately and set up WebSocket
-	  if (authToken) {
-		  loadRooms();
-		  initWebSocket();
-	  }
+	// Call loadRooms immediately and set up WebSocket
+	if (authToken) {
+	  loadRooms();
+	  initWebSocket();
+	}
 
 	// Chat: button to get back to general chat
 	const generalChatBtn = document.getElementById('generalChatBtn');
@@ -559,7 +618,7 @@ function setupHomeHandlers() {
 					},
 					body: JSON.stringify({ name: roomName })
 				});
-				addMemberToRoom(newroom.roomID);
+				addMemberToRoom(newroom.roomID, userId);
 				await loadRooms(); // Reload room list after creating one
 			} catch (error) {
 				console.error('Error creating chat room:', error);
@@ -568,14 +627,15 @@ function setupHomeHandlers() {
 		});
 	}
 
-	async function addMemberToRoom(roomId) {
+	async function addMemberToRoom(roomId, userIdToAdd) {
 		try {
-			await apiFetch(`/api/chat/rooms/${roomId}/members`, { 
+			await apiFetch(`/api/chat/rooms/${roomId}/members`, {
 				method: 'POST',
 				headers: { 
 					'Authorization': `Bearer ${authToken}`,
 					'Content-Type': 'application/json'
-				}
+				},
+				body: JSON.stringify({ userId: userIdToAdd })
 			});
 		} catch (error) {
 			console.error('Error adding member :', error);
@@ -626,7 +686,6 @@ function setupHomeHandlers() {
 			const content = formData.get('message');
 			if (!content || !socket || socket.readyState !== WebSocket.OPEN) return;
 
-			// Envoi JSON attendu par ton serveur WS
 			socket.send(JSON.stringify({
 				type : 'chatRoomMessage',
 				chatRoomID: currentRoom,
@@ -646,7 +705,7 @@ function setupHomeHandlers() {
 	// Generic add / block / unblock function
 	async function actionOnUser({ url, method = 'POST', successMsg, errorMsg }) {
 		const username = userActionInput.value.trim();
-		if (!username) return alert("Entrez un username");
+		if (!username) return alert("Please type a Username");
 
 		try {
 			const userId = await getUserIdByUsername(username);
@@ -667,32 +726,32 @@ function setupHomeHandlers() {
 	}
 
 	async function getUserIdByUsername(username) {
-	    if (!username) throw new Error("Username empty");
-	    try {
-	        const response = await fetch(`/api/users/by-username/${encodeURIComponent(username)}`, {
-	            headers: { 'Authorization': `Bearer ${authToken}` }
-	        });
-	        
-	        if (!response.ok) {
-	            if (response.status === 404) {
-	                throw new Error("User not found");
-	            }
-	            throw new Error(`HTTP error! status: ${response.status}`);
-	        }
-	        
-	        const data = await response.json();
-	        if (!data.userId) throw new Error("User not found");
-	        return data.userId;
-	    } catch (error) {
-	        console.error('Error getting user ID:', error);
-	        throw error;
-	    }
+		if (!username) throw new Error("Username empty");
+		try {
+			const response = await fetch(`/api/users/by-username/${encodeURIComponent(username)}`, {
+				headers: { 'Authorization': `Bearer ${authToken}` }
+			});
+			
+			if (!response.ok) {
+				if (response.status === 404) {
+					throw new Error("User not found");
+				}
+				throw new Error(`HTTP error! status: ${response.status}`);
+			}
+			
+			const data = await response.json();
+			if (!data.userId) throw new Error("User not found");
+			return data.userId;
+		} catch (error) {
+			console.error('Error getting user ID:', error);
+			throw error;
+		}
 	}
 
 	// Add friend
 	if (addFriendBtn) addFriendBtn.onclick = () =>
 	  actionOnUser({
-		url: '/friends/:userId',
+		url: '/api/friends/:userId',
 		method: 'POST',
 		successMsg: "Friend added !",
 		errorMsg: "Error during add"
@@ -701,7 +760,7 @@ function setupHomeHandlers() {
 	// Block user
 	if (blockUserBtn) blockUserBtn.onclick = () =>
 	  actionOnUser({
-		url: '/blocks/:userId',
+		url: '/api/blocks/:userId',
 		method: 'POST',
 		successMsg: "User blocked !",
 		errorMsg: "Error during block"
@@ -710,7 +769,7 @@ function setupHomeHandlers() {
 	// Unblock user
 	if (unblockUserBtn) unblockUserBtn.onclick = () =>
 	  actionOnUser({
-		url: '/blocks/:userId',
+		url: '/api/blocks/:userId',
 		method: 'DELETE',
 		successMsg: "User unblocked !",
 		errorMsg: "Error during unblock"

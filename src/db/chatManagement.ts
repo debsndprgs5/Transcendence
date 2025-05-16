@@ -31,12 +31,31 @@ export const getChatRoomByID = (roomID: number) =>
 export const getChatRoomsByOwner = (ownerID: number) =>
   getAll<chatType.chatRooms>(`SELECT * FROM chatRooms WHERE ownerID = ?`, [ownerID]);
 
+// Delete chatroom by ID
+export const deleteChatRoomByID = (roomID: number) =>
+  run(
+    `DELETE FROM chatRooms WHERE roomID = ?`,
+    [roomID]
+  );
+
+// Get all the rooms that a user is in
+export const getChatRoomsByUserId = (userID: number) =>
+  getAll<chatType.chatRooms>(
+    `
+    SELECT r.*
+    FROM chatRooms r
+    JOIN chatRoomMembers m ON r.roomID = m.roomID
+    WHERE m.userID = ?
+    `,
+    [userID]
+  );
+
 // ########################
 // #     ROOM MEMBERS     #
 // ########################
 // Add a user to a room
 export const createChatRoomMember = (roomID: number, userID: number) =>
-  run(`INSERT INTO chatRoomMembers (roomID, userID) VALUES (?, ?)`, [roomID, userID]);
+  run(`INSERT OR IGNORE INTO chatRoomMembers (roomID, userID) VALUES (?, ?)`, [roomID, userID]);
 
 // Get all members of a room
 export const getChatRoomMembers = (roomID: number) =>
@@ -52,6 +71,8 @@ export const removeChatRoomMember = (roomID: number, userID: number) =>
     `DELETE FROM chatRoomMembers WHERE roomID = ? AND userID = ?`,
     [roomID, userID]
   );
+
+
 
 // ########################
 // #       MESSAGES       #
@@ -80,7 +101,7 @@ export const getMessagesByUserInChatRoom = (authorID: number, roomID: number) =>
 // Add a friend
 export const addFriend = (userID: number, friendID: number) =>
   run(
-    `INSERT INTO user_relationships (user_id, related_user_id, type) VALUES (?, ?, 'friend')`,
+    `INSERT OR IGNORE INTO user_relationships (user_id, related_user_id, type) VALUES (?, ?, 'friend')`,
     [userID, friendID]
   );
 
@@ -105,7 +126,7 @@ export const getFriends = (userID: number) =>
 // ########################
 export const blockUser = (userID: number, blockedID: number) =>
   run(
-    `INSERT INTO user_relationships (user_id, related_user_id, type) VALUES (?, ?, 'block')`,
+    `INSERT OR IGNORE INTO user_relationships (user_id, related_user_id, type) VALUES (?, ?, 'block')`,
     [userID, blockedID]
   );
 

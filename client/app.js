@@ -123,15 +123,23 @@ function HomeView() {
 
 			<!-- Chat section -->
 			<div class="bg-white p-6 rounded-lg shadow-lg flex flex-col">
-				<h2 class="text-2xl font-semibold text-indigo-600 mb-4 flex justify-between items-center">
-					<button id="generalChatBtn" 
-							class="text-indigo-600 hover:text-indigo-800 transition-colors cursor-pointer">
-						Chat
-					</button>
+				<h2 class="text-2xl font-semibold text-indigo-600 mb-4 flex justify-between items-center gap-2">
+				  <button id="generalChatBtn" 
+					  class="text-indigo-600 hover:text-indigo-800 transition-colors cursor-pointer">
+					Chat
+				  </button>
+				  <div class="flex items-center gap-2">
+					<input id="userActionInput" type="text" placeholder="Username ou ID"
+					  class="px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-200 text-sm" style="width: 140px;" />
+					<button id="addFriendBtn" 
+					  class="px-2 py-1 bg-green-400 text-black rounded hover:bg-green-500 transition text-xs">Add Friend</button>
+					<button id="blockUserBtn" 
+					  class="px-2 py-1 bg-yellow-400 text-black rounded hover:bg-yellow-500 transition text-xs">Block</button>
+					<button id="unblockUserBtn" 
+					  class="px-2 py-1 bg-gray-300 text-black rounded hover:bg-gray-400 transition text-xs">Unblock</button>
 					<button id="newChatRoomBtn" 
-							class="px-3 py-1 bg-indigo-100 text-indigo-600 rounded hover:bg-indigo-200 transition text-sm">
-						+ Salon
-					</button>
+					  class="px-3 py-1 bg-indigo-100 text-indigo-600 rounded hover:bg-indigo-200 transition text-sm">+ Salon</button>
+				  </div>
 				</h2>
 				<div class="flex-1 overflow-auto mb-4 flex">
 					<!-- Room list -->
@@ -364,7 +372,7 @@ function getUserIdFromCookie() {
 	return null;
 }
 
-// ─── API FETCH HELPER ─────────────────────────────────────────────────────────
+// ─── API FETCH ─────────────────────────────────────────────────────────
 async function apiFetch(url, options = {}) {
 	try {
 		const response = await fetch(url, {
@@ -561,17 +569,17 @@ function setupHomeHandlers() {
 	}
 
 	async function addMemberToRoom(roomId) {
-	    try {
-	        await apiFetch(`/api/chat/rooms/${roomId}/members`, { 
-	            method: 'POST',
-	            headers: { 
-	                'Authorization': `Bearer ${authToken}`,
-	                'Content-Type': 'application/json'
-	            }
-	        });
-	    } catch (error) {
-	        console.error('Error adding member :', error);
-	    }
+		try {
+			await apiFetch(`/api/chat/rooms/${roomId}/members`, { 
+				method: 'POST',
+				headers: { 
+					'Authorization': `Bearer ${authToken}`,
+					'Content-Type': 'application/json'
+				}
+			});
+		} catch (error) {
+			console.error('Error adding member :', error);
+		}
 	}
 
 	// Chat: Select room
@@ -629,6 +637,84 @@ function setupHomeHandlers() {
 			chatForm.reset();
 		});
 	}
+	// Searchbar and add friend/block/unblock actions
+	const userActionInput = document.getElementById('userActionInput');
+	const addFriendBtn = document.getElementById('addFriendBtn');
+	const blockUserBtn = document.getElementById('blockUserBtn');
+	const unblockUserBtn = document.getElementById('unblockUserBtn');
+
+	// Generic add / block / unblock function
+	async function actionOnUser({ url, method = 'POST', successMsg, errorMsg }) {
+		const username = userActionInput.value.trim();
+		if (!username) return alert("Entrez un username");
+
+		try {
+			const userId = await getUserIdByUsername(username);
+
+			const result = await apiFetch(url.replace(':userId', userId), {
+				method,
+				headers: { 'Authorization': `Bearer ${authToken}` }
+			});
+
+			if (result.success) {
+				alert(successMsg);
+			} else {
+				alert(errorMsg + (result.error ? ' (' + result.error + ')' : ''));
+			}
+		} catch (e) {
+			alert(errorMsg + ' (' + e.message + ')');
+		}
+	}
+
+	async function getUserIdByUsername(username) {
+	    if (!username) throw new Error("Username empty");
+	    try {
+	        const response = await fetch(`/api/users/by-username/${encodeURIComponent(username)}`, {
+	            headers: { 'Authorization': `Bearer ${authToken}` }
+	        });
+	        
+	        if (!response.ok) {
+	            if (response.status === 404) {
+	                throw new Error("User not found");
+	            }
+	            throw new Error(`HTTP error! status: ${response.status}`);
+	        }
+	        
+	        const data = await response.json();
+	        if (!data.userId) throw new Error("User not found");
+	        return data.userId;
+	    } catch (error) {
+	        console.error('Error getting user ID:', error);
+	        throw error;
+	    }
+	}
+
+	// Add friend
+	if (addFriendBtn) addFriendBtn.onclick = () =>
+	  actionOnUser({
+		url: '/friends/:userId',
+		method: 'POST',
+		successMsg: "Friend added !",
+		errorMsg: "Error during add"
+	  });
+
+	// Block user
+	if (blockUserBtn) blockUserBtn.onclick = () =>
+	  actionOnUser({
+		url: '/blocks/:userId',
+		method: 'POST',
+		successMsg: "User blocked !",
+		errorMsg: "Error during block"
+	  });
+
+	// Unblock user
+	if (unblockUserBtn) unblockUserBtn.onclick = () =>
+	  actionOnUser({
+		url: '/blocks/:userId',
+		method: 'DELETE',
+		successMsg: "User unblocked !",
+		errorMsg: "Error during unblock"
+	  });
 }
 
 

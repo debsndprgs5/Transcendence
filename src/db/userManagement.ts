@@ -69,6 +69,8 @@ export const setTotp = (index: number, token: string) =>
 //I kept all the others because It could still be use but this is the only
 // needed call this wil returns all as the interface declared in types/user and can be use 
 // as user object
+
+
 export const getUserByName = (username: string): Promise<user | null> =>
   get<user>('SELECT * FROM users WHERE username = ?', [username])
     .then(row => row ?? null);

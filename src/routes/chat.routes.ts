@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import * as chatMgr from '../db/chatManagement';
+import * as UserManagement from '../db/userManagement';
 
 // Helper to extract and validate signed userId cookie
 function getUserId(request: FastifyRequest, reply: FastifyReply): number | undefined {
@@ -22,6 +23,36 @@ function getUserId(request: FastifyRequest, reply: FastifyReply): number | undef
 }
 
 export default async function chatRoutes(fastify: FastifyInstance) {
+
+// helper to get id by username
+
+  fastify.get('/api/users/by-username/:username', async (request, reply) => {
+      try {
+          const { username } = request.params as { username: string };
+          
+          if (!username) {
+              return reply.code(400).send({ 
+                  error: 'Username parameter is required' 
+              });
+          }
+
+          const userobj = await UserManagement.getUserByName(username);
+          
+          if (!userobj || !userobj.our_index) {
+              return reply.code(404).send({ 
+                  error: `User "${username}" not found` 
+              });
+          }
+
+          return reply.send({ userId: userobj.our_index });
+      } catch (error) {
+          console.error('Error in /api/users/by-username:', error);
+          return reply.code(500).send({ 
+              error: 'Internal server error' 
+          });
+      }
+  });
+
   // ───── FRIENDS ─────────────────────────────────────────────────────────
   fastify.post('/friends/:userId', async (request, reply) => {
     const currentUserId = getUserId(request, reply);

@@ -54,17 +54,19 @@ RUN apk add --no-cache sqlite sqlite-dev bash python3 make g++ && \
 WORKDIR /app
 
 ENV NODE_ENV=production
+# Add this line to set WORK_DIR
+ENV WORK_DIR=/app/dist
 
 COPY package*.json ./
 RUN npm install --only=production
 
 COPY --from=builder /app/dist ./dist
+# Just copy the db directory once
 COPY src/db /app/db
-COPY client /app/client
 
+COPY client /app/client
 COPY --from=builder-front /app/client/dist/output.css /app/client/dist/
-# COPY client/app.js /app/client/
- COPY client/index.html /app/client/
+COPY client/index.html /app/client/
 
 EXPOSE ${SCHOOL_PORT}
 

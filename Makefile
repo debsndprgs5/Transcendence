@@ -13,7 +13,7 @@ docker-build:
 
 docker-run:
 	@echo "🐳 Running Docker container on port $(SCHOOL_PORT)…"
-	docker compose up -d
+	docker compose up 
 docker-down:
 	docker compose down
 docker-refresh:

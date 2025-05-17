@@ -15,6 +15,6 @@ services:
       - NODE_ENV=production
     volumes:
       # DB and avatars go into shared runtime path
-      - /goinfre/${USER}/${IMAGE_NAME}/db:/app/db
+      - /goinfre/${USER}/${IMAGE_NAME}/db/ourdatabase.db:/app/db/ourdatabase.db
       - /goinfre/${USER}/${IMAGE_NAME}/avatars:/app/client/avatars
 

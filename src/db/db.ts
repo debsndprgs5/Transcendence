@@ -12,10 +12,14 @@ sqlite3.verbose();
 dotenv.config();
 
 
-
-const dbPath = 'db/ourdatabase.db';
-const schemaPath = 'db/schema.sql';
-
+//const dbPath = path.join(process.env.WORK_DIR || '', '../db/ourdatabase.db');
+//const schemaPath = path.join(process.env.WORK_DIR || '', '../db/schema.sql');
+  const dbPath = 'db/ourdatabase.db';
+  const schemaPath = 'db/schema.sql';
+//const dbPath = path.join(process.env.WORK_DIR, '../db/ourdatabase.db');
+//const schemaPath = path.join(process.env.WORK_DIR, '../db/schema.sql');
+console.log('DB PATH: ', dbPath)
+console.log('schemaPATH;', schemaPath)
 // Extend FastifyInstance with `db`
 declare module 'fastify' {
   interface FastifyInstance {

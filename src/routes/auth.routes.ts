@@ -1,4 +1,5 @@
-import { FastifyInstance } from 'fastify'
+import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { FastifyCookieOptions } from '@fastify/cookie';
 import bcrypt from 'bcrypt' // Blowfish encrypting
 import jwt from 'jsonwebtoken' // Json web token -> one-time token
 import speakeasy from 'speakeasy' // lib that supports 2fa using time based one-time pass (TOTP) and HOTP
@@ -15,6 +16,15 @@ const JWT_SECRET = process.env.JWT_SECRET!;
 if (!JWT_SECRET) {
   throw new Error("JWT_SECRET environment variable is not defined");
 }
+
+declare module 'fastify' {
+    interface FastifyRequest {
+        cookies: {
+            [cookieName: string]: string | undefined;
+        }
+    }
+}
+
 
 
 // Big function called by main.ts to mount auth routes

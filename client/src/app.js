@@ -76,19 +76,19 @@ function HomeView() {
 			<section class="bg-white rounded-lg shadow-lg overflow-hidden md:flex">
 				<div class="p-8 md:w-1/2">
 					<h1 class="text-4xl font-bold text-indigo-600 mb-4">
-						Bienvenue sur Transcendence
+						Welcome in Transcendence
 					</h1>
 					<p class="text-gray-700 mb-6">
-						Rejoignez des parties de Pong en temps réel, discutez avec vos amis et défiez notre IA.
+						Play pong with your friends, chat with them and have fun !
 					</p>
 					<div class="space-x-4">
 						<a href="/register" data-link
 							 class="inline-block px-6 py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition">
-							Créer un compte
+							Register now
 						</a>
 						<a href="/login" data-link
 							 class="inline-block px-6 py-3 border border-indigo-600 text-indigo-600 font-medium rounded-lg hover:bg-indigo-50 transition">
-							Se connecter
+							Login
 						</a>
 					</div>
 				</div>
@@ -106,18 +106,18 @@ function HomeView() {
 	return `
 		<div class="flex justify-between items-center mb-6">
 			<h1 class="text-2xl font-semibold text-indigo-600">
-				Bienvenue, <span class="font-bold">${userName}</span> !
+				Welcome, <span class="font-bold">${userName}</span> !
 			</h1>
 		</div>
 
 		<div class="grid gap-6 md:grid-cols-2">
 			<!-- Game section -->
 			<div class="bg-white p-6 rounded-lg shadow-lg flex flex-col">
-				<h2 class="text-2xl font-semibold text-indigo-600 mb-4">Parties disponibles</h2>
+				<h2 class="text-2xl font-semibold text-indigo-600 mb-4">Available games</h2>
 				<div id="games-list" class="flex-1 overflow-auto space-y-3"></div>
 				<button id="newGameBtn"
 								class="mt-4 px-4 py-2 bg-green-500 text-black rounded-lg hover:bg-green-600 transition">
-					+ Créer une partie
+					+ Create game
 				</button>
 			</div>
 
@@ -129,7 +129,7 @@ function HomeView() {
 					Chat
 				  </button>
 				  <div class="flex items-center gap-2">
-					<input id="userActionInput" type="text" placeholder="Username ou ID"
+					<input id="userActionInput" type="text" placeholder="Username or ID"
 					  class="px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-200 text-sm" style="width: 140px;" />
 					<button id="addFriendBtn" 
 					  class="px-2 py-1 bg-green-400 text-black rounded hover:bg-green-500 transition text-xs">Add Friend</button>
@@ -150,7 +150,7 @@ function HomeView() {
 					<div class="w-2/3 pl-4 flex flex-col">
 						<div id="chat" class="flex-1 overflow-auto space-y-2 mb-4"></div>
 						<form id="chatForm" class="flex space-x-2">
-							<input name="message" placeholder="Écrire un message…"
+							<input name="message" placeholder="Write a message…"
 										 class="flex-1 border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-indigo-300" />
 							<button type="submit"
 											class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
@@ -171,19 +171,19 @@ function LoginView() {
 			<div class="bg-white rounded-xl shadow-xl overflow-hidden w-full max-w-md transform -translate-y-4">
 				<!------ Colored header ------>
 				<div class="px-8 py-6 bg-indigo-600 text-white text-center">
-					<h2 class="text-3xl font-bold">Connexion</h2>
-					<p class="mt-2">Accédez à votre compte</p>
+					<h2 class="text-3xl font-bold">Log in</h2>
+					<p class="mt-2">Log in to your account</p>
 				</div>
 				<!------ Form ------>
 				<form id="loginForm" class="px-8 py-6 space-y-6 bg-white">
 					<div>
-						<label for="username" class="block text-sm font-medium text-gray-700">Nom d’utilisateur</label>
+						<label for="username" class="block text-sm font-medium text-gray-700">Username</label>
 						<input id="username" name="username" type="text" required
 									 class="mt-1 block w-full px-4 py-2 border-2 border-indigo-300 rounded-lg
 													focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"/>
 					</div>
 					<div>
-						<label for="password" class="block text-sm font-medium text-gray-700">Mot de passe</label>
+						<label for="password" class="block text-sm font-medium text-gray-700">Password</label>
 						<input id="password" name="password" type="password" required
 									 class="mt-1 block w-full px-4 py-2 border-2 border-indigo-300 rounded-lg
 													focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"/>
@@ -191,16 +191,16 @@ function LoginView() {
 					<button type="submit"
 									class="w-full py-3 bg-indigo-600 text-white rounded-lg font-semibold 
 												 hover:bg-indigo-700 transition">
-						Se connecter
+						Login
 					</button>
 					<p id="login-error" class="text-red-500 text-sm text-center hidden"></p>
 				</form>
 				<!------ Transit to register ------>
 				<div class="px-8 py-4 bg-gray-100 text-center">
 					<p class="text-sm text-gray-600">
-						Vous n’avez pas de compte ?
+						You don't have an account ?
 						<a href="/register" data-link class="text-indigo-600 font-medium hover:underline">
-							Inscrivez-vous
+							Register now
 						</a>
 					</p>
 				</div>
@@ -215,19 +215,19 @@ function RegisterView() {
 			<div class="bg-white rounded-xl shadow-xl overflow-hidden w-full max-w-md transform -translate-y-4">
 				<!------ Colored header ------>
 				<div class="px-8 py-6 bg-indigo-600 text-white text-center">
-					<h2 class="text-3xl font-bold">Inscription</h2>
-					<p class="mt-2">Créez votre compte</p>
+					<h2 class="text-3xl font-bold">Register</h2>
+					<p class="mt-2">Create your account</p>
 				</div>
 				<!------ Form ------>
 				<form id="registerForm" class="px-8 py-6 space-y-6 bg-white">
 					<div>
-						<label for="username" class="block text-sm font-medium text-gray-700">Nom d’utilisateur</label>
+						<label for="username" class="block text-sm font-medium text-gray-700">Username</label>
 						<input id="username" name="username" type="text" required
 									 class="mt-1 block w-full px-4 py-2 border-2 border-purple-300 rounded-lg
 													focus:outline-none focus:ring-2 focus:ring-purple-400 transition"/>
 					</div>
 					<div>
-						<label for="password" class="block text-sm font-medium text-gray-700">Mot de passe</label>
+						<label for="password" class="block text-sm font-medium text-gray-700">Password</label>
 						<input id="password" name="password" type="password" required
 									 class="mt-1 block w-full px-4 py-2 border-2 border-purple-300 rounded-lg
 													focus:outline-none focus:ring-2 focus:ring-purple-400 transition"/>
@@ -235,16 +235,16 @@ function RegisterView() {
 					<button type="submit"
 									class="w-full py-3 bg-indigo-600 text-white rounded-lg font-semibold 
 												 hover:bg-indigo-700 transition">
-						Créer mon compte
+						Create my account
 					</button>
 					<p id="register-error" class="text-red-500 text-sm text-center hidden"></p>
 				</form>
 				<!------ Transit to login ------>
 				<div class="px-8 py-4 bg-gray-100 text-center">
 					<p class="text-sm text-gray-600">
-						Déjà un compte ?
+						Already have an account ?
 						<a href="/login" data-link class="text-indigo-600 font-medium hover:underline">
-							Connectez-vous
+							Log in
 						</a>
 					</p>
 				</div>
@@ -264,19 +264,19 @@ function Setup2FAView(otpauth_url, base32) {
 				<h2 class="text-2xl font-bold text-yellow-700">Configurer la 2FA</h2>
 			</div>
 			<div class="px-6 py-4 space-y-4 text-center">
-				<p class="text-gray-700">Scannez ce QR code avec votre application d'authentification :</p>
+				<p class="text-gray-700">Scan this QR code with your authenticator app :</p>
 				<img src="${chartUrl}" alt="QR Code 2FA" class="mx-auto w-48 h-48" />
-				<p class="text-gray-700">Ou entrez ce code manuellement :</p>
+				<p class="text-gray-700">Or manually enter this code :</p>
 				<code class="block bg-gray-100 p-2 rounded font-mono text-sm">${base32}</code>
 			</div>
 			<div class="px-6 pb-6 space-y-2">
-				<input id="2fa-setup-code" placeholder="Entrez le code 2FA"
+				<input id="2fa-setup-code" placeholder="Enter 2FA code"
 							 class="w-full border-gray-300 rounded-md shadow-sm p-2 
 											focus:ring-yellow-500 focus:border-yellow-500" />
 				<button id="verify-setup-2fa-btn"
 								class="w-full py-2 px-4 bg-yellow-600 text-black font-semibold 
 											 rounded-md hover:bg-yellow-700 transition">
-					Vérifier le code
+					Verify authenticator code
 				</button>
 				<p id="setup2fa-error" class="text-red-500 text-sm mt-2 hidden"></p>
 			</div>
@@ -288,7 +288,7 @@ function Verify2FAView() {
 	return `
 		<div class="max-w-md mx-auto mt-12 bg-white shadow-lg rounded-lg overflow-hidden">
 			<div class="px-6 py-4 bg-yellow-50">
-				<h2 class="text-2xl font-bold text-yellow-700">Vérifier la 2FA</h2>
+				<h2 class="text-2xl font-bold text-yellow-700">Verify 2FA</h2>
 			</div>
 			<form id="verifyForm" class="px-6 py-4 space-y-4">
 				<div>
@@ -300,7 +300,7 @@ function Verify2FAView() {
 				<button type="submit"
 								class="w-full py-2 px-4 bg-yellow-600 text-black font-semibold 
 											 rounded-md hover:bg-yellow-700 transition">
-					Vérifier
+					Verify
 				</button>
 				<p id="verify-error" class="text-red-500 text-sm mt-2 hidden"></p>
 			</form>
@@ -337,7 +337,7 @@ function AccountView(user, friends = []) {
           </ul>
         </div>
         <div class="px-8 pb-8">
-          <button id="backHomeBtn" class="mt-6 w-full py-2 px-4 bg-gray-200 text-indigo-700 rounded hover:bg-gray-300 transition">← Retour</button>
+          <button id="backHomeBtn" class="mt-6 w-full py-2 px-4 bg-gray-200 text-indigo-700 rounded hover:bg-gray-300 transition">← Go back</button>
         </div>
       </div>
     </div>
@@ -666,7 +666,7 @@ function setupHomeHandlers() {
 	if (newChatRoomBtn) {
 		newChatRoomBtn.addEventListener('click', async () => {
 			try {
-				const roomName = prompt('Nom du salon :') || 'Nouveau salon';
+				const roomName = prompt('Room\'s name :') || 'New room';
 				const newroom = await apiFetch('/api/chat/rooms', { 
 					method: 'POST', 
 					headers: { 
@@ -679,7 +679,7 @@ function setupHomeHandlers() {
 				await loadRooms(); // Reload room list after creating one
 			} catch (error) {
 				console.error('Error creating chat room:', error);
-				alert('Erreur lors de la création du salon: ' + error.message);
+				alert('Error creating chat room: ' + error.message);
 			}
 		});
 	}

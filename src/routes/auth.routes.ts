@@ -32,7 +32,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     // a) Look for user in db
     const newUser = await UserManagement.getUserByName(username);
     if(newUser != null){
-		return reply.code(400).send({error : 'Name allready in use'})
+		return reply.code(400).send({error : 'Name already in use'})
 	}
 
 	//b) No user in bd with same name, we create a new user 	

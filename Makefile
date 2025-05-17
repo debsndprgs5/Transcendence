@@ -25,6 +25,8 @@ install:
 	# Websockets
 	npm install ws
 	npm install -D @types/ws
+	# Types/Ms for dependency
+	npm install --save-dev @types/node @types/ms
 	# Account (Multipart & sharp for avatar)
 	npm install @fastify/multipart sharp
 	# le reste (TS, Tailwind, PostCSS…)

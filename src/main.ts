@@ -3,6 +3,7 @@ import Fastify from 'fastify'
 import fastifyStatic from '@fastify/static'
 import { authRoutes } from './routes/auth.routes'
 import chatRoutes from './routes/chat.routes'
+import accountRoutes from './routes/account.routes'
 import cookie from '@fastify/cookie';
 import wsPlugin from './websockets/chat.socket';
 import * as dotenv from 'dotenv';
@@ -61,6 +62,13 @@ async function bootstrap() {
       await fastify.register(chatRoutes)
     } catch (err) {
       console.error('Error registering chat routes:', err)
+    }
+
+    // Account routes
+    try {
+      await fastify.register(accountRoutes)
+    } catch (err) {
+      console.error('Error registering account routes:', err)
     }
   }, { prefix: '/api' })
 

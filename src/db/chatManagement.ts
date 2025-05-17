@@ -115,8 +115,8 @@ export const removeFriend = (userID: number, friendID: number) =>
 // Get friends list for a user
 export const getFriends = (userID: number) =>
   getAll<chatType.user_relationships>(
-    `SELECT u.id, u.username FROM users u
-     JOIN user_relationships r ON u.id = r.related_user_id
+    `SELECT u.our_index, u.username FROM users u
+     JOIN user_relationships r ON u.our_index = r.related_user_id
      WHERE r.user_id = ? AND r.type = 'friend'`,
     [userID]
   );

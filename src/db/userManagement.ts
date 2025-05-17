@@ -65,6 +65,9 @@ export const setPasswordH = (index: number, password: string) =>
 export const setTotp = (index: number, token: string) =>
   run('UPDATE users SET totp_secret = ? WHERE our_index = ?', [token, index]);
 
+export const setAvatarUrl = (index: number, url: string) =>
+  run('UPDATE users SET avatar_url = ? WHERE our_index = ?', [url, index]);
+
 // Getters
 //I kept all the others because It could still be use but this is the only
 // needed call this wil returns all as the interface declared in types/user and can be use 

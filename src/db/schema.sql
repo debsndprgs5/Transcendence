@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hashed TEXT    NOT NULL,
   totp_secret     TEXT,
   jwtToken        TEXT,
+  avatar_url      TEXT,
   created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

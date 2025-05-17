@@ -25,6 +25,8 @@ install:
 	# Websockets
 	npm install ws
 	npm install -D @types/ws
+	# Account (Multipart & sharp for avatar)
+	npm install @fastify/multipart sharp
 	# le reste (TS, Tailwind, PostCSS…)
 	npm install
 
@@ -42,6 +44,7 @@ clear_db:
 	@echo "🧹 Erasing & Re-creating database"
 	rm -rf src/db/ourdatabase.db
 	touch src/db/ourdatabase.db
+	rm -rf client/avatars/*
 
 
 

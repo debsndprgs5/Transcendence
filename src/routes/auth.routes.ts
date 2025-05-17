@@ -225,6 +225,52 @@ fastify.post('/auth/2fa/setup', async (request, reply) => {
       
       return reply.send({ userId });
   });
-}
+  // Return the current user's profile
+  fastify.get('/users/me', async (request, reply) => {
+      const auth = request.headers.authorization;
+      if (!auth) return reply.code(401).send({ error: 'No token' });
 
+      const token = auth.split(' ')[1];
+      if (!token) return reply.code(401).send({ error: 'Invalid authorization format' });
+
+      let payload: any;
+      try {
+          payload = jwt.verify(token, JWT_SECRET);
+      } catch (error) {
+          return reply.code(401).send({ error: 'Invalid token' });
+      }
+
+      const user = await UserManagement.getUserByRand(String(payload.sub));
+      if (!user) return reply.code(404).send({ error: 'User not found' });
+
+      return reply.send({
+          userId: user.our_index,
+          username: user.username,
+          avatarUrl: user.avatar_url || null,
+          has2fa: !!user.totp_secret
+      });
+  });
+  // Change password
+  fastify.post('/users/me/password', async (request, reply) => {
+    const auth = request.headers.authorization;
+    if (!auth) return reply.code(401).send({ error: 'No token' });
+    const token = auth.split(' ')[1];
+    let payload;
+    try {
+      payload = jwt.verify(token, JWT_SECRET);
+    } catch {
+      return reply.code(401).send({ error: 'Invalid token' });
+    }
+    const user = await UserManagement.getUserByRand(String(payload.sub));
+    if (!user) return reply.code(404).send({ error: 'User not found' });
+
+    const { newPassword } = request.body as { newPassword: string };
+    if (!newPassword || newPassword.length < 4)
+      return reply.code(400).send({ error: 'Password too short' });
+
+    const hashed = await bcrypt.hash(newPassword, 12);
+    await UserManagement.setPasswordH(user.our_index, hashed);
+    reply.send({ success: true });
+  });
+}
 

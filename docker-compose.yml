@@ -1,10 +1,11 @@
-version: "3.8"
+
 
 services:
   app:
+    image: ${IMAGE_NAME}
     build: .
     ports:
-      - "1400:1400"
+      - "${SCHOOL_PORT}:${SCHOOL_PORT}"
     restart: always
 
     env_file:
@@ -12,5 +13,8 @@ services:
 
     environment:
       - NODE_ENV=production
-
+    volumes:
+      # DB and avatars go into shared runtime path
+      - /goinfre/${USER}/${IMAGE_NAME}/db:/app/db
+      - /goinfre/${USER}/${IMAGE_NAME}/avatars:/app/client/avatars
 

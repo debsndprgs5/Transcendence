@@ -1,11 +1,6 @@
-
-
-# Variables
-IMAGE_NAME = zfav_yseb_trans
-PORT       = 1400
+include .env
+export
 WORK_DIR = $(shell pwd)
-
-
 
 .PHONY: install clean dev prod docker-build docker-run docker-refresh clear_db
 
@@ -17,13 +12,14 @@ docker-build:
 	docker build -t $(IMAGE_NAME) .
 
 docker-run:
-	@echo "🐳 Running Docker container on port $(PORT)…"
-	docker run -p $(PORT):$(PORT) \
-	  -v /goinfre/$(USER)/$(IMAGE_NAME)/app/ourdatabase.db:/app/db/ourdatabase.db \
-	  $(IMAGE_NAME)
+	@echo "🐳 Running Docker container on port $(SCHOOL_PORT)…"
+	docker compose up -d
+docker-down:
+	docker compose down
 docker-refresh:
-	@docker ps -q | xargs -r docker stop
-	@docker ps -aq | xargs -r docker rm
+	@docker ps -q --filter "ancestor=$(IMAGE_NAME)" | xargs -r docker stop
+	@docker ps -aq --filter "ancestor=$(IMAGE_NAME)" | xargs -r docker rm -v
+	@docker images -q $(IMAGE_NAME) | xargs -r docker rmi
 
 
 # -------------------------------------------------------------------
@@ -42,6 +38,8 @@ install:
 	# Websockets
 	npm install ws
 	npm install -D @types/ws
+	# Account (Multipart & sharp for avatar)
+	npm install @fastify/multipart sharp
 	# le reste (TS, Tailwind, PostCSS…)
 	npm install
 
@@ -59,6 +57,7 @@ clear_db:
 	@echo "🧹 Erasing & Re-creating database"
 	rm -rf src/db/ourdatabase.db
 	touch src/db/ourdatabase.db
+	rm -rf client/avatars/*
 
 
 

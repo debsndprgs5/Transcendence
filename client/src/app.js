@@ -76,19 +76,19 @@ function HomeView() {
 			<section class="bg-white rounded-lg shadow-lg overflow-hidden md:flex">
 				<div class="p-8 md:w-1/2">
 					<h1 class="text-4xl font-bold text-indigo-600 mb-4">
-						Bienvenue sur Transcendence
+						Welcome in Transcendence
 					</h1>
 					<p class="text-gray-700 mb-6">
-						Rejoignez des parties de Pong en temps réel, discutez avec vos amis et défiez notre IA.
+						Play pong with your friends, chat with them and have fun !
 					</p>
 					<div class="space-x-4">
 						<a href="/register" data-link
 							 class="inline-block px-6 py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition">
-							Créer un compte
+							Register now
 						</a>
 						<a href="/login" data-link
 							 class="inline-block px-6 py-3 border border-indigo-600 text-indigo-600 font-medium rounded-lg hover:bg-indigo-50 transition">
-							Se connecter
+							Login
 						</a>
 					</div>
 				</div>
@@ -106,18 +106,18 @@ function HomeView() {
 	return `
 		<div class="flex justify-between items-center mb-6">
 			<h1 class="text-2xl font-semibold text-indigo-600">
-				Bienvenue, <span class="font-bold">${userName}</span> !
+				Welcome, <span class="font-bold">${userName}</span> !
 			</h1>
 		</div>
 
 		<div class="grid gap-6 md:grid-cols-2">
 			<!-- Game section -->
 			<div class="bg-white p-6 rounded-lg shadow-lg flex flex-col">
-				<h2 class="text-2xl font-semibold text-indigo-600 mb-4">Parties disponibles</h2>
+				<h2 class="text-2xl font-semibold text-indigo-600 mb-4">Available games</h2>
 				<div id="games-list" class="flex-1 overflow-auto space-y-3"></div>
 				<button id="newGameBtn"
 								class="mt-4 px-4 py-2 bg-green-500 text-black rounded-lg hover:bg-green-600 transition">
-					+ Créer une partie
+					+ Create game
 				</button>
 			</div>
 
@@ -129,7 +129,7 @@ function HomeView() {
 					Chat
 				  </button>
 				  <div class="flex items-center gap-2">
-					<input id="userActionInput" type="text" placeholder="Username ou ID"
+					<input id="userActionInput" type="text" placeholder="Username or ID"
 					  class="px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-200 text-sm" style="width: 140px;" />
 					<button id="addFriendBtn" 
 					  class="px-2 py-1 bg-green-400 text-black rounded hover:bg-green-500 transition text-xs">Add Friend</button>
@@ -138,7 +138,7 @@ function HomeView() {
 					<button id="unblockUserBtn" 
 					  class="px-2 py-1 bg-gray-300 text-black rounded hover:bg-gray-400 transition text-xs">Unblock</button>
 					<button id="newChatRoomBtn" 
-					  class="px-3 py-1 bg-indigo-100 text-indigo-600 rounded hover:bg-indigo-200 transition text-sm">+ Salon</button>
+					  class="px-3 py-1 bg-indigo-100 text-indigo-600 rounded hover:bg-indigo-200 transition text-sm">+ Room</button>
 				  </div>
 				</h2>
 				<div class="flex-1 overflow-auto mb-4 flex">
@@ -150,7 +150,7 @@ function HomeView() {
 					<div class="w-2/3 pl-4 flex flex-col">
 						<div id="chat" class="flex-1 overflow-auto space-y-2 mb-4"></div>
 						<form id="chatForm" class="flex space-x-2">
-							<input name="message" placeholder="Écrire un message…"
+							<input name="message" placeholder="Write a message…"
 										 class="flex-1 border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-indigo-300" />
 							<button type="submit"
 											class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
@@ -171,19 +171,19 @@ function LoginView() {
 			<div class="bg-white rounded-xl shadow-xl overflow-hidden w-full max-w-md transform -translate-y-4">
 				<!------ Colored header ------>
 				<div class="px-8 py-6 bg-indigo-600 text-white text-center">
-					<h2 class="text-3xl font-bold">Connexion</h2>
-					<p class="mt-2">Accédez à votre compte</p>
+					<h2 class="text-3xl font-bold">Log in</h2>
+					<p class="mt-2">Log in to your account</p>
 				</div>
 				<!------ Form ------>
 				<form id="loginForm" class="px-8 py-6 space-y-6 bg-white">
 					<div>
-						<label for="username" class="block text-sm font-medium text-gray-700">Nom d’utilisateur</label>
+						<label for="username" class="block text-sm font-medium text-gray-700">Username</label>
 						<input id="username" name="username" type="text" required
 									 class="mt-1 block w-full px-4 py-2 border-2 border-indigo-300 rounded-lg
 													focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"/>
 					</div>
 					<div>
-						<label for="password" class="block text-sm font-medium text-gray-700">Mot de passe</label>
+						<label for="password" class="block text-sm font-medium text-gray-700">Password</label>
 						<input id="password" name="password" type="password" required
 									 class="mt-1 block w-full px-4 py-2 border-2 border-indigo-300 rounded-lg
 													focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"/>
@@ -191,16 +191,16 @@ function LoginView() {
 					<button type="submit"
 									class="w-full py-3 bg-indigo-600 text-white rounded-lg font-semibold 
 												 hover:bg-indigo-700 transition">
-						Se connecter
+						Login
 					</button>
 					<p id="login-error" class="text-red-500 text-sm text-center hidden"></p>
 				</form>
 				<!------ Transit to register ------>
 				<div class="px-8 py-4 bg-gray-100 text-center">
 					<p class="text-sm text-gray-600">
-						Vous n’avez pas de compte ?
+						You don't have an account ?
 						<a href="/register" data-link class="text-indigo-600 font-medium hover:underline">
-							Inscrivez-vous
+							Register now
 						</a>
 					</p>
 				</div>
@@ -215,19 +215,19 @@ function RegisterView() {
 			<div class="bg-white rounded-xl shadow-xl overflow-hidden w-full max-w-md transform -translate-y-4">
 				<!------ Colored header ------>
 				<div class="px-8 py-6 bg-indigo-600 text-white text-center">
-					<h2 class="text-3xl font-bold">Inscription</h2>
-					<p class="mt-2">Créez votre compte</p>
+					<h2 class="text-3xl font-bold">Register</h2>
+					<p class="mt-2">Create your account</p>
 				</div>
 				<!------ Form ------>
 				<form id="registerForm" class="px-8 py-6 space-y-6 bg-white">
 					<div>
-						<label for="username" class="block text-sm font-medium text-gray-700">Nom d’utilisateur</label>
+						<label for="username" class="block text-sm font-medium text-gray-700">Username</label>
 						<input id="username" name="username" type="text" required
 									 class="mt-1 block w-full px-4 py-2 border-2 border-purple-300 rounded-lg
 													focus:outline-none focus:ring-2 focus:ring-purple-400 transition"/>
 					</div>
 					<div>
-						<label for="password" class="block text-sm font-medium text-gray-700">Mot de passe</label>
+						<label for="password" class="block text-sm font-medium text-gray-700">Password</label>
 						<input id="password" name="password" type="password" required
 									 class="mt-1 block w-full px-4 py-2 border-2 border-purple-300 rounded-lg
 													focus:outline-none focus:ring-2 focus:ring-purple-400 transition"/>
@@ -235,16 +235,16 @@ function RegisterView() {
 					<button type="submit"
 									class="w-full py-3 bg-indigo-600 text-white rounded-lg font-semibold 
 												 hover:bg-indigo-700 transition">
-						Créer mon compte
+						Create my account
 					</button>
 					<p id="register-error" class="text-red-500 text-sm text-center hidden"></p>
 				</form>
 				<!------ Transit to login ------>
 				<div class="px-8 py-4 bg-gray-100 text-center">
 					<p class="text-sm text-gray-600">
-						Déjà un compte ?
+						Already have an account ?
 						<a href="/login" data-link class="text-indigo-600 font-medium hover:underline">
-							Connectez-vous
+							Log in
 						</a>
 					</p>
 				</div>
@@ -264,19 +264,19 @@ function Setup2FAView(otpauth_url, base32) {
 				<h2 class="text-2xl font-bold text-yellow-700">Configurer la 2FA</h2>
 			</div>
 			<div class="px-6 py-4 space-y-4 text-center">
-				<p class="text-gray-700">Scannez ce QR code avec votre application d'authentification :</p>
+				<p class="text-gray-700">Scan this QR code with your authenticator app :</p>
 				<img src="${chartUrl}" alt="QR Code 2FA" class="mx-auto w-48 h-48" />
-				<p class="text-gray-700">Ou entrez ce code manuellement :</p>
+				<p class="text-gray-700">Or manually enter this code :</p>
 				<code class="block bg-gray-100 p-2 rounded font-mono text-sm">${base32}</code>
 			</div>
 			<div class="px-6 pb-6 space-y-2">
-				<input id="2fa-setup-code" placeholder="Entrez le code 2FA"
+				<input id="2fa-setup-code" placeholder="Enter 2FA code"
 							 class="w-full border-gray-300 rounded-md shadow-sm p-2 
 											focus:ring-yellow-500 focus:border-yellow-500" />
 				<button id="verify-setup-2fa-btn"
 								class="w-full py-2 px-4 bg-yellow-600 text-black font-semibold 
 											 rounded-md hover:bg-yellow-700 transition">
-					Vérifier le code
+					Verify authenticator code
 				</button>
 				<p id="setup2fa-error" class="text-red-500 text-sm mt-2 hidden"></p>
 			</div>
@@ -288,7 +288,7 @@ function Verify2FAView() {
 	return `
 		<div class="max-w-md mx-auto mt-12 bg-white shadow-lg rounded-lg overflow-hidden">
 			<div class="px-6 py-4 bg-yellow-50">
-				<h2 class="text-2xl font-bold text-yellow-700">Vérifier la 2FA</h2>
+				<h2 class="text-2xl font-bold text-yellow-700">Verify 2FA</h2>
 			</div>
 			<form id="verifyForm" class="px-6 py-4 space-y-4">
 				<div>
@@ -300,7 +300,7 @@ function Verify2FAView() {
 				<button type="submit"
 								class="w-full py-2 px-4 bg-yellow-600 text-black font-semibold 
 											 rounded-md hover:bg-yellow-700 transition">
-					Vérifier
+					Verify
 				</button>
 				<p id="verify-error" class="text-red-500 text-sm mt-2 hidden"></p>
 			</form>
@@ -308,8 +308,45 @@ function Verify2FAView() {
 	`;
 }
 
+function AccountView(user, friends = []) {
+  const username = user.username || '';
+  const avatar = user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=6d28d9&color=fff&rounded=true`;
+
+  return `
+    <div class="min-h-screen flex items-center justify-center bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 py-10">
+      <div class="bg-white rounded-xl shadow-xl max-w-lg w-full">
+        <div class="px-8 py-8 flex flex-col items-center bg-indigo-50 rounded-t-xl">
+          <img src="${avatar}" id="account-avatar" alt="Avatar" class="w-24 h-24 rounded-full shadow-lg border-4 border-indigo-200 mb-4 cursor-pointer">
+          <input type="file" id="avatarInput" class="hidden" accept="image/*">
+          <h2 class="text-2xl font-bold text-indigo-700 mb-1">${username}</h2>
+        </div>
+        <div class="px-8 py-6">
+          <form id="profileForm" class="space-y-3">
+            <div>
+              <label for="newPassword" class="block text-sm font-medium">New password</label>
+              <input type="password" id="newPassword" name="newPassword" class="mt-1 block w-full rounded p-2 border border-gray-300">
+            </div>
+            <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded">Change password</button>
+          </form>
+          <button id="setup2faBtn" class="mt-3 w-full bg-yellow-500 text-black py-2 rounded">Re-config 2FA</button>
+        </div>
+        <div class="px-8 py-4 border-t border-gray-200">
+          <h3 class="text-lg font-semibold text-indigo-700 mb-2">My good ol' friends</h3>
+          <ul id="friendsList" class="space-y-2">
+            ${friends.map(friend => `<li class="py-1 border-b">${friend.username}</li>`).join('')}
+          </ul>
+        </div>
+        <div class="px-8 pb-8">
+          <button id="backHomeBtn" class="mt-6 w-full py-2 px-4 bg-gray-200 text-indigo-700 rounded hover:bg-gray-300 transition">← Go back</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+
 // ─── ROUTER ──────────────────────────────────────────────────────────────────
-function router() {
+async function router() {
 	const path = window.location.pathname;
 
 	// update nav before render -> to render either login/register or disconnect
@@ -337,11 +374,28 @@ function router() {
 				setupRegisterHandlers();
 			}
 			break;
+		case '/account':
+		  if (!isAuthenticated()) {
+			history.pushState(null, '', '/login');
+			render(LoginView());
+			setupLoginHandlers();
+		  } else {
+			try {
+			  const user = await apiFetch('/api/users/me', { headers: { 'Authorization': `Bearer ${authToken}` } });
+			  const friends = await apiFetch('/api/friends', { headers: { 'Authorization': `Bearer ${authToken}` } });
+			  render(AccountView(user, friends));
+			  setupAccountHandlers(user);
+			} catch (e) {
+			  alert("Error during account loading.");
+			  history.pushState(null, '', '/');
+			  router();
+			}
+		  }
+		  break;
 		default:
 			render(HomeView());
 			if (isAuthenticated()) {
 				setupHomeHandlers();
-				// Reset currentRoom
 				currentRoom = 0;
 				initWebSocket();
 			}
@@ -404,17 +458,18 @@ function getUserIdFromCookie() {
 //  Free GPT version qui mets headers que si body found
 async function apiFetch(url, options = {}) {
 	try {
-		const hasBody = !!options.body;
-
+		// Add /api prefix if not present
+		const apiUrl = url.startsWith('/api') ? url : `/api${url}`;
+		
 		const headers = {
-			...options.headers,
+			...options.headers
 		};
-
-		if (hasBody && !headers['Content-Type']) {
+		
+		if (options.body) {
 			headers['Content-Type'] = 'application/json';
 		}
 
-		const response = await fetch(url, {
+		const response = await fetch(apiUrl, {
 			...options,
 			headers
 		});
@@ -459,13 +514,12 @@ document.addEventListener('click', e => {
 	history.pushState(null, '', a.pathname);
 	router();
 });
-window.addEventListener('popstate', router);
-window.addEventListener('DOMContentLoaded', router);
+window.addEventListener('popstate', () => { router(); });
+window.addEventListener('DOMContentLoaded', () => { router(); });
 
 document.addEventListener('DOMContentLoaded', () => {
 	router();
 });
-window.addEventListener('popstate', router);
 document.addEventListener('click', e => {
 	const a = e.target.closest('a[data-link]');
 	if (!a) return;
@@ -485,18 +539,22 @@ function updateNav() {
 		authNav.innerHTML = `
 			<a href="/register" data-link
 				 class="px-4 py-2 border border-indigo-600 text-indigo-600 rounded hover:bg-indigo-50 transition">
-				Inscription
+				Register
 			</a>
 			<a href="/login" data-link
 				 class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition">
-				Connexion
+				Login
 			</a>
 		`;
 	} else {
 		authNav.innerHTML = `
+			<a href="/account" data-link
+				 class="px-4 py-2 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 transition font-semibold mr-2">
+				Account
+			</a>
 			<button id="logoutNavBtn"
 							class="px-4 py-2 bg-red-500 text-black rounded hover:bg-red-600 transition">
-				Déconnexion
+				Disconnect
 			</button>
 		`;
 		document.getElementById('logoutNavBtn').addEventListener('click', () => {
@@ -535,14 +593,22 @@ function setupHomeHandlers() {
   // Load rooms immediately when entering home view
 	let loadRooms = async () => {
 		try {
-			const rooms = await apiFetch('/api/chat/rooms', { 
+			const rooms = await apiFetch('/api/chat/rooms/mine', { 
 				headers: { 'Authorization': `Bearer ${authToken}` } 
 			});
 			const ul = document.getElementById('room-list');
 			if (!ul) return;
 			
 			ul.innerHTML = rooms.map(r => 
-				`<li data-id="${r.roomID}" class="cursor-pointer hover:bg-gray-100 p-2 rounded ${currentRoom === r.roomID ? 'bg-indigo-100' : ''}">${r.name || `Salon #${r.roomID}`}</li>`
+			  `<li data-id="${r.roomID}" class="group flex justify-between items-center cursor-pointer hover:bg-gray-100 p-2 rounded ${currentRoom === r.roomID ? 'bg-indigo-100' : ''}">
+				<span class="flex-1 truncate">${r.name || `Room #${r.roomID}`}</span>
+				<div class="flex gap-1 opacity-0 group-hover:opacity-100 transition">
+					<button data-room="${r.roomID}" class="invite-room-btn text-green-600 hover:text-green-800 text-sm">➕</button>
+					${r.ownerID === userId ? 
+						`<button data-room="${r.roomID}" class="delete-room-btn text-red-600 hover:text-red-800 text-sm">❌</button>` : 
+						''}
+				</div>
+			  </li>`
 			).join('');
 			
 			// If no room is selected, select general
@@ -554,6 +620,50 @@ function setupHomeHandlers() {
 			document.querySelectorAll('#room-list li').forEach(li => {
 				li.addEventListener('click', () => selectRoom(Number(li.dataset.id)));
 			});
+
+			// Delete Room Button
+			document.querySelectorAll('.delete-room-btn').forEach(btn => {
+				btn.addEventListener('click', async (e) => {
+					e.stopPropagation(); // Prevent clicking
+					const roomId = btn.dataset.room;
+					if (confirm("Delete this room ?")) {
+						try {
+							await apiFetch(`/api/chat/rooms/${roomId}`, {
+								method: 'DELETE',
+								headers: { 'Authorization': `Bearer ${authToken}` }
+							});
+							await loadRooms(); // refresh list
+						} catch (err) {
+							alert("Error duling delete");
+						}
+					}
+				});
+			});
+
+			// Add user in room button
+			document.querySelectorAll('.invite-room-btn').forEach(btn => {
+				btn.addEventListener('click', async (e) => {
+					e.stopPropagation(); // Prevent clicking
+					const roomId = btn.dataset.room;
+					const username = prompt("Type a user to add to the room");
+					if (!username) return;
+					try {
+						const userIdToInvite = await getUserIdByUsername(username);
+						await apiFetch(`/api/chat/rooms/${roomId}/members`, {
+							method: 'POST',
+							headers: {
+								'Authorization': `Bearer ${authToken}`,
+								'Content-Type': 'application/json'
+							},
+							body: JSON.stringify({ userId: userIdToInvite })
+						});
+						alert(`User ${username} added successfully`);
+					} catch (err) {
+						alert("Erreur lors de l'invitation : " + err.message);
+					}
+				});
+			});
+
 
 			// Load current room history
 			if (socket && socket.readyState === WebSocket.OPEN) {
@@ -572,11 +682,11 @@ function setupHomeHandlers() {
 		}
 	};
 
-	  // Call loadRooms immediately and set up WebSocket
-	  if (authToken) {
-		  loadRooms();
-		  initWebSocket();
-	  }
+	// Call loadRooms immediately and set up WebSocket
+	if (authToken) {
+	  loadRooms();
+	  initWebSocket();
+	}
 
 	// Chat: button to get back to general chat
 	const generalChatBtn = document.getElementById('generalChatBtn');
@@ -599,7 +709,7 @@ function setupHomeHandlers() {
 	if (newChatRoomBtn) {
 		newChatRoomBtn.addEventListener('click', async () => {
 			try {
-				const roomName = prompt('Nom du salon :') || 'Nouveau salon';
+				const roomName = prompt('Room\'s name :') || 'New room';
 				const newroom = await apiFetch('/api/chat/rooms', { 
 					method: 'POST', 
 					headers: { 
@@ -608,23 +718,24 @@ function setupHomeHandlers() {
 					},
 					body: JSON.stringify({ name: roomName })
 				});
-				addMemberToRoom(newroom.roomID);
+				addMemberToRoom(newroom.roomID, userId);
 				await loadRooms(); // Reload room list after creating one
 			} catch (error) {
 				console.error('Error creating chat room:', error);
-				alert('Erreur lors de la création du salon: ' + error.message);
+				alert('Error creating chat room: ' + error.message);
 			}
 		});
 	}
 
-	async function addMemberToRoom(roomId) {
+	async function addMemberToRoom(roomId, userIdToAdd) {
 		try {
-			await apiFetch(`/api/chat/rooms/${roomId}/members`, { 
+			await apiFetch(`/api/chat/rooms/${roomId}/members`, {
 				method: 'POST',
 				headers: { 
 					'Authorization': `Bearer ${authToken}`,
-					//'Content-Type': 'application/json'
-				}
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ userId: userIdToAdd })
 			});
 		} catch (error) {
 			console.error('Error adding member :', error);
@@ -675,7 +786,6 @@ function setupHomeHandlers() {
 			const content = formData.get('message');
 			if (!content || !socket || socket.readyState !== WebSocket.OPEN) return;
 
-			// Envoi JSON attendu par ton serveur WS
 			socket.send(JSON.stringify({
 				type : 'chatRoomMessage',
 				chatRoomID: currentRoom,
@@ -695,7 +805,7 @@ function setupHomeHandlers() {
 	// Generic add / block / unblock function
 	async function actionOnUser({ url, method = 'POST', successMsg, errorMsg }) {
 		const username = userActionInput.value.trim();
-		if (!username) return alert("Entrez un username");
+		if (!username) return alert("Please type a Username");
 
 		try {
 			const userId = await getUserIdByUsername(username);
@@ -716,32 +826,32 @@ function setupHomeHandlers() {
 	}
 
 	async function getUserIdByUsername(username) {
-	    if (!username) throw new Error("Username empty");
-	    try {
-	        const response = await fetch(`/api/users/by-username/${encodeURIComponent(username)}`, {
-	            headers: { 'Authorization': `Bearer ${authToken}` },
-	        });
-	        
-	        if (!response.ok) {
-	            if (response.status === 404) {
-	                throw new Error("User not found");
-	            }
-	            throw new Error(`HTTP error! status: ${response.status}`);
-	        }
-	        
-	        const data = await response.json();
-	        if (!data.userId) throw new Error("User not found");
-	        return data.userId;
-	    } catch (error) {
-	        console.error('Error getting user ID:', error);
-	        throw error;
-	    }
+		if (!username) throw new Error("Username empty");
+		try {
+			const response = await fetch(`/api/users/by-username/${encodeURIComponent(username)}`, {
+				headers: { 'Authorization': `Bearer ${authToken}` }
+			});
+			
+			if (!response.ok) {
+				if (response.status === 404) {
+					throw new Error("User not found");
+				}
+				throw new Error(`HTTP error! status: ${response.status}`);
+			}
+			
+			const data = await response.json();
+			if (!data.userId) throw new Error("User not found");
+			return data.userId;
+		} catch (error) {
+			console.error('Error getting user ID:', error);
+			throw error;
+		}
 	}
 
 	// Add friend
 	if (addFriendBtn) addFriendBtn.onclick = () =>
 	  actionOnUser({
-		url: '/friends/:userId',
+		url: '/api/friends/:userId',
 		method: 'POST',
 		successMsg: "Friend added !",
 		errorMsg: "Error during add"
@@ -750,7 +860,7 @@ function setupHomeHandlers() {
 	// Block user
 	if (blockUserBtn) blockUserBtn.onclick = () =>
 	  actionOnUser({
-		url: '/blocks/:userId',
+		url: '/api/blocks/:userId',
 		method: 'POST',
 		successMsg: "User blocked !",
 		errorMsg: "Error during block"
@@ -759,7 +869,7 @@ function setupHomeHandlers() {
 	// Unblock user
 	if (unblockUserBtn) unblockUserBtn.onclick = () =>
 	  actionOnUser({
-		url: '/blocks/:userId',
+		url: '/api/blocks/:userId',
 		method: 'DELETE',
 		successMsg: "User unblocked !",
 		errorMsg: "Error during unblock"
@@ -959,6 +1069,65 @@ function setupVerify2FAHandlers() {
 		}
 	};
 }
+
+
+function setupAccountHandlers(user) {
+  // Retour à l’accueil
+	const backBtn = document.getElementById('backHomeBtn');
+	if (backBtn) {
+		backBtn.onclick = () => {
+			history.pushState(null, '', '/');
+			router();
+		};
+	}
+  // Click sur l'avatar pour choisir une image
+  const avatarImg = document.getElementById('account-avatar');
+  const avatarInput = document.getElementById('avatarInput');
+  avatarImg.onclick = () => avatarInput.click();
+  avatarInput.onchange = async (e) => {
+	const file = e.target.files[0];
+	if (!file) return;
+	// Optionnel: preview immédiate
+	const reader = new FileReader();
+	reader.onload = (ev) => { avatarImg.src = ev.target.result; };
+	reader.readAsDataURL(file);
+
+	// Envoi au serveur (FormData pour upload)
+	const formData = new FormData();
+	formData.append('avatar', file);
+	const res = await fetch('/api/users/me/avatar', {
+	  method: 'POST',
+	  headers: { 'Authorization': `Bearer ${authToken}` },
+	  body: formData,
+	});
+	if (!res.ok) alert("Erreur upload avatar !");
+  };
+
+  // Mot de passe
+  document.getElementById('profileForm').onsubmit = async e => {
+	e.preventDefault();
+	const pwd = document.getElementById('newPassword').value;
+	if (!pwd) return alert("Nouveau mot de passe requis !");
+	try {
+	  const res = await fetch('/api/users/me/password', {
+		method: 'POST',
+		headers: { 
+		  'Content-Type': 'application/json',
+		  'Authorization': `Bearer ${authToken}`,
+		},
+		body: JSON.stringify({ newPassword: pwd }),
+	  });
+	  if (res.ok) alert("Mot de passe modifié !");
+	  else alert("Erreur modification mot de passe");
+	} catch { alert("Erreur réseau"); }
+  };
+
+  // (Re)Setup 2FA
+  document.getElementById('setup2faBtn').onclick = async () => {
+	await doSetup2FA(authToken);
+  };
+}
+
 
 
 // ─── WEBSOCKETS ────────────────────────────────────────────────────────────────

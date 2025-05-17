@@ -29,8 +29,12 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install all dependencies
-RUN npm install
+# Install specific dependencies 
+RUN npm install fastify@^4 fastify-static@^4 \
+    && npm install ws @types/ws \
+    && npm install @fastify/multipart sharp \
+    && npm install
+
 
 # Copy configs and source
 COPY tsconfig.json ./
@@ -44,11 +48,6 @@ RUN npm run build
 ############################
 FROM node:18-alpine
 
-# Set runtime metadata with current time and user
-#LABEL build.date="2025-05-16 19:53:56"
-#LABEL build.user="ysebban"
-
-# Install SQLite CLI and runtime build tools
 RUN apk add --no-cache sqlite sqlite-dev bash python3 make g++ && \
     ln -sf python3 /usr/bin/python
 
@@ -56,42 +55,17 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Copy package files and install only production dependencies
 COPY package*.json ./
 RUN npm install --only=production
 
-# Copy built backend (JS) from builder
 COPY --from=builder /app/dist ./dist
-
-# Copy .env if needed
-COPY .env ./
-
-# Copy DB schema and data files
 COPY src/db /app/db
+COPY client /app/client
 
-# First, create the client directory structure
-RUN mkdir -p /app/client/dist
-
-# Copy frontend files with correct structure
 COPY --from=builder-front /app/client/dist/output.css /app/client/dist/
-COPY client/app.js /app/client/
-COPY client/index.html /app/client/
+# COPY client/app.js /app/client/
+ COPY client/index.html /app/client/
 
-# Ensure correct permissions
-RUN chmod 644 /app/client/app.js && \
-    chmod 644 /app/client/dist/output.css && \
-    chmod 644 /app/client/index.html
+EXPOSE ${SCHOOL_PORT}
 
-# Copy only necessary static frontend files, specifically excluding src directory
-COPY client/index.html /app/client/
-#COPY client/assets /app/client/assets
-
-# Expose backend port
-EXPOSE 1400
-
-# Start your server
 CMD ["node", "dist/main.js"]
-
-
-
-

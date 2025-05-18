@@ -1,3 +1,16 @@
+TO ADD : 
+		WEBSOCKET :
+			EVENT: loadRoom if someone create new room 
+					loadHistory on block/unblock
+					on Connection/deconection/In game -> update status(we add status INT in db?)
+					OnFriendsRequest?
+	Faire un autre plugin WS pour notif ?(Friends request, games/tournaments request, wins/losses)
+
+TO CHECK : 
+		DOCKER VOLUMES -> j'ai foutu la db dans mon goinfre niveau secu=KK ? 
+						-> y'a tout le dossier db la bas , avec nos requetes et tout 
+						-> doit y avoir un moyen de bypass ?
+
 Majors :
 
 1. Framework backend  (Fastify + Node.js)

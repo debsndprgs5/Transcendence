@@ -1,5 +1,6 @@
 import path from 'path'
 import Fastify from 'fastify'
+import fs from 'fs'
 import fastifyStatic from '@fastify/static'
 import { authRoutes } from './routes/auth.routes'
 import chatRoutes from './routes/chat.routes'
@@ -16,7 +17,12 @@ dotenv.config({
 });
 
 async function bootstrap() {
-  const app = Fastify()
+  const app = Fastify({
+	https:{
+		key: fs.readFileSync('/app/cert/key.pem'),
+		cert: fs.readFileSync('/app/cert/cert.pem'),
+	}
+  })
 
   // Configuration CORS
   await app.register(require('@fastify/cors'), {

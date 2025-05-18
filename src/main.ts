@@ -37,7 +37,8 @@ async function bootstrap() {
 
   // Mount client service (CSS, app.js ...)
   await app.register(fastifyStatic, {
-    root: path.join(__dirname, '../client'),
+    //root: path.join(__dirname, '../client'),
+	root: '/app/client',
     prefix: '/'
   })
 
@@ -88,13 +89,13 @@ async function bootstrap() {
       message: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   });
-
+	const port = process.env.PORT ? Number(process.env.PORT) : 3000;
   try {
     await app.listen({ 
-      port: 3000, 
+      port, 
       host: '0.0.0.0'
     });
-    console.log('🚀 Server listening on http://0.0.0.0:3000');
+    console.log('🚀 Server listening on http://0.0.0.0:${PORT}');
   } catch (err) {
     console.error('Error starting server:', err);
     process.exit(1);

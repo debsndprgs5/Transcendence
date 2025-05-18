@@ -15,9 +15,13 @@ const workDir = process.env.WORK_DIR;
 if (!workDir) {
   throw new Error("WORK_DIR environment variable is not defined");
 }
+const dbPath = '/app/db/ourdatabase.db'
+const schemaPath = '/app/db/schema.sql'
 
-const dbPath = path.join(workDir, 'src/db/ourdatabase.db');
-const schemaPath = path.join(workDir, 'src/db/schema.sql');
+
+
+//const dbPath = path.join(workDir, 'src/db/ourdatabase.db');
+//const schemaPath = path.join(workDir, 'src/db/schema.sql');
 
 // Extend FastifyInstance with `db`
 declare module 'fastify' {
@@ -27,9 +31,12 @@ declare module 'fastify' {
 }
 
 function initializeDatabase(): sqlite3.Database {
+console.log('📁 Current working directory:', process.cwd());
+console.log('📂 DB path:', dbPath);
+console.log('📂 Schema path:', schemaPath);
   const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
-      console.error('❌ Failed to connect to the database:', err.message);
+      console.error('❌ Failed to coNNECt to the database:', err.message);
     } else {
       console.log('✅ Connected to the SQLite database.');
 

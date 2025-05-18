@@ -1,13 +1,57 @@
 
-
 # Variables
-IMAGE_NAME = transcendence
-PORT       = 3000
 WORK_DIR = $(shell pwd)
-
-
-
+SHELL := /bin/bash
 .PHONY: install clean dev prod docker-build docker-run clear_db
+
+
+
+# -------------------------------------------------------------------
+# Env maniplutation to get login and hostMachine(ex:C1R2P8)
+# -------------------------------------------------------------------
+set-env:
+	@if grep -q '^PORT=' .env; then \
+	  sed -i 's|^PORT=.*|PORT=$(PORT)|' .env; \
+	else \
+	  echo "PORT=$(PORT)" >> .env; \
+	fi
+myexport-env:
+	@mkdir -p /goinfre/${USER}/transcendence
+	@for VAR in USER SESSION_MANAGER; do \
+	  if printenv $$VAR >/dev/null; then \
+	    if grep -q "^$$VAR=" .env; then \
+	      sed -i "s|^$$VAR=.*|$$VAR=$${!VAR}|" .env; \
+	    else \
+	      echo "$$VAR=$${!VAR}" >> .env; \
+	    fi; \
+	  fi; \
+	done
+
+
+# -------------------------------------------------------------------
+# Docker Rules
+# -------------------------------------------------------------------
+docker-up:myexport-env
+	@$(MAKE) set-env PORT=1400
+	@docker compose build --no-cache
+	@docker compose up
+
+docker-down:
+	@docker compose down
+
+docker-refresh:
+	@docker ps -q --filter "ancestor=$(IMAGE_NAME)" | xargs -r docker stop
+	@docker ps -aq --filter "ancestor=$(IMAGE_NAME)" | xargs -r docker rm -v
+	@docker images -q $(IMAGE_NAME) | xargs -r docker rmi
+
+docker-build:
+	@echo "🐳 Building Docker image '$(IMAGE_NAME)'…"
+	docker build -t $(IMAGE_NAME) .
+
+docker-run:
+	@echo "🐳 Running Docker container on port $(PORT)…"
+	docker run -it --rm -p $(PORT):$(PORT) --name $(IMAGE_NAME) $(IMAGE_NAME)
+
 
 # -------------------------------------------------------------------
 # install : install backend + Tailwind + plugin static (v4)
@@ -20,6 +64,7 @@ install:
 	else \
 	  echo "WORK_DIR=$(WORK_DIR)" >> .env; \
 	fi
+	@$(MAKE) set-env PORT=3000
 	# fastify v4 + plugin static compatible
 	npm install fastify@^4 fastify-static@^4
 	# Websockets
@@ -73,10 +118,4 @@ prod: install
 # -------------------------------------------------------------------
 # Docker : build + run
 # -------------------------------------------------------------------
-docker-build:
-	@echo "🐳 Building Docker image '$(IMAGE_NAME)'…"
-	docker build -t $(IMAGE_NAME) .
 
-docker-run:
-	@echo "🐳 Running Docker container on port $(PORT)…"
-	docker run -it --rm -p $(PORT):$(PORT) --name $(IMAGE_NAME) $(IMAGE_NAME)

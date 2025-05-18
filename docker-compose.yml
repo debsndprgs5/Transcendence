@@ -5,11 +5,25 @@ services:
     build: .
     image: transcendence:latest
     ports:
-      - "3000:3000"
+      - "${PORT}:${PORT}"
+    volumes:
+      - transcendence_volume:/app/db
     restart: always
-
+    env_file:
+      - .env
     environment:
-      .env
       - NODE_ENV=production
+      - PORT=${PORT}
+      - WORK_DIR=${WORK_DIR}
+      - USER=${USER}
+      - SESSION_MANAGER=${SESSION_MANAGER}
 
+volumes:
+  transcendence_volume:
+    name: transcendence_volume
+    driver: local
+    driver_opts:
+      type: none
+      device: /goinfre/${USER}/transcendence
+      o: bind
 

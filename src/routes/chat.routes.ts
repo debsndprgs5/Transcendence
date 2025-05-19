@@ -127,6 +127,20 @@ export default async function chatRoutes(fastify: FastifyInstance) {
 		return reply.code(201).send({ roomID: (result as any).lastID });
 	});
 
+	fastify.post('/chat/rooms/dm', async (request, reply) => {
+		const ownerId = getUserId(request, reply);
+		if (ownerId === undefined) return;
+
+		const { name } = request.body as { name?: string };
+
+		try {
+			const room = await chatMgr.createOrGetRoom(ownerId, name ?? 'Room');
+			return reply.code(201).send(room); // renvoyer { roomID: number } directement
+		} catch (error) {
+			return reply.code(500).send({ error: 'Error creating or getting room' });
+		}
+	});
+
 	fastify.get('/chat/rooms', async (request, reply) => {
 		const ownerId = getUserId(request, reply);
 		if (ownerId === undefined) return;

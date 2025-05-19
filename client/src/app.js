@@ -313,34 +313,43 @@ function AccountView(user, friends = []) {
   const avatar = user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=6d28d9&color=fff&rounded=true`;
 
   return `
-    <div class="min-h-screen flex items-center justify-center bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 py-10">
-      <div class="bg-white rounded-xl shadow-xl max-w-lg w-full">
-        <div class="px-8 py-8 flex flex-col items-center bg-indigo-50 rounded-t-xl">
-          <img src="${avatar}" id="account-avatar" alt="Avatar" class="w-24 h-24 rounded-full shadow-lg border-4 border-indigo-200 mb-4 cursor-pointer">
-          <input type="file" id="avatarInput" class="hidden" accept="image/*">
-          <h2 class="text-2xl font-bold text-indigo-700 mb-1">${username}</h2>
-        </div>
-        <div class="px-8 py-6">
-          <form id="profileForm" class="space-y-3">
-            <div>
-              <label for="newPassword" class="block text-sm font-medium">New password</label>
-              <input type="password" id="newPassword" name="newPassword" class="mt-1 block w-full rounded p-2 border border-gray-300">
-            </div>
-            <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded">Change password</button>
-          </form>
-          <button id="setup2faBtn" class="mt-3 w-full bg-yellow-500 text-black py-2 rounded">Re-config 2FA</button>
-        </div>
-        <div class="px-8 py-4 border-t border-gray-200">
-          <h3 class="text-lg font-semibold text-indigo-700 mb-2">My good ol' friends</h3>
-          <ul id="friendsList" class="space-y-2">
-            ${friends.map(friend => `<li class="py-1 border-b">${friend.username}</li>`).join('')}
-          </ul>
-        </div>
-        <div class="px-8 pb-8">
-          <button id="backHomeBtn" class="mt-6 w-full py-2 px-4 bg-gray-200 text-indigo-700 rounded hover:bg-gray-300 transition">← Go back</button>
-        </div>
-      </div>
-    </div>
+	<div class="min-h-screen flex items-center justify-center bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 py-10">
+	  <div class="bg-white rounded-xl shadow-xl max-w-lg w-full">
+		<div class="px-8 py-8 flex flex-col items-center bg-indigo-50 rounded-t-xl">
+		  <img src="${avatar}" id="account-avatar" alt="Avatar" class="w-24 h-24 rounded-full shadow-lg border-4 border-indigo-200 mb-4 cursor-pointer">
+		  <input type="file" id="avatarInput" class="hidden" accept="image/*">
+		  <h2 class="text-2xl font-bold text-indigo-700 mb-1">${username}</h2>
+		</div>
+		<div class="px-8 py-6">
+		  <form id="profileForm" class="space-y-3">
+			<div>
+			  <label for="newPassword" class="block text-sm font-medium">New password</label>
+			  <input type="password" id="newPassword" name="newPassword" class="mt-1 block w-full rounded p-2 border border-gray-300">
+			</div>
+			<button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded">Change password</button>
+		  </form>
+		  <button id="setup2faBtn" class="mt-3 w-full bg-yellow-500 text-black py-2 rounded">Re-config 2FA</button>
+		</div>
+		<div class="px-8 py-4 border-t border-gray-200">
+		  <h3 class="text-lg font-semibold text-indigo-700 mb-2">My good ol' friends</h3>
+		  <ul id="friendsList" class="space-y-2">
+			${friends.map(friend => `
+			  <li class="py-1 border-b flex justify-between items-center">
+			    <span class="flex-1 truncate">${friend.username}</span>
+			    <span class="flex gap-2">
+			      <button class="chat-friend-btn text-xl" data-username="${friend.username}" data-userid="${friend.userId}" title="Chat">💬</button>
+			      <button class="profile-friend-btn text-xl" data-username="${friend.username}" title="Profile">👤</button>
+			      <button class="remove-friend-btn text-xl text-red-500" data-username="${friend.username}" title="Remove">❌</button>
+			    </span>
+			  </li>
+			`).join('')}
+		  </ul>
+		</div>
+		<div class="px-8 pb-8">
+		  <button id="backHomeBtn" class="mt-6 w-full py-2 px-4 bg-gray-200 text-indigo-700 rounded hover:bg-gray-300 transition">← Go back</button>
+		</div>
+	  </div>
+	</div>
   `;
 }
 
@@ -1029,7 +1038,7 @@ function setupVerify2FAHandlers() {
 
 
 function setupAccountHandlers(user) {
-  // Retour à l’accueil
+  // Back to home
 	const backBtn = document.getElementById('backHomeBtn');
 	if (backBtn) {
 		backBtn.onclick = () => {
@@ -1037,19 +1046,19 @@ function setupAccountHandlers(user) {
 			router();
 		};
 	}
-  // Click sur l'avatar pour choisir une image
+  // Click on avatar to load image
   const avatarImg = document.getElementById('account-avatar');
   const avatarInput = document.getElementById('avatarInput');
   avatarImg.onclick = () => avatarInput.click();
   avatarInput.onchange = async (e) => {
 	const file = e.target.files[0];
 	if (!file) return;
-	// Optionnel: preview immédiate
+	// Instant preview
 	const reader = new FileReader();
 	reader.onload = (ev) => { avatarImg.src = ev.target.result; };
 	reader.readAsDataURL(file);
 
-	// Envoi au serveur (FormData pour upload)
+	// Send FormData to server
 	const formData = new FormData();
 	formData.append('avatar', file);
 	const res = await fetch('/api/users/me/avatar', {
@@ -1060,7 +1069,7 @@ function setupAccountHandlers(user) {
 	if (!res.ok) alert("Erreur upload avatar !");
   };
 
-  // Mot de passe
+  // Password
   document.getElementById('profileForm').onsubmit = async e => {
 	e.preventDefault();
 	const pwd = document.getElementById('newPassword').value;
@@ -1080,9 +1089,124 @@ function setupAccountHandlers(user) {
   };
 
   // (Re)Setup 2FA
-  document.getElementById('setup2faBtn').onclick = async () => {
-	await doSetup2FA(authToken);
+	document.getElementById('setup2faBtn').onclick = async () => {
+		await doSetup2FA(authToken);
   };
+  // Direct Messages
+	document.querySelectorAll('.chat-friend-btn').forEach(btn => {
+	  btn.onclick = async () => {
+		const friendUsername = btn.dataset.username;
+		const usernames = [user.username, friendUsername].sort();
+		const roomName = `${usernames[0]} | ${usernames[1]}`;
+		try {
+		  // Create room
+		  const room = await apiFetch('/api/chat/rooms/dm', {
+			method: 'POST',
+			headers: {
+			  'Authorization': `Bearer ${authToken}`,
+			  'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({ name: roomName })
+		  });
+
+		  // Get friend's user id
+		  const friendUserId = await apiFetch(`/users/by-username/${encodeURIComponent(friendUsername)}`, {
+			headers: { 'Authorization': `Bearer ${authToken}` }
+		  }).then(data => data.userId);
+
+		  // Add friend to room
+		  await apiFetch(`/api/chat/rooms/${room.roomID}/members`, {
+			method: 'POST',
+			headers: {
+			  'Authorization': `Bearer ${authToken}`,
+			  'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({ userId: friendUserId })
+		  });
+
+		  // Add user to room
+		  await apiFetch(`/api/chat/rooms/${room.roomID}/members`, {
+			method: 'POST',
+			headers: {
+			  'Authorization': `Bearer ${authToken}`,
+			  'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({ userId: user.userId })
+		  });
+		const selectRoom = async (roomId) => {
+			try {
+				currentRoom = roomId;
+				const chatDiv = document.getElementById('chat');
+				if (!chatDiv) return;
+				
+				chatDiv.innerHTML = '<p class="text-gray-500">Chargement des messages...</p>';
+				
+				// Get history
+				if (socket && socket.readyState === WebSocket.OPEN) {
+					socket.send(JSON.stringify({
+						type: 'chatHistory',
+						roomID: roomId,
+						limit: 50
+					}));
+				}
+				
+				// Update visually the selected room
+				document.querySelectorAll('#room-list li').forEach(li => {
+					if (Number(li.dataset.id) === roomId) {
+						li.classList.add('bg-indigo-100');
+					} else {
+						li.classList.remove('bg-indigo-100');
+					}
+				});
+			} catch (error) {
+				console.error('Error selecting room:', error);
+				const chatDiv = document.getElementById('chat');
+				if (chatDiv) {
+					chatDiv.innerHTML = '<p class="text-red-500">Erreur de chargement des messages</p>';
+				}
+			}
+		};
+		  // Selectroom
+		  selectRoom(room.roomID);
+		  history.pushState(null, '', '/');
+		  router();
+		  alert(`Room "${roomName}" created with ${friendUsername}`);
+		} catch (e) {
+		  alert("Error while creating the room: " + e.message);
+		}
+	  };
+	});
+  // Other's profiles (to implement)
+  document.querySelectorAll('.profile-friend-btn').forEach(btn => {
+	btn.onclick = () => {
+	  const friendUsername = btn.dataset.username;
+	  alert(`Voir le profil de ${friendUsername} (à implémenter)`);
+	  // future: history.pushState() + router pour aller sur /profile/:username
+	};
+  });
+
+  // Remove friend
+  document.querySelectorAll('.remove-friend-btn').forEach(btn => {
+	btn.onclick = async () => {
+	  const friendUsername = btn.dataset.username;
+	  const friendUserId = await apiFetch(`/users/by-username/${encodeURIComponent(friendUsername)}`, {
+		headers: { 'Authorization': `Bearer ${authToken}` }
+	  }).then(data => data.userId);
+	  if (!confirm(`Remove ${friendUsername} from your friends ?`)) return;
+	  try {
+		await apiFetch(`/api/friends/${friendUserId}`, {
+		  method: 'DELETE',
+		  headers: { 'Authorization': `Bearer ${authToken}` }
+		});
+		alert(`${friendUsername} removed from your friends`);
+		// refresh account view
+		history.pushState(null, '', '/account');
+		router();
+	  } catch (e) {
+		alert("Error removing friend : " + e.message);
+	  }
+	};
+  });
 }
 
 

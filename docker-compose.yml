@@ -7,7 +7,8 @@ services:
     ports:
       - "${PORT}:${PORT}"
     volumes:
-      - transcendence_volume:/app/db
+      - transcendence_volume:/app/runtime
+      - db_volume:/app/db
     restart: always
     env_file:
       - .env
@@ -24,6 +25,13 @@ volumes:
     driver: local
     driver_opts:
       type: none
-      device: /goinfre/${USER}/transcendence
+      device: /sgoinfre/${USER}/transcendence
+      o: bind
+  db_volume:
+    name: db_volume
+    driver: local
+    driver_opts:
+      type: none
+      device: ./src/db
       o: bind
 

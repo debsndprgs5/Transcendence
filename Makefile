@@ -16,7 +16,7 @@ set-env:
 	  echo "PORT=$(PORT)" >> .env; \
 	fi
 myexport-env:
-	@mkdir -p /goinfre/${USER}/transcendence
+	@mkdir -p /sgoinfre/${USER}/transcendence
 	@for VAR in USER SESSION_MANAGER; do \
 	  if printenv $$VAR >/dev/null; then \
 	    if grep -q "^$$VAR=" .env; then \
@@ -32,6 +32,11 @@ myexport-env:
 # Docker Rules
 # -------------------------------------------------------------------
 docker-up:myexport-env
+	@if grep -q '^WORK_DIR=' .env; then \
+	  sed -i 's|^WORK_DIR=.*|WORK_DIR=$(WORK_DIR)|' .env; \
+	else \
+	  echo "WORK_DIR=$(WORK_DIR)" >> .env; \
+	fi
 	@$(MAKE) set-env PORT=1400
 	@docker compose build --no-cache
 	@docker compose up

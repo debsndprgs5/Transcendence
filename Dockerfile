@@ -50,6 +50,7 @@ WORKDIR /app
 # Copy .env file early to extract env vars
 COPY .env ./
 
+
 # Export env vars from .env, extract HOSTNAME, and generate SSL cert
 RUN export $(grep -v '^#' .env | xargs) && \
     HOSTNAME=$(echo "$SESSION_MANAGER" | sed -E 's|.*local/([^.:@]+).*|\1|') && \

@@ -194,7 +194,7 @@ fastify.post('/auth/2fa/setup', async (request, reply) => {
         maxAge: 3600
       })
       .setCookie('userId', String(user.our_index), {
-        httpOnly: false,
+        httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         path: '/',
         sameSite: 'lax',

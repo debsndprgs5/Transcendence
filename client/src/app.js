@@ -124,22 +124,22 @@ function HomeView() {
 			<!-- Chat section -->
 			<div class="bg-white p-6 rounded-lg shadow-lg flex flex-col">
 				<h2 class="text-2xl font-semibold text-indigo-600 mb-4 flex justify-between items-center gap-2">
-				  <button id="generalChatBtn" 
-					  class="text-indigo-600 hover:text-indigo-800 transition-colors cursor-pointer">
+					<button id="generalChatBtn" 
+						class="text-indigo-600 hover:text-indigo-800 transition-colors cursor-pointer">
 					Chat
-				  </button>
-				  <div class="flex items-center gap-2">
+					</button>
+					<div class="flex items-center gap-2">
 					<input id="userActionInput" type="text" placeholder="Username or ID"
-					  class="px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-200 text-sm" style="width: 140px;" />
+						class="px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-200 text-sm" style="width: 140px;" />
 					<button id="addFriendBtn" 
-					  class="px-2 py-1 bg-green-400 text-black rounded hover:bg-green-500 transition text-xs">Add Friend</button>
+						class="px-2 py-1 bg-green-400 text-black rounded hover:bg-green-500 transition text-xs">Add Friend</button>
 					<button id="blockUserBtn" 
-					  class="px-2 py-1 bg-yellow-400 text-black rounded hover:bg-yellow-500 transition text-xs">Block</button>
+						class="px-2 py-1 bg-yellow-400 text-black rounded hover:bg-yellow-500 transition text-xs">Block</button>
 					<button id="unblockUserBtn" 
-					  class="px-2 py-1 bg-gray-300 text-black rounded hover:bg-gray-400 transition text-xs">Unblock</button>
+						class="px-2 py-1 bg-gray-300 text-black rounded hover:bg-gray-400 transition text-xs">Unblock</button>
 					<button id="newChatRoomBtn" 
-					  class="px-3 py-1 bg-indigo-100 text-indigo-600 rounded hover:bg-indigo-200 transition text-sm">+ Room</button>
-				  </div>
+						class="px-3 py-1 bg-indigo-100 text-indigo-600 rounded hover:bg-indigo-200 transition text-sm">+ Room</button>
+					</div>
 				</h2>
 				<div class="flex-1 overflow-auto mb-4 flex">
 					<!-- Room list -->
@@ -154,7 +154,7 @@ function HomeView() {
 										 class="flex-1 border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-indigo-300" />
 							<button type="submit"
 											class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
-								Envoyer
+								Send
 							</button>
 						</form>
 					</div>
@@ -309,39 +309,48 @@ function Verify2FAView() {
 }
 
 function AccountView(user, friends = []) {
-  const username = user.username || '';
-  const avatar = user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=6d28d9&color=fff&rounded=true`;
+	const username = user.username || '';
+	const avatar = user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=6d28d9&color=fff&rounded=true`;
 
-  return `
-    <div class="min-h-screen flex items-center justify-center bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 py-10">
-      <div class="bg-white rounded-xl shadow-xl max-w-lg w-full">
-        <div class="px-8 py-8 flex flex-col items-center bg-indigo-50 rounded-t-xl">
-          <img src="${avatar}" id="account-avatar" alt="Avatar" class="w-24 h-24 rounded-full shadow-lg border-4 border-indigo-200 mb-4 cursor-pointer">
-          <input type="file" id="avatarInput" class="hidden" accept="image/*">
-          <h2 class="text-2xl font-bold text-indigo-700 mb-1">${username}</h2>
-        </div>
-        <div class="px-8 py-6">
-          <form id="profileForm" class="space-y-3">
-            <div>
-              <label for="newPassword" class="block text-sm font-medium">New password</label>
-              <input type="password" id="newPassword" name="newPassword" class="mt-1 block w-full rounded p-2 border border-gray-300">
-            </div>
-            <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded">Change password</button>
-          </form>
-          <button id="setup2faBtn" class="mt-3 w-full bg-yellow-500 text-black py-2 rounded">Re-config 2FA</button>
-        </div>
-        <div class="px-8 py-4 border-t border-gray-200">
-          <h3 class="text-lg font-semibold text-indigo-700 mb-2">My good ol' friends</h3>
-          <ul id="friendsList" class="space-y-2">
-            ${friends.map(friend => `<li class="py-1 border-b">${friend.username}</li>`).join('')}
-          </ul>
-        </div>
-        <div class="px-8 pb-8">
-          <button id="backHomeBtn" class="mt-6 w-full py-2 px-4 bg-gray-200 text-indigo-700 rounded hover:bg-gray-300 transition">← Go back</button>
-        </div>
-      </div>
-    </div>
-  `;
+	return `
+	<div class="min-h-screen flex items-center justify-center bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 py-10">
+		<div class="bg-white rounded-xl shadow-xl max-w-lg w-full">
+		<div class="px-8 py-8 flex flex-col items-center bg-indigo-50 rounded-t-xl">
+			<img src="${avatar}" id="account-avatar" alt="Avatar" class="w-24 h-24 rounded-full shadow-lg border-4 border-indigo-200 mb-4 cursor-pointer">
+			<input type="file" id="avatarInput" class="hidden" accept="image/*">
+			<h2 class="text-2xl font-bold text-indigo-700 mb-1">${username}</h2>
+		</div>
+		<div class="px-8 py-6">
+			<form id="profileForm" class="space-y-3">
+			<div>
+				<label for="newPassword" class="block text-sm font-medium">New password</label>
+				<input type="password" id="newPassword" name="newPassword" class="mt-1 block w-full rounded p-2 border border-gray-300">
+			</div>
+			<button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded">Change password</button>
+			</form>
+			<button id="setup2faBtn" class="mt-3 w-full bg-yellow-500 text-black py-2 rounded">Re-config 2FA</button>
+		</div>
+		<div class="px-8 py-4 border-t border-gray-200">
+			<h3 class="text-lg font-semibold text-indigo-700 mb-2">My good ol' friends</h3>
+			<ul id="friendsList" class="space-y-2">
+			${friends.map(friend => `
+				<li class="py-1 border-b flex justify-between items-center">
+				<span class="flex-1 truncate">${friend.username}</span>
+				<span class="flex gap-2">
+					<button class="chat-friend-btn text-xl" data-username="${friend.username}" data-userid="${friend.userId}" title="Chat">💬</button>
+					<button class="profile-friend-btn text-xl" data-username="${friend.username}" title="Profile">👤</button>
+					<button class="remove-friend-btn text-xl text-red-500" data-username="${friend.username}" title="Remove">❌</button>
+				</span>
+				</li>
+			`).join('')}
+			</ul>
+		</div>
+		<div class="px-8 pb-8">
+			<button id="backHomeBtn" class="mt-6 w-full py-2 px-4 bg-gray-200 text-indigo-700 rounded hover:bg-gray-300 transition">← Go back</button>
+		</div>
+		</div>
+	</div>
+	`;
 }
 
 
@@ -375,23 +384,23 @@ async function router() {
 			}
 			break;
 		case '/account':
-		  if (!isAuthenticated()) {
+			if (!isAuthenticated()) {
 			history.pushState(null, '', '/login');
 			render(LoginView());
 			setupLoginHandlers();
-		  } else {
+			} else {
 			try {
-			  const user = await apiFetch('/api/users/me', { headers: { 'Authorization': `Bearer ${authToken}` } });
-			  const friends = await apiFetch('/api/friends', { headers: { 'Authorization': `Bearer ${authToken}` } });
-			  render(AccountView(user, friends));
-			  setupAccountHandlers(user);
+				const user = await apiFetch('/api/users/me', { headers: { 'Authorization': `Bearer ${authToken}` } });
+				const friends = await apiFetch('/api/friends', { headers: { 'Authorization': `Bearer ${authToken}` } });
+				render(AccountView(user, friends));
+				setupAccountHandlers(user);
 			} catch (e) {
-			  alert("Error during account loading.");
-			  history.pushState(null, '', '/');
-			  router();
+				showNotification({ message: 'Error during account loading.', type: 'error', duration: 5000 });
+				history.pushState(null, '', '/');
+				router();
 			}
-		  }
-		  break;
+			}
+			break;
 		default:
 			render(HomeView());
 			if (isAuthenticated()) {
@@ -557,7 +566,7 @@ function setupHomeHandlers() {
 			if (!ul) return;
 			
 			ul.innerHTML = rooms.map(r => 
-			  `<li data-id="${r.roomID}" class="group flex justify-between items-center cursor-pointer hover:bg-gray-100 p-2 rounded ${currentRoom === r.roomID ? 'bg-indigo-100' : ''}">
+				`<li data-id="${r.roomID}" class="group flex justify-between items-center cursor-pointer hover:bg-gray-100 p-2 rounded ${currentRoom === r.roomID ? 'bg-indigo-100' : ''}">
 				<span class="flex-1 truncate">${r.name || `Room #${r.roomID}`}</span>
 				<div class="flex gap-1 opacity-0 group-hover:opacity-100 transition">
 					<button data-room="${r.roomID}" class="invite-room-btn text-green-600 hover:text-green-800 text-sm">➕</button>
@@ -565,7 +574,7 @@ function setupHomeHandlers() {
 						`<button data-room="${r.roomID}" class="delete-room-btn text-red-600 hover:text-red-800 text-sm">❌</button>` : 
 						''}
 				</div>
-			  </li>`
+				</li>`
 			).join('');
 			
 			// If no room is selected, select general
@@ -583,36 +592,75 @@ function setupHomeHandlers() {
 				btn.addEventListener('click', async (e) => {
 					e.stopPropagation(); // Prevent clicking
 					const roomId = btn.dataset.room;
-					if (confirm("Delete this room ?")) {
-						try {
-							await apiFetch(`/api/chat/rooms/${roomId}`, {
-								method: 'DELETE',
-								headers: { 'Authorization': `Bearer ${authToken}` }
+					showNotification({
+						message: 'Delete this room?',
+						type: 'confirm',
+						onConfirm: async () => {
+							try {	
+							const response = await fetch('/api/auth/me', {
+							headers: {
+								'Authorization': `Bearer ${authToken}`
+							}
 							});
-							await loadRooms(); // refresh list
-						} catch (err) {
-							alert("Error duling delete");
+							if (!response.ok) {
+								throw new Error('Failed to get userId');
+							}
+							const data = await response.json();
+							const userId = data.userId
+								//logic -> looks all members of the room and keep them
+								const roomMembers= await apiFetch(`/api/chat/rooms/${roomId}/members`) 
+								await apiFetch(`/api/chat/rooms/${roomId}`, {
+									method: 'DELETE',
+									headers: { 'Authorization': `Bearer ${authToken}` }
+								});
+								//then -> for each members send 'loadChatRooms' event
+								for(const member of roomMembers){
+									socket.send(JSON.stringify({
+										type: 'loadChatRooms',
+										roomID : roomId,
+										userID : userId,
+										newUser: member.userID
+								}));
+								}
+								
+								await loadRooms();
+							} catch (err) {
+								showNotification({ message: 'Error during delete.', type: 'error', duration: 5000 });
+							}
+						},
+						onCancel: () => {
+							console.log('Room deletion cancelled');
 						}
-					}
+					});
 				});
 			});
-
 			// Add user in room button
 			document.querySelectorAll('.invite-room-btn').forEach(btn => {
 				btn.addEventListener('click', async (e) => {
-					e.stopPropagation(); // Prevent clicking
-					const roomId = btn.dataset.room;
-					const username = prompt("Type a user to add to the room");
+				e.stopPropagation(); // Prevent clicking
+
+				const roomId = btn.dataset.room;
+
+				// Prompt notification
+				showNotification({
+					message: 'Type a User to add to the room :',
+					type: 'prompt',
+					placeholder: 'Username',
+					onConfirm: async (val) => {
+					const username = val;
+
 					if (!username) return;
+
 					try {
 						const userIdToInvite = await getUserIdByUsername(username);
+
 						await apiFetch(`/api/chat/rooms/${roomId}/members`, {
-							method: 'POST',
-							headers: {
-								'Authorization': `Bearer ${authToken}`,
-								'Content-Type': 'application/json'
-							},
-							body: JSON.stringify({ userId: userIdToInvite })
+						method: 'POST',
+						headers: {
+							'Authorization': `Bearer ${authToken}`,
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify({ userId: userIdToInvite })
 						});
 						const response = await fetch('/api/auth/me', {
 						headers: {
@@ -632,9 +680,12 @@ function setupHomeHandlers() {
 							newUser: userIdToInvite
 						}))
 						alert(`User ${username} added successfully`);
+						showNotification({ message: `User ${username} added successfully`, type: 'success' });
 					} catch (err) {
-						alert("Erreur lors de l'invitation : " + err.message);
+						showNotification({ message: `Erreur lors de l'invitation : ${err.message}`, type: 'error', duration: 5000 });
 					}
+					}
+				});
 				});
 			});
 
@@ -658,8 +709,8 @@ function setupHomeHandlers() {
 
 	// Call loadRooms immediately and set up WebSocket
 	if (authToken) {
-	  loadRooms();
-	  initWebSocket();
+		loadRooms();
+		initWebSocket();
 	}
 
 	// Chat: button to get back to general chat
@@ -682,22 +733,29 @@ function setupHomeHandlers() {
 	const newChatRoomBtn = document.getElementById('newChatRoomBtn');
 	if (newChatRoomBtn) {
 		newChatRoomBtn.addEventListener('click', async () => {
-			try {
-				const roomName = prompt('Room\'s name :') || 'New room';
-				const newroom = await apiFetch('/api/chat/rooms', { 
-					method: 'POST', 
-					headers: { 
-						'Authorization': `Bearer ${authToken}`,
-						'Content-Type': 'application/json'
-					},
-					body: JSON.stringify({ name: roomName })
+		try {
+			showNotification({
+			message: "Room's name :",
+			type: 'prompt',
+			placeholder: 'New room',
+			onConfirm: async (roomName) => {
+				roomName = roomName || 'New room';
+				const newRoom = await apiFetch('/api/chat/rooms', { 
+				method: 'POST', 
+				headers: { 
+					'Authorization': `Bearer ${authToken}`,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ name: roomName })
 				});
-				addMemberToRoom(newroom.roomID, userId);
+				addMemberToRoom(newRoom.roomID, userId);
 				await loadRooms(); // Reload room list after creating one
-			} catch (error) {
-				console.error('Error creating chat room:', error);
-				alert('Error creating chat room: ' + error.message);
 			}
+			});
+		} catch (error) {
+			console.error('Error creating chat room:', error);
+			showNotification({ message: 'Error creating chat room: ' + error.message, type: 'error', duration: 5000 });
+		}
 		});
 	}
 
@@ -796,8 +854,8 @@ function setupHomeHandlers() {
 	// Generic add / block / unblock function
 	async function actionOnUser({ url, method = 'POST', successMsg, errorMsg }) {
 		const username = userActionInput.value.trim();
-		if (!username) return alert("Please type a Username");
-
+		if (!username) 
+			return showNotification({ message: 'Please type a Username', type: 'error' });
 		try {
 			const userId = await getUserIdByUsername(username);
 
@@ -807,12 +865,12 @@ function setupHomeHandlers() {
 			});
 
 			if (result.success) {
-				alert(successMsg);
+				showNotification({ message: successMsg, type: 'success' });
 			} else {
-				alert(errorMsg + (result.error ? ' (' + result.error + ')' : ''));
+				showNotification({ message: errorMsg, type: 'error', duration: 5000 });
 			}
 		} catch (e) {
-			alert(errorMsg + ' (' + e.message + ')');
+			showNotification({ message: errorMsg + ' (' + e.message + ')', type: 'error', duration: 5000 });
 		}
 	}
 
@@ -841,30 +899,30 @@ function setupHomeHandlers() {
 
 	// Add friend
 	if (addFriendBtn) addFriendBtn.onclick = () =>
-	  actionOnUser({
+		actionOnUser({
 		url: '/api/friends/:userId',
 		method: 'POST',
 		successMsg: "Friend added !",
 		errorMsg: "Error during add"
-	  });
+		});
 
 	// Block user
 	if (blockUserBtn) blockUserBtn.onclick = () =>
-	  actionOnUser({
+		actionOnUser({
 		url: '/api/blocks/:userId',
 		method: 'POST',
 		successMsg: "User blocked !",
 		errorMsg: "Error during block"
-	  });
+		});
 
 	// Unblock user
 	if (unblockUserBtn) unblockUserBtn.onclick = () =>
-	  actionOnUser({
+		actionOnUser({
 		url: '/api/blocks/:userId',
 		method: 'DELETE',
 		successMsg: "User unblocked !",
 		errorMsg: "Error during unblock"
-	  });
+		});
 }
 
 
@@ -1022,7 +1080,7 @@ function setupSetup2FAHandlers() {
 				err.classList.remove('hidden');
 			}
 		} catch {
-			alert('Erreur lors de la vérification 2FA');
+			showNotification({ message: 'Erreur lors de la vérification 2FA', type: 'error', duration: 5000 });
 		}
 	};
 }
@@ -1056,14 +1114,14 @@ function setupVerify2FAHandlers() {
 				err.classList.remove('hidden');
 			}
 		} catch {
-			alert('Erreur lors de la vérification 2FA');
+			showNotification({ message: 'Erreur lors de la vérification 2FA', type: 'error', duration: 5000 });
 		}
 	};
 }
 
 
 function setupAccountHandlers(user) {
-  // Retour à l’accueil
+	// Back to home
 	const backBtn = document.getElementById('backHomeBtn');
 	if (backBtn) {
 		backBtn.onclick = () => {
@@ -1071,52 +1129,267 @@ function setupAccountHandlers(user) {
 			router();
 		};
 	}
-  // Click sur l'avatar pour choisir une image
-  const avatarImg = document.getElementById('account-avatar');
-  const avatarInput = document.getElementById('avatarInput');
-  avatarImg.onclick = () => avatarInput.click();
-  avatarInput.onchange = async (e) => {
+	// Click on avatar to load image
+	const avatarImg = document.getElementById('account-avatar');
+	const avatarInput = document.getElementById('avatarInput');
+	avatarImg.onclick = () => avatarInput.click();
+	avatarInput.onchange = async (e) => {
 	const file = e.target.files[0];
 	if (!file) return;
-	// Optionnel: preview immédiate
+	// Instant preview
 	const reader = new FileReader();
 	reader.onload = (ev) => { avatarImg.src = ev.target.result; };
 	reader.readAsDataURL(file);
 
-	// Envoi au serveur (FormData pour upload)
+	// Send FormData to server
 	const formData = new FormData();
 	formData.append('avatar', file);
 	const res = await fetch('/api/users/me/avatar', {
-	  method: 'POST',
-	  headers: { 'Authorization': `Bearer ${authToken}` },
-	  body: formData,
+		method: 'POST',
+		headers: { 'Authorization': `Bearer ${authToken}` },
+		body: formData,
 	});
-	if (!res.ok) alert("Erreur upload avatar !");
-  };
+	if (!res.ok) 
+		showNotification({ message: 'Error during avatar uploading !', type: 'error', duration: 5000 });
+	};
 
-  // Mot de passe
-  document.getElementById('profileForm').onsubmit = async e => {
+	// Password
+	document.getElementById('profileForm').onsubmit = async e => {
 	e.preventDefault();
 	const pwd = document.getElementById('newPassword').value;
-	if (!pwd) return alert("Nouveau mot de passe requis !");
+	if (!pwd) return showNotification({ message: 'New password needed !', type: 'error', duration: 5000 });
 	try {
-	  const res = await fetch('/api/users/me/password', {
+		const res = await fetch('/api/users/me/password', {
 		method: 'POST',
 		headers: { 
-		  'Content-Type': 'application/json',
-		  'Authorization': `Bearer ${authToken}`,
+			'Content-Type': 'application/json',
+			'Authorization': `Bearer ${authToken}`,
 		},
 		body: JSON.stringify({ newPassword: pwd }),
-	  });
-	  if (res.ok) alert("Mot de passe modifié !");
-	  else alert("Erreur modification mot de passe");
-	} catch { alert("Erreur réseau"); }
-  };
+		});
+		if (res.ok) showNotification({ message: 'Password modified successfully!', type: 'success' });
+		else showNotification({ message: 'Error during password modification', type: 'error', duration: 5000 });
+	} catch { showNotification({ message: 'Network Error', type: 'error', duration: 5000 })};
+	};
 
-  // (Re)Setup 2FA
-  document.getElementById('setup2faBtn').onclick = async () => {
-	await doSetup2FA(authToken);
-  };
+
+	// (Re)Setup 2FA
+	document.getElementById('setup2faBtn').onclick = async () => {
+		try {			//Test to update chatRooms 
+			const response = await fetch('/api/auth/me', {
+			headers: {
+				'Authorization': `Bearer ${authToken}`
+			}
+			});
+
+			if (!response.ok) {
+				throw new Error('Failed to get userId');
+			}
+			const data = await response.json();
+			userId = data.userId
+			socket.send(JSON.stringify({
+				type: 'loadChatRooms',
+				roomID : room.roomID,
+				userID : userId,
+				newUser: friendUserId
+			}))
+			// Call the reconfigure2FA function to start the 2FA setup process
+			await reconfigure2FA();
+		} catch (error) {
+			showNotification({ message: 'Error during 2FA reconfiguration', type: 'error', duration: 5000 });
+		}
+	};
+
+	// Function to trigger the 2FA reconfiguration process
+	async function reconfigure2FA() {
+			try {
+					const response = await fetch('/api/auth/2fa/reconfigure', {
+							method: 'POST',
+							headers: {
+									'Authorization': `Bearer ${authToken}`,
+									'Content-Type': 'application/json'
+							}
+					});
+
+					const data = await response.json();
+					if (response.ok) {
+							// Store the temporary setup token
+							pendingToken = data.token;
+							
+							// Show the QR code setup view
+							render(Setup2FAView(data.otpauth_url, data.base32));
+							setupSetup2FAHandlers();
+					} else {
+							// Handle specific error cases
+							if (data.need2FASetup) {
+									showNotification({ 
+											message: '2FA must be enabled first before reconfiguring', 
+											type: 'error', 
+											duration: 5000 
+									});
+							} else {
+									showNotification({ 
+											message: data.error || 'Failed to reconfigure 2FA', 
+											type: 'error', 
+											duration: 5000 
+									});
+							}
+					}
+			} catch (error) {
+					console.error('Error during 2FA reconfiguration:', error);
+					showNotification({ 
+							message: 'Error during 2FA reconfiguration', 
+							type: 'error', 
+							duration: 5000 
+					});
+			}
+	}
+
+	// Direct Messages
+	document.querySelectorAll('.chat-friend-btn').forEach(btn => {
+		btn.onclick = async () => {
+		const friendUsername = btn.dataset.username;
+		const usernames = [user.username, friendUsername].sort();
+		const roomName = `${usernames[0]} | ${usernames[1]}`;
+		try {
+			// Create room
+			const room = await apiFetch('/api/chat/rooms/dm', {
+			method: 'POST',
+			headers: {
+				'Authorization': `Bearer ${authToken}`,
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({ name: roomName })
+			});
+
+			// Get friend's user id
+			const friendUserId = await apiFetch(`/users/by-username/${encodeURIComponent(friendUsername)}`, {
+			headers: { 'Authorization': `Bearer ${authToken}` }
+			}).then(data => data.userId);
+
+			// Add friend to room
+			await apiFetch(`/api/chat/rooms/${room.roomID}/members`, {
+			method: 'POST',
+			headers: {
+				'Authorization': `Bearer ${authToken}`,
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({ userId: friendUserId })
+			});
+
+			// Add user to room
+			await apiFetch(`/api/chat/rooms/${room.roomID}/members`, {
+			method: 'POST',
+			headers: {
+				'Authorization': `Bearer ${authToken}`,
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({ userId: user.userId })
+			});
+			//Test to update chatRooms 
+			const response = await fetch('/api/auth/me', {
+			headers: {
+				'Authorization': `Bearer ${authToken}`
+			}
+			});
+
+			if (!response.ok) {
+				throw new Error('Failed to get userId');
+			}
+			const data = await response.json();
+			userId = data.userId
+			socket.send(JSON.stringify({
+				type: 'loadChatRooms',
+				roomID : room.roomID,
+				userID : userId,
+				newUser: friendUserId
+			}))
+		const selectRoom = async (roomId) => {
+			try {
+				currentRoom = roomId;
+				const chatDiv = document.getElementById('chat');
+				if (!chatDiv) return;
+				
+				chatDiv.innerHTML = '<p class="text-gray-500">Chargement des messages...</p>';
+				
+				// Get history
+				if (socket && socket.readyState === WebSocket.OPEN) {
+					socket.send(JSON.stringify({
+						type: 'chatHistory',
+						roomID: roomId,
+						limit: 50
+					}));
+				}
+				
+				// Update visually the selected room
+				document.querySelectorAll('#room-list li').forEach(li => {
+					if (Number(li.dataset.id) === roomId) {
+						li.classList.add('bg-indigo-100');
+					} else {
+						li.classList.remove('bg-indigo-100');
+					}
+				});
+			} catch (error) {
+				console.error('Error selecting room:', error);
+				const chatDiv = document.getElementById('chat');
+				if (chatDiv) {
+					chatDiv.innerHTML = '<p class="text-red-500">Erreur de chargement des messages</p>';
+				}
+			}
+		};
+			// Selectroom
+			selectRoom(room.roomID);
+			history.pushState(null, '', '/');
+			router();
+			showNotification({ message: `Room "${roomName}" created with ${friendUsername}`, type: 'success' });
+
+
+		} catch (e) {
+			showNotification({ message: 'Error while creating the room: ' + e.message, type: 'error', duration: 5000 });
+		}
+		};
+	});
+	// Other's profiles (to implement)
+	document.querySelectorAll('.profile-friend-btn').forEach(btn => {
+	btn.onclick = () => {
+		const friendUsername = btn.dataset.username;
+		alert(`Voir le profil de ${friendUsername} (à implémenter)`);
+		// future: history.pushState() + router pour aller sur /profile/:username
+	};
+	});
+
+	// Remove friend
+	document.querySelectorAll('.remove-friend-btn').forEach(btn => {
+		btn.onclick = async () => {
+			const friendUsername = btn.dataset.username;
+			const friendUserId = await apiFetch(`/users/by-username/${encodeURIComponent(friendUsername)}`, {
+				headers: { 'Authorization': `Bearer ${authToken}` }
+			}).then(data => data.userId);
+
+			// Show confirmation notification before removing the friend
+			showNotification({
+				message: `Remove ${friendUsername} from your friends?`,
+				type: 'confirm',
+				onConfirm: async () => {
+					try {
+						await apiFetch(`/api/friends/${friendUserId}`, {
+							method: 'DELETE',
+							headers: { 'Authorization': `Bearer ${authToken}` }
+						});
+						showNotification({ message: `${friendUsername} removed from your friends`, type: 'success' });
+						// Refresh account view
+						history.pushState(null, '', '/account');
+						router();
+					} catch (e) {
+						showNotification({ message: 'Error removing friend : ' + e.message, type: 'error', duration: 5000 });
+					}
+				},
+				onCancel: () => {
+					console.log(`Friend removal for ${friendUsername} was cancelled.`);
+				}
+			});
+		};
+	});
 }
 
 
@@ -1162,11 +1435,8 @@ async function initWebSocket() {
 		socket = new WebSocket(wsUrl);
 
 		socket.onopen = () => {
-			console.log('WebSocket connecté');
-
 			setTimeout(() => {
 				if (socket.readyState === WebSocket.OPEN) {
-					console.log('Sending chatHistory request...');
 					socket.send(JSON.stringify({
 						type: 'chatHistory',
 						roomID: currentRoom,
@@ -1248,12 +1518,11 @@ function handleWebSocketMessage(msg) {
 			}
 			break;
 		case 'loadChatRooms':
-			if(msg.roomID !== currentRoom){
-				if(msg.userIdToAdd === userId){
-					console.log('LOADING ROOMS')
-					loadRooms()
+			//if(msg.roomID !== currentRoom){
+				if(msg.newUser === userId){
+					loadRooms();
 				}
-			}
+			//}
 			break;
 		default:
 			console.warn('Type de message WebSocket non géré:', msg.type);
@@ -1276,4 +1545,164 @@ function appendMessageToChat(chatDiv, { isOwnMessage, name, content }) {
 	messageP.appendChild(prefixSpan);
 	messageP.appendChild(contentSpan);
 	chatDiv.appendChild(messageP);
+}
+
+
+// ─── NOTIFICATIONS ────────────────────────────────────────────────────────────────
+
+function getNotificationContainer() {
+	let container = document.getElementById('notif-container');
+	if (!container) {
+	container = document.createElement('div');
+	container.id = 'notif-container';
+	container.className = 'fixed top-5 right-5 flex flex-col space-y-3 z-50';
+	document.body.appendChild(container);
+	}
+	return container;
+}
+
+function showNotification({
+	message = '',
+	type = 'info',       // success, error, info, warning, prompt, confirm
+	duration = 3000,     // ignored if type === 'prompt' ou 'confirm'
+	placeholder = '',    // only for prompt
+	onConfirm = null,    // callback(value) for prompt
+	onCancel = null,     // callback() for prompt
+}) {
+	if (type === 'prompt') {
+		// Prompt
+		const overlay = document.createElement('div');
+		overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]';
+
+		const modal = document.createElement('div');
+		modal.className = 'bg-white rounded-lg p-6 max-w-sm w-full shadow-lg flex flex-col space-y-4';
+
+		const msg = document.createElement('p');
+		msg.className = 'text-gray-800 text-lg';
+		msg.textContent = message;
+
+		const input = document.createElement('input');
+		input.type = 'text';
+		input.placeholder = placeholder;
+		input.className = 'border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500';
+
+		const buttons = document.createElement('div');
+		buttons.className = 'flex justify-end space-x-3';
+
+		const btnCancel = document.createElement('button');
+		btnCancel.textContent = 'Cancel';
+		btnCancel.className = 'px-4 py-2 rounded bg-gray-300 hover:bg-gray-400 text-gray-800';
+		btnCancel.onclick = () => {
+			document.body.removeChild(overlay);
+			if (onCancel) onCancel();
+		};
+
+		const btnOk = document.createElement('button');
+		btnOk.textContent = 'Confirm';
+		btnOk.className = 'px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700 text-white';
+		btnOk.onclick = () => {
+			const val = input.value;
+			document.body.removeChild(overlay);
+			if (onConfirm) onConfirm(val);
+		};
+
+		buttons.appendChild(btnCancel);
+		buttons.appendChild(btnOk);
+
+		modal.appendChild(msg);
+		modal.appendChild(input);
+		modal.appendChild(buttons);
+
+		overlay.appendChild(modal);
+		document.body.appendChild(overlay);
+
+		input.focus();
+
+		return; // prompt dont create normal notif
+	}
+
+	if (type === 'confirm') {
+		// Confirmation
+		const overlay = document.createElement('div');
+		overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]';
+
+		const modal = document.createElement('div');
+		modal.className = 'bg-white rounded-lg p-6 max-w-sm w-full shadow-lg flex flex-col space-y-4';
+
+		const msg = document.createElement('p');
+		msg.className = 'text-gray-800 text-lg';
+		msg.textContent = message;
+
+		const buttons = document.createElement('div');
+		buttons.className = 'flex justify-end space-x-3';
+
+		const btnCancel = document.createElement('button');
+		btnCancel.textContent = 'Cancel';
+		btnCancel.className = 'px-4 py-2 rounded bg-gray-300 hover:bg-gray-400 text-gray-800';
+		btnCancel.onclick = () => {
+			document.body.removeChild(overlay);
+			if (onCancel) onCancel();
+		};
+
+		const btnOk = document.createElement('button');
+		btnOk.textContent = 'Confirm';
+		btnOk.className = 'px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700 text-white';
+		btnOk.onclick = () => {
+			document.body.removeChild(overlay);
+			if (onConfirm) onConfirm();
+		};
+
+		buttons.appendChild(btnCancel);
+		buttons.appendChild(btnOk);
+
+		modal.appendChild(msg);
+		modal.appendChild(buttons);
+
+		overlay.appendChild(modal);
+		document.body.appendChild(overlay);
+
+		return; // confirm dont create normal notif
+	}
+
+	// Normal notif
+	const container = getNotificationContainer();
+
+	const colors = {
+		success: 'bg-green-500',
+		error: 'bg-red-500',
+		info: 'bg-blue-500',
+		warning: 'bg-yellow-400 text-black',
+	};
+
+	const notif = document.createElement('div');
+	notif.className = `
+		max-w-xs w-full text-white px-4 py-3 rounded shadow-lg flex items-center space-x-3 cursor-pointer
+		${colors[type] || colors.info}
+		transform transition duration-300 ease-in-out
+		hover:brightness-90
+	`;
+
+	notif.textContent = message;
+
+	notif.addEventListener('click', () => {
+		notif.remove();
+	});
+
+	container.appendChild(notif);
+
+	notif.style.opacity = 0;
+	notif.style.transform = 'translateX(100%)';
+	setTimeout(() => {
+		notif.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+		notif.style.opacity = 1;
+		notif.style.transform = 'translateX(0)';
+	}, 10);
+
+	setTimeout(() => {
+		notif.style.opacity = 0;
+		notif.style.transform = 'translateX(100%)';
+		setTimeout(() => {
+			notif.remove();
+		}, 300);
+	}, duration);
 }

@@ -23,6 +23,22 @@ export const createChatRoom = (
     [ownerID, name]
   );
 
+
+// Get room by name
+export const getChatRoomByName = (name: string) =>
+  get<{ roomID: number }>(`SELECT roomID FROM chatRooms WHERE name = ?`, [name]);
+
+
+// create or get room
+export async function createOrGetRoom(ownerID: number, name: string): Promise<{ roomID: number }> {
+  const existingRoom = await getChatRoomByName(name);
+  if (existingRoom) {
+    return existingRoom;
+  }
+  const result = await createChatRoom(ownerID, name);
+  return { roomID: (result as any).lastID };
+}
+
 // Get room by ID
 export const getChatRoomByID = (roomID: number) =>
   get<chatType.chatRooms>(`SELECT * FROM chatRooms WHERE roomID = ?`, [roomID]);

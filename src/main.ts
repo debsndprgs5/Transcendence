@@ -17,12 +17,19 @@ dotenv.config({
 });
 
 async function bootstrap() {
+  const keyPath = process.env.CERT_KEY_PATH || '/app/cert/key.pem';
+  const certPath = process.env.CERT_CERT_PATH || '/app/cert/cert.pem';
+
+  const key = fs.readFileSync(keyPath);
+  const cert = fs.readFileSync(certPath);
+
   const app = Fastify({
-	https:{
-		key: fs.readFileSync('/app/cert/key.pem'),
-		cert: fs.readFileSync('/app/cert/cert.pem'),
-	}
-  })
+    https: {
+      key,
+      cert
+    }
+  });
+
 
   // Configuration CORS
   await app.register(require('@fastify/cors'), {

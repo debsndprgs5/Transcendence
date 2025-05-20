@@ -8,6 +8,8 @@ WORKDIR /app
 # Copy Tailwind config and source CSS postcss.config.js
 COPY tailwind.config.js  ./
 COPY client/src ./client/src
+COPY client/index.html ./client/
+COPY client/favicon.ico ./client/
 
 # Install Tailwind and dependencies
 COPY package*.json ./
@@ -49,7 +51,6 @@ WORKDIR /app
 
 # Copy .env file early to extract env vars
 COPY .env ./
-
 
 # Export env vars from .env, extract HOSTNAME, and generate SSL cert
 RUN export $(grep -v '^#' .env | xargs) && \

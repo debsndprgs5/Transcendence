@@ -211,6 +211,7 @@ fastify.post('/auth/2fa/setup', async (request, reply) => {
 	// Route to start 2FA reconfiguration
 	fastify.post('/auth/2fa/reconfigure', async (request, reply) => {
 			try {
+					console.log('token payload:', payload, 'user:', user);
 					const auth = request.headers.authorization;
 					if (!auth) {
 							return reply.code(401).send({ error: 'No token provided' });

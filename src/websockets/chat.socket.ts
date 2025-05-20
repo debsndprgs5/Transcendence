@@ -92,8 +92,7 @@ async function SendGeneralMessage(authorID: number, message: string) {
 	
 
 	async function handleConnection(ws: WebSocket, request: any) {
-		console.log('New WS connection attempt from:', request.socket.remoteAddress);
-		const url = new URL(request.url, `http://${request.headers.host}`);
+		const url = new URL(request.url, `https://${request.headers.host}`);
 		const token = url.searchParams.get('token');
 	
 		if (!token) {
@@ -198,6 +197,29 @@ async function SendGeneralMessage(authorID: number, message: string) {
 					}
 					break;
 				}
+			 case 'loadChatRooms': {
+				const { roomID , userID , newUser } = parsed
+				try{
+					const sockets = MappedClients.get(newUser);
+					if(sockets){
+						for (const socket of sockets) {
+							if (socket.readyState === WebSocket.OPEN) {
+								console.log('SENDIN ACTUAL LOADROOMS SOCKETS')
+								socket.send(JSON.stringify({
+								type: 'loadChatRooms',
+								roomID:roomID,
+								userID:userID,
+								newUser:newUser
+								}));
+							}
+					}}		
+					//else {client is not connect should keep in notif ?}
+				}
+				catch{
+					ws.send(JSON.stringify({ type: 'system', message: 'Error while loading chat rooms.' }));
+				} 
+			 	break;
+			 }
 	
 				default:
 					ws.send(JSON.stringify({ error: 'Unknown message type' }));

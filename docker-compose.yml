@@ -9,6 +9,7 @@ services:
     volumes:
       - transcendence_volume:/app/runtime
       - db_volume:/app/db
+      - avatars_volume:/app/client/avatars
     restart: always
     env_file:
       - .env
@@ -33,5 +34,12 @@ volumes:
     driver_opts:
       type: none
       device: ./src/db
+      o: bind
+  avatars_volume:
+    name: avatars_volume
+    driver: local
+    driver_opts:
+      type: none
+      device: ./client/avatars
       o: bind
 

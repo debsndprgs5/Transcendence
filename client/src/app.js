@@ -534,7 +534,7 @@ function updateNav() {
 }
 
 // ─── HANDLERS ────────────────────────────────────────────────────────────────
-
+let loadRooms;
 function setupHomeHandlers() {
 	// Logout button
 	const logoutBtn = document.getElementById('logoutBtn');
@@ -556,8 +556,8 @@ function setupHomeHandlers() {
 		});
 	}
 
-	// Load rooms immediately when entering home view
-	let loadRooms = async () => {
+  // Load rooms immediately when entering home view
+	loadRooms = async () => {
 		try {
 			const rooms = await apiFetch('/api/chat/rooms/mine', { 
 				headers: { 'Authorization': `Bearer ${authToken}` } 
@@ -596,11 +596,33 @@ function setupHomeHandlers() {
 						message: 'Delete this room?',
 						type: 'confirm',
 						onConfirm: async () => {
-							try {
+							try {	
+							const response = await fetch('/api/auth/me', {
+							headers: {
+								'Authorization': `Bearer ${authToken}`
+							}
+							});
+							if (!response.ok) {
+								throw new Error('Failed to get userId');
+							}
+							const data = await response.json();
+							const userId = data.userId
+								//logic -> looks all members of the room and keep them
+								const roomMembers= await apiFetch(`/api/chat/rooms/${roomId}/members`) 
 								await apiFetch(`/api/chat/rooms/${roomId}`, {
 									method: 'DELETE',
 									headers: { 'Authorization': `Bearer ${authToken}` }
 								});
+								//then -> for each members send 'loadChatRooms' event
+								for(const member of roomMembers){
+									socket.send(JSON.stringify({
+										type: 'loadChatRooms',
+										roomID : roomId,
+										userID : userId,
+										newUser: member.userID
+								}));
+								}
+								
 								await loadRooms();
 							} catch (err) {
 								showNotification({ message: 'Error during delete.', type: 'error', duration: 5000 });
@@ -640,6 +662,24 @@ function setupHomeHandlers() {
 						},
 						body: JSON.stringify({ userId: userIdToInvite })
 						});
+						const response = await fetch('/api/auth/me', {
+						headers: {
+							'Authorization': `Bearer ${authToken}`
+						}
+						});
+
+						if (!response.ok) {
+							throw new Error('Failed to get userId');
+						}
+						const data = await response.json();
+						userId = data.userId
+						socket.send(JSON.stringify({
+							type: 'loadChatRooms',
+							roomID : roomId,
+							userID : userId,
+							newUser: userIdToInvite
+						}))
+						alert(`User ${username} added successfully`);
 						showNotification({ message: `User ${username} added successfully`, type: 'success' });
 					} catch (err) {
 						showNotification({ message: `Error while inviting : ${err.message}`, type: 'error', duration: 5000 });
@@ -729,6 +769,23 @@ function setupHomeHandlers() {
 				},
 				body: JSON.stringify({ userId: userIdToAdd })
 			});
+			const response = await fetch('/api/auth/me', {
+			headers: {
+				'Authorization': `Bearer ${authToken}`
+			}
+			});
+
+			if (!response.ok) {
+				throw new Error('Failed to get userId');
+			}
+			const data = await response.json();
+			userId = data.userId
+			socket.send(JSON.stringify({
+				type: 'loadChatRooms',
+				roomID : roomId,
+				userID : userId,
+				newUser: userIdToAdd
+			}))
 		} catch (error) {
 			console.error('Error adding member :', error);
 		}
@@ -1115,9 +1172,27 @@ function setupAccountHandlers(user) {
 	} catch { showNotification({ message: 'Network Error', type: 'error', duration: 5000 })};
 	};
 
+
 	// (Re)Setup 2FA
 	document.getElementById('setup2faBtn').onclick = async () => {
-		try {
+		try {			//Test to update chatRooms 
+			const response = await fetch('/api/auth/me', {
+			headers: {
+				'Authorization': `Bearer ${authToken}`
+			}
+			});
+
+			if (!response.ok) {
+				throw new Error('Failed to get userId');
+			}
+			const data = await response.json();
+			userId = data.userId
+			socket.send(JSON.stringify({
+				type: 'loadChatRooms',
+				roomID : room.roomID,
+				userID : userId,
+				newUser: friendUserId
+			}))
 			// Call the reconfigure2FA function to start the 2FA setup process
 			await reconfigure2FA();
 		} catch (error) {
@@ -1211,6 +1286,24 @@ function setupAccountHandlers(user) {
 			},
 			body: JSON.stringify({ userId: user.userId })
 			});
+			//Test to update chatRooms 
+			const response = await fetch('/api/auth/me', {
+			headers: {
+				'Authorization': `Bearer ${authToken}`
+			}
+			});
+
+			if (!response.ok) {
+				throw new Error('Failed to get userId');
+			}
+			const data = await response.json();
+			userId = data.userId
+			socket.send(JSON.stringify({
+				type: 'loadChatRooms',
+				roomID : room.roomID,
+				userID : userId,
+				newUser: friendUserId
+			}))
 		const selectRoom = async (roomId) => {
 			try {
 				currentRoom = roomId;
@@ -1342,11 +1435,8 @@ async function initWebSocket() {
 		socket = new WebSocket(wsUrl);
 
 		socket.onopen = () => {
-			console.log('WebSocket connecté');
-
 			setTimeout(() => {
 				if (socket.readyState === WebSocket.OPEN) {
-					console.log('Sending chatHistory request...');
 					socket.send(JSON.stringify({
 						type: 'chatHistory',
 						roomID: currentRoom,
@@ -1427,7 +1517,13 @@ function handleWebSocketMessage(msg) {
 				});
 			}
 			break;
-			
+		case 'loadChatRooms':
+			//if(msg.roomID !== currentRoom){
+				if(msg.newUser === userId){
+					loadRooms();
+				}
+			//}
+			break;
 		default:
 			console.warn('Type de message WebSocket non géré:', msg.type);
 	}

@@ -89,6 +89,7 @@ install:
 # -------------------------------------------------------------------
 clean:
 	@echo "🧹 Cleaning…"
+	@rm -rf node_modules package-lock.json
 	@docker compose down
 	@docker ps -q --filter "ancestor=$(IMAGE_NAME)" | xargs -r docker stop
 	@docker ps -aq --filter "ancestor=$(IMAGE_NAME)" | xargs -r docker rm -v

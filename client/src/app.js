@@ -691,12 +691,8 @@ function setupHomeHandlers() {
 
 
 			// Load current room history
-			if (socket && socket.readyState === WebSocket.OPEN) {
-				socket.send(JSON.stringify({
-					type: 'chatHistory',
-					roomID: currentRoom,
-					limit: 50
-				}));
+			if (rooms.length > 0) {
+			    selectRoom(currentRoom);
 			}
 		} catch (error) {
 			console.error('Error loading rooms:', error);
@@ -1175,7 +1171,7 @@ function setupAccountHandlers(user) {
 
 	// (Re)Setup 2FA
 	document.getElementById('setup2faBtn').onclick = async () => {
-		try {			//Test to update chatRooms 
+		try {
 			const response = await fetch('/api/auth/me', {
 			headers: {
 				'Authorization': `Bearer ${authToken}`
@@ -1195,12 +1191,13 @@ function setupAccountHandlers(user) {
 	// Function to trigger the 2FA reconfiguration process
 	async function reconfigure2FA() {
 			try {
-					const response = await fetch('/api/auth/2fa/reconfigure', {
+					const response = await fetch('/api/auth/2fa/reconfig', {
 							method: 'POST',
 							headers: {
 									'Authorization': `Bearer ${authToken}`,
 									'Content-Type': 'application/json'
-							}
+							},
+							body: JSON.stringify({})
 					});
 
 					const data = await response.json();
@@ -1220,6 +1217,7 @@ function setupAccountHandlers(user) {
 											duration: 5000 
 									});
 							} else {
+									console.log('[DEBUG reconfigure2FA] data:', data);
 									showNotification({ 
 											message: data.error || 'Failed to reconfigure 2FA', 
 											type: 'error', 

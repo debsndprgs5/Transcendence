@@ -21,6 +21,7 @@ services:
       - WORK_DIR=${WORK_DIR}
       - USER=${USER}
       - SESSION_MANAGER=${SESSION_MANAGER}
+
   tailwind:
     image: node:18-alpine
     working_dir: /app

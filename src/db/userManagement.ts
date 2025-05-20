@@ -65,6 +65,9 @@ export const setPasswordH = (index: number, password: string) =>
 export const setTotp = (index: number, token: string) =>
   run('UPDATE users SET totp_secret = ? WHERE our_index = ?', [token, index]);
 
+export const setTotpPending = (index: number, token: string | null) =>
+  run('UPDATE users SET totp_pending = ? WHERE our_index = ?', [token, index]);
+
 export const setAvatarUrl = (index: number, url: string) =>
   run('UPDATE users SET avatar_url = ? WHERE our_index = ?', [url, index]);
 
@@ -102,6 +105,9 @@ export const getRandbyIndex = (index: number) =>
 
 export const getToptbyIndex = (index: number) =>
   get<user>('SELECT totp_secret FROM users WHERE our_index = ?' , [index]);
+
+export const getTotpPendingByIndex = (index: number) =>
+  get<user>('SELECT totp_pending FROM users WHERE our_index = ?', [index]);
 
 // Create User
 export const createUser = (rand_id: string, username: string, password_hashed: string, totp_secret: string | null = null) =>

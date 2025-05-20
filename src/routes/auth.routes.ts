@@ -89,72 +89,61 @@ export async function authRoutes(fastify: FastifyInstance) {
 	});
 
 
-// 3) Route POST /api/auth/2fa/setup
-fastify.post('/auth/2fa/setup', async (request, reply) => {
-		try {        
-				// Vérification du token d'autorisation
-				const auth = request.headers.authorization;
-				
-				if (!auth) {
-						return reply.code(401).send({ error: 'No token provided' });
-				}
-
-				const token = auth.split(' ')[1];
-				if (!token) {
-						return reply.code(401).send({ error: 'Invalid authorization format' });
-				}
-
-				let payload: any;
-				try {
-						payload = jwt.verify(token, JWT_SECRET);
-				} catch (error) {
-						console.error('Token verification failed:', error);
-						return reply.code(401).send({ error: 'Invalid token' });
-				}
-
-				if (payload.step !== '2fa') {
-						return reply.code(400).send({ 
-								error: 'Token not in 2FA setup mode',
-								details: 'Current step: ' + payload.step 
-						});
-				}
-
-				// Récupération de l'utilisateur
-				const rand_user = await UserManagement.getUserByRand(payload.sub);
-				if (!rand_user) {
-						return reply.code(404).send({ error: 'User not found' });
-				}
-
-				// Génération du secret TOTP
-				const secret = speakeasy.generateSecret({
-						name: encodeURIComponent(`ft_transcendence(${rand_user.username})`)
-				});
-
-				// Sauvegarde du secret dans la base de données
-				try {
-						await UserManagement.setTotp(rand_user.our_index, secret.base32);
-				} catch (error) {
-						console.error('Failed to save TOTP secret:', error);
-						return reply.code(500).send({ error: 'Failed to save 2FA configuration' });
-				}
-
-				// Envoi de la réponse
-				return reply.send({
-						otpauth_url: secret.otpauth_url,
-						base32: secret.base32
-				});
-		} catch (error) {
-				console.error('2FA setup error:', error);
-				return reply.code(500).send({ 
-						error: 'Internal server error during 2FA setup',
-				});
+	// 3) Route POST /api/auth/2fa/setup
+	fastify.post('/auth/2fa/setup', async (request, reply) => {
+		try {
+		const auth = request.headers.authorization;
+		if (!auth) {
+			return reply.code(401).send({ error: 'No token provided' });
 		}
-});
+		const token = auth.split(' ')[1];
+		if (!token) {
+			return reply.code(401).send({ error: 'Invalid authorization format' });
+		}
+		let payload: any;
+		try {
+			payload = jwt.verify(token, JWT_SECRET);
+		} catch (error) {
+			console.error('Token verification failed:', error);
+			return reply.code(401).send({ error: 'Invalid token' });
+		}
+		if (payload.step !== '2fa') {
+			return reply.code(400).send({
+			error: 'Token not in 2FA setup mode',
+			details: 'Current step: ' + payload.step
+			});
+		}
+		const rand_user = await UserManagement.getUserByRand(payload.sub);
+		if (!rand_user) {
+			return reply.code(404).send({ error: 'User not found' });
+		}
+		// Generate TOTP secret
+		const secret = speakeasy.generateSecret({
+			name: encodeURIComponent(`ft_transcendence(${rand_user.username})`)
+		});
+		// Save temporary TOTP in db
+		try {
+			await UserManagement.setTotpPending(rand_user.our_index, secret.base32);
+		} catch (error) {
+			console.error('Failed to save TOTP pending secret:', error);
+			return reply.code(500).send({ error: 'Failed to save 2FA configuration' });
+		}
+		// Send response
+		return reply.send({
+			otpauth_url: secret.otpauth_url,
+			base32: secret.base32
+		});
+		} catch (error) {
+		console.error('2FA setup error:', error);
+		return reply.code(500).send({
+			error: 'Internal server error during 2FA setup',
+		});
+		}
+	});
 
-	// 4) Route POST /api/auth/2fa/verify -------------------------------------------- Verify 2FA
 	fastify.post('/auth/2fa/verify', async (request, reply) => {
 		const { code } = request.body as { code: string }
-		const auth = (request.headers.authorization || '').split(' ')[1] // get the token only
+		const auth = (request.headers.authorization || '').split(' ')[1]
 		if (!auth) return reply.code(401).send({ error: 'No token' })
 
 		let payload: any
@@ -168,18 +157,30 @@ fastify.post('/auth/2fa/setup', async (request, reply) => {
 		}
 
 		const user = await UserManagement.getUserByRand(payload.sub)
-		if (!user || !user.totp_secret) {
+		if (!user) {
 			return reply.code(404).send({ error: 'Invalid User' })
 		}
 
-		// Verify code with the stocked secret using speakeasy lib
+		// Pending secret
+		let secret = user.totp_pending || user.totp_secret
+		if (!secret) {
+			return reply.code(404).send({ error: 'No 2FA setup in progress' })
+		}
+
+		// Verify
 		const ok = speakeasy.totp.verify({
-			secret: user.totp_secret,
+			secret: secret,
 			encoding: 'base32',
 			token: code
 		})
 		if (!ok) {
 			return reply.code(400).send({ error: 'Invalid 2fa code' })
+		}
+
+		// If it was initial setup, set final totp, reset pending one
+		if (user.totp_pending) {
+			await UserManagement.setTotp(user.our_index, user.totp_pending)
+			await UserManagement.setTotpPending(user.our_index, null)
 		}
 
 		// Final JWT generation
@@ -201,84 +202,84 @@ fastify.post('/auth/2fa/setup', async (request, reply) => {
 				maxAge: 3600,
 				signed: true
 			})
-			.send({ 
+			.send({
 				token,
-				userId: user.our_index // Ajoutez l'userId dans la réponse
+				userId: user.our_index
 			});
 	})
 
 
 	// Route to start 2FA reconfiguration
-	fastify.post('/auth/2fa/reconfigure', async (request, reply) => {
-			try {
-					const auth = request.headers.authorization;
-					if (!auth) {
-							return reply.code(401).send({ error: 'No token provided' });
-					}
+	fastify.post('/auth/2fa/reconfig', async (request, reply) => {
+		try {
+				const auth = request.headers.authorization;
+				if (!auth) {
+						return reply.code(401).send({ error: 'No token provided' });
+				}
 
-					const token = auth.split(' ')[1];
-					if (!token) {
-							return reply.code(401).send({ error: 'Invalid authorization format' });
-					}
+				const token = auth.split(' ')[1];
+				if (!token) {
+						return reply.code(401).send({ error: 'Invalid authorization format' });
+				}
 
-					// Verify current session token
-					let payload: any;
-					try {
-							payload = jwt.verify(token, JWT_SECRET);
-					} catch (error) {
-							return reply.code(401).send({ error: 'Invalid token' });
-					}
+				// Verify current session token
+				let payload: any;
+				try {
+						payload = jwt.verify(token, JWT_SECRET);
+				} catch (error) {
+						return reply.code(401).send({ error: 'Invalid token' });
+				}
 
-					// Get user from database using payload.sub
-					const user = await UserManagement.getUserByRand(String(payload.sub));
-					console.log('token payload:', payload, 'user:', user);
-					if (!user) {
-							return reply.code(404).send({ error: 'User not found' });
-					}
+				// Get user from database using payload.sub
+				const user = await UserManagement.getUserByRand(String(payload.sub));
+				console.log('token payload:', payload, 'user:', user);
+				if (!user) {
+						return reply.code(404).send({ error: 'User not found' });
+				}
 
-					// First, verify that the user has 2FA enabled
-					if (!user.totp_secret) {
-							return reply.code(400).send({ 
-									error: 'Cannot reconfigure 2FA because it is not enabled',
-									need2FASetup: true
-							});
-					}
+				// First, verify that the user has 2FA enabled
+				if (!user.totp_secret) {
+						return reply.code(400).send({ 
+								error: 'Cannot reconfigure 2FA because it is not enabled',
+								need2FASetup: true
+						});
+				}
 
-					// Create new temporary token specifically for 2FA setup
-					const setupToken = jwt.sign(
-							{ 
-									sub: payload.sub,
-									step: '2fa'
-							},
-							JWT_SECRET,
-							{ expiresIn: '5m' }
-					);
+				// Create new temporary token specifically for 2FA setup
+				const setupToken = jwt.sign(
+						{ 
+								sub: payload.sub,
+								step: '2fa'
+						},
+						JWT_SECRET,
+						{ expiresIn: '5m' }
+				);
 
-					// Generate new TOTP secret
-					const secret = speakeasy.generateSecret({
-							name: encodeURIComponent(`ft_transcendence(${user.username})`)
-					});
+				// Generate new TOTP secret
+				const secret = speakeasy.generateSecret({
+						name: encodeURIComponent(`ft_transcendence(${user.username})`)
+				});
 
-					// Save the new secret temporarily (consider using a separate field or temporary storage)
-					try {
-							await UserManagement.setTotp(user.our_index, secret.base32);
-					} catch (error) {
-							console.error('Failed to save TOTP secret:', error);
-							return reply.code(500).send({ error: 'Failed to save 2FA configuration' });
-					}
+				// Save the new secret temporarily (consider using a separate field or temporary storage)
+				try {
+						await UserManagement.setTotp(user.our_index, secret.base32);
+				} catch (error) {
+						console.error('Failed to save TOTP secret:', error);
+						return reply.code(500).send({ error: 'Failed to save 2FA configuration' });
+				}
 
-					return reply.send({
-							token: setupToken,
-							otpauth_url: secret.otpauth_url,
-							base32: secret.base32
-					});
-			} catch (error) {
-					console.error('Error during 2FA reconfiguration:', error);
-					return reply.code(500).send({
-							error: 'Internal server error during 2FA reconfiguration'
-					});
-			}
-	});
+				return reply.send({
+						token: setupToken,
+						otpauth_url: secret.otpauth_url,
+						base32: secret.base32
+				});
+		} catch (error) {
+				console.error('Error during 2FA reconfiguration:', error);
+				return reply.code(500).send({
+						error: 'Internal server error during 2FA reconfiguration'
+				});
+		}
+});
 	
 	// Helper API to get the userId (i couldnt unsign the userId token in front)
 	fastify.get('/auth/me', async (request, reply) => {

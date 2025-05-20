@@ -29,7 +29,10 @@ WORKDIR /app
 
 # Copy and install all dependencies (for TS and tools)
 COPY package*.json ./
-RUN npm install
+RUN apk add --no-cache python3 make g++ \
+  && ln -sf python3 /usr/bin/python \
+  && npm install \
+  && apk del python3 make g++
 
 # Copy full source for TS build
 COPY tsconfig.json ./
@@ -62,11 +65,10 @@ RUN export $(grep -v '^#' .env | xargs) && \
       -subj "/C=US/ST=State/L=City/O=AppName/OU=Dev/CN=$HOSTNAME" \
       -addext "subjectAltName=DNS:$HOSTNAME"
 
-# Copy package files and install production dependencies
-COPY package*.json ./
-RUN apk add --no-cache python3 make g++ \
-  && npm install --omit=dev \
-  && apk del python3 make g++
+# Copy node modules from builder
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/client ./client
 
 # Copy backend build output
 COPY --from=builder /app/dist ./dist

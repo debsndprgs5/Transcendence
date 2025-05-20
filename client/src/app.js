@@ -462,7 +462,7 @@ async function apiFetch(url, options = {}) {
 		const data = await response.json();
 		
 		if (!response.ok) {
-			throw new Error(data.error || 'Une erreur est survenue');
+			throw new Error(data.error || 'An error has occured');
 		}
 		
 		return data;
@@ -682,7 +682,7 @@ function setupHomeHandlers() {
 						alert(`User ${username} added successfully`);
 						showNotification({ message: `User ${username} added successfully`, type: 'success' });
 					} catch (err) {
-						showNotification({ message: `Erreur lors de l'invitation : ${err.message}`, type: 'error', duration: 5000 });
+						showNotification({ message: `Error while inviting : ${err.message}`, type: 'error', duration: 5000 });
 					}
 					}
 				});
@@ -702,7 +702,7 @@ function setupHomeHandlers() {
 			console.error('Error loading rooms:', error);
 			const ul = document.getElementById('room-list');
 			if (ul) {
-				ul.innerHTML = '<li class="text-red-500">Erreur de chargement des salons</li>';
+				ul.innerHTML = '<li class="text-red-500">Room loading error</li>';
 			}
 		}
 	};
@@ -821,7 +821,7 @@ function setupHomeHandlers() {
 			console.error('Error selecting room:', error);
 			const chatDiv = document.getElementById('chat');
 			if (chatDiv) {
-				chatDiv.innerHTML = '<p class="text-red-500">Erreur de chargement des messages</p>';
+				chatDiv.innerHTML = '<p class="text-red-500">Error loading messages</p>';
 			}
 		}
 	};
@@ -950,7 +950,7 @@ function setupRegisterHandlers() {
 			}
 		} catch {
 			const err = document.getElementById('register-error');
-			err.textContent = 'Erreur d’inscription';
+			err.textContent = 'Register Error';
 			err.classList.remove('hidden');
 		}
 	};
@@ -992,13 +992,13 @@ function setupLoginHandlers() {
 			} else {
 				console.error('Login failed:', json.error);
 				const err = document.getElementById('login-error');
-				err.textContent = json.error || 'Erreur de connexion';
+				err.textContent = json.error || 'Login Error';
 				err.classList.remove('hidden');
 			}
 		} catch (err) {
 			console.error('Login error:', err);
 			const errEl = document.getElementById('login-error');
-			errEl.textContent = 'Erreur réseau, réessayez.';
+			errEl.textContent = 'Network Error';
 			errEl.classList.remove('hidden');
 		}
 	};
@@ -1041,7 +1041,7 @@ async function doSetup2FA(token) {
 		console.error('2FA setup error:', err);
 		render(`
 			<div class="max-w-md mx-auto mt-12 bg-white p-8 rounded shadow">
-				<p class="text-red-500">Impossible de configurer 2FA. Erreur: ${err.message}</p>
+				<p class="text-red-500">Impossible to config 2fa, Err : ${err.message}</p>
 				<button id="back-login" class="mt-4 w-full py-2 px-4 bg-indigo-600 text-black rounded">
 					Retour
 				</button>
@@ -1080,7 +1080,7 @@ function setupSetup2FAHandlers() {
 				err.classList.remove('hidden');
 			}
 		} catch {
-			showNotification({ message: 'Erreur lors de la vérification 2FA', type: 'error', duration: 5000 });
+			showNotification({ message: 'Error during 2fa verification', type: 'error', duration: 5000 });
 		}
 	};
 }
@@ -1114,7 +1114,7 @@ function setupVerify2FAHandlers() {
 				err.classList.remove('hidden');
 			}
 		} catch {
-			showNotification({ message: 'Erreur lors de la vérification 2FA', type: 'error', duration: 5000 });
+			showNotification({ message: 'Error during 2fa verification', type: 'error', duration: 5000 });
 		}
 	};
 }
@@ -1185,18 +1185,10 @@ function setupAccountHandlers(user) {
 			if (!response.ok) {
 				throw new Error('Failed to get userId');
 			}
-			const data = await response.json();
-			userId = data.userId
-			socket.send(JSON.stringify({
-				type: 'loadChatRooms',
-				roomID : room.roomID,
-				userID : userId,
-				newUser: friendUserId
-			}))
 			// Call the reconfigure2FA function to start the 2FA setup process
 			await reconfigure2FA();
 		} catch (error) {
-			showNotification({ message: 'Error during 2FA reconfiguration', type: 'error', duration: 5000 });
+			showNotification({ message: 'Error during 2FA reconfiguration' + error, type: 'error', duration: 5000 });
 		}
 	};
 
@@ -1337,7 +1329,7 @@ function setupAccountHandlers(user) {
 				console.error('Error selecting room:', error);
 				const chatDiv = document.getElementById('chat');
 				if (chatDiv) {
-					chatDiv.innerHTML = '<p class="text-red-500">Erreur de chargement des messages</p>';
+					chatDiv.innerHTML = '<p class="text-red-500">Error loading messages</p>';
 				}
 			}
 		};
@@ -1456,19 +1448,19 @@ async function initWebSocket() {
 				const parsed = JSON.parse(event.data);
 				handleWebSocketMessage(parsed);
 			} catch (e) {
-				console.error('Erreur de parsing du message WebSocket:', e);
+				console.error('Websocket message parsing error:', e);
 			}
 		};
 
 		socket.onclose = (event) => {
-			console.log('WebSocket déconnecté:', event.code, event.reason);
+			console.log('WebSocket disconnected:', event.code, event.reason);
 		};
 
 		socket.onerror = (error) => {
-			console.error('Erreur WebSocket:', error);
+			console.error('WebSocket Error:', error);
 		};
 	} catch (error) {
-		console.error('Erreur lors de l\'initialisation du WebSocket:', error);
+		console.error('Error during WebSocket init:', error);
 	}
 }
 

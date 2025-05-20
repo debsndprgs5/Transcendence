@@ -808,11 +808,11 @@ function setupHomeHandlers() {
 					limit: 50
 				}));
 			}
-			
-			// Update visually the selected room
 			document.querySelectorAll('#room-list li').forEach(li => {
 				if (Number(li.dataset.id) === roomId) {
 					li.classList.add('bg-indigo-100');
+					const dot = li.querySelector('.unread-dot');
+							if (dot) dot.remove();
 				} else {
 					li.classList.remove('bg-indigo-100');
 				}
@@ -1304,7 +1304,7 @@ function setupAccountHandlers(user) {
 				userID : userId,
 				newUser: friendUserId
 			}))
-		const selectRoom = async (roomId) => {
+			const selectRoom = async (roomId) => {
 			try {
 				currentRoom = roomId;
 				const chatDiv = document.getElementById('chat');
@@ -1322,8 +1322,12 @@ function setupAccountHandlers(user) {
 				}
 				
 				// Update visually the selected room
+				// Update visually the selected room
+			
 				document.querySelectorAll('#room-list li').forEach(li => {
 					if (Number(li.dataset.id) === roomId) {
+						const dot = li.querySelector('.unread-dot');
+							if (dot) dot.remove();
 						li.classList.add('bg-indigo-100');
 					} else {
 						li.classList.remove('bg-indigo-100');
@@ -1496,6 +1500,64 @@ function handleWebSocketMessage(msg) {
 				while (chatDiv.children.length > MESSAGE_LIMIT) {
 					chatDiv.removeChild(chatDiv.firstChild);
 				}
+			}
+			else {
+				console.log('THERE S A SHIT IF YOU DON:T SEE ME IN DM ?')
+				const handleUnread = async(msg) => {
+					try {
+						if(msg.roomID === 0)
+							return;
+						
+						// Get list of rooms the user is currently a member of
+						const userRooms = await apiFetch('/api/chat/rooms/mine', {
+							headers: { 'Authorization': `Bearer ${authToken}` }
+						});
+
+						// Check if the incoming message belongs to one of these rooms
+						const isMessageForMyRoom = userRooms.some(room => room.roomID === msg.roomID);
+
+						if (isMessageForMyRoom) {
+							// Find the room element in the UI
+							const roomListItem = document.querySelector(`#room-list li[data-id="${msg.roomID}"]`);
+							if (!roomListItem) {
+								console.log('UNABLE to resolve :', msg.roomID);
+							return;
+							}
+							console.log('ABLE to resolve:', msg.roomID);
+							// Target the name span (where you want to append the dot)
+							const roomNameSpan = roomListItem.querySelector('span');
+							if (!roomNameSpan) {
+								console.log('ROOM NAME SPAN EMPTY');
+								return;
+							}
+
+							// Check if there's already a red dot <span> in the name span
+							const alreadyHasDot = [...roomNameSpan.children].some(child =>
+								child.tagName === 'SPAN' && child.dataset.dot === 'true'
+							);
+
+							if (!alreadyHasDot) {
+								const redDot = document.createElement('span');
+								redDot.dataset.dot = 'true'; // ← THIS makes detection reliable
+								redDot.style.width = '0.5rem';
+								redDot.style.height = '0.5rem';
+								redDot.style.backgroundColor = 'red';
+								redDot.style.borderRadius = '9999px';
+								redDot.style.marginLeft = '0.5rem';
+								redDot.style.display = 'inline-block';
+
+								roomNameSpan.appendChild(redDot);
+							}
+						}
+						else {
+							console.log('is this Message is not for me ?');
+						}
+					}
+					catch (err) {
+						console.error('Error while marking room as unread:', err);
+					}
+				}
+				handleUnread(msg);
 			}
 			break;
 

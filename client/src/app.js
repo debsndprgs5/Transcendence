@@ -556,7 +556,7 @@ function setupHomeHandlers() {
 		});
 	}
 
-  // Load rooms immediately when entering home view
+	// Load rooms immediately when entering home view
 	loadRooms = async () => {
 		try {
 			const rooms = await apiFetch('/api/chat/rooms/mine', { 
@@ -692,7 +692,7 @@ function setupHomeHandlers() {
 
 			// Load current room history
 			if (rooms.length > 0) {
-			    selectRoom(currentRoom);
+					selectRoom(currentRoom);
 			}
 		} catch (error) {
 			console.error('Error loading rooms:', error);
@@ -805,13 +805,16 @@ function setupHomeHandlers() {
 				}));
 			}
 			document.querySelectorAll('#room-list li').forEach(li => {
-				if (Number(li.dataset.id) === roomId) {
-					li.classList.add('bg-indigo-100');
-					const dot = li.querySelector('.unread-dot');
-							if (dot) dot.remove();
-				} else {
-					li.classList.remove('bg-indigo-100');
-				}
+					const roomNameSpan = li.querySelector('span.flex-1');
+					if (roomNameSpan) {
+							const dot = roomNameSpan.querySelector('.unread-dot');
+							if (dot) dot.remove(); // Remove the dots on every room select
+					}
+					if (Number(li.dataset.id) === roomId) {
+							li.classList.add('bg-indigo-100');
+					} else {
+							li.classList.remove('bg-indigo-100');
+					}
 			});
 		} catch (error) {
 			console.error('Error selecting room:', error);
@@ -1310,18 +1313,18 @@ function setupAccountHandlers(user) {
 						limit: 50
 					}));
 				}
-				
 				// Update visually the selected room
-				// Update visually the selected room
-			
 				document.querySelectorAll('#room-list li').forEach(li => {
-					if (Number(li.dataset.id) === roomId) {
-						const dot = li.querySelector('.unread-dot');
-							if (dot) dot.remove();
-						li.classList.add('bg-indigo-100');
-					} else {
-						li.classList.remove('bg-indigo-100');
-					}
+						const roomNameSpan = li.querySelector('span.flex-1');
+						if (roomNameSpan) {
+								const dot = roomNameSpan.querySelector('.unread-dot');
+								if (dot) dot.remove(); // Enlève tous les dots à chaque sélection
+						}
+						if (Number(li.dataset.id) === roomId) {
+								li.classList.add('bg-indigo-100');
+						} else {
+								li.classList.remove('bg-indigo-100');
+						}
 				});
 			} catch (error) {
 				console.error('Error selecting room:', error);
@@ -1509,34 +1512,26 @@ function handleWebSocketMessage(msg) {
 						if (isMessageForMyRoom) {
 							// Find the room element in the UI
 							const roomListItem = document.querySelector(`#room-list li[data-id="${msg.roomID}"]`);
-							if (!roomListItem) {
-								console.log('UNABLE to resolve :', msg.roomID);
-							return;
-							}
-							console.log('ABLE to resolve:', msg.roomID);
-							// Target the name span (where you want to append the dot)
-							const roomNameSpan = roomListItem.querySelector('span');
-							if (!roomNameSpan) {
-								console.log('ROOM NAME SPAN EMPTY');
-								return;
-							}
+							if (!roomListItem) return;
 
-							// Check if there's already a red dot <span> in the name span
-							const alreadyHasDot = [...roomNameSpan.children].some(child =>
-								child.tagName === 'SPAN' && child.dataset.dot === 'true'
-							);
+							// Find the dot span
+							const roomNameSpan = roomListItem.querySelector('span.flex-1');
+							if (!roomNameSpan) return;
 
-							if (!alreadyHasDot) {
-								const redDot = document.createElement('span');
-								redDot.dataset.dot = 'true'; // ← THIS makes detection reliable
-								redDot.style.width = '0.5rem';
-								redDot.style.height = '0.5rem';
-								redDot.style.backgroundColor = 'red';
-								redDot.style.borderRadius = '9999px';
-								redDot.style.marginLeft = '0.5rem';
-								redDot.style.display = 'inline-block';
-
-								roomNameSpan.appendChild(redDot);
+							// If the dot isn't present yet
+							if (!roomNameSpan.querySelector('.unread-dot')) {
+									// add dot
+									roomNameSpan.insertAdjacentHTML('beforeend', `
+											<span class="unread-dot" style="
+													display:inline-block;
+													width:0.6em;
+													height:0.6em;
+													background:red;
+													border-radius:50%;
+													margin-left:0.5em;
+													vertical-align:middle;
+											" title="Nouveau message"></span>
+									`);
 							}
 						}
 						else {

@@ -1185,18 +1185,10 @@ function setupAccountHandlers(user) {
 			if (!response.ok) {
 				throw new Error('Failed to get userId');
 			}
-			const data = await response.json();
-			userId = data.userId
-			socket.send(JSON.stringify({
-				type: 'loadChatRooms',
-				roomID : room.roomID,
-				userID : userId,
-				newUser: friendUserId
-			}))
 			// Call the reconfigure2FA function to start the 2FA setup process
 			await reconfigure2FA();
 		} catch (error) {
-			showNotification({ message: 'Error during 2FA reconfiguration', type: 'error', duration: 5000 });
+			showNotification({ message: 'Error during 2FA reconfiguration' + error, type: 'error', duration: 5000 });
 		}
 	};
 

@@ -38,6 +38,7 @@ docker-up:myexport-env
 	  echo "WORK_DIR=$(WORK_DIR)" >> .env; \
 	fi
 	@$(MAKE) set-env PORT=1400
+	mkdir -p client/dist
 	@docker compose build --no-cache
 	@docker compose up
 
@@ -88,7 +89,10 @@ install:
 # -------------------------------------------------------------------
 clean:
 	@echo "🧹 Cleaning…"
-	rm -rf node_modules dist client/dist package-lock.json
+	@docker compose down
+	@docker ps -q --filter "ancestor=$(IMAGE_NAME)" | xargs -r docker stop
+	@docker ps -aq --filter "ancestor=$(IMAGE_NAME)" | xargs -r docker rm -v
+	@docker images -q $(IMAGE_NAME) | xargs -r docker rmi
 
 # -------------------------------------------------------------------
 # clear_db : clear the database

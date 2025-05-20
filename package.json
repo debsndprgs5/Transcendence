@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "ts-node src/main.ts",
     "build:css": "tailwindcss -i client/src/input.css -o client/dist/output.css --minify",
+    "watch:css": "tailwindcss -i client/src/input.css -o client/dist/output.css --watch --poll",
     "build": "tsc && npm run build:css",
     "start": "node dist/main.js"
   },

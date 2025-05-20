@@ -525,7 +525,7 @@ function updateNav() {
 }
 
 // ─── HANDLERS ────────────────────────────────────────────────────────────────
-
+let loadRooms;
 function setupHomeHandlers() {
 	// Logout button
 	const logoutBtn = document.getElementById('logoutBtn');
@@ -548,7 +548,7 @@ function setupHomeHandlers() {
 	}
 
   // Load rooms immediately when entering home view
-	let loadRooms = async () => {
+	loadRooms = async () => {
 		try {
 			const rooms = await apiFetch('/api/chat/rooms/mine', { 
 				headers: { 'Authorization': `Bearer ${authToken}` } 
@@ -614,6 +614,23 @@ function setupHomeHandlers() {
 							},
 							body: JSON.stringify({ userId: userIdToInvite })
 						});
+						const response = await fetch('/api/auth/me', {
+						headers: {
+							'Authorization': `Bearer ${authToken}`
+						}
+						});
+
+						if (!response.ok) {
+							throw new Error('Failed to get userId');
+						}
+						const data = await response.json();
+						userId = data.userId
+						socket.send(JSON.stringify({
+							type: 'loadChatRooms',
+							roomID : roomId,
+							userID : userId,
+							newUser: userIdToInvite
+						}))
 						alert(`User ${username} added successfully`);
 					} catch (err) {
 						alert("Erreur lors de l'invitation : " + err.message);
@@ -694,6 +711,23 @@ function setupHomeHandlers() {
 				},
 				body: JSON.stringify({ userId: userIdToAdd })
 			});
+			const response = await fetch('/api/auth/me', {
+			headers: {
+				'Authorization': `Bearer ${authToken}`
+			}
+			});
+
+			if (!response.ok) {
+				throw new Error('Failed to get userId');
+			}
+			const data = await response.json();
+			userId = data.userId
+			socket.send(JSON.stringify({
+				type: 'loadChatRooms',
+				roomID : roomId,
+				userID : userId,
+				newUser: userIdToAdd
+			}))
 		} catch (error) {
 			console.error('Error adding member :', error);
 		}
@@ -1213,7 +1247,14 @@ function handleWebSocketMessage(msg) {
 				});
 			}
 			break;
-			
+		case 'loadChatRooms':
+			if(msg.roomID !== currentRoom){
+				if(msg.userIdToAdd === userId){
+					console.log('LOADING ROOMS')
+					loadRooms()
+				}
+			}
+			break;
 		default:
 			console.warn('Type de message WebSocket non géré:', msg.type);
 	}

@@ -198,6 +198,30 @@ async function SendGeneralMessage(authorID: number, message: string) {
 					}
 					break;
 				}
+			 case 'loadChatRooms': {
+				const { roomID , userID , newUser } = parsed
+				try{
+					console.log('LOADCHATROOM called', newUser)
+					const sockets = MappedClients.get(newUser);
+					if(sockets){
+					console.log('USER FOUND FOR LOADROOMCHAT')
+					for (const socket of sockets) {
+						if (socket.readyState === WebSocket.OPEN) {
+							socket.send(JSON.stringify({
+							type: 'loadChatRooms',
+							roomID:roomID,
+							userID:userID,
+							newUser:newUser
+							}));
+		}
+	}}		
+					//else {client is not connect should keep in notif ?}
+				}
+				catch{
+					ws.send(JSON.stringify({ type: 'system', message: 'Error while loading chat rooms.' }));
+				} 
+			 	break;
+			 }
 	
 				default:
 					ws.send(JSON.stringify({ error: 'Unknown message type' }));

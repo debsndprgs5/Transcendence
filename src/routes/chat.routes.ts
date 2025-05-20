@@ -174,6 +174,7 @@ export default async function chatRoutes(fastify: FastifyInstance) {
 		}
 		try {
 			await chatMgr.createChatRoomMember(roomId, userId);
+			
 			return reply.send({ success: true });
 		} catch (error) {
 			console.error('Error adding member to room:', error);

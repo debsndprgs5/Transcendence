@@ -459,21 +459,36 @@ export function setupHomeHandlers() {
 			errorMsg: "Error during add"
 		});
 
-	if (blockUserBtn) blockUserBtn.onclick = () =>
+	if (blockUserBtn) blockUserBtn.onclick = () =>{
 		actionOnUser({
 			url: '/api/blocks/:userId',
 			method: 'POST',
 			successMsg: "User blocked !",
 			errorMsg: "Error during block"
 		});
+		state.socket.send(JSON.stringify({
+			type: 'chatHistory',
+			roomID: state.currentRoom,
+			userID: state.userId,
+			limit: 50
+		}));
+	}
 
-	if (unblockUserBtn) unblockUserBtn.onclick = () =>
+	if (unblockUserBtn) unblockUserBtn.onclick = () =>{
 		actionOnUser({
 			url: '/api/blocks/:userId',
 			method: 'DELETE',
 			successMsg: "User unblocked !",
 			errorMsg: "Error during unblock"
 		});
+		state.socket.send(JSON.stringify({
+			type: 'chatHistory',
+			roomID: state.currentRoom,
+			userID: state.userId,
+			limit: 50
+		}));
+	}
+
 }
 
 

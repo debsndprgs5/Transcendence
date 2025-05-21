@@ -159,7 +159,7 @@ async function handleConnection(ws: WebSocket, request: any) {
 				}
 	
 				case 'chatHistory': {
-					const { roomID, limit } = parsed;
+					const { roomID, userID, limit } = parsed;
 					if (typeof roomID !== 'number' || (limit !== undefined && typeof limit !== 'number')) {
 						return ws.send(JSON.stringify({ error: 'Invalid history request' }));
 					}
@@ -169,7 +169,7 @@ async function handleConnection(ws: WebSocket, request: any) {
 						const result = [];
 	
 						for (const msg of messages.reverse()) {
-							const blocked = await chatManagement.isBlocked(userId, msg.authorID);
+							const blocked = await chatManagement.isBlocked(userID, msg.authorID);
 							if (blocked === true) continue;
 	
 							const author = await UserManagement.getUnameByIndex(msg.authorID);
@@ -213,8 +213,6 @@ async function handleConnection(ws: WebSocket, request: any) {
 				 handleFriendStatus(parsed, ws)
 			 	break;
 			 }
-
-	
 				default:
 					ws.send(JSON.stringify({ error: 'Unknown message type' }));
 			}
@@ -243,8 +241,9 @@ async function  handleFriendStatus(parsed:any, ws:WebSocket){
 			list: updatedStatus
 		}));
 		break;
-	}
-		//Back send live update, A has B for friends, B join the app, A is "notify"
+	}	
+		//from front A send update
+		//Back send live update to any one friends with A, A has B for friends, B join the app, A is "notify"
 	case 'update': {
 		// Validate inputs
 		if (typeof userID !== 'number' || typeof parsed.status !== 'string') {

@@ -292,3 +292,49 @@ export function AccountView(user, friends = []) {
 	</div>
 	`;
 }
+
+
+export function ProfileView(profileUser) {
+  const username = profileUser.username || '';
+  const avatar =
+    profileUser.avatarUrl ||
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=6d28d9&color=fff&rounded=true`;
+
+  return `
+    <div class="min-h-screen flex items-center justify-center bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 py-10">
+      <div class="bg-white rounded-xl shadow-xl max-w-lg w-full">
+        <div class="px-8 py-8 flex flex-col items-center bg-indigo-50 rounded-t-xl">
+          <img
+            src="${avatar}"
+            alt="${username}"
+            class="w-24 h-24 rounded-full shadow-lg border-4 border-indigo-200 mb-4"
+          />
+          <h2 class="text-2xl font-bold text-indigo-700 mb-1">${username}</h2>
+        </div>
+
+        <div class="px-8 py-6">
+          <div id="profile-stats" class="space-y-2">
+            <h3 class="text-lg font-semibold">Stats</h3>
+            <p class="text-gray-500">(Stats placeholder)</p>
+          </div>
+
+          <div id="game-history" class="mt-6">
+            <h3 class="text-lg font-semibold">Recent Games</h3>
+            <ul class="list-disc list-inside text-gray-500">
+              <li>Game history placeholder</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="px-8 pb-8">
+          <button
+            id="backBtnProfile"
+            class="mt-6 w-full py-2 px-4 bg-gray-200 text-indigo-700 rounded hover:bg-gray-300 transition"
+          >
+            ← Back
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}

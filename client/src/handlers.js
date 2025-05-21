@@ -1,4 +1,4 @@
-import { HomeView, LoginView, RegisterView, AccountView, Setup2FAView, Verify2FAView, render } from './views.js';
+import { HomeView, LoginView, RegisterView, AccountView, Setup2FAView, Verify2FAView, ProfileView, render } from './views.js';
 import { isAuthenticated, apiFetch, initWebSocket, state } from './api.js';
 import { showNotification } from './notifications.js';
 
@@ -221,9 +221,17 @@ export function setupHomeHandlers() {
 				</li>`
 			).join('');
 
-			// If no room is selected, select general
-			if (state.currentRoom === 0 && rooms.length > 0) {
-				state.currentRoom = rooms[0].roomID;
+			// Récupérer la room sélectionnée (sinon 0)
+			let savedRoom = Number(localStorage.getItem('currentRoom') || 0);
+			let validRoom = rooms.find(r => r.roomID === savedRoom);
+
+			if (validRoom) {
+				state.currentRoom = savedRoom;
+			} else if (rooms.length > 0) {
+				state.currentRoom = 0;
+				localStorage.setItem('currentRoom', state.currentRoom);
+			} else {
+				state.currentRoom = 0;
 			}
 
 			// Event listeners for room selection
@@ -369,6 +377,7 @@ export function setupHomeHandlers() {
 							body: JSON.stringify({ name: roomName })
 						});
 						addMemberToRoom(newRoom.roomID, state.userId);
+						selectRoom(newRoom.roomID);
 						await loadRooms();
 					}
 				});
@@ -383,6 +392,7 @@ export function setupHomeHandlers() {
 	async function selectRoom(roomId) {
 		try {
 			state.currentRoom = roomId;
+			localStorage.setItem('currentRoom', roomId);
 			const chatDiv = document.getElementById('chat');
 			if (!chatDiv) return;
 
@@ -892,8 +902,8 @@ function setupAccountHandlers(user) {
 	document.querySelectorAll('.profile-friend-btn').forEach(btn => {
 	btn.onclick = () => {
 		const friendUsername = btn.dataset.username;
-		alert(`Voir le profil de ${friendUsername} (à implémenter)`);
-		// future: history.pushState() + router pour aller sur /profile/:username
+		history.pushState(null, '', `/profile/${encodeURIComponent(friendUsername)}`);
+		router();
 	};
 	});
 
@@ -950,6 +960,7 @@ window.addEventListener('storage', (event) => {
 export function handleLogout() {
 	localStorage.removeItem('token');
 	localStorage.removeItem('username');
+	localStorage.removeItem('currentRoom');
 	state.authToken = null;
 	state.userId = null;
 	state.currentRoom = 0;
@@ -963,6 +974,12 @@ export function handleLogout() {
 	render(HomeView());
 }
 
+function setupProfileHandlers() {
+  // Back to previous page (or home)
+  const backBtn = document.getElementById('backBtnProfile');
+  if (backBtn) backBtn.onclick = () => history.back();
+}
+
 
 // =======================
 // ROUTER
@@ -971,6 +988,31 @@ export function handleLogout() {
 export async function router() {
 	const path = window.location.pathname;
 	updateNav();
+
+	if (path.startsWith('/profile/')) {
+		const username = decodeURIComponent(path.split('/')[2] || '');
+		if (!username) {
+			history.pushState(null, '', '/');
+			return router();
+		}
+		try {
+			const profileUser = await apiFetch(
+				`/api/users/username/${encodeURIComponent(username)}`,
+				{ headers: { 'Authorization': `Bearer ${state.authToken}` } }
+			);
+			render(ProfileView(profileUser));
+			setupProfileHandlers();
+		} catch (e) {
+			showNotification({
+				message: 'Error during profile loading : ' + e,
+				type: 'error',
+				duration: 5000,
+			});
+			history.pushState(null, '', '/');
+			router();
+		}
+		return;
+	}
 
 	switch (path) {
 		case '/login':

@@ -35,7 +35,7 @@ volumes:
     driver: local
     driver_opts:
       type: none
-      device: /sgoinfre/${USER}/transcendence
+      device: /goinfre/${USER}/transcendence
       o: bind
   db_volume:
     name: db_volume

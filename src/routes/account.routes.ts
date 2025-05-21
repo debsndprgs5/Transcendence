@@ -45,4 +45,31 @@ export default async function accountRoutes(fastify: FastifyInstance) {
 
 	  reply.send({ avatarUrl });
 	});
+
+
+// get other people's profile
+
+	fastify.get('/users/username/:username', async (request, reply) => {
+	  try {
+		const { username } = request.params as { username: string };
+		if (!username) {
+		  return reply.code(400).send({ error: 'Username parameter is required' });
+		}
+		const user = await UserManagement.getUserByName(username);
+		if (!user || !user.our_index) {
+		  return reply.code(404).send({ error: `User "${username}" not found` });
+		}
+		// Only public infos
+		return reply.send({
+		  userId: user.our_index,
+		  username: user.username,
+		  avatarUrl: user.avatar_url ?? null,
+		  // add game history and overall stats
+		});
+	  } catch (error) {
+		console.error('Error in /users/username/:username:', error);
+		return reply.code(500).send({ error: 'Internal server error' });
+	  }
+	});
+
 }

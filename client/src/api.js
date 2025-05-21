@@ -178,7 +178,6 @@ export function handleWebSocketMessage(msg) {
 				}
 			}
 			else {
-				console.log('THERE S A SHIT IF YOU DON:T SEE ME IN DM ?')
 				const handleUnread = async(msg) => {
 					try {
 						if(msg.roomID === 0)
@@ -216,9 +215,6 @@ export function handleWebSocketMessage(msg) {
 											" title="Nouveau message"></span>
 									`);
 							}
-						}
-						else {
-							console.log('is this Message is not for me ?');
 						}
 					}
 					catch (err) {

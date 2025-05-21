@@ -137,6 +137,15 @@ export const getFriends = (userID: number) =>
     [userID]
   );
 
+export const getAllUsersWhoHaveMeAsFriend = async (userID: number) => {
+  const result = await getAll<chatType.user_relationships>(
+    `SELECT user_id FROM user_relationships WHERE related_user_id = ? AND type = 'friend'`,
+    [userID]
+  );
+  return result.map(row => row.userID); // returns number[]
+};
+
+
 // ########################
 // #        BLOCKS        #
 // ########################

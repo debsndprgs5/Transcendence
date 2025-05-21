@@ -122,12 +122,18 @@ export async function initWebSocket() {
 						roomID: state.currentRoom,
 						limit: 50
 					}));
+					state.socket.send(JSON.stringify({
+						type: 'friendStatus',
+						action: 'update',
+						state: 'online',
+						userID: state.userID,
+					}));
 				}
 			}, 100);
 		};
 
 		state.socket.onmessage = (event) => {
-			console.log('Message brut reçu du WebSocket:', event.data);
+			console.log('Raw msg from websocket : ', event.data);
 			try {
 				const parsed = JSON.parse(event.data);
 				handleWebSocketMessage(parsed);
@@ -249,6 +255,26 @@ export function handleWebSocketMessage(msg) {
 				state.loadRooms();
 			}
 			//}
+			break;
+		case 'friendStatus':
+			console.log('[FRONT] Message WebSocket friendStatus :', msg);
+			if (msg.action === 'response' && Array.isArray(msg.list)) {
+				msg.list.forEach(({ friendID, status }) => {
+					const btn = document.querySelector(`.chat-friend-btn[data-userid="${friendID}"]`);
+					const friendLi = btn?.closest('li');
+					if (friendLi) {
+						let statusSpan = friendLi.querySelector('.friend-status');
+						if (statusSpan) {
+							let color = status === 'online' ? 'text-green-500' : 'text-gray-400';
+							if (status === 'in-game') color = 'text-yellow-500';
+							statusSpan.className = `friend-status ml-2 text-xs align-middle ${color}`;
+							statusSpan.textContent = status;
+						}
+					}
+				});
+			} else {
+				console.warn(`[FRONT] Impossible de trouver le bouton ou le li pour l'ami`, friendID);
+			}
 			break;
 		default:
 			console.warn('Type de message WebSocket non géré:', msg.type);

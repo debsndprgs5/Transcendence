@@ -192,7 +192,7 @@ export function setupHomeHandlers() {
 		});
 	}
 
-	// "Create game" button (à modifier selon ta logique jeu)
+	// "Create game" button
 	const newGameBtn = document.getElementById('newGameBtn');
 	if (newGameBtn) {
 		newGameBtn.addEventListener('click', () => {
@@ -221,7 +221,7 @@ export function setupHomeHandlers() {
 				</li>`
 			).join('');
 
-			// Récupérer la room sélectionnée (sinon 0)
+			// Get previously selected room
 			let savedRoom = Number(localStorage.getItem('currentRoom') || 0);
 			let validRoom = rooms.find(r => r.roomID === savedRoom);
 
@@ -671,7 +671,7 @@ function setupVerify2FAHandlers() {
 }
 
 
-function setupAccountHandlers(user) {
+function setupAccountHandlers(user, friends = []) {
 	// Back to home
 	const backBtn = document.getElementById('backHomeBtn');
 	if (backBtn) {
@@ -703,7 +703,6 @@ function setupAccountHandlers(user) {
 	if (!res.ok) 
 		showNotification({ message: 'Error during avatar uploading !', type: 'error', duration: 5000 });
 	};
-
 	// Password
 	document.getElementById('profileForm').onsubmit = async e => {
 	e.preventDefault();
@@ -898,7 +897,7 @@ function setupAccountHandlers(user) {
 		}
 		};
 	});
-	// Other's profiles (to implement)
+	// Friends's profiles
 	document.querySelectorAll('.profile-friend-btn').forEach(btn => {
 	btn.onclick = () => {
 		const friendUsername = btn.dataset.username;
@@ -939,6 +938,25 @@ function setupAccountHandlers(user) {
 			});
 		};
 	});
+	// Friends status requests
+	const friendsStatusList = friends.map(friend => ({
+		friendID: friend.our_index
+	}));
+	console.log('[FRONT] Envoi friendStatus :', friendsStatusList);
+
+	// Stocke pour plus tard au cas où
+	state.friendsStatusList = friendsStatusList;
+
+	// Essaie d'envoyer tout de suite si possible
+	if (state.socket && friendsStatusList.length) {
+		state.socket.send(JSON.stringify({
+			type: 'friendStatus',
+			action: 'request',
+			friendList: friendsStatusList
+		}));
+	} else {
+		console.warn("WebSocket not ready for friendStatus, will send on open.");
+	}
 }
 
 // ─── AUTH HELPERS ──────────────────────────────────────────────────────────────
@@ -961,15 +979,24 @@ export function handleLogout() {
 	localStorage.removeItem('token');
 	localStorage.removeItem('username');
 	localStorage.removeItem('currentRoom');
-	state.authToken = null;
-	state.userId = null;
-	state.currentRoom = 0;
+
 	updateNav();
 
 	// Close WebSocket if it's open
 	if (state.socket && state.socket.readyState === WebSocket.OPEN) {
 		state.socket.close();
 	}
+
+	state.socket.send(JSON.stringify({
+		type: 'friendStatus',
+		action: 'update',
+		state: 'offline',
+		userID: state.userID,
+	}));
+
+	state.authToken = null;
+	state.userId = null;
+	state.currentRoom = 0;
 	
 	render(HomeView());
 }
@@ -1045,9 +1072,9 @@ export async function router() {
 					const user = await apiFetch('/api/users/me', { headers: { 'Authorization': `Bearer ${state.authToken}` } });
 					const friends = await apiFetch('/api/friends', { headers: { 'Authorization': `Bearer ${state.authToken}` } });
 					render(AccountView(user, friends));
-					setupAccountHandlers(user);
+					setupAccountHandlers(user, friends);
 				} catch (e) {
-					showNotification({ message: 'Error during account loading.', type: 'error', duration: 5000 });
+					showNotification({ message: 'Error during account loading :' + e, type: 'error', duration: 5000 });
 					history.pushState(null, '', '/');
 					router();
 				}

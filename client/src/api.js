@@ -314,19 +314,38 @@ export function handleWebSocketMessage(msg) {
 }
 
 // Auxillary function to append a message to chat
-export function appendMessageToChat(chatDiv, { isOwnMessage, name, content }) {
-	const messageP = document.createElement('p');
-	messageP.className = isOwnMessage ? 'text-right mb-1' : 'text-left mb-1';
+export function appendMessageToChat(chatDiv, { isOwnMessage, name, content, username }) {
+    const messageP = document.createElement('p');
+    messageP.className = isOwnMessage ? 'text-right mb-1' : 'text-left mb-1';
 
-	const prefixSpan = document.createElement('span');
-	prefixSpan.className = isOwnMessage ? 'text-green-600 font-semibold' : 'text-blue-600 font-semibold';
-	prefixSpan.textContent = `${name}: `;
+    // Infer username if missing or empty (fallback on name)
+    let safeUsername = username;
+    if (!safeUsername || safeUsername === 'undefined') {
+        // Try from localStorage or fallback to name
+        safeUsername = isOwnMessage
+            ? localStorage.getItem('username') || 'Me'
+            : name;
+    }
 
-	const contentSpan = document.createElement('span');
-	contentSpan.className = 'text-gray-800';
-	contentSpan.textContent = content;
+    // Name prefix: clickable for others, not for yourself
+    let prefixSpan;
+    if (isOwnMessage) {
+        prefixSpan = document.createElement('span');
+        prefixSpan.className = 'text-green-600 font-semibold';
+        prefixSpan.textContent = 'Me: ';
+    } else {
+        prefixSpan = document.createElement('span');
+        prefixSpan.className = 'text-blue-600 font-semibold username-link cursor-pointer hover:underline';
+        prefixSpan.textContent = `${name}: `;
+        // Always set a valid username, never undefined
+        prefixSpan.setAttribute('data-username', safeUsername);
+    }
 
-	messageP.appendChild(prefixSpan);
-	messageP.appendChild(contentSpan);
-	chatDiv.appendChild(messageP);
+    const contentSpan = document.createElement('span');
+    contentSpan.className = 'text-gray-800';
+    contentSpan.textContent = content;
+
+    messageP.appendChild(prefixSpan);
+    messageP.appendChild(contentSpan);
+    chatDiv.appendChild(messageP);
 }

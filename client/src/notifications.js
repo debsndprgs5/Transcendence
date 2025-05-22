@@ -1,3 +1,5 @@
+import { createDirectMessageWith, router } from './handlers.js';
+
 
 // ─── NOTIFICATIONS ────────────────────────────────────────────────────────────────
 
@@ -156,4 +158,82 @@ export function showNotification({
 			notif.remove();
 		}, 300);
 	}, duration);
+}
+
+// Show a floating action bubble below the clicked username
+export function showUserActionsBubble(target, username) {
+	// Remove any old bubble
+	document.querySelectorAll('.user-action-bubble').forEach(el => el.remove());
+
+	// Find the container (the .flex-1 or the parent of #chat)
+	const chatDiv = document.getElementById('chat');
+	const parent = chatDiv.parentElement;
+
+	if (parent && window.getComputedStyle(parent).position === "static") {
+		parent.style.position = "relative";
+	}
+
+	// Create the bubble
+	const bubble = document.createElement('div');
+	bubble.className = 'user-action-bubble';
+
+	// Content with icons and a separator
+	bubble.innerHTML = `
+		<svg class="user-action-bubble__arrow" viewBox="0 0 28 13" fill="none">
+			<path d="M14 13L0 0h28L14 13z" fill="#fff" stroke="#a5b4fc" stroke-width="1.5"/>
+		</svg>
+		<button data-action="profile">👤 <span>Profile</span></button>
+		<button data-action="dm">💬 <span>Direct Message</span></button>
+		<button data-action="invite" disabled>🎮 <span>Invite Game</span></button>
+	`;
+
+	// Append to parent
+	parent.appendChild(bubble);
+
+	// Position (below pseudo, arrow included)
+	const parentRect = parent.getBoundingClientRect();
+	const targetRect = target.getBoundingClientRect();
+	const bubbleRect = bubble.getBoundingClientRect();
+
+	const top = targetRect.bottom - parentRect.top + parent.scrollTop + 12;
+	let left = targetRect.left - parentRect.left + parent.scrollLeft - 18; // slight offset
+	// Prevent overflow right
+	const maxLeft = parent.offsetWidth - bubble.offsetWidth - 12;
+	if (left > maxLeft) left = maxLeft;
+	if (left < 8) left = 8;
+	bubble.style.top = `${top}px`;
+	bubble.style.left = `${left}px`;
+
+	// Position the arrow under the target
+	const arrow = bubble.querySelector('.user-action-bubble__arrow');
+	if (arrow) {
+		let arrowLeft = targetRect.left - parentRect.left + (targetRect.width / 2) - left - 14; // 14 = arrow width/2
+		if (arrowLeft < 8) arrowLeft = 8;
+		arrow.style.left = `${arrowLeft}px`;
+	}
+
+	// Close bubble on outside click
+	setTimeout(() => {
+		document.addEventListener('mousedown', function onClickOutside(e) {
+			if (!bubble.contains(e.target)) {
+				bubble.remove();
+				document.removeEventListener('mousedown', onClickOutside);
+			}
+		});
+	}, 20);
+
+	// Actions
+	bubble.addEventListener('click', async function(e) {
+		const action = e.target.closest('button')?.getAttribute('data-action');
+		if (!action) return;
+		if (action === 'profile') {
+			history.pushState(null, '', `/profile/${encodeURIComponent(username)}`);
+			router();
+			bubble.remove();
+		} else if (action === 'dm') {
+			await createDirectMessageWith(username);
+			bubble.remove();
+		}
+		// "invite" does nothing
+	});
 }

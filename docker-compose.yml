@@ -7,7 +7,7 @@ services:
     ports:
       - "${PORT}:${PORT}"
     volumes:
-      - ./client:/app/client
+      - ./client/src:/app/client/src
       - ./src:/app/src
       - transcendence_volume:/app/runtime
       - db_volume:/app/db
@@ -21,13 +21,6 @@ services:
       - WORK_DIR=${WORK_DIR}
       - USER=${USER}
       - SESSION_MANAGER=${SESSION_MANAGER}
-
-  tailwind:
-    image: node:18-alpine
-    working_dir: /app
-    command: sh -c "npm install && npm run watch:css"
-    volumes:
-      - ./:/app
 
 volumes:
   transcendence_volume:

@@ -15,6 +15,9 @@ COPY client/favicon.ico ./client/
 COPY package*.json ./
 RUN npm install
 
+COPY tailwind.config.js ./
+COPY client ./client
+
 # Build Tailwind CSS
 RUN npx tailwindcss -i ./client/src/input.css \
     -o ./client/dist/output.css \
@@ -33,6 +36,8 @@ RUN apk add --no-cache python3 make g++ \
   && ln -sf python3 /usr/bin/python \
   && npm install \
   && apk del python3 make g++
+
+COPY --from=builder-front /app/client/dist ./client/dist
 
 # Copy full source for TS build
 COPY tsconfig.json ./

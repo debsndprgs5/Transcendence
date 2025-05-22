@@ -955,18 +955,17 @@ export function handleLogout() {
 	localStorage.removeItem('currentRoom');
 
 	updateNav();
-
-	// Close WebSocket if it's open
-	if (state.socket && state.socket.readyState === WebSocket.OPEN) {
-		state.socket.close();
-	}
-
 	state.socket.send(JSON.stringify({
 		type: 'friendStatus',
 		action: 'update',
 		state: 'offline',
 		userID: state.userID,
 	}));
+
+	// Close WebSocket if it's open
+	if (state.socket && state.socket.readyState === WebSocket.OPEN) {
+		state.socket.close();
+	}
 
 	state.authToken = null;
 	state.userId = null;

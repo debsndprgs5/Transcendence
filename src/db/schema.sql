@@ -64,7 +64,6 @@ CREATE TABLE IF NOT EXISTS gameRooms(
 );
 
 
-
 CREATE TABLE IF NOT EXISTS gameMembers{
 	gameID 						INTEGER,
 	tournamentID 				INTEGER,
@@ -106,11 +105,4 @@ VALUES (0, '0', 'GeneralDummy', '0');
 INSERT OR IGNORE INTO chatRooms(roomID, ownerID)
 VALUES (0, 0);
 
-/*
-Still needs at least 
-
-Friends and block list 
-
-Game/render
-
-*/			
+	

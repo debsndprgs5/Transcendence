@@ -4,10 +4,11 @@ const MappedPlayers= new Map<number, WebSocket>();
 export function initGameSocket(){
 	//Init socket for a client
 	//Adds it to MappedPlayers
-	//
+	//Wait for another socket to connect
 }
 
 export function handleGameConnect(){
+	//once 2 players are found , create a game room if none is given for arg 
 }
 
 export function startGame(){

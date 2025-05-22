@@ -275,12 +275,15 @@ export function AccountView(user, friends = []) {
 			<ul id="friendsList" class="space-y-2">
 			${friends.map(friend => `
 				<li class="py-1 border-b flex justify-between items-center">
-				<span class="flex-1 truncate">${friend.username}</span>
-				<span class="flex gap-2">
-					<button class="chat-friend-btn text-xl" data-username="${friend.username}" data-userid="${friend.userId}" title="Chat">💬</button>
-					<button class="profile-friend-btn text-xl" data-username="${friend.username}" title="Profile">👤</button>
-					<button class="remove-friend-btn text-xl text-red-500" data-username="${friend.username}" title="Remove">❌</button>
-				</span>
+					<span class="flex-1 truncate">
+						${friend.username}
+						<span class="friend-status ml-2 text-xs align-middle" data-userid="${friend.our_index}"></span>
+					</span>
+					<span class="flex gap-2">
+						<button class="chat-friend-btn text-xl" data-username="${friend.username}" data-userid="${friend.our_index}" title="Chat">💬</button>
+						<button class="profile-friend-btn text-xl" data-username="${friend.username}" title="Profile">👤</button>
+						<button class="remove-friend-btn text-xl text-red-500" data-username="${friend.username}" title="Remove">❌</button>
+					</span>
 				</li>
 			`).join('')}
 			</ul>

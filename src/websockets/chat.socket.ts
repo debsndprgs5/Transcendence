@@ -224,6 +224,7 @@ async function  handleFriendStatus(parsed:any, ws:WebSocket){
 	switch(parsed.action){
 		//Front is asking for the full list
 	case 'request': {
+		console.log('[BACK] friendStatus action=request', friendList);
 		if (!Array.isArray(friendList)) {
 			ws.send(JSON.stringify({ error: 'Invalid friend list' }));
 			return;
@@ -235,6 +236,7 @@ async function  handleFriendStatus(parsed:any, ws:WebSocket){
 				status: isOnline ? 'online' : 'offline'
 			};
 		});
+		console.log('[BACK] friendStatus action=response', updatedStatus);
 		ws.send(JSON.stringify({
 			type: 'friendStatus',
 			action: 'response',
@@ -259,7 +261,7 @@ async function  handleFriendStatus(parsed:any, ws:WebSocket){
 			// 2) For each friend, if they have a connected socket, send them the update
 			for (const friendID of relatedFriends) {
 			const friendSocket = MappedClients.get(friendID);
-			if (friendSocket && friendSocket.readyState === WebSocket.OPEN) {
+			if (friendSocket) {
 				friendSocket.send(JSON.stringify({
 				type: 'friendStatus',
 				action: 'updateStatus',

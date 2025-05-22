@@ -8,5 +8,5 @@ export interface user {
     avatar_url?: string;
     jwtToken: string;
     created_at: string;
-  }
+}
   

@@ -122,12 +122,14 @@ export async function initWebSocket() {
 						roomID: state.currentRoom,
 						limit: 50
 					}));
-					state.socket.send(JSON.stringify({
-						type: 'friendStatus',
-						action: 'update',
-						state: 'online',
-						userID: state.userID,
-					}));
+
+					if (window.location.pathname === '/account' && state.friendsStatusList?.length) {
+						state.socket.send(JSON.stringify({
+							type: 'friendStatus',
+							action: 'request',
+							friendList: state.friendsStatusList
+						}));
+					}
 				}
 			}, 100);
 		};
@@ -136,6 +138,7 @@ export async function initWebSocket() {
 			console.log('Raw msg from websocket : ', event.data);
 			try {
 				const parsed = JSON.parse(event.data);
+				console.log('ZBOOB 2eme du nom : ', parsed);
 				handleWebSocketMessage(parsed);
 			} catch (e) {
 				console.error('Websocket message parsing error:', e);
@@ -157,127 +160,156 @@ export async function initWebSocket() {
 
 // Auxilliary function to handle websocket messages
 export function handleWebSocketMessage(msg) {
-	const chatDiv = document.getElementById('chat');
-	if (!chatDiv) return;
-
+	// Maximum number of chat messages to keep displayed
 	const MESSAGE_LIMIT = 15;
 
+	console.log('handleWebSocketMessage:', msg.type, msg);
+
 	switch (msg.type) {
-		case 'system':
-			const systemMsg = document.createElement('p');
-			systemMsg.className = 'italic text-gray-500';
-			systemMsg.textContent = msg.message;
-			chatDiv.appendChild(systemMsg);
+		case 'system': {
+			const chatDiv = document.getElementById('chat');
+			if (chatDiv) {
+				const systemMsg = document.createElement('p');
+				systemMsg.className = 'italic text-gray-500';
+				systemMsg.textContent = msg.message;
+				chatDiv.appendChild(systemMsg);
+			}
 			break;
-			
-		case 'chatRoomMessage':
-			if (msg.roomID === state.currentRoom) {
+		}
+
+		case 'chatRoomMessage': {
+			// Chat messages for the currently selected room
+			const chatDiv = document.getElementById('chat');
+			if (chatDiv && msg.roomID === state.currentRoom) {
 				appendMessageToChat(chatDiv, {
 					isOwnMessage: msg.from === state.userId,
-					name: msg.from === state.userId ? 'Moi' : msg.name_from,
+					name: msg.from === state.userId ? 'Me' : msg.name_from,
 					content: msg.content
 				});
 
-				// Keep only the last 15
+				// Limit the number of messages shown
 				while (chatDiv.children.length > MESSAGE_LIMIT) {
 					chatDiv.removeChild(chatDiv.firstChild);
 				}
-			}
-			else {
-				const handleUnread = async(msg) => {
+			} else {
+				// If the message is for a room you're not currently viewing,
+				// mark it as unread in the room list
+				const handleUnread = async (msg) => {
 					try {
-						if(msg.roomID === 0)
-							return;
-						
-						// Get list of rooms the user is currently a member of
+						if (msg.roomID === 0) return;
+
+						// Fetch the list of rooms the user is a member of
 						const userRooms = await apiFetch('/api/chat/rooms/mine', {
 							headers: { 'Authorization': `Bearer ${state.authToken}` }
 						});
-
-						// Check if the incoming message belongs to one of these rooms
 						const isMessageForMyRoom = userRooms.some(room => room.roomID === msg.roomID);
 
 						if (isMessageForMyRoom) {
-							// Find the room element in the UI
 							const roomListItem = document.querySelector(`#room-list li[data-id="${msg.roomID}"]`);
 							if (!roomListItem) return;
 
-							// Find the dot span
 							const roomNameSpan = roomListItem.querySelector('span.flex-1');
 							if (!roomNameSpan) return;
 
-							// If the dot isn't present yet
+							// Only add the unread dot if it's not already there
 							if (!roomNameSpan.querySelector('.unread-dot')) {
-									// add dot
-									roomNameSpan.insertAdjacentHTML('beforeend', `
-											<span class="unread-dot" style="
-													display:inline-block;
-													width:0.6em;
-													height:0.6em;
-													background:red;
-													border-radius:50%;
-													margin-left:0.5em;
-													vertical-align:middle;
-											" title="Nouveau message"></span>
-									`);
+								roomNameSpan.insertAdjacentHTML('beforeend', `
+									<span class="unread-dot" style="
+										display:inline-block;
+										width:0.6em;
+										height:0.6em;
+										background:red;
+										border-radius:50%;
+										margin-left:0.5em;
+										vertical-align:middle;
+									" title="New message"></span>
+								`);
 							}
 						}
-					}
-					catch (err) {
+					} catch (err) {
 						console.error('Error while marking room as unread:', err);
 					}
-				}
+				};
 				handleUnread(msg);
 			}
 			break;
+		}
 
-		case 'chatHistory':
-			if (msg.roomID === state.currentRoom && Array.isArray(msg.messages)) {
-				chatDiv.innerHTML = ''; // empty chat
-				
-				// Get the last 15 messages from history
-				const recentMessages = msg.messages
-					.slice(-MESSAGE_LIMIT);
-				
-				// Render messages in chronologic order
+		case 'chatHistory': {
+			// Display chat history when loading a room
+			const chatDiv = document.getElementById('chat');
+			if (chatDiv && msg.roomID === state.currentRoom && Array.isArray(msg.messages)) {
+				chatDiv.innerHTML = '';
+				const recentMessages = msg.messages.slice(-MESSAGE_LIMIT);
 				recentMessages.forEach(historyMsg => {
 					appendMessageToChat(chatDiv, {
 						isOwnMessage: historyMsg.from === state.userId,
-						name: historyMsg.from === state.userId ? 'Moi' : historyMsg.name_from,
+						name: historyMsg.from === state.userId ? 'Me' : historyMsg.name_from,
 						content: historyMsg.content
 					});
 				});
 			}
 			break;
-		case 'loadChatRooms':
-			//if(msg.roomID !== state.currentRoom){
+		}
+
+		case 'loadChatRooms': {
+			// Reload the room list if needed (for example, after being invited)
 			if (msg.newUser === state.userId && typeof state.loadRooms === "function") {
 				state.loadRooms();
 			}
-			//}
 			break;
-		case 'friendStatus':
-			console.log('[FRONT] Message WebSocket friendStatus :', msg);
+		}
+
+		case 'friendStatus': {
+			// Friend status updates (online/offline)
+			console.log('[FRONT] WebSocket friendStatus received:', msg);
 			if (msg.action === 'response' && Array.isArray(msg.list)) {
 				msg.list.forEach(({ friendID, status }) => {
-					const btn = document.querySelector(`.chat-friend-btn[data-userid="${friendID}"]`);
-					const friendLi = btn?.closest('li');
-					if (friendLi) {
-						let statusSpan = friendLi.querySelector('.friend-status');
-						if (statusSpan) {
-							let color = status === 'online' ? 'text-green-500' : 'text-gray-400';
-							if (status === 'in-game') color = 'text-yellow-500';
-							statusSpan.className = `friend-status ml-2 text-xs align-middle ${color}`;
-							statusSpan.textContent = status;
+					// Target the correct status span using data-userid
+					const statusSpan = document.querySelector(`.friend-status[data-userid="${friendID}"]`);
+					if (statusSpan) {
+						// Remove previous content
+						statusSpan.innerHTML = '';
+
+						// Create the colored dot
+						const dot = document.createElement('span');
+						dot.style.display = 'inline-block';
+						dot.style.width = '0.75em';
+						dot.style.height = '0.75em';
+						dot.style.borderRadius = '50%';
+						dot.style.marginRight = '0.3em';
+						dot.style.verticalAlign = 'middle';
+
+						// Color depending on status
+						if (status === 'online') {
+							dot.style.background = '#22c55e'; // Tailwind green-500
+						} else if (status === 'in-game') {
+							dot.style.background = '#facc15'; // Tailwind yellow-400
+						} else {
+							dot.style.background = '#9ca3af'; // Tailwind gray-400
 						}
+
+						// Create the text label
+						const text = document.createElement('span');
+						text.textContent = (status === 'in-game') ? 'in game' : status;
+
+						// Optional: style the text if you want
+						text.style.fontWeight = 'bold';
+						text.style.textTransform = 'capitalize';
+
+						// Append both to the statusSpan
+						statusSpan.appendChild(dot);
+						statusSpan.appendChild(text);
+					} else {
+						console.warn('[FRONT] Could not find .friend-status for friendID:', friendID);
 					}
 				});
-			} else {
-				console.warn(`[FRONT] Impossible de trouver le bouton ou le li pour l'ami`, friendID);
 			}
 			break;
+		}
+
 		default:
-			console.warn('Type de message WebSocket non géré:', msg.type);
+			console.warn('Unrecognized WebSocket message type:', msg.type);
 	}
 }
 

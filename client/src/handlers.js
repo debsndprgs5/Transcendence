@@ -676,6 +676,10 @@ function setupAccountHandlers(user, friends = []) {
 	const backBtn = document.getElementById('backHomeBtn');
 	if (backBtn) {
 		backBtn.onclick = () => {
+			if (state.socket && state.socket.readyState === WebSocket.OPEN) {
+			    state.socket.close();
+			    state.socket = null;
+			}
 			history.pushState(null, '', '/');
 			router();
 		};
@@ -943,20 +947,16 @@ function setupAccountHandlers(user, friends = []) {
 		friendID: friend.our_index
 	}));
 	console.log('[FRONT] Envoi friendStatus :', friendsStatusList);
-
-	// Stocke pour plus tard au cas où
-	state.friendsStatusList = friendsStatusList;
-
-	// Essaie d'envoyer tout de suite si possible
-	if (state.socket && friendsStatusList.length) {
+	if (state.socket && state.socket.readyState === WebSocket.OPEN && state.friendsStatusList?.length) {
 		state.socket.send(JSON.stringify({
 			type: 'friendStatus',
 			action: 'request',
-			friendList: friendsStatusList
+			friendList: state.friendsStatusList
 		}));
-	} else {
-		console.warn("WebSocket not ready for friendStatus, will send on open.");
 	}
+	// Keep for later
+	state.friendsStatusList = friendsStatusList;
+
 }
 
 // ─── AUTH HELPERS ──────────────────────────────────────────────────────────────
@@ -1072,6 +1072,7 @@ export async function router() {
 					const user = await apiFetch('/api/users/me', { headers: { 'Authorization': `Bearer ${state.authToken}` } });
 					const friends = await apiFetch('/api/friends', { headers: { 'Authorization': `Bearer ${state.authToken}` } });
 					render(AccountView(user, friends));
+					initWebSocket();
 					setupAccountHandlers(user, friends);
 				} catch (e) {
 					showNotification({ message: 'Error during account loading :' + e, type: 'error', duration: 5000 });

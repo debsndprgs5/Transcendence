@@ -277,7 +277,7 @@ export function AccountView(user, friends = []) {
 				<li class="py-1 border-b flex justify-between items-center">
 					<span class="flex-1 truncate">
 						${friend.username}
-						<span class="friend-status ml-2 text-xs align-middle"></span>
+						<span class="friend-status ml-2 text-xs align-middle" data-userid="${friend.our_index}"></span>
 					</span>
 					<span class="flex gap-2">
 						<button class="chat-friend-btn text-xl" data-username="${friend.username}" data-userid="${friend.our_index}" title="Chat">💬</button>

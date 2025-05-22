@@ -57,12 +57,25 @@ export function HomeView() {
 			<div class="flex-1 flex items-center justify-center mb-4">
 				<canvas id="pong-canvas" width="700" height="500" class="bg-black rounded-lg shadow-lg"></canvas>
 			</div>
-			<button id="newGameBtn"
-				class="mt-4 px-4 py-2 bg-green-500 text-black rounded-lg hover:bg-green-600 transition">
-				+ Create game
-			</button>
+			<div class="flex flex-col gap-3">
+				<button id="createGameBtn"
+					class="px-4 py-2 bg-green-500 text-black rounded-lg hover:bg-green-600 transition">
+					+ Create Game
+				</button>
+				<button id="joinGameBtn"
+					class="px-4 py-2 bg-blue-500 text-black rounded-lg hover:bg-blue-600 transition">
+					Join Game
+				</button>
+				<button id="tournamentBtn"
+					class="px-4 py-2 bg-purple-500 text-black rounded-lg hover:bg-purple-600 transition">
+					Create/Join Tournament
+				</button>
+				<button id="gameSettingsBtn"
+					class="px-4 py-2 bg-gray-300 text-black rounded-lg hover:bg-gray-400 transition">
+					Game Settings
+				</button>
+			</div>
 		</div>
-
 			<!-- Chat section -->
 			<div class="bg-white p-6 rounded-lg shadow-lg flex flex-col">
 				<h2 class="text-2xl font-semibold text-indigo-600 mb-4 flex justify-between items-center gap-2">

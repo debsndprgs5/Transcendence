@@ -50,65 +50,49 @@ export function HomeView() {
 			</h1>
 		</div>
 
-		<div class="grid gap-6 md:grid-cols-2">
-		<!-- Game section -->
-		<div class="bg-white p-6 rounded-lg shadow-lg flex flex-col">
-			<h2 class="text-2xl font-semibold text-indigo-600 mb-4">Available games</h2>
-			<div class="flex-1 flex items-center justify-center mb-4">
-				<canvas id="pong-canvas" width="700" height="500" class="bg-black rounded-lg shadow-lg"></canvas>
+		<div class="grid gap-6 md:grid-cols-3">
+			<!-- Game section, occupe 2 colonnes sur 3 -->
+			<div class="md:col-span-2 bg-white p-6 rounded-lg shadow-lg flex flex-col justify-center">
+				<div class="flex-1 flex mb-4">
+					<div class="relative w-full aspect-[7/5]">
+						<canvas id="pong-canvas" class="bg-black rounded-lg shadow-lg w-full h-full absolute top-0 left-0"></canvas>
+					</div>
+				</div>
+				<!-- Ici tu pourras ajouter d'autres éléments sous le jeu si tu veux -->
 			</div>
-			<div class="flex flex-col gap-3">
-				<button id="createGameBtn"
-					class="px-4 py-2 bg-green-500 text-black rounded-lg hover:bg-green-600 transition">
-					+ Create Game
-				</button>
-				<button id="joinGameBtn"
-					class="px-4 py-2 bg-blue-500 text-black rounded-lg hover:bg-blue-600 transition">
-					Join Game
-				</button>
-				<button id="tournamentBtn"
-					class="px-4 py-2 bg-purple-500 text-black rounded-lg hover:bg-purple-600 transition">
-					Create/Join Tournament
-				</button>
-				<button id="gameSettingsBtn"
-					class="px-4 py-2 bg-gray-300 text-black rounded-lg hover:bg-gray-400 transition">
-					Game Settings
-				</button>
-			</div>
-		</div>
 			<!-- Chat section -->
-			<div class="bg-white p-6 rounded-lg shadow-lg flex flex-col">
+			<div class="bg-white p-6 rounded-lg shadow-lg flex flex-col h-full min-h-0">
 				<h2 class="text-2xl font-semibold text-indigo-600 mb-4 flex justify-between items-center gap-2">
 					<button id="generalChatBtn" 
 						class="text-indigo-600 hover:text-indigo-800 transition-colors cursor-pointer">
 					Chat
 					</button>
 					<div class="flex items-center gap-2">
-					<input id="userActionInput" type="text" placeholder="Username or ID"
-						class="px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-200 text-sm" style="width: 140px;" />
-					<button id="addFriendBtn" 
-						class="px-2 py-1 bg-green-400 text-black rounded hover:bg-green-500 transition text-xs">Add Friend</button>
-					<button id="blockUserBtn" 
-						class="px-2 py-1 bg-yellow-400 text-black rounded hover:bg-yellow-500 transition text-xs">Block</button>
-					<button id="unblockUserBtn" 
-						class="px-2 py-1 bg-gray-300 text-black rounded hover:bg-gray-400 transition text-xs">Unblock</button>
-					<button id="newChatRoomBtn" 
-						class="px-3 py-1 bg-indigo-100 text-indigo-600 rounded hover:bg-indigo-200 transition text-sm">+ Room</button>
+						<input id="userActionInput" type="text" placeholder="Username or ID"
+							class="px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-200 text-sm" style="width: 140px;" />
+						<button id="addFriendBtn" 
+							class="px-2 py-1 bg-green-400 text-black rounded hover:bg-green-500 transition text-xs">Add Friend</button>
+						<button id="blockUserBtn" 
+							class="px-2 py-1 bg-yellow-400 text-black rounded hover:bg-yellow-500 transition text-xs">Block</button>
+						<button id="unblockUserBtn" 
+							class="px-2 py-1 bg-gray-300 text-black rounded hover:bg-gray-400 transition text-xs">Unblock</button>
+						<button id="newChatRoomBtn" 
+							class="px-3 py-1 bg-indigo-100 text-indigo-600 rounded hover:bg-indigo-200 transition text-sm">New Room</button>
 					</div>
 				</h2>
 				<div class="flex-1 overflow-auto mb-4 flex">
 					<!-- Room list -->
-					<ul id="room-list" class="w-1/3 border-r border-gray-200 pr-4 space-y-2 overflow-auto">
+				  <ul id="room-list" class="w-1/3 border-r border-gray-200 pr-4 space-y-2 overflow-auto min-h-0">
 						<!-- populated dynamically -->
 					</ul>
 					<!-- Messages -->
 					<div class="w-2/3 pl-4 flex flex-col">
-						<div id="chat" class="flex-1 overflow-auto space-y-2 mb-4"></div>
+						<div id="chat" class="flex-1 overflow-auto space-y-2 mb-4 break-words"></div>
 						<form id="chatForm" class="flex space-x-2">
 							<input name="message" placeholder="Write a message…"
-										 class="flex-1 border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-indigo-300" />
+								class="flex-1 border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-indigo-300" />
 							<button type="submit"
-											class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+								class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
 								Send
 							</button>
 						</form>

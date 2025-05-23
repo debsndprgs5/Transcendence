@@ -1,7 +1,7 @@
 import { HomeView, LoginView, RegisterView, AccountView, Setup2FAView, Verify2FAView, ProfileView, render } from './views.js';
 import { isAuthenticated, apiFetch, initWebSocket, state } from './api.js';
 import { showNotification, showUserActionsBubble } from './notifications.js';
-
+import { showPongMenu } from './pong_rooms.js';
 
 
 // =======================
@@ -216,7 +216,6 @@ export async function createDirectMessageWith(friendUsername) {
 			},
 			body: JSON.stringify({ userId: selfUser.userId })
 		});
-
 		// Notify and switch to the room
 		state.socket.send(JSON.stringify({
 			type: 'loadChatRooms',
@@ -235,6 +234,16 @@ export async function createDirectMessageWith(friendUsername) {
 	}
 }
 
+// Little helper to resize canvas
+
+function resizePongCanvas() {
+	const container = document.querySelector("#pong-canvas").parentElement;
+	const canvas = document.getElementById("pong-canvas");
+	if (!canvas || !container) return;
+	const rect = container.getBoundingClientRect();
+	canvas.width = rect.width;
+	canvas.height = rect.height;
+}
 
 // =======================
 // HANDLERS
@@ -242,6 +251,13 @@ export async function createDirectMessageWith(friendUsername) {
 let loadRooms;
 
 export function setupHomeHandlers() {
+	// Resize pong-canvas listener
+	resizePongCanvas();
+	showPongMenu();
+	window.addEventListener('resize', () => {
+		resizePongCanvas();
+		showPongMenu();
+	});
 	// Logout button
 	const logoutBtn = document.getElementById('logoutBtn');
 	if (logoutBtn) {
@@ -284,7 +300,9 @@ export function setupHomeHandlers() {
 
 			ul.innerHTML = rooms.map(r =>
 				`<li data-id="${r.roomID}" class="group flex justify-between items-center cursor-pointer hover:bg-gray-100 p-2 rounded ${state.currentRoom === r.roomID ? 'bg-indigo-100' : ''}">
-				<span class="flex-1 truncate">${r.name || `Room #${r.roomID}`}</span>
+				<span class="flex-1 truncate" title="${r.name || `Room #${r.roomID}`}">
+					${r.name || `Room #${r.roomID}`}
+				</span>
 				<div class="flex gap-1 opacity-0 group-hover:opacity-100 transition">
 					<button data-room="${r.roomID}" class="invite-room-btn text-green-600 hover:text-green-800 text-sm">➕</button>
 					${r.ownerID === state.userId ?

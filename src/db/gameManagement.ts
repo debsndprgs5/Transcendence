@@ -48,6 +48,16 @@ export const getAllMembersFromGameRoom = (gameID: number) =>
     [gameID]
   );
 
+export const getLastAddedToRoom = (gameID:number) =>
+	get<{userID:number, alias:string}>(
+		`SELECT userID, alias
+		FROM gameMembers
+		WHERE gameID = ?
+		ORDER BY created_at DESC
+		LIMIT 1`, 
+		[gameID]
+	);
+
 // ########################
 // #     TOURNAMENTS      #
 // ########################

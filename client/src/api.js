@@ -1,9 +1,12 @@
+import { initGameSocket } from './pong_socket.js'
+
 export const state = {
 	authToken: null,
 	pendingToken: null,
 	socket: null,
 	userId: null,
 	currentRoom: 0,
+	gameSocket:null,
 };
 
 export function isAuthenticated() {
@@ -76,7 +79,7 @@ export function getUserIdFromCookie() {
 
 // ─── WEBSOCKETS ────────────────────────────────────────────────────────────────
 
-
+	state.socket = new WebSocket(wsUrl);
 // Initialize WS if both userId and authtoken are setup
 export async function initWebSocket() {
 	if (!isAuthenticated()) {
@@ -152,6 +155,7 @@ export async function initWebSocket() {
 		state.socket.onerror = (error) => {
 			console.error('WebSocket Error:', error);
 		};
+		await initGameSocket();
 	} catch (error) {
 		console.error('Error during WebSocket init:', error);
 	}

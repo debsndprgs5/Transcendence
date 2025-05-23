@@ -69,15 +69,11 @@ export async function initGameSocket(ws:WebSocket, request:any){
 				case 'create':{
 					await handleCreate(parsed, player);
 				}
-				case 'join':{
+				case 'joinGame':{
 					await handleJoin(parsed, player);
 				}
 				case 'invite': {
 					await handleInvite(parsed, player);
-					break;
-				}
-				case 'waiting':{
-					await handleWaiting(parsed, player);
 					break;
 				}
 				case 'playerMoove':{

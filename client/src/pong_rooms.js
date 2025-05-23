@@ -1,3 +1,5 @@
+import * as GameSockets from './pong_socket.js'
+
 // =======================
 // PONG MENU
 // =======================
@@ -61,6 +63,7 @@ function handlePongMenuClick(e) {
 		// if btn.action === "Create Game" -> next steps
 		switch(btn.action){
 			case 'Create Game': {
+				
 				break;
 			}
 			case 'Join Game' : {

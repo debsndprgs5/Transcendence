@@ -12,5 +12,3 @@ export function monitiorGames(){
 	//create gameRoom for each tournament match
 	//wait for all winners then loop again until 1 left
 }
-
-export function 

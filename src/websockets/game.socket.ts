@@ -1,26 +1,112 @@
+import { WebSocketServer, WebSocket, RawData } from 'wss';
+import fp from 'fastify-plugin';
+import { user } from '../types/user';
+import * as UserManagement from '../db/userManagement';
+import jwt, { JwtPayload } from 'jsonwebtoken';
+import * as dotenv from 'dotenv';
+
 
 const MappedPlayers= new Map<number, WebSocket>();
 
-export function initGameSocket(){
-	//Init socket for a client
-	//Adds it to MappedPlayers
-	//Wait for another socket to connect
+dotenv.config({
+	path: path.resolve(process.cwd(), '.env'),
+}); // get env
+
+const jwtSecret = process.env.JWT_SECRET!;
+if (!jwtSecret) {
+	throw new Error("JWT_SECRET environment variable is not defined");
+}
+export async function initGameSocket(ws:WebSocket, request:any){
+	const url = new URL(request.url, `https://${request.headers.host}`);
+		const token = url.searchParams.get('token');
+	
+		if (!token) {
+			console.log('Connection rejected: No token provided');
+			return ws.close(1008, 'No token');
+		}
+	
+		let payload: JwtPayload;
+		try {
+			payload = jwt.verify(token, jwtSecret) as JwtPayload;
+		} catch (error) {
+			console.log('Connection rejected: Invalid token', error);
+			return ws.close(1008, 'Invalid token');
+		}
+	
+		const rand_id = payload.sub as string;
+		const fullUser: user | null = await UserManagement.getUserByRand(rand_id);
+		if (!fullUser) {
+			return ws.close(1008, 'User not found');
+		}
+	
+		const userId = fullUser.our_index;
+		// If an old socket exists for this user, close it
+		const oldWs = MappedPlayers.get(userId);
+		if (oldWs) {
+			try {
+				oldWs.close(1000, 'New connection established');
+			} catch (e) {
+				console.warn('Failed to close previous socket:', e);
+			}
+		}
+		// Set the new socket as the only one
+		MappedPlayers.set(userId, ws);
+		//Waiting for Players to connect and or accept invite ?
+		ws.on('message', async (data:RawData)=> {
+			let parsed:any;
+			try{
+				parsed = JSON.parse(data.toString());
+			}
+			catch{
+				return ws.send(JSON.stringify({error: 'Failed to receive gameSocket'}));
+			}
+			switch (parsed.type){
+				case 'invite': {
+					await handleInvite();
+					break;
+				}
+				case 'giveUp':{
+					await handleGiveUp();
+					break;
+				}
+				case 'waiting':{
+					await handleWaiting();
+					break;
+				}
+				case 'endMatch':{
+					await handleEndMatch();
+					break;
+				}
+				case 'render':{
+					await handleRender();
+					break;
+				}
+				case 'playerMoove':{
+					await handlePlayerMoove();
+					break;
+				}
+			}
+		});
 }
 
-export function handleGameConnect(){
-	//once 2 players are found , create a game room if none is given for arg 
+export function handleGameConnect(ws:WebSocket){
+	//once 2 players are found , create a game room if none is given for arg
+
 }
 
-export function startGame(){
+export async function startGame(){
+	//All players are ready -> we launch game 
 }
 
-export function gameLoop(){
+export async function handlePlayerMoove(){
+	//Player moove up/down
 }
 
-export function handleMovement(){
+export async function handleRender(){
+	//Send all players and balls pos/velocity/angle 
 }
 
-export function sendData(){
+export async function handleInvite(){
 }
 
 

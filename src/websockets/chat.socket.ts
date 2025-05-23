@@ -5,7 +5,7 @@ import * as chatManagement from '../db/chatManagement';
 import fp from 'fastify-plugin';
 import * as dotenv from 'dotenv';
 import path from 'path';
-import { WebSocketServer, WebSocket, RawData } from 'ws';
+import { WebSocketServer, WebSocket, RawData } from 'wss';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 
 

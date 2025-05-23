@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS gameRooms(
 );
 
 
-CREATE TABLE IF NOT EXISTS gameMembers{
+CREATE TABLE IF NOT EXISTS gameMembers(
 	gameID 						INTEGER,
 	tournamentID 				INTEGER,
 	userID 						INTEGER,
@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS gameMembers{
 	FOREIGN KEY(gameID) 		REFERENCES gameRooms(gameID) ON DELETE CASCADE,
 	FOREIGN KEY(userID)			REFERENCES users(our_index) ON DELETE CASCADE,
 	FOREIGN KEY(tournamentID) 	REFERENCES tournaments(tournamentID) ON DELETE CASCADE
-};
+);
 
 
 CREATE TABLE IF NOT EXISTS tournaments(

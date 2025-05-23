@@ -252,8 +252,11 @@ let loadRooms;
 
 export function setupHomeHandlers() {
 	// Resize pong-canvas listener
-	resizePongCanvas();
-	showPongMenu();
+	setTimeout(() => {
+		resizePongCanvas();
+		showPongMenu();
+	}, 100);
+	
 	window.addEventListener('resize', () => {
 		resizePongCanvas();
 		showPongMenu();
@@ -1076,7 +1079,6 @@ export async function router() {
 			render(HomeView());
 			if (isAuthenticated()) {
 				setupHomeHandlers();
-				state.currentRoom = 0;
 				initWebSocket();
 			}
 			break;

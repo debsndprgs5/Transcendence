@@ -8,7 +8,7 @@ export function showPongMenu() {
 
 	canvas.onclick = handlePongMenuClick;
 }
-
+  
 
 export function drawPongMenu(canvas, ctx) {
   const width = canvas.width;

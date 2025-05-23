@@ -55,7 +55,7 @@ export function HomeView() {
 			<div class="md:col-span-2 flex justify-center items-center bg-transparent p-0 m-0">
 			  <div class="relative w-full max-w-5xl">
 			    <img src="../screen.png" alt="CRT frame" class="w-full h-auto">
-			    <div class="absolute top-[15%] left-[14.5%] w-[70%] h-[56%]">
+			    <div class="absolute top-[14%] left-[14%] w-[71.2%] h-[55%]">
 			      <canvas id="pong-canvas" class="w-full h-full rounded-[4px] shadow-inner bg-black"></canvas>
 			    </div>
 			  </div>

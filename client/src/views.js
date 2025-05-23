@@ -51,14 +51,14 @@ export function HomeView() {
 		</div>
 
 		<div class="grid gap-6 md:grid-cols-3">
-			<!-- Game section, occupe 2 colonnes sur 3 -->
-			<div class="md:col-span-2 bg-white p-6 rounded-lg shadow-lg flex flex-col justify-center">
-				<div class="flex-1 flex mb-4">
-					<div class="relative w-full aspect-[7/5]">
-						<canvas id="pong-canvas" class="bg-black rounded-lg shadow-lg w-full h-full absolute top-0 left-0"></canvas>
-					</div>
-				</div>
-				<!-- Ici tu pourras ajouter d'autres éléments sous le jeu si tu veux -->
+			<!-- Game section 2/3 of screen -->
+			<div class="md:col-span-2 flex justify-center items-center bg-transparent p-0 m-0">
+			  <div class="relative w-full max-w-5xl">
+			    <img src="../screen.png" alt="CRT frame" class="w-full h-auto">
+			    <div class="absolute top-[15%] left-[14.5%] w-[70%] h-[56%]">
+			      <canvas id="pong-canvas" class="w-full h-full rounded-[4px] shadow-inner bg-black"></canvas>
+			    </div>
+			  </div>
 			</div>
 			<!-- Chat section -->
 			<div class="bg-white p-6 rounded-lg shadow-lg flex flex-col h-full min-h-0">

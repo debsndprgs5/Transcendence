@@ -1,4 +1,5 @@
 import * as GameSockets from './pong_socket.js'
+import {apiFetch, state} from './api.js'
 
 // =======================
 // PONG MENU
@@ -63,10 +64,11 @@ function handlePongMenuClick(e) {
 		// if btn.action === "Create Game" -> next steps
 		switch(btn.action){
 			case 'Create Game': {
-				
+				createGameButton();
 				break;
 			}
 			case 'Join Game' : {
+				joinGameButton();
 				break;
 			}
 			case 'Tournament' : {
@@ -80,13 +82,28 @@ function handlePongMenuClick(e) {
 }
 
 export async function  createGameButton(){
+	//Incrust gameSettings form here ?
+
+	state.gameSocket.send(JSON.stringify({
+		type: 'create',
+		Ispublic:true,
+		mode: '1v1',
+		rules:null,
+		settings:null
+		}));
 }
 
 export async function joinGameButton(){
+	//const roomID = getJoinForm?
+	
+	state.gameSocket.send(JSON.stringify({
+		type: 'joinGame',
+		roomID:roomID
+	}));
 }
 
-export async function tournamentButton(){
-}
+// export async function tournamentButton(){
+// }
 
-export async function settingsButton(){
-}
+// export async function settingsButton(){
+// }

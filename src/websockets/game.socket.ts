@@ -6,6 +6,7 @@ import * as GameManagement from '../db/gameManagement';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import * as dotenv from 'dotenv';
 import { players } from '../types/game'
+import {getRenderData, beginGame} from '../services/pong_loop'
 
 
 const MappedPlayers= new Map<number, players>();
@@ -56,7 +57,10 @@ export async function initGameSocket(ws:WebSocket, request:any){
 			state: 'init'
 		}
 		MappedPlayers.set(userId, player);
-		//Waiting for Players to connect and or accept invite ?
+		player.socket.send(JSON.stringify({
+			type:'init',
+			success:'true'
+		}));
 		ws.on('message', async (data:RawData)=> {
 			let parsed:any;
 			try{
@@ -76,6 +80,10 @@ export async function initGameSocket(ws:WebSocket, request:any){
 					await handleInvite(parsed, player);
 					break;
 				}
+				case'startGame':{
+					await beginGame(parsed.roomID);
+					break;
+				}
 				case 'playerMoove':{
 					await handlePlayerMoove(parsed, player);
 					break;
@@ -85,15 +93,18 @@ export async function initGameSocket(ws:WebSocket, request:any){
 					break;
 				}
 				case 'endMatch':{
-					await handleEndMatch(parsed, player);
-					break;
-				}
-				case 'giveUp':{
-					await handleGiveUp(parsed, player);
+					await handleEndMatch(parsed);
 					break;
 				}
 			}
 		});
+}
+
+export async function handlePlayerMoove(parsed:any, player:players){
+	//serv recive playerX move +5 ? 
+	//send back to who's in room with X , opponent +5
+	const opponents =  GameManagement.getAllMembersFromGameRoom
+	if(parsed.action === 'up')
 }
 
 export async function handleCreate(parsed:any, player:players){
@@ -207,12 +218,18 @@ export async function startGame(){
 	
 }
 
-export async function handlePlayerMoove(){
-	//Player moove up/down
-}
 
-export async function handleRender(){
+
+
+export async function handleRender(gameID:number, player:players){
 	//Send all players and balls pos/velocity/angle 
+	const renderData = await getRenderData()
+	player.socket.send(JSON.stringify({
+		type:'render',
+		gameID:gameID,
+		userID:player.userID,
+		data:renderData
+	}));
 }
 
 export async function tryStartGameIfReady(gameID:number){
@@ -261,6 +278,20 @@ export async function kickFromGameRoom(gameID:number, player?:players){
 	}));
 }
 
+export async function handleEndMatch(parsed:any){
+	if(parsed.action === 'legit'){
+		//check score in parsed.data to know who win ?
+		//find the winner socket send -> endMatch action->win|lose
+		//update db stats with match stats 
+	}
+	if(parsed.action === 'playerGaveUp'){
+		//the id in parse.userID gaveUp
+		//send the other socket -> endMatch action->win or opponentGaveUp ?
+	}
+	if(parsed.action == 'opponentGaveUp'){
+		//Will this ever happends from backend ?
+	}
+}
 
 
 /*
@@ -295,9 +326,9 @@ export async function kickFromGameRoom(gameID:number, player?:players){
 
 		front send data -> back update db > send winner -> front render win or lose 
 	type "End match"
-	mode:
+	action: legit | playerGaveUp | oppponentGaveUp
 	gameID:
-	winner:yes|no
+	score:
 	data {JSON {for stats later}}
 			
 		front ask render > back gives back data to render / if render tournament we show all current and comming brackets/matches and byes

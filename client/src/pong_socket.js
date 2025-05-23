@@ -1,7 +1,7 @@
 
 import {WebSocket} from 'wss';
-import {state} from './api.js'
-
+import {apiFetch, state} from './api.js'
+import { showNotification, showUserActionsBubble } from './notifications.js';
 //export async function gameSystemLog(msg)
 //export async function gameEndsLog(msg)
 
@@ -23,36 +23,48 @@ export async function initGameSocket(){
 						state.gameSocket=gameSocket;
 						state.userId=data.userID;
 						state.playerState= data.state;
+						showNotification({ message: 'connection with game established', type: 'success' });
 						//User in now register for game socket and is able to start
 					}
 					break;
 				}
 				case'create':{
 					if(data.success === false)
-						console.log('Unable to create room');
-					//should be print on game screen ? 
+						showNotification({ message:'Unable to create game' , type: 'error' });
 					else 
-						console.log('Game created with succes');
+						showNotification({ message:'Game created with succes' , type: 'success' });
 					break;
 				}
 				case 'joinGame':{
 					if(data.success === false)
-						console.log('Unable to join GameRoom');
+						showNotification({ message:'Unable to join game' , type: 'error' });
 					else 
-						console.log('GameRoom joined with succes');
+						showNotification({ message:'Game joined with success' , type: 'success' });
 					break;
 				}
 				case 'invite':{
 					handleInvite(state, data);
 					break;
 				}
+				case 'startGame':{
+					state.socket.send(JSON.stringify({
+						type:'render',
+						action: 'beginGame',
+						gameID:data.gameID,
+						data:null
+					}));
+				}
 				case 'endMatch':{
+					handleEndMatch(state, data);
 					break;
 				}
 				case 'playerMoove':{
+					//does front should received this on top of render ? 
+					//Update oppononent mouvement 
 					break;
 				}
 				case 'render':{
+					//Receive all data for game render 
 					break;
 				}
 			}
@@ -71,6 +83,22 @@ export async function initGameSocket(){
 	};
 }
 
+
+export async function handleEndMatch(state, data){
+	if(data.action === 'legit'){
+	//KICK both player from room , removes them and the room from db
+	//update games stats/ history
+	}
+	if(data.action === 'playerGaveUp'){
+	//give the win to the other, removes other from game and both from db 
+	//don't update stats 
+	}
+	if(data.action == 'oppponentGaveUp'){
+	//give the win to player, removes him from game both from db 
+	//don't update stats 
+	}
+}
+
 export async function handleInvite(state, data){
 
 	if(data.action === 'reply'){
@@ -80,11 +108,29 @@ export async function handleInvite(state, data){
 			console.log('The user you invited just joined the GameRoom');
 	}
 	if(data.action == 'receive'){
-		console.log(`${data.fromAlias} invted you to join his gameRoom ${data.gameID}`);
-		//send form/notif to get 
-		// response = getResponseFromUser();
-		// alias = getAliasFromUser(); 
-		state.gameSocket.send(JSON.stringify({}));
-	}
 
+		const username = apiFetch(`user/by-index/${data.userID}`)
+		const response = null;
+			showNotification({
+						message: `${username} invited you to play, join ?`,
+						type: 'confirm',
+						onConfirm: async () => {
+							response = 'accept'
+							state.gameSocket.send(JSON.stringify({
+								type:'invite',
+								action: 'reply',
+								response
+						}));
+						},
+						onCancel:async() => {
+							response = 'decline'
+							state.gameSocket.send(JSON.stringify({
+								type:'invite',
+								action: 'reply',
+								response
+						}));
+						}
+
+			});
+	}
 }

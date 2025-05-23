@@ -24,6 +24,28 @@ function getUserId(request: FastifyRequest, reply: FastifyReply): number | undef
 
 export default async function chatRoutes(fastify: FastifyInstance) {
 
+
+	fastify.get('/user/by-index/:userID', async(request , reply) => {
+		try{
+			const userID = request.params as {userID:number};
+			if(!userID)
+				return reply.code(400).send({
+					error: `User not found`
+				});
+			const username = await UserManagement.getUnameByIndex(userID);
+			if(!username)
+				return reply.code(400).send({
+					error : `User ID : ${userID} not found in database`
+				});
+			return reply.send({username:username});
+		}
+		catch(error){
+			return reply.code(500).send({
+				error: 'Servor error when tring to look for UnameByIndex'
+			});
+		}
+	});
+
 // helper to get id by username
 
 	fastify.get('/users/by-username/:username', async (request, reply) => {

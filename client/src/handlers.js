@@ -281,13 +281,7 @@ export function setupHomeHandlers() {
 			}
 		});
 	}
-	// "Create game" button
-	const newGameBtn = document.getElementById('newGameBtn');
-	if (newGameBtn) {
-		newGameBtn.addEventListener('click', () => {
-			console.log('Create new game clicked');
-		});
-	}
+
 
 	// Load rooms immediately when entering home view
 	loadRooms = async () => {

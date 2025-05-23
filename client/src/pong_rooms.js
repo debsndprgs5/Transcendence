@@ -22,7 +22,7 @@ export function drawPongMenu(canvas, ctx) {
 	ctx.textAlign = "center";
 	ctx.fillText("Transcendence Pong", width/2, height/5);
 
-	// Boutons
+	// Buttons
 	const btns = [
 		{ label: "Create Game",   y: height/2 - 60 },
 		{ label: "Join Game",     y: height/2 },
@@ -39,13 +39,13 @@ export function drawPongMenu(canvas, ctx) {
 		ctx.fillText(btn.label, width/2, btn.y);
 	});
 
-	// On sauvegarde les positions pour gérer les clics
+	// Save btn pos to handle clicks
 	canvas._pongMenuBtns = btns.map((btn, i) => ({
 		x: width/2 - 110, y: btn.y - 30, w: 220, h: 50, action: btn.label
 	}));
 }
 
-// Gestion clic sur le menu canvas
+// Handling click on the game canvas
 function handlePongMenuClick(e) {
 	const canvas = document.getElementById('pong-canvas');
 	const rect = canvas.getBoundingClientRect();
@@ -57,7 +57,7 @@ function handlePongMenuClick(e) {
 		x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h
 	);
 	if (btn) {
-		alert(`Clicked: ${btn.action}`); // Remplace ça par ta logique plus tard
-		// Par exemple, si btn.action === "Create Game", alors tu lances la création de room
+		alert(`Clicked: ${btn.action}`);
+		// if btn.action === "Create Game" -> next steps
 	}
 }

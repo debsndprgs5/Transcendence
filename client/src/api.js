@@ -6,7 +6,7 @@ export const state = {
 	socket: null,
 	userId: null,
 	currentRoom: 0,
-	gameSocket:null,
+	canvasViewState: 'mainMenu',
 };
 
 export function isAuthenticated() {

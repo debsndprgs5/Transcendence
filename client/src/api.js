@@ -332,7 +332,7 @@ export function appendMessageToChat(chatDiv, { isOwnMessage, name, content, user
     let prefixSpan;
     if (isOwnMessage) {
         prefixSpan = document.createElement('span');
-        prefixSpan.className = 'text-green-600 font-semibold';
+        prefixSpan.className = 'text-green-500 font-semibold';
         prefixSpan.textContent = 'Me: ';
     } else {
         prefixSpan = document.createElement('span');

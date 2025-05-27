@@ -46,22 +46,9 @@ export function drawMainMenu(canvas, ctx) {
 	const y1 = height / 2 + Math.sin(angle) * height / 2;
 	const gradient = ctx.createLinearGradient(0, 0, width, 0);
 
-	gradient.addColorStop(0.000,  "rgba(18, 18, 22, 1)");
-	gradient.addColorStop(0.125,  "rgba(18, 18, 22, 1)");
-	gradient.addColorStop(0.125,  "rgba(25, 26, 29, 1)");
-	gradient.addColorStop(0.25,   "rgba(25, 26, 29, 1)");
-	gradient.addColorStop(0.25,   "rgba(32, 33, 37, 1)");
-	gradient.addColorStop(0.375,  "rgba(32, 33, 37, 1)");
-	gradient.addColorStop(0.375,  "rgba(40, 41, 44, 1)");
-	gradient.addColorStop(0.5,    "rgba(40, 41, 44, 1)");
-	gradient.addColorStop(0.5,    "rgba(46, 47, 50, 1)");
-	gradient.addColorStop(0.625,  "rgba(46, 47, 50, 1)");
-	gradient.addColorStop(0.625,  "rgba(52, 53, 57, 1)");
-	gradient.addColorStop(0.75,   "rgba(52, 53, 57, 1)");
-	gradient.addColorStop(0.75,   "rgba(57, 58, 62, 1)");
-	gradient.addColorStop(0.875,  "rgba(57, 58, 62, 1)");
-	gradient.addColorStop(0.875,  "rgba(61, 62, 66, 1)");
-	gradient.addColorStop(1.0,    "rgba(61, 62, 66, 1)");
+	gradient.addColorStop(0.0, "#2C5364");
+	gradient.addColorStop(0.5, "#203A43");
+	gradient.addColorStop(1.0, "#0F2027");
 
 	ctx.fillStyle = gradient;
 	ctx.fillRect(0, 0, width, height);

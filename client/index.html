@@ -5,17 +5,31 @@
   <title>Transcendence SPA</title>
   <link rel="stylesheet" href="/dist/output.css" />
 </head>
-<body class="bg-gradient-to-br from-indigo-50 to-white min-h-screen flex flex-col">
+<body
+  class="min-h-screen flex flex-col"
+  style="
+    background: linear-gradient(
+      90deg,
+      rgba(164,116,81,1)   0%,
+      rgba(156,152,129,1) 16.667%,
+      rgba(115,160,157,1) 33.333%,
+      rgba(59,137,154,1)  50.000%,
+      rgba(9,91,121,1)    66.667%,
+      rgba(0,40,71,1)     83.333%,
+      rgba(0,1,22,1)     100.000%
+    );
+  "
+>
   <!-- NAVBAR -->
-  <nav class="bg-white shadow-md">
+  <nav class="bg-gradient-to-r from-[#6dd5ed] to-[#2193b0] shadow-md">
     <div class="container mx-auto px-6 py-4 flex justify-between items-center">
-      <a href="/" class="text-2xl font-extrabold text-indigo-600">Transcendence</a>
-      <div id="auth-nav" class="flex space-x-4"></div>
+      <a href="/" class="text-2xl font-extrabold text-white">Transcendence</a>
+      <div id="auth-nav" class="flex space-x-4 text-white"></div>
     </div>
   </nav>
 
   <!-- CONTENU PRINCIPAL -->
-  <main id="app" class="flex-grow container mx-auto px-6 py-12"></main>
+  <main id="app" class="flex-grow"></main>
 
 <footer>
     &copy; 2025 Transcendence. Aucuns droits réservés. Credits : zfavere - ysebban

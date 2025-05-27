@@ -14,10 +14,11 @@ export function setDb(database: sqlite3.Database) {
 // #       GAME ROOMS     #
 // ########################
 
-export const createGameRoom = (mode: string, rules: string, tournamentID: number | null = null) =>
+//Needs to retrun gameID created 
+export const createGameRoom = (type: string, state: string, mode:string, rules:string ,tournamentID: number | null = null) =>
   run(
-    `INSERT INTO gameRooms (mode, rules, tournamentID) VALUES (?, ?, ?)`,
-    [mode, rules, tournamentID]
+    `INSERT INTO gameRooms (type, state, mode, rules, tournamentID) VALUES (?, ?, ?, ?, ?)`,
+    [type, state, mode, rules, tournamentID]
   );
 
 export const deleteGameRoom = (gameID: number) =>
@@ -28,6 +29,11 @@ export const getGameRoom = (gameID: number) =>
     `SELECT * FROM gameRooms WHERE gameID = ?`,
     [gameID]
   );
+
+export const getAllPublicGames = () =>
+	getAll<{gameID:number; mode:string; name:string}>(
+		`SELECT * FROM gameRooms WHERE type=public & state=waiting`
+	);
 
 // ########################
 // #    GAME MEMBERS      #

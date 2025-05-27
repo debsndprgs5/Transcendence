@@ -56,7 +56,10 @@ CREATE TABLE IF NOT EXISTS user_relationships (
 
 -- CREATE TABLE IF NOT EXISTS gameRooms(
 -- 	gameID 						INTEGER PRIMARY KEY AUTOINCREMENT,
+--  name 						TEXT,
 -- 	tournamentID 				INTEGER,
+--  type						TEXT, -- public | private 
+--  state						TEXT, -- waiting| playing
 -- 	mode 						TEXT,
 -- 	rules						TEXT,
 -- 	created_at 					DATETIME DEFAULT CURRENT_TIMESTAMP,

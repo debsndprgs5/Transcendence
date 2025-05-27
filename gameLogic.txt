@@ -13,24 +13,6 @@ SERVER
 		send render every tick
 
 
-ROUTES LOGIC ;
-			POST 'api/pong/random/:userID'
-				user join random MM
-			POST 'api/pong/userID'
-				user create game 
-			POST 'api/pong/tournament/userID'
-				create tournament for user to invite
-
-			DELETE 'api/pong/:gameRoomID/:playerID'
-				leave match
-				delete from socket
-			DELETE 'api/pong/tournamentID/userID'
-				user leaves tournament			
-
-			JOIN 'api/pong/:gameRoomID/targetID'
-				user invite target to single game
-			JOIN 'api/pong/tournament/:tournamentID/targetID'
-				invite targetID to tournamentID
 
 
 

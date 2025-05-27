@@ -70,9 +70,9 @@ export async function initGameSocket(ws:WebSocket, request:any){
 				return ws.send(JSON.stringify({error: 'Failed to receive gameSocket'}));
 			}
 			switch (parsed.type){
-				case 'create':{
-					await handleCreate(parsed, player);
-				}
+				// case 'create':{
+				// 	await handleCreate(parsed, player);
+				// }
 				case 'joinGame':{
 					await handleJoin(parsed, player);
 				}
@@ -84,8 +84,8 @@ export async function initGameSocket(ws:WebSocket, request:any){
 					await beginGame(parsed.roomID);
 					break;
 				}
-				case 'playerMoove':{
-					await handlePlayerMoove(parsed, player);
+				case 'playerMove':{
+					await handlePlayerMove(parsed, player);
 					break;
 				}
 				case 'render':{
@@ -107,109 +107,121 @@ export async function handlePlayerMoove(parsed:any, player:players){
 	if(parsed.action === 'up')
 }
 
-export async function handleCreate(parsed:any, player:players){
-	try{
-		const{userID, alias, isPublic, mode, rules, settings} = parsed;
-		const result= await GameManagement.createGameRoom(mode,rules);
-		const gameID = (result as any)?.lastID;
-		if(!gameID)
-			throw new Error('Failed to get gameID from database');
-		await GameManagement.addMemberToGameRoom(gameID, userID, alias);
-		player.state = 'waiting';
-		player.socket.send(JSON.stringify({
-			type : 'create',
-			success: true,
-			gameID,
-			mode,
-			rules,
-		}));
-	}
-	catch(err){
-		console.error('handleCreate error:', err);
-		player.socket.send(JSON.stringify({
-			type: 'create',
-			success: false
-		}));
-	}
-}
+//should not pass trough sockets
+// export async function handleCreate(parsed:any, player:players){
+// 	try{
+// 		const{userID, alias, isPublic, mode, rules, settings} = parsed;
+// 		const result= await GameManagement.createGameRoom(mode,rules);
+// 		const gameID = (result as any)?.lastID;
+// 		if(!gameID)
+// 			throw new Error('Failed to get gameID from database');
+// 		await GameManagement.addMemberToGameRoom(gameID, userID, alias);
+// 		player.state = 'waiting';
+// 		player.socket.send(JSON.stringify({
+// 			type : 'create',
+// 			success: true,
+// 			gameID,
+// 			mode,
+// 			rules,
+// 		}));
+// 	}
+// 	catch(err){
+// 		console.error('handleCreate error:', err);
+// 		player.socket.send(JSON.stringify({
+// 			type: 'create',
+// 			success: false
+// 		}));
+// 	}
+// }
 
+
+//When user create gameRoom front send joinGame for him 
 export async function handleJoin(parsed:any, player:players){
-	try{
-		const {userID, alias, gameID} = parsed;
+const { userID, alias, gameID, maxPlayers } = parsed;
+
+	if (player.state !== 'init') {
+		player.socket.send(JSON.stringify({
+			type: 'joinGame',
+			success: false,
+			reason: 'You are not ready to play',
+		}));
+		return;
+	}
+
+	try {
 		await GameManagement.addMemberToGameRoom(gameID, userID, alias);
 		player.state = 'waiting';
+
 		player.socket.send(JSON.stringify({
 			type: 'joinGame',
 			success: true,
 			gameID,
 			userID,
-			alias
+			alias,
 		}));
-		//Game can start here 
-	}
-	catch(err){
+
+		await tryStartGameIfReady(gameID, maxPlayers);
+	} catch (err) {
 		console.error('handleJoin error', err);
-		player.socket.send(JSON.stringify({
-			type : 'joinGame',
-			success: false
-		}));
+		player.socket.send({
+			type: 'joinGame',
+			success: false,
+			reason: 'Join failed',
+		});
 	}
 
 }
 
 export async function handleInvite(parsed:any, player:players){
-	const {action} = parsed;
-	if (action == 'send'){
-		const {userID, alias, targetID, gameID} = parsed;
-		const targPlayer = MappedPlayers.get(targetID);
-		if(!targPlayer){
-			player.socket.send(JSON.stringify({
-				type: 'invite',
-				action: 'reply',
-				response: 'offline'
-			}))
+	const { action } = parsed;
+
+	if (action === 'send') {
+		const { userID, alias, targetID, gameID } = parsed;
+		const target = MappedPlayers.get(targetID);
+
+		if (!target) {
+			player.socket.send({ type: 'invite', action: 'reply', response: 'offline' });
 			return;
 		}
-		else if(targPlayer?.state !== 'init'){
-			player.socket.send(JSON.stringify({
-				type:'invite',
-				action: 'reply',
-				response : 'busy'
-			}));
+
+		if (target.state !== 'init') {
+			player.socket.send({ type: 'invite', action: 'reply', response: 'busy' });
 			return;
 		}
-		targPlayer.socket.send(JSON.stringify({
-			type:'invite',
+
+		player.state = 'waiting';
+		target.state = 'invited';
+
+		target.socket.send({
+			type: 'invite',
 			action: 'receive',
 			fromID: userID,
 			fromAlias: alias,
 			gameID
-		}));
-		player.state = 'waitingInvite';
-		targPlayer.state = 'invited';
-		return;
+		});
 	}
-	if(action == 'reply'){
-		const{fromID, toID, response} = parsed;
-		const targPlayer = MappedPlayers.get(toID);
-		if(!targPlayer) return;
-		targPlayer.socket.send(JSON.stringify({
-			type: 'invite',
-			action: 'reply',
-			response,
-			targetID: fromID
-		}))
-		const fromPlayer = MappedPlayers.get(fromID);
-		if(response === 'accept'){
-			targPlayer.state = 'waiting';
-			if(fromPlayer)
-				fromPlayer.state = 'waiting';
-			//Game can start here 		
-		}
-		else{
-			targPlayer.state = 'init';
-			if(fromPlayer)
-				fromPlayer.state = 'init';
+
+	if (action === 'reply') {
+		const { fromID, toID, response, gameID } = parsed;
+		const inviter = MappedPlayers.get(fromID);
+		const invitee = MappedPlayers.get(toID);
+
+		if (inviter)
+			inviter.socket.send({
+				type: 'invite',
+				action: 'reply',
+				response,
+				targetID: toID
+			});
+
+		if (response === 'accept') {
+			await GameManagement.addMemberToGameRoom(gameID, toID, invitee?.alias ?? '');
+			invitee!.state = 'waiting';
+			if (inviter) inviter.state = 'waiting';
+
+			await tryStartGameIfReady(gameID, 2);
+		} else {
+			if (invitee) invitee.state = 'init';
 		}
 	}
 }
@@ -232,35 +244,33 @@ export async function handleRender(gameID:number, player:players){
 	}));
 }
 
-export async function tryStartGameIfReady(gameID:number){
+//check for mode and looks max players 
+//does same logic but up to maxplayers instead 
+export async function tryStartGameIfReady(gameID:number, maxPlayers = 2){
 	const playersInGameRoom = await GameManagement.getAllMembersFromGameRoom(gameID);
-	if(playersInGameRoom.length > 2){
-		//WE FUCKED UP HERE HEHE
+
+	if (playersInGameRoom.length > maxPlayers) {
 		const playerToKick = await GameManagement.getLastAddedToRoom(gameID);
-		if(!playerToKick){
-			console.warn('Big error here, db is broken');
-			return;
-		}
 		const excluded = MappedPlayers.get(playerToKick?.userID);
-		await kickFromGameRoom(gameID,excluded);
-		tryStartGameIfReady(gameID); 
+		await kickFromGameRoom(gameID, excluded);
+		return tryStartGameIfReady(gameID, maxPlayers);
 	}
-	if(playersInGameRoom.length === 2){
-		const p1 = MappedPlayers.get(playersInGameRoom[0].userID);
-		const p2 = MappedPlayers.get(playersInGameRoom[1].userID);
-		if(p1?.state === 'waiting' && p2?.state === 'waiting'){
-			p1.state = 'playing';
-			p2.state = 'playing';
-			const msg = JSON.stringify({
-				type: 'startGame',
-				gameID
+
+	if (playersInGameRoom.length === maxPlayers) {
+		const playerObjs = playersInGameRoom
+			.map(p => MappedPlayers.get(p.userID))
+			.filter(p => p?.state === 'waiting') as players[];
+
+		if (playerObjs.length === maxPlayers) {
+			playerObjs.forEach(p => {
+				p.state = 'playing';
+				p.socket.send(JSON.stringify({ type: 'startGame', gameID }));
 			});
-			p1.socket.send(msg);
-			p2.socket.send(msg);
+
+			// send first render and start game loop
+			await beginGame(gameID);
 		}
 	}
-	else 
-		console.error('THIS SHOULD NEVER HAPPEND TOO ?');
 }
 
 
@@ -288,10 +298,30 @@ export async function handleEndMatch(parsed:any){
 		//the id in parse.userID gaveUp
 		//send the other socket -> endMatch action->win or opponentGaveUp ?
 	}
-	if(parsed.action == 'opponentGaveUp'){
-		//Will this ever happends from backend ?
+}
+
+export async function handlePlayerMove(parsed: any, player: players) {
+	const { direction, gameID } = parsed;
+
+	// Get all players from the game room
+	const allPlayers = await GameManagement.getAllMembersFromGameRoom(gameID);
+
+	// Broadcast to all players in the room except the one who moved
+	for (const p of allPlayers) {
+		if (p.userID === player.userID) continue;
+
+		const targetPlayer = MappedPlayers.get(p.userID);
+		if (targetPlayer && targetPlayer.socket.readyState === WebSocket.OPEN) {
+			targetPlayer.socket.send(JSON.stringify({
+				type: 'playerMove', 
+				userID: player.userID,
+				direction
+			}));
+		}
 	}
 }
+
+
 
 
 /*

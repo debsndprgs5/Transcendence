@@ -49,7 +49,7 @@ export function drawPongMenu(canvas, ctx) {
 }
 
 // Handling click on the game canvas
-function handlePongMenuClick(e) {
+ async function handlePongMenuClick(e) {
 	const canvas = document.getElementById('pong-canvas');
 	const rect = canvas.getBoundingClientRect();
 	const x = (e.clientX - rect.left) * (canvas.width / rect.width);
@@ -68,38 +68,43 @@ function handlePongMenuClick(e) {
 				break;
 			}
 			case 'Join Game' : {
+				const list = await getPublicGameList();
+				//show list and wait for user to click 
 				joinGameButton();
 				break;
 			}
-			case 'Tournament' : {
-				break;
-			}
-			case 'Settings' : {
-				break;
-			}
+			// case 'Tournament' : {
+			// 	break;
+			// }
+			// case 'Settings' : {
+			// 	break;
+			// }
 		}
 	}
 }
 
 export async function  createGameButton(){
-	//Incrust gameSettings form here ?
-
-	state.gameSocket.send(JSON.stringify({
-		type: 'create',
-		Ispublic:true,
-		mode: '1v1',
-		rules:null,
-		settings:null
-		}));
+	//Incrust gameSettings form here ? for now They are all the same 
+	//post(/games/pong/create)
+	//gameID and data in body 
 }
 
 export async function joinGameButton(){
 	//const roomID = getJoinForm?
-	
+	//can we wait for reply here ? or is this somewhere else in the back 
 	state.gameSocket.send(JSON.stringify({
 		type: 'joinGame',
 		roomID:roomID
 	}));
+	//if success -> ask back to start game
+	//if back says game can start-> render game 
+	//if back says game can't start ->  render waiting for opponents  
+}
+
+export async function getPublicGameList(){
+	apiFetch(get, '/pong/list');
+	//extract list from body 
+	//returns a parsed list easy to print 
 }
 
 // export async function tournamentButton(){

@@ -367,7 +367,7 @@ export function AccountView(user, friends = []) {
 			`).join('')}
 			</ul>
 		</div>
-		<div class="px-8 pb-8">
+		<div class="px-8 pb-8">	
 			<button id="backHomeBtn" class="mt-6 w-full py-2 px-4 bg-gray-200 text-indigo-700 rounded hover:bg-gray-300 transition">← Go back</button>
 		</div>
 		</div>

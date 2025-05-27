@@ -12,7 +12,6 @@ export function drawCreateGameView(canvas, ctx) {
 	ctx.fillStyle = "#0f172a";
 	ctx.fillRect(0, 0, width, height);
 
-	// Title
 	ctx.fillStyle = "white";
 	ctx.font = `${Math.floor(height/15)}px Orbitron`;
 	ctx.textAlign = "center";
@@ -68,11 +67,24 @@ export function drawCreateGameView(canvas, ctx) {
 	ctx.font = `${Math.floor(height/22)}px Orbitron`;
 	ctx.fillText("Confirm", width / 2, confirmY + confirmH*0.65);
 
+	// "Back" button
+	const backW = width * 0.18, backH = height * 0.08;
+	const backX = width * 0.08;
+	const backY = height * 0.05;
+	ctx.fillStyle = "#f87171"; // rouge clair
+	ctx.fillRect(backX, backY, backW, backH);
+	ctx.fillStyle = "white";
+	ctx.font = `${Math.floor(height/32)}px Orbitron`;
+	ctx.textAlign = "center";
+	ctx.fillText("← Back", backX + backW/2, backY + backH*0.62);
+
+
 	canvas._createGameButtons = [
 		{ x: plusX, y: yBall, w: btnW, h: btnH, action: "ballSpeedUp" },
 		{ x: minusX, y: yBall, w: btnW, h: btnH, action: "ballSpeedDown" },
 		{ x: plusX, y: yPad, w: btnW, h: btnH, action: "paddleSpeedUp" },
 		{ x: minusX, y: yPad, w: btnW, h: btnH, action: "paddleSpeedDown" },
-		{ x: confirmX, y: confirmY, w: confirmW, h: confirmH, action: "confirmGame" }
+		{ x: confirmX, y: confirmY, w: confirmW, h: confirmH, action: "confirmGame" },
+		{ x: backX, y: backY, w: backW, h: backH, action: "backToMenu" }
 	];
 }

@@ -53,7 +53,6 @@ export function updateNav() {
 		document.getElementById('logoutNavBtn').addEventListener('click', () => {
 			localStorage.removeItem('token');
 			localStorage.removeItem('username');
-			// Mettre à jour le token global si besoin
 			history.pushState(null, '', '/');
 			router();
 		});
@@ -1078,6 +1077,7 @@ export async function router() {
 		default:
 			render(HomeView());
 			if (isAuthenticated()) {
+				state.canvasViewState = "mainMenu";
 				setupHomeHandlers();
 				initWebSocket();
 			}

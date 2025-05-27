@@ -5,7 +5,7 @@ import * as chatManagement from '../db/chatManagement';
 import fp from 'fastify-plugin';
 import * as dotenv from 'dotenv';
 import path from 'path';
-import { WebSocketServer, WebSocket, RawData } from 'wss';
+import { WebSocketServer, WebSocket, RawData } from 'ws';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 
 
@@ -127,7 +127,7 @@ async function handleConnection(ws: WebSocket, request: any) {
 		ws.on('close', () => handleDisconnect(userId, fullUser.username, ws));
 	
 		ws.on('message', async (data: RawData) => {
-			console.log('Message received from client:', data.toString());
+			console.log('CHAT:Message received from client:', data.toString());
 			let parsed: any;
 			try {
 				parsed = JSON.parse(data.toString());
@@ -286,9 +286,9 @@ function handleDisconnect(userId: number, username: string, ws: WebSocket) {
 
 	if (existingSocket === ws) {
 		MappedClients.delete(userId);
-		console.log(`User ${username} (ID: ${userId}) disconnected.`);
+		console.log(`CHAT: User ${username} (ID: ${userId}) disconnected.`);
 	} else {
-		console.warn(`WebSocket mismatch for user ${userId}, not removing.`);
+		console.warn(`CHAT : WebSocket mismatch for user ${userId}, not removing.`);
 	}
 }
 	

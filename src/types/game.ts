@@ -1,3 +1,5 @@
+import { WebSocket } from 'ws';
+
 export interface gameRooms{
 	gameID: number,
 	tournamentID?:number,
@@ -35,6 +37,7 @@ export interface players{
 	socket:WebSocket,
 	gameID?:number,
 	tournamentID?:number,
+	hasDisconnected?:boolean,
 	state:string // 'init'|'waiting'| 'playing'| 'tournamentWait' | 'tournamentPlay'
 }
 

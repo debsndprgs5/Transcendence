@@ -2,9 +2,8 @@ import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import * as chatMgr from '../db/chatManagement';
 import * as UserManagement from '../db/userManagement';
 import * as gameMgr from '../db/gameManagement';
- import * as gameMgr from '../db/gameManagement';
- import MappedPlayers from '../websockets/game.socket';
-import MappedClient from '../websockets/chat.socket'
+// import MappedPlayers from '../websockets/game.socket';
+//import MappedClient from '../websockets/chat.socket'
 
 export async function gameRoutes(fastify: FastifyInstance) {
 
@@ -56,28 +55,54 @@ export async function gameRoutes(fastify: FastifyInstance) {
  }	
 
 
-export async function createGameRoom(request:FastifyRequest, reply:FastifyReply){
-	//const name = extract name from body request 
-	const mode='1v1';
-	const type='public';
-	const state= 'waiting';
-	const rules= JSON.stringify({ball_speed:0.5, paddle_speed:0.5, bounce_vel:0.1});
+export async function createGameRoom(request: FastifyRequest, reply: FastifyReply) {
+	try {
+		const body = request.body as { userID: number; name?: string }; // adjust if more fields needed
 
-	//Needs to modify that one to return gameID 
-	await gameID = gameMgr.createGameRoom(type, state, mode, rules);
-	//reply succes if gameID 
-	//send back the room the name and the userID created it, 
-	//Front send back joinGame trough socket 
-	//so user is set to waiting and cannot join or be invited to other games
-	
+		const mode = '1v1';
+		const type = 'public';
+		const state = 'waiting';
+		const rules = JSON.stringify({ ball_speed: 0.5, paddle_speed: 0.5, bounce_vel: 0.1 });
+		if(!body.name)
+			return;
+		const gameID = await gameMgr.createGameRoom(type, state, mode, rules, body.name, body.userID);
+
+		if (gameID) {
+			reply.send({
+				success: true,
+				room: {
+					gameID,
+					name: body.name || 'Untitled Room',
+					createdBy: body.userID
+				}
+			});
+		} else {
+			reply.status(500).send({ success: false, message: 'Failed to create game room' });
+		}
+	} catch (error) {
+		console.error('Error in createGameRoom:', error);
+		reply.status(500).send({ success: false, message: 'Server error' });
+	}
 }
 
-export async function getGameList(request:FastifyRequest, reply:FastifyReply){
-	//Needs that one to return [gameID, name],[...]
-	const list = await  gameMgr.getAllPublicPong();
-	//add List in the reply 
-	//send the reply 
+
+export async function getGameList(request: FastifyRequest, reply: FastifyReply) {
+	try {
+		const list = await gameMgr.getAllPublicGames(); // assume it returns [{ gameID, name }, ...]
+
+		reply.send({
+			success: true,
+			games: list.map(room => ({
+				gameID: room.gameID,
+				name: room.name
+			}))
+		});
+	} catch (error) {
+		console.error('Error in getGameList:', error);
+		reply.status(500).send({ success: false, message: 'Failed to fetch games' });
+	}
 }
+
 
 // export async function createTournament(request:FastifyRequest, reply:FastifyReply){
 // 	//Create tournament and a related chatRoom

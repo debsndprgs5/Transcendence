@@ -1,5 +1,5 @@
 
-import {WebSocket} from 'wss';
+
 import {apiFetch, state} from './api.js'
 import { showNotification, showUserActionsBubble } from './notifications.js';
 //export async function gameSystemLog(msg)
@@ -10,8 +10,13 @@ export async function initGameSocket(){
 
 	const wsUrl = `wss://${location.host}/ws?token=${encodeURIComponent(state.authToken)}`;
 	const gameSocket = new WebSocket(wsUrl);
+
 	gameSocket.onopen = () => {
-		//do nothing back handle it 
+		console.log('OPENNING GAME SOCKET');
+		gameSocket.send(JSON.stringify({
+			type: 'init',
+			userID:state.userId
+		}));
 	};
 
 	gameSocket.onmessage = (event) =>{
@@ -19,20 +24,13 @@ export async function initGameSocket(){
 			data = JSON.parse(event.data);
 			switch (data.type){
 				case 'init':{
-					if(data.success){
+					if(data.success === 'true'){
 						state.gameSocket=gameSocket;
 						state.userId=data.userID;
 						state.playerState= data.state;
 						showNotification({ message: 'connection with game established', type: 'success' });
 						//User in now register for game socket and is able to start
 					}
-					break;
-				}
-				case'create':{
-					if(data.success === false)
-						showNotification({ message:'Unable to create game' , type: 'error' });
-					else 
-						showNotification({ message:'Game created with succes' , type: 'success' });
 					break;
 				}
 				case 'joinGame':{

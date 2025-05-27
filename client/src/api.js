@@ -6,7 +6,7 @@ export const state = {
 	socket: null,
 	userId: null,
 	currentRoom: 0,
-	canvasViewState: 'mainMenu',
+	gameSocket:null,
 };
 
 export function isAuthenticated() {
@@ -79,7 +79,6 @@ export function getUserIdFromCookie() {
 
 // ─── WEBSOCKETS ────────────────────────────────────────────────────────────────
 
-	state.socket = new WebSocket(wsUrl);
 // Initialize WS if both userId and authtoken are setup
 export async function initWebSocket() {
 	if (!isAuthenticated()) {
@@ -106,9 +105,7 @@ export async function initWebSocket() {
 			console.warn('WebSocket: userId non obtenu');
 			return;
 		}
-
-		const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-		const wsUrl = `${protocol}://${location.host}/ws?token=${encodeURIComponent(state.authToken)}`;
+		const wsUrl = `wss://${location.host}/ws?token=${encodeURIComponent(state.authToken)}`;
 
 		// Close old socket if already open
 		if (state.socket && state.socket.readyState === WebSocket.OPEN) {
@@ -116,7 +113,7 @@ export async function initWebSocket() {
 		}
 
 		state.socket = new WebSocket(wsUrl);
-
+	
 		state.socket.onopen = () => {
 			setTimeout(() => {
 				if (state.socket.readyState === WebSocket.OPEN) {
@@ -155,7 +152,7 @@ export async function initWebSocket() {
 		state.socket.onerror = (error) => {
 			console.error('WebSocket Error:', error);
 		};
-		await initGameSocket();
+
 	} catch (error) {
 		console.error('Error during WebSocket init:', error);
 	}

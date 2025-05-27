@@ -2,6 +2,7 @@ import { HomeView, LoginView, RegisterView, AccountView, Setup2FAView, Verify2FA
 import { isAuthenticated, apiFetch, initWebSocket, state } from './api.js';
 import { showNotification, showUserActionsBubble } from './notifications.js';
 import { showPongMenu } from './pong_rooms.js';
+import { initGameSocket } from './pong_socket.js'
 
 
 // =======================
@@ -194,7 +195,7 @@ export async function createDirectMessageWith(friendUsername) {
 			headers: { 'Authorization': `Bearer ${state.authToken}` }
 		}).then(data => data.userId);
 
-		// Add friend to room
+		// Add friend to roomd to resolve module specifier "ws". Relative references must start with either "/", "./", or "../".
 		await apiFetch(`/api/chat/rooms/${room.roomID}/members`, {
 			method: 'POST',
 			headers: {
@@ -429,6 +430,7 @@ export function setupHomeHandlers() {
 	if (state.authToken) {
 		loadRooms();
 		initWebSocket();
+		initGameSocket();
 	}
 
 	// General chat button
@@ -1061,6 +1063,7 @@ export async function router() {
 					const friends = await apiFetch('/api/friends', { headers: { 'Authorization': `Bearer ${state.authToken}` } });
 					render(AccountView(user, friends));
 					initWebSocket();
+					initGameSocket();
 					setupAccountHandlers(user, friends);
 				} catch (e) {
 					showNotification({ message: 'Error during account loading :' + e, type: 'error', duration: 5000 });
@@ -1074,6 +1077,8 @@ export async function router() {
 			if (isAuthenticated()) {
 				setupHomeHandlers();
 				initWebSocket();
+				initGameSocket();
+				
 			}
 			break;
 	}

@@ -32,7 +32,7 @@ export default async function chatRoutes(fastify: FastifyInstance) {
 				return reply.code(400).send({
 					error: `User not found`
 				});
-			const username = await UserManagement.getUnameByIndex(userID);
+			const username = await UserManagement.getUnameByIndex(userID.userID);
 			if(!username)
 				return reply.code(400).send({
 					error : `User ID : ${userID} not found in database`

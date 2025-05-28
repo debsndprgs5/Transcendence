@@ -66,7 +66,17 @@ export async function apiFetch<T = any>(
 			throw new Error('Session expired. Please log in again.');
 		}
 
-		const data = await response.json();
+		//const data = await response.json();
+		const rawText = await response.text();
+		console.log('Raw API response:', rawText);
+
+		let data;
+		try {
+			data = JSON.parse(rawText);
+		} catch (err) {
+			console.error('Failed to parse JSON. Raw response:', rawText);
+			throw err;
+		}
 
 		if (!response.ok) {
 			throw new Error(data.error || 'An error has occurred');
@@ -135,7 +145,7 @@ export async function initWebSocket(): Promise<void> {
 		}
 
 		const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-		const wsUrl = `${protocol}://${location.host}/ws?token=${encodeURIComponent(
+		const wsUrl = `${protocol}://${location.host}/chat/ws?token=${encodeURIComponent(
 			state.authToken!
 		)}`;
 

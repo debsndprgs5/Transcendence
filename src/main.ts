@@ -7,8 +7,10 @@ import chatRoutes from './routes/chat.routes'
 import accountRoutes from './routes/account.routes'
 import cookie from '@fastify/cookie';
 import wsPlugin from './websockets/chat.socket';
+import gamePlugin from './websockets/game.socket';
 import * as dotenv from 'dotenv';
 import dbPlugin from './db/db';
+import { gameRoutes } from './routes/game.routes'
 
 
 
@@ -64,6 +66,7 @@ async function bootstrap() {
 
   // Mount WS plugin
   await app.register(wsPlugin);
+  await app.register(gamePlugin);
 
   // Mount API Routes
   await app.register(async (fastify) => {
@@ -91,6 +94,14 @@ async function bootstrap() {
     } catch (err) {
       console.error('Error registering account routes:', err)
     }
+
+	//pong routes 
+	try{
+		await fastify.register(gameRoutes)
+	}
+	catch(err){
+		console.error('Error registering gamesRoutes')
+	}
   }, { prefix: '/api' })
 
   // Pour toute autre requête non-api, envoi de index.html

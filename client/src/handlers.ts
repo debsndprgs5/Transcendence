@@ -314,7 +314,7 @@ function resizePongCanvas(): void {
 
 let loadRooms: () => Promise<void>;
 
-export function setupHomeHandlers(): void {
+export async function setupHomeHandlers(): Promise<void> {
 	// Resize pong-canvas listener
 	setTimeout(() => {
 		resizePongCanvas();
@@ -507,7 +507,7 @@ export function setupHomeHandlers(): void {
 	if (!state.socket || state.socket.readyState === WebSocket.CLOSED)
 		initWebSocket();
 	if (!state.gameSocket || state.gameSocket.readyState === WebSocket.CLOSED)
-		initGameSocket();
+		await initGameSocket();
 	}
 
 	// General chat button
@@ -1111,7 +1111,7 @@ export async function router(): Promise<void> {
 					if (!state.socket || state.socket.readyState === WebSocket.CLOSED)
 						initWebSocket();
 					if (!state.gameSocket || state.gameSocket.readyState === WebSocket.CLOSED)
-						initGameSocket();
+						await initGameSocket();
 					setupAccountHandlers(user, friends);
 				} catch (e: any) {
 					showNotification({ message: 'Error during account loading: ' + e.message, type: 'error', duration: 5000 });
@@ -1129,7 +1129,7 @@ export async function router(): Promise<void> {
 				if (!state.socket || state.socket.readyState === WebSocket.CLOSED)
 					initWebSocket();
 				if (!state.gameSocket || state.gameSocket.readyState === WebSocket.CLOSED)
-					initGameSocket();
+					await initGameSocket();
 				startTokenValidation();
 				
 			}

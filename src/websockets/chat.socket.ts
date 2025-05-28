@@ -298,8 +298,10 @@ export default fp(async fastify => {
 	wss.on('connection', handleConnection);
 
 	fastify.server.on('upgrade', (request, socket, head) => {
-		wss.handleUpgrade(request, socket, head, (ws: WebSocket) => {
-			wss.emit('connection', ws, request);
-		});
+		const { url } = request;
+		if(url?.startsWith('/chat'))
+			wss.handleUpgrade(request, socket, head, (ws: WebSocket) => {
+				wss.emit('connection', ws, request);
+			});
 	});
 });

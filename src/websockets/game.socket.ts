@@ -30,8 +30,11 @@ function send(ws: WebSocket, message: any) {
 
 
 export async function initGameSocket(ws: WebSocket, request: any) {
-	const result = await verifyAndExtractUser(ws, request);
-	console.log(`RESULT : ${result}`);
+	const result = await verifyAndExtractUser(ws, request).catch(e => {
+	console.error('[verifyAndExtractUser ERROR]', e);
+	return null;
+	});
+	console.log('[verifyAndExtractUser RESULT]', result);
 	if (!result) return;
 
 	const { userId, fullUser } = result;
@@ -388,4 +391,20 @@ export async function handlePlayerMove(parsed: any, player: players) {
 	}
 }
 
+export default fp(async (fastify) => {
+  const wss = new WebSocketServer({ noServer: true });
+
+  fastify.server.on('upgrade', (request, socket, head) => {
+    const { url } = request;
+	console.log('[GAME][onupgrade]');
+    if (url?.startsWith('/gameSocket')) {
+		console.log('[stratWith/game]')
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit('connection', ws, request);
+      });
+    }
+  });
+
+  wss.on('connection', initGameSocket);
+});
 

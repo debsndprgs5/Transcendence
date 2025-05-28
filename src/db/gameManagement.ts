@@ -25,7 +25,7 @@ export const createGameRoom = async (
   tournamentID: number | null = null
 ): Promise<number> => {
   const result = await run(
-    `INSERT INTO gameRooms (type, state, mode, rules, name, createdBy, tournamentID)
+    `INSERT INTO gameRooms (gameType, state, mode, rules, name, createdBy, tournamentID)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [type, state, mode, rules, name, userID, tournamentID]
   );
@@ -45,8 +45,8 @@ export const getGameRoom = (gameID: number) =>
 
 // Get all public waiting game rooms
 export const getAllPublicGames = () =>
-  getAll<{ gameID: number; name: string; mode: string; createdBy: number }>(
-    `SELECT gameID, name, mode, createdBy FROM gameRooms WHERE type = 'public' AND state = 'waiting'`
+  getAll<{ gameID: number; name: string; mode: string; createdBy: number}>(
+    `SELECT gameID, name, mode, createdBy FROM gameRooms WHERE gameType = 'public' AND state = 'waiting'`
   );
 
 // ########################

@@ -40,7 +40,7 @@ docker-up:myexport-env
 	@$(MAKE) set-env PORT=1400
 	mkdir -p client/dist
 	mkdir -p client/avatars
-	@docker compose build --no-cache
+	@docker compose build
 	@docker compose up
 
 docker-down:

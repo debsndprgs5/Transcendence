@@ -7,9 +7,10 @@ import * as gameMgr from '../db/gameManagement';
 
 export async function gameRoutes(fastify: FastifyInstance) {
 
-
+	console.log('[GAME][ROUTES]');
 	//UserID create a game body:alias:
 	fastify.post('/pong/:userID', async(request,reply) => {
+		console.log('[GAME][ROUTES][POST][CREATEGAME]');
 		try{
 			await createGameRoom(request,reply);
 		}
@@ -65,7 +66,7 @@ export async function createGameRoom(request: FastifyRequest, reply: FastifyRepl
 		const rules = JSON.stringify({
 			ball_speed:body.ball_speed, 
 			paddle_speed:body.paddle_speed,
-			bounce_vel: 0.1 });
+			bounce_vel: '0.1' });
 		if(!body.name)
 			return;
 		const gameID = await gameMgr.createGameRoom(type, state, mode, rules, body.name, body.userID);

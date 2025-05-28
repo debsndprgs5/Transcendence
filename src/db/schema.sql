@@ -58,10 +58,11 @@ CREATE TABLE IF NOT EXISTS gameRooms(
 	gameID 						INTEGER PRIMARY KEY AUTOINCREMENT,
  	name 						TEXT,
 	tournamentID 				INTEGER,
- 	type						TEXT, -- public | private 
+ 	gameType					TEXT, -- public | private 
  	state						TEXT, -- waiting| playing
 	mode 						TEXT,
 	rules						TEXT,
+	createdBy					INTEGER,
 	created_at 					DATETIME DEFAULT CURRENT_TIMESTAMP,
 	FOREIGN KEY(tournamentID)	REFERENCES tournaments(tournamentID) ON DELETE CASCADE
 );

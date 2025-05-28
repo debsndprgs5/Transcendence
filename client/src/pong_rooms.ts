@@ -173,23 +173,26 @@ async function handleCreateGameButton(action: string): Promise<void> {
 			state.canvasViewState = 'mainMenu';
 			break;
 		case 'confirmGame':
-			const reply = await apiFetch(`/pong/${state.userId}`, {
-			method: 'POST',
+			const reply = await apiFetch(`/api/pong/${state.userId}`, {
+			method:'POST',
 			headers:{
-				'Content-Type': 'application/json',
+				'Content-Type': 'application/json'
 			},
 			body: JSON.stringify({
 				userID: state.userId,
 				name: createGameFormData.roomName,
 				ball_speed: createGameFormData.ballSpeed,
-				paddle_spped: createGameFormData.paddleSpeed,
+				paddle_speed: createGameFormData.paddleSpeed,
 			})
 			});
-			const { gameID, gameName } = JSON.parse(reply);
-			if(!state.gameSocket) return;
+			const { gameID, gameName } = reply;
+			if(!state.gameSocket){
+				console.log('NO SOCKET FOR GAME');
+				return;
+			}
 			state.gameSocket.send(JSON.stringify({
 				type:'joinGame',
-				gameName:createGameFormData.roomName,
+				gameName,
 				gameID
 			}));
 			showNotification({

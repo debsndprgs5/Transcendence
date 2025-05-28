@@ -8,18 +8,28 @@ import { showNotification, showUserActionsBubble } from './notifications.js';
 
 export async function initGameSocket(){
 	console.log('INIT GAME SOCKET CALL ');
+	
 	if(!state.authToken)
 		return;
 	const wsUrl = `wss://${location.host}/gameSocket/ws?token=${encodeURIComponent(state.authToken)}`;
 	const gameSocket = new WebSocket(wsUrl);
+	state.gameSocket=gameSocket;
 
-	gameSocket.onopen = () => {
-		console.log('OPENNING GAME SOCKET');
-		gameSocket.send(JSON.stringify({
-			type: 'init',
-			userID:state.userId
-		}));
-	};
+	await new Promise<void>((resolve, reject) => {
+		gameSocket.onopen = () => {
+			console.log('OPENING GAME SOCKET');
+			gameSocket.send(JSON.stringify({
+				type: 'init',
+				userID: state.userId
+			}));
+			resolve(); // Wait ends here
+		};
+
+		gameSocket.onerror = (err) => {
+			console.error('[GAME]WebSocket error:', err);
+			reject(err);
+		};
+	});
 
 	gameSocket.onmessage = (event) =>{
 		try{
@@ -84,7 +94,7 @@ export async function initGameSocket(){
 	};
 
 	gameSocket.onerror = (error) => {
-		console.error('WebSocket error:', error);
+		console.error('[GAME]WebSocket error:', error);
 	};
 }
 

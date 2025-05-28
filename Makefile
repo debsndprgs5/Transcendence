@@ -64,26 +64,26 @@ docker-run:
 # -------------------------------------------------------------------
 # install : install backend + Tailwind + plugin static (v4)
 # -------------------------------------------------------------------
-install:
-	@echo "🔧 Installing dependencies…"
-	@touch .env
-	@if grep -q '^WORK_DIR=' .env; then \
-	  sed -i 's|^WORK_DIR=.*|WORK_DIR=$(WORK_DIR)|' .env; \
-	else \
-	  echo "WORK_DIR=$(WORK_DIR)" >> .env; \
-	fi
-	@$(MAKE) set-env PORT=3000
-	# fastify v4 + plugin static compatible
-	npm install fastify@^4 fastify-static@^4
-	# Websockets
-	npm install ws
-	npm install -D @types/ws
-	# Types/Ms for dependency
-	npm install --save-dev @types/node @types/ms
-	# Account (Multipart & sharp for avatar)
-	npm install @fastify/multipart sharp
-	# le reste (TS, Tailwind, PostCSS…)
-	npm install
+# install:
+# 	@echo "🔧 Installing dependencies…"
+# 	@touch .env
+# 	@if grep -q '^WORK_DIR=' .env; then \
+# 	  sed -i 's|^WORK_DIR=.*|WORK_DIR=$(WORK_DIR)|' .env; \
+# 	else \
+# 	  echo "WORK_DIR=$(WORK_DIR)" >> .env; \
+# 	fi
+# 	@$(MAKE) set-env PORT=3000
+# 	# fastify v4 + plugin static compatible
+# 	npm install fastify@^4 fastify-static@^4
+# 	# Websockets
+# 	npm install ws
+# 	npm install -D @types/ws
+# 	# Types/Ms for dependency
+# 	npm install --save-dev @types/node @types/ms
+# 	# Account (Multipart & sharp for avatar)
+# 	npm install @fastify/multipart sharp
+# 	# le reste (TS, Tailwind, PostCSS…)
+# 	npm install
 
 # -------------------------------------------------------------------
 # clean : delete modules & builds
@@ -110,22 +110,22 @@ clear_db:
 # -------------------------------------------------------------------
 # dev : dev-server + watch-css
 # -------------------------------------------------------------------
-dev: install
-	@echo "▶️  Dev mode: starting CSS watch + TS server"
-	# 1) watch Tailwind CSS en JIT
-	npm run build:css -- --watch &
-	# 2) démarrage du serveur en mode dev (ts-node)
-	npm run dev
+# dev: install
+# 	@echo "▶️  Dev mode: starting CSS watch + TS server"
+# 	# 1) watch Tailwind CSS en JIT
+# 	npm run build:css -- --watch &
+# 	# 2) démarrage du serveur en mode dev (ts-node)
+# 	npm run dev
 
 # -------------------------------------------------------------------
 # prod : complete build then start
 # -------------------------------------------------------------------
-prod: install
-	@echo "📦 Building for production…"
-	# build TS + CSS
-	npm run build
-	@echo "🚀 Starting production server…"
-	npm run start
+# prod: install
+# 	@echo "📦 Building for production…"
+# 	# build TS + CSS
+# 	npm run build
+# 	@echo "🚀 Starting production server…"
+# 	npm run start
 
 # -------------------------------------------------------------------
 # Docker : build + run

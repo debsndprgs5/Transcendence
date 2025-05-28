@@ -1,29 +1,37 @@
-import { createDirectMessageWith, router } from './handlers.js';
-
+import { createDirectMessageWith, router } from './handlers';
 
 // ─── NOTIFICATIONS ────────────────────────────────────────────────────────────────
 
-export function getNotificationContainer() {
-	let container = document.getElementById('notif-container');
+export function getNotificationContainer(): HTMLDivElement {
+	let container = document.getElementById('notif-container') as HTMLDivElement | null;
 	if (!container) {
-	container = document.createElement('div');
-	container.id = 'notif-container';
-	container.className = 'fixed top-5 right-5 flex flex-col space-y-3 z-50';
-	document.body.appendChild(container);
+		container = document.createElement('div');
+		container.id = 'notif-container';
+		container.className = 'fixed top-5 right-5 flex flex-col space-y-3 z-50';
+		document.body.appendChild(container);
 	}
 	return container;
 }
 
+interface NotificationOptions {
+	message?: string;
+	type?: 'success' | 'error' | 'info' | 'warning' | 'prompt' | 'confirm';
+	duration?: number;
+	placeholder?: string;
+	onConfirm?: ((value?: string) => void) | null;
+	onCancel?: (() => void) | null;
+}
+
 export function showNotification({
 	message = '',
-	type = 'info',       // success, error, info, warning, prompt, confirm
-	duration = 3000,     // ignored if type === 'prompt' ou 'confirm'
-	placeholder = '',    // only for prompt
-	onConfirm = null,    // callback(value) for prompt
-	onCancel = null,     // callback() for prompt
-}) {
+	type = 'info',
+	duration = 3000,
+	placeholder = '',
+  onConfirm = null as ((value?: string) => void) | null,
+  onCancel  = null as (() => void) | null,
+}: NotificationOptions): void {
 	if (type === 'prompt') {
-		// Prompt
+		// Prompt modal
 		const overlay = document.createElement('div');
 		overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]';
 
@@ -37,7 +45,8 @@ export function showNotification({
 		const input = document.createElement('input');
 		input.type = 'text';
 		input.placeholder = placeholder;
-		input.className = 'border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500';
+		input.className =
+			'border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500';
 
 		const buttons = document.createElement('div');
 		buttons.className = 'flex justify-end space-x-3';
@@ -65,17 +74,15 @@ export function showNotification({
 		modal.appendChild(msg);
 		modal.appendChild(input);
 		modal.appendChild(buttons);
-
 		overlay.appendChild(modal);
 		document.body.appendChild(overlay);
 
 		input.focus();
-
-		return; // prompt dont create normal notif
+		return; // prompt does not create normal notification
 	}
 
 	if (type === 'confirm') {
-		// Confirmation
+		// Confirmation modal
 		const overlay = document.createElement('div');
 		overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]';
 
@@ -110,17 +117,16 @@ export function showNotification({
 
 		modal.appendChild(msg);
 		modal.appendChild(buttons);
-
 		overlay.appendChild(modal);
 		document.body.appendChild(overlay);
 
-		return; // confirm dont create normal notif
+		return; // confirm does not create normal notification
 	}
 
-	// Normal notif
+	// Normal notification
 	const container = getNotificationContainer();
 
-	const colors = {
+	const colors: Record<string, string> = {
 		success: 'bg-green-500',
 		error: 'bg-red-500',
 		info: 'bg-blue-500',
@@ -134,7 +140,6 @@ export function showNotification({
 		transform transition duration-300 ease-in-out
 		hover:brightness-90
 	`;
-
 	notif.textContent = message;
 
 	notif.addEventListener('click', () => {
@@ -143,16 +148,16 @@ export function showNotification({
 
 	container.appendChild(notif);
 
-	notif.style.opacity = 0;
+	notif.style.opacity = '0';
 	notif.style.transform = 'translateX(100%)';
 	setTimeout(() => {
 		notif.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-		notif.style.opacity = 1;
+		notif.style.opacity = '1';
 		notif.style.transform = 'translateX(0)';
 	}, 10);
 
 	setTimeout(() => {
-		notif.style.opacity = 0;
+		notif.style.opacity = '0';
 		notif.style.transform = 'translateX(100%)';
 		setTimeout(() => {
 			notif.remove();
@@ -161,23 +166,19 @@ export function showNotification({
 }
 
 // Show a floating action bubble below the clicked username
-export function showUserActionsBubble(target, username) {
+export function showUserActionsBubble(target: Element, username: string): void {
 	// Remove any old bubble
 	document.querySelectorAll('.user-action-bubble').forEach(el => el.remove());
 
-	// Find the container (the .flex-1 or the parent of #chat)
 	const chatDiv = document.getElementById('chat');
-	const parent = chatDiv.parentElement;
+	const parent = chatDiv?.parentElement;
 
-	if (parent && window.getComputedStyle(parent).position === "static") {
-		parent.style.position = "relative";
+	if (parent && window.getComputedStyle(parent).position === 'static') {
+		parent.style.position = 'relative';
 	}
 
-	// Create the bubble
 	const bubble = document.createElement('div');
 	bubble.className = 'user-action-bubble';
-
-	// Content with icons and a separator
 	bubble.innerHTML = `
 		<svg class="user-action-bubble__arrow" viewBox="0 0 28 13" fill="none">
 			<path d="M14 13L0 0h28L14 13z" fill="#fff" stroke="#a5b4fc" stroke-width="1.5"/>
@@ -187,27 +188,23 @@ export function showUserActionsBubble(target, username) {
 		<button data-action="invite" disabled>🎮 <span>Invite Game</span></button>
 	`;
 
-	// Append to parent
-	parent.appendChild(bubble);
+	parent?.appendChild(bubble);
 
-	// Position (below pseudo, arrow included)
-	const parentRect = parent.getBoundingClientRect();
-	const targetRect = target.getBoundingClientRect();
+	const parentRect = parent!.getBoundingClientRect();
+	const targetRect = (target as Element).getBoundingClientRect();
 	const bubbleRect = bubble.getBoundingClientRect();
 
-	const top = targetRect.bottom - parentRect.top + parent.scrollTop + 12;
-	let left = targetRect.left - parentRect.left + parent.scrollLeft - 18; // slight offset
-	// Prevent overflow right
-	const maxLeft = parent.offsetWidth - bubble.offsetWidth - 12;
+	const top = targetRect.bottom - parentRect.top + parent!.scrollTop + 12;
+	let left = targetRect.left - parentRect.left + parent!.scrollLeft - 18;
+	const maxLeft = parent!.offsetWidth - bubbleRect.width - 12;
 	if (left > maxLeft) left = maxLeft;
 	if (left < 8) left = 8;
 	bubble.style.top = `${top}px`;
 	bubble.style.left = `${left}px`;
 
-	// Position the arrow under the target
-	const arrow = bubble.querySelector('.user-action-bubble__arrow');
+	const arrow = bubble.querySelector<SVGElement>('.user-action-bubble__arrow');
 	if (arrow) {
-		let arrowLeft = targetRect.left - parentRect.left + (targetRect.width / 2) - left - 14; // 14 = arrow width/2
+		let arrowLeft = targetRect.left - parentRect.left + targetRect.width / 2 - left - 14;
 		if (arrowLeft < 8) arrowLeft = 8;
 		arrow.style.left = `${arrowLeft}px`;
 	}
@@ -215,7 +212,7 @@ export function showUserActionsBubble(target, username) {
 	// Close bubble on outside click
 	setTimeout(() => {
 		document.addEventListener('mousedown', function onClickOutside(e) {
-			if (!bubble.contains(e.target)) {
+			if (!bubble.contains(e.target as Node)) {
 				bubble.remove();
 				document.removeEventListener('mousedown', onClickOutside);
 			}
@@ -223,9 +220,11 @@ export function showUserActionsBubble(target, username) {
 	}, 20);
 
 	// Actions
-	bubble.addEventListener('click', async function(e) {
-		const action = e.target.closest('button')?.getAttribute('data-action');
+	bubble.addEventListener('click', async (e: MouseEvent) => {
+		const btn = (e.target as HTMLElement).closest('button');
+		const action = btn?.getAttribute('data-action');
 		if (!action) return;
+
 		if (action === 'profile') {
 			history.pushState(null, '', `/profile/${encodeURIComponent(username)}`);
 			router();

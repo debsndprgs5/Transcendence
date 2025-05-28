@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "strict": true,
+    "esModuleInterop": true,
+    "outDir": "client/dist/src",
+    "baseUrl": "client/src",
+    "rootDir": "client/src",
+    "allowJs": false,
+    "jsx": "preserve",
+    "skipLibCheck": true
+  },
+  "include": ["client/src/**/*.ts", "client/src/**/*.tsx"]
+}

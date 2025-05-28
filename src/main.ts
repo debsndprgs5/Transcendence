@@ -48,12 +48,19 @@ async function bootstrap() {
     }
   });
 
-  // Mount client service (CSS, app.js ...)
+  // 1) bundle client (JS + CSS)
   await app.register(fastifyStatic, {
-    //root: path.join(__dirname, '../client'),
-	root: '/app/client',
-    prefix: '/'
-  })
+    root: path.resolve(__dirname, '../client/dist'),
+    prefix: '/dist/',
+    decorateReply: false // on ne veut pas remplacer sendFile ici
+  });
+
+  // 2) éléments statiques (index.html, favicon…)  
+  await app.register(fastifyStatic, {
+    root: path.resolve(__dirname, '../client'),
+    prefix: '/',
+    index: false  // on servira index.html manuellement
+  });
 
   // Mount WS plugin
   await app.register(wsPlugin);

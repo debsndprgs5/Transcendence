@@ -5,90 +5,71 @@ FROM node:18-alpine AS builder-front
 
 WORKDIR /app
 
-# Copy Tailwind config and source CSS postcss.config.js
-COPY tailwind.config.js  ./
-COPY client/src ./client/src
-COPY client/index.html ./client/
-COPY client/favicon.ico ./client/
-
-# Install Tailwind and dependencies
-COPY package*.json ./
+# 1) install dependencies for TS client
+COPY package*.json tsconfig.client.json ./
 RUN npm install
 
-COPY tailwind.config.js ./
+# 2) copy the front
 COPY client ./client
+COPY tailwind.config.js ./
 
-# Build Tailwind CSS
-RUN npx tailwindcss -i ./client/src/input.css \
-    -o ./client/dist/output.css \
-    --minify
+# 3) build CSS + JS client
+RUN npx tailwindcss -i client/src/input.css -o client/dist/output.css --minify
+RUN npm run build:client
+RUN npm run bundle
 
 ############################
-# Stage 2 : builder
+# Stage 2 : builder-back
 ############################
-FROM node:18-alpine AS builder
+FROM node:18-alpine AS builder-back
 
 WORKDIR /app
 
-# Copy and install all dependencies (for TS and tools)
+# 1) install dependencies for server
 COPY package*.json ./
 RUN apk add --no-cache python3 make g++ \
-  && ln -sf python3 /usr/bin/python \
-  && npm install \
-  && apk del python3 make g++
+ && ln -sf python3 /usr/bin/python \
+ && npm install \
+ && apk del python3 make g++
 
-COPY --from=builder-front /app/client/dist ./client/dist
+# 2) copy backend TS + dist client from builder-front
+COPY --from=builder-front /app/client ./client
 
-# Copy full source for TS build
+# Copy tsconfig and server-source
 COPY tsconfig.json ./
 COPY src ./src
-COPY client ./client
 
-# Build the backend (TS -> JS)
-RUN npm run build
+# 3) compile back-end
+RUN npx tsc -p tsconfig.json
 
 ############################
 # Stage 3 : runtime
 ############################
 FROM node:18-alpine
 
-# Install bash, SQLite, and OpenSSL
-RUN apk add --no-cache sqlite sqlite-dev bash openssl
-
 WORKDIR /app
 
-# Copy .env file early to extract env vars
-COPY .env ./
+# install sqlite, bash, openssl
+RUN apk add --no-cache sqlite sqlite-dev bash openssl
 
-# Export env vars from .env, extract HOSTNAME, and generate SSL cert
+# 1) copy .env & cert gen
+COPY .env ./
 RUN export $(grep -v '^#' .env | xargs) && \
     HOSTNAME=$(echo "$SESSION_MANAGER" | sed -E 's|.*local/([^.:@]+).*|\1|') && \
-    echo "Using CN=$HOSTNAME for self-signed certificate" && \
-    mkdir -p cert && \
+    mkdir cert && \
     openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
       -keyout cert/key.pem -out cert/cert.pem \
       -subj "/C=US/ST=State/L=City/O=AppName/OU=Dev/CN=$HOSTNAME" \
       -addext "subjectAltName=DNS:$HOSTNAME"
 
-# Copy node modules from builder
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/client ./client
+# 2) copy node_modules + build back + client dist + static front
+COPY --from=builder-back /app/node_modules ./node_modules
+COPY --from=builder-back /app/dist ./dist
+COPY --from=builder-back /app/client ./client
 
-# Copy backend build output
-COPY --from=builder /app/dist ./dist
-
-# Copy CSS from frontend build
-COPY --from=builder-front /app/client/dist ./client/dist
-
-# Copy static files and DB
+# 3) copy DB
 COPY src/db ./db
-COPY client ./client
 
 EXPOSE ${PORT}
 
 CMD ["node", "dist/main.js"]
-
-
-
-

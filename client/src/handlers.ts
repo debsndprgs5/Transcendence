@@ -1,14 +1,33 @@
-import { HomeView, LoginView, RegisterView, AccountView, Setup2FAView, Verify2FAView, ProfileView, render } from './views.js';
-import { isAuthenticated, apiFetch, initWebSocket, state } from './api.js';
-import { showNotification, showUserActionsBubble } from './notifications.js';
-import { showPongMenu } from './pong_rooms.js';
+import {
+	HomeView,
+	LoginView,
+	RegisterView,
+	AccountView,
+	Setup2FAView,
+	Verify2FAView,
+	ProfileView,
+	render
+} from './views';
 
+interface User {
+  username: string;
+  avatarUrl?: string;
+  our_index: number;
+}
+
+
+import { isAuthenticated, apiFetch, initWebSocket, state } from './api';
+import { showNotification, showUserActionsBubble } from './notifications';
+import { showPongMenu } from './pong_rooms';
 
 // =======================
 // TOKEN VALIDATION
 // =======================
 
-export function startTokenValidation() {
+/**
+ * Periodically validates the stored token by calling /api/auth/me.
+ */
+export function startTokenValidation(): void {
 	setInterval(async () => {
 		if (isAuthenticated()) {
 			try {
@@ -17,17 +36,20 @@ export function startTokenValidation() {
 				handleLogout();
 			}
 		}
-	}, 60000); // Check every minute
+	}, 60_000); // Check every minute
 }
 
 // =======================
 // NAV UPDATE
 // =======================
 
-export function updateNav() {
+/**
+ * Renders the top‐right navigation links depending on auth state.
+ */
+export function updateNav(): void {
 	const authNav = document.getElementById('auth-nav');
 	if (!authNav) return;
-	let token = localStorage.getItem('token');
+
 	if (!isAuthenticated()) {
 		authNav.innerHTML = `
 			<a href="/register" data-link
@@ -50,12 +72,14 @@ export function updateNav() {
 				Disconnect
 			</button>
 		`;
-		document.getElementById('logoutNavBtn').addEventListener('click', () => {
-			localStorage.removeItem('token');
-			localStorage.removeItem('username');
-			history.pushState(null, '', '/');
-			router();
-		});
+		document
+			.getElementById('logoutNavBtn')!
+			.addEventListener('click', () => {
+				localStorage.removeItem('token');
+				localStorage.removeItem('username');
+				history.pushState(null, '', '/');
+				router();
+			});
 	}
 }
 
@@ -63,68 +87,97 @@ export function updateNav() {
 // EXPORTABLE HELPERS
 // =======================
 
-export async function addMemberToRoom(roomId, userIdToAdd) {
+/**
+ * Adds a user to a chat room and notifies via WebSocket.
+ */
+export async function addMemberToRoom(roomId: number, userIdToAdd: number): Promise<void> {
 	try {
 		await apiFetch(`/api/chat/rooms/${roomId}/members`, {
 			method: 'POST',
 			headers: {
-				'Authorization': `Bearer ${state.authToken}`,
+				Authorization: `Bearer ${state.authToken}`,
 				'Content-Type': 'application/json'
 			},
 			body: JSON.stringify({ userId: userIdToAdd })
 		});
+
 		const response = await fetch('/api/auth/me', {
-			headers: { 'Authorization': `Bearer ${state.authToken}` }
+			headers: { Authorization: `Bearer ${state.authToken}` }
 		});
 		if (!response.ok) throw new Error('Failed to get userId');
 		const data = await response.json();
 		state.userId = data.userId;
-		state.socket.send(JSON.stringify({
-			type: 'loadChatRooms',
-			roomID: roomId,
-			userID: state.userId,
-			newUser: userIdToAdd
-		}));
+
+		state.socket!.send(
+			JSON.stringify({
+				type: 'loadChatRooms',
+				roomID: roomId,
+				userID: state.userId,
+				newUser: userIdToAdd
+			})
+		);
 	} catch (error) {
 		console.error('Error adding member :', error);
 	}
 }
 
-export async function actionOnUser({ url, method = 'POST', successMsg, errorMsg }) {
-	const userActionInput = document.getElementById('userActionInput');
-	const username = userActionInput.value.trim();
-	if (!username)
+export interface UserActionParams {
+	url: string;
+	method?: string;
+	successMsg: string;
+	errorMsg: string;
+}
+
+/**
+ * Generic helper for friend/block/unblock actions.
+ */
+export async function actionOnUser({
+	url,
+	method = 'POST',
+	successMsg,
+	errorMsg
+}: UserActionParams): Promise<void> {
+	const input = document.getElementById('userActionInput') as HTMLInputElement;
+	const username = input.value.trim();
+	if (!username) {
 		return showNotification({ message: 'Please type a Username', type: 'error' });
+	}
 	try {
 		const userId = await getUserIdByUsername(username);
-		const result = await apiFetch(url.replace(':userId', userId), {
+		const result = await apiFetch(url.replace(':userId', String(userId)), {
 			method,
-			headers: { 'Authorization': `Bearer ${state.authToken}` }
+			headers: { Authorization: `Bearer ${state.authToken}` }
 		});
 		if (result.success) {
 			showNotification({ message: successMsg, type: 'success' });
 		} else {
 			showNotification({ message: errorMsg, type: 'error', duration: 5000 });
 		}
-	} catch (e) {
-		showNotification({ message: errorMsg + ' (' + e.message + ')', type: 'error', duration: 5000 });
+	} catch (e: any) {
+		showNotification({
+			message: `${errorMsg} (${e.message})`,
+			type: 'error',
+			duration: 5000
+		});
 	}
 }
 
-export async function getUserIdByUsername(username) {
-	if (!username) throw new Error("Username empty");
+/**
+ * Fetches a userId by username (throws if not found).
+ */
+export async function getUserIdByUsername(username: string): Promise<number> {
+	if (!username) throw new Error('Username empty');
 	try {
-		const response = await fetch(`/api/users/by-username/${encodeURIComponent(username)}`, {
-			headers: { 'Authorization': `Bearer ${state.authToken}` }
-		});
+		const response = await fetch(
+			`/api/users/by-username/${encodeURIComponent(username)}`,
+			{ headers: { Authorization: `Bearer ${state.authToken}` } }
+		);
 		if (!response.ok) {
-			if (response.status === 404) {
-				throw new Error("User not found");
-			}
+			if (response.status === 404) throw new Error('User not found');
 			throw new Error(`HTTP error! status: ${response.status}`);
 		}
 		const data = await response.json();
-		if (!data.userId) throw new Error("User not found");
+		if (!data.userId) throw new Error('User not found');
 		return data.userId;
 	} catch (error) {
 		console.error('Error getting user ID:', error);
@@ -132,19 +185,21 @@ export async function getUserIdByUsername(username) {
 	}
 }
 
-export async function reconfigure2FA() {
+/**
+ * Initiates 2FA reconfiguration flow.
+ */
+export async function reconfigure2FA(): Promise<void> {
 	try {
 		const response = await fetch('/api/auth/2fa/reconfig', {
 			method: 'POST',
 			headers: {
-				'Authorization': `Bearer ${state.authToken}`,
+				Authorization: `Bearer ${state.authToken}`,
 				'Content-Type': 'application/json'
 			},
 			body: JSON.stringify({})
 		});
 		const data = await response.json();
 		if (response.ok) {
-			// Store the temporary setup token
 			state.pendingToken = data.token;
 			render(Setup2FAView(data.otpauth_url, data.base32));
 			setupSetup2FAHandlers();
@@ -174,70 +229,76 @@ export async function reconfigure2FA() {
 	}
 }
 
-export async function createDirectMessageWith(friendUsername) {
+/**
+ * Creates a direct‐message chat room with another user.
+ */
+export async function createDirectMessageWith(friendUsername: string): Promise<void> {
 	const usernames = [localStorage.getItem('username'), friendUsername].sort();
 	const roomName = `${usernames[0]} | ${usernames[1]}`;
 	try {
-		// Create room
-		const room = await apiFetch('/api/chat/rooms/dm', {
+		const room = await apiFetch<{ roomID: number }>('/api/chat/rooms/dm', {
 			method: 'POST',
 			headers: {
-				'Authorization': `Bearer ${state.authToken}`,
+				Authorization: `Bearer ${state.authToken}`,
 				'Content-Type': 'application/json'
 			},
 			body: JSON.stringify({ name: roomName })
 		});
 
-		// Get friend's user id
-		const friendUserId = await apiFetch(`/users/by-username/${encodeURIComponent(friendUsername)}`, {
-			headers: { 'Authorization': `Bearer ${state.authToken}` }
-		}).then(data => data.userId);
+		const friendUserId = await apiFetch<{ userId: number }>(
+			`/users/by-username/${encodeURIComponent(friendUsername)}`,
+			{ headers: { Authorization: `Bearer ${state.authToken}` } }
+		).then(data => data.userId);
 
-		// Add friend to room
 		await apiFetch(`/api/chat/rooms/${room.roomID}/members`, {
 			method: 'POST',
 			headers: {
-				'Authorization': `Bearer ${state.authToken}`,
+				Authorization: `Bearer ${state.authToken}`,
 				'Content-Type': 'application/json'
 			},
 			body: JSON.stringify({ userId: friendUserId })
 		});
 
-		// Add self to room
-		const selfUser = await apiFetch('/api/auth/me', {
-			headers: { 'Authorization': `Bearer ${state.authToken}` }
+		const selfUser = await apiFetch<{ userId: number }>('/api/auth/me', {
+			headers: { Authorization: `Bearer ${state.authToken}` }
 		});
 		await apiFetch(`/api/chat/rooms/${room.roomID}/members`, {
 			method: 'POST',
 			headers: {
-				'Authorization': `Bearer ${state.authToken}`,
+				Authorization: `Bearer ${state.authToken}`,
 				'Content-Type': 'application/json'
 			},
 			body: JSON.stringify({ userId: selfUser.userId })
 		});
-		// Notify and switch to the room
-		state.socket.send(JSON.stringify({
-			type: 'loadChatRooms',
-			roomID: room.roomID,
-			userID: selfUser.userId,
-			newUser: friendUserId
-		}));
 
-		// Go to chat home
-		window.history.pushState(null, '', '/');
+		state.socket!.send(
+			JSON.stringify({
+				type: 'loadChatRooms',
+				roomID: room.roomID,
+				userID: selfUser.userId,
+				newUser: friendUserId
+			})
+		);
+
+		history.pushState(null, '', '/');
 		router();
-		showNotification({ message: `Room "${roomName}" created with ${friendUsername}`, type: 'success' });
-
-	} catch (e) {
-		showNotification({ message: 'Error while creating the room: ' + e.message, type: 'error', duration: 5000 });
+		showNotification({
+			message: `Room "${roomName}" created with ${friendUsername}`,
+			type: 'success'
+		});
+	} catch (e: any) {
+		showNotification({
+			message: `Error while creating the room: ${e.message}`,
+			type: 'error',
+			duration: 5000
+		});
 	}
 }
 
 // Little helper to resize canvas
-
-function resizePongCanvas() {
-	const container = document.querySelector("#pong-canvas").parentElement;
-	const canvas = document.getElementById("pong-canvas");
+function resizePongCanvas(): void {
+	const container = document.querySelector('#pong-canvas')?.parentElement;
+	const canvas = document.getElementById('pong-canvas') as HTMLCanvasElement | null;
 	if (!canvas || !container) return;
 	const rect = container.getBoundingClientRect();
 	canvas.width = rect.width;
@@ -247,19 +308,21 @@ function resizePongCanvas() {
 // =======================
 // HANDLERS
 // =======================
-let loadRooms;
 
-export function setupHomeHandlers() {
+let loadRooms: () => Promise<void>;
+
+export function setupHomeHandlers(): void {
 	// Resize pong-canvas listener
 	setTimeout(() => {
 		resizePongCanvas();
 		showPongMenu();
 	}, 100);
-	
+
 	window.addEventListener('resize', () => {
 		resizePongCanvas();
 		showPongMenu();
 	});
+
 	// Logout button
 	const logoutBtn = document.getElementById('logoutBtn');
 	if (logoutBtn) {
@@ -270,19 +333,21 @@ export function setupHomeHandlers() {
 			router();
 		});
 	}
+
 	// Clickable usernames listener
 	const chatDiv = document.getElementById('chat');
 	if (chatDiv && !chatDiv.classList.contains('bubble-listener-added')) {
 		chatDiv.classList.add('bubble-listener-added');
-		chatDiv.addEventListener('click', function(e) {
-			// Check if a username was clicked
-			if (e.target.classList.contains('username-link')) {
-				const username = e.target.getAttribute('data-username');
+		chatDiv.addEventListener('click', (e: MouseEvent) => {
+			const target = e.target as HTMLElement;
+			if (target.classList.contains('username-link')) {
+				const username = target.getAttribute('data-username')!;
 				if (!username) return;
-				showUserActionsBubble(e.target, username);
+				showUserActionsBubble(target, username);
 			}
 		});
 	}
+
 	// "Create game" button
 	const newGameBtn = document.getElementById('newGameBtn');
 	if (newGameBtn) {
@@ -292,74 +357,83 @@ export function setupHomeHandlers() {
 	}
 
 	// Load rooms immediately when entering home view
-	loadRooms = async () => {
+	loadRooms = async (): Promise<void> => {
 		try {
-			const rooms = await apiFetch('/api/chat/rooms/mine', {
-				headers: { 'Authorization': `Bearer ${state.authToken}` }
+			const rooms = await apiFetch<{ roomID: number; name?: string; ownerID: number }[]>('/api/chat/rooms/mine', {
+				headers: { Authorization: `Bearer ${state.authToken}` }
 			});
 			const ul = document.getElementById('room-list');
 			if (!ul) return;
 
-			ul.innerHTML = rooms.map(r =>
-				`<li data-id="${r.roomID}" class="group flex justify-between items-center cursor-pointer hover:bg-gray-100 p-2 rounded ${state.currentRoom === r.roomID ? 'bg-indigo-100' : ''}">
-				<span class="flex-1 truncate" title="${r.name || `Room #${r.roomID}`}">
-					${r.name || `Room #${r.roomID}`}
-				</span>
-				<div class="flex gap-1 opacity-0 group-hover:opacity-100 transition">
-					<button data-room="${r.roomID}" class="invite-room-btn text-green-600 hover:text-green-800 text-sm">➕</button>
-					${r.ownerID === state.userId ?
-					`<button data-room="${r.roomID}" class="delete-room-btn text-red-600 hover:text-red-800 text-sm">❌</button>` :
-					''}
-				</div>
-				</li>`
-			).join('');
+			ul.innerHTML = rooms
+				.map(
+					(r) =>
+						`<li data-id="${r.roomID}" class="group flex justify-between items-center cursor-pointer hover:bg-gray-100 p-2 rounded ${
+							state.currentRoom === r.roomID ? 'bg-indigo-100' : ''
+						}">
+						<span class="flex-1 truncate" title="${r.name || `Room #${r.roomID}`}">
+							${r.name || `Room #${r.roomID}`}
+						</span>
+						<div class="flex gap-1 opacity-0 group-hover:opacity-100 transition">
+							<button data-room="${r.roomID}" class="invite-room-btn text-green-600 hover:text-green-800 text-sm">➕</button>
+							${
+								r.ownerID === state.userId
+									? `<button data-room="${r.roomID}" class="delete-room-btn text-red-600 hover:text-red-800 text-sm">❌</button>`
+									: ''
+							}
+						</div>
+					</li>`
+				)
+				.join('');
 
 			// Get previously selected room
-			let savedRoom = Number(localStorage.getItem('currentRoom') || 0);
-			let validRoom = rooms.find(r => r.roomID === savedRoom);
+			const savedRoom = Number(localStorage.getItem('currentRoom') || '0');
+			const validRoom = rooms.find((r) => r.roomID === savedRoom);
 
 			if (validRoom) {
 				state.currentRoom = savedRoom;
 			} else if (rooms.length > 0) {
 				state.currentRoom = 0;
-				localStorage.setItem('currentRoom', state.currentRoom);
+				localStorage.setItem('currentRoom', String(state.currentRoom));
 			} else {
 				state.currentRoom = 0;
 			}
 
 			// Event listeners for room selection
-			document.querySelectorAll('#room-list li').forEach(li => {
+			document.querySelectorAll<HTMLLIElement>('#room-list li').forEach((li) => {
 				li.addEventListener('click', () => selectRoom(Number(li.dataset.id)));
 			});
 
 			// Delete Room Button
-			document.querySelectorAll('.delete-room-btn').forEach(btn => {
-				btn.addEventListener('click', async (e) => {
+			document.querySelectorAll<HTMLButtonElement>('.delete-room-btn').forEach((btn) => {
+				btn.addEventListener('click', (e) => {
 					e.stopPropagation();
-					const roomId = btn.dataset.room;
+					const roomId = Number(btn.dataset.room);
 					showNotification({
 						message: 'Delete this room?',
 						type: 'confirm',
 						onConfirm: async () => {
 							try {
 								const response = await fetch('/api/auth/me', {
-									headers: { 'Authorization': `Bearer ${state.authToken}` }
+									headers: { Authorization: `Bearer ${state.authToken}` }
 								});
 								if (!response.ok) throw new Error('Failed to get userId');
 								const data = await response.json();
 								const userIdLocal = data.userId;
-								const roomMembers = await apiFetch(`/api/chat/rooms/${roomId}/members`);
+								const roomMembers = await apiFetch<{ userID: number }[]>(`/api/chat/rooms/${roomId}/members`);
 								await apiFetch(`/api/chat/rooms/${roomId}`, {
 									method: 'DELETE',
-									headers: { 'Authorization': `Bearer ${state.authToken}` }
+									headers: { Authorization: `Bearer ${state.authToken}` }
 								});
 								for (const member of roomMembers) {
-									state.socket.send(JSON.stringify({
-										type: 'loadChatRooms',
-										roomID: roomId,
-										userID: userIdLocal,
-										newUser: member.userID
-									}));
+									state.socket!.send(
+										JSON.stringify({
+											type: 'loadChatRooms',
+											roomID: roomId,
+											userID: userIdLocal,
+											newUser: member.userID
+										})
+									);
 								}
 								await loadRooms();
 							} catch (err) {
@@ -374,10 +448,10 @@ export function setupHomeHandlers() {
 			});
 
 			// Add user in room button
-			document.querySelectorAll('.invite-room-btn').forEach(btn => {
-				btn.addEventListener('click', async (e) => {
+			document.querySelectorAll<HTMLButtonElement>('.invite-room-btn').forEach((btn) => {
+				btn.addEventListener('click', (e) => {
 					e.stopPropagation();
-					const roomId = btn.dataset.room;
+					const roomId = Number(btn.dataset.room);
 					showNotification({
 						message: 'Type a User to add to the room :',
 						type: 'prompt',
@@ -390,25 +464,27 @@ export function setupHomeHandlers() {
 								await apiFetch(`/api/chat/rooms/${roomId}/members`, {
 									method: 'POST',
 									headers: {
-										'Authorization': `Bearer ${state.authToken}`,
+										Authorization: `Bearer ${state.authToken}`,
 										'Content-Type': 'application/json'
 									},
 									body: JSON.stringify({ userId: userIdToInvite })
 								});
 								const response = await fetch('/api/auth/me', {
-									headers: { 'Authorization': `Bearer ${state.authToken}` }
+									headers: { Authorization: `Bearer ${state.authToken}` }
 								});
 								if (!response.ok) throw new Error('Failed to get userId');
 								const data = await response.json();
 								state.userId = data.userId;
-								state.socket.send(JSON.stringify({
-									type: 'loadChatRooms',
-									roomID: roomId,
-									userID: state.userId,
-									newUser: userIdToInvite
-								}));
+								state.socket!.send(
+									JSON.stringify({
+										type: 'loadChatRooms',
+										roomID: roomId,
+										userID: state.userId,
+										newUser: userIdToInvite
+									})
+								);
 								showNotification({ message: `User ${username} added successfully`, type: 'success' });
-							} catch (err) {
+							} catch (err: any) {
 								showNotification({ message: `Error while inviting : ${err.message}`, type: 'error', duration: 5000 });
 							}
 						}
@@ -423,11 +499,10 @@ export function setupHomeHandlers() {
 		} catch (error) {
 			console.error('Error loading rooms:', error);
 			const ul = document.getElementById('room-list');
-			if (ul) {
-				ul.innerHTML = '<li class="text-red-500">Room loading error</li>';
-			}
+			if (ul) ul.innerHTML = '<li class="text-red-500">Room loading error</li>';
 		}
 	};
+
 	state.loadRooms = loadRooms;
 
 	// Call loadRooms immediately and set up WebSocket
@@ -440,12 +515,10 @@ export function setupHomeHandlers() {
 	const generalChatBtn = document.getElementById('generalChatBtn');
 	if (generalChatBtn) {
 		generalChatBtn.addEventListener('click', () => {
-			selectRoom(0); // Select general chat
-			document.querySelectorAll('#room-list li').forEach(li => {
+			selectRoom(0);
+			document.querySelectorAll<HTMLElement>('#room-list li').forEach((li) => {
 				li.classList.remove('bg-indigo-100');
-				if (li.dataset.id === '0') {
-					li.classList.add('bg-indigo-100');
-				}
+				if (li.dataset.id === '0') li.classList.add('bg-indigo-100');
 			});
 		});
 	}
@@ -459,46 +532,43 @@ export function setupHomeHandlers() {
 					message: "Room's name :",
 					type: 'prompt',
 					placeholder: 'New room',
-					onConfirm: async (roomName) => {
-						roomName = roomName || 'New room';
-						const newRoom = await apiFetch('/api/chat/rooms', {
+					onConfirm: async (roomName = 'New room') => {
+						const newRoom = await apiFetch<{ roomID: number }>('/api/chat/rooms', {
 							method: 'POST',
 							headers: {
-								'Authorization': `Bearer ${state.authToken}`,
+								Authorization: `Bearer ${state.authToken}`,
 								'Content-Type': 'application/json'
 							},
 							body: JSON.stringify({ name: roomName })
 						});
-						addMemberToRoom(newRoom.roomID, state.userId);
+						await addMemberToRoom(newRoom.roomID, state.userId!);
 						selectRoom(newRoom.roomID);
 						await loadRooms();
 					}
 				});
-			} catch (error) {
+			} catch (error: any) {
 				console.error('Error creating chat room:', error);
 				showNotification({ message: 'Error creating chat room: ' + error.message, type: 'error', duration: 5000 });
 			}
 		});
 	}
 
-	// Chat: select room function (helper interne)
-	async function selectRoom(roomId) {
+	// Chat: select room function (internal helper)
+	async function selectRoom(roomId: number): Promise<void> {
 		try {
 			state.currentRoom = roomId;
-			localStorage.setItem('currentRoom', roomId);
+			localStorage.setItem('currentRoom', String(roomId));
 			const chatDiv = document.getElementById('chat');
 			if (!chatDiv) return;
 
-			chatDiv.innerHTML = '<p class="text-gray-500">Chargement des messages...</p>';
+			chatDiv.innerHTML = '<p class="text-gray-500">Loading messages...</p>';
 
 			if (state.socket && state.socket.readyState === WebSocket.OPEN) {
-				state.socket.send(JSON.stringify({
-					type: 'chatHistory',
-					roomID: roomId,
-					limit: 50
-				}));
+				state.socket.send(
+					JSON.stringify({ type: 'chatHistory', roomID: roomId, limit: 50 })
+				);
 			}
-			document.querySelectorAll('#room-list li').forEach(li => {
+			document.querySelectorAll<HTMLElement>('#room-list li').forEach((li) => {
 				const roomNameSpan = li.querySelector('span.flex-1');
 				if (roomNameSpan) {
 					const dot = roomNameSpan.querySelector('.unread-dot');
@@ -510,8 +580,8 @@ export function setupHomeHandlers() {
 					li.classList.remove('bg-indigo-100');
 				}
 			});
-		} catch (error) {
-			console.error('Error selecting room:', error);
+		} catch (err) {
+			console.error('Error selecting room:', err);
 			const chatDiv = document.getElementById('chat');
 			if (chatDiv) {
 				chatDiv.innerHTML = '<p class="text-red-500">Error loading messages</p>';
@@ -520,76 +590,58 @@ export function setupHomeHandlers() {
 	}
 
 	// Chat: form submission via WebSocket
-	const chatForm = document.getElementById('chatForm');
+	const chatForm = document.getElementById('chatForm') as HTMLFormElement | null;
 	if (chatForm) {
-		chatForm.addEventListener('submit', e => {
+		chatForm.addEventListener('submit', (e) => {
 			e.preventDefault();
 			const formData = new FormData(chatForm);
 			const content = formData.get('message');
 			if (!content || !state.socket || state.socket.readyState !== WebSocket.OPEN) return;
 
-			state.socket.send(JSON.stringify({
-				type: 'chatRoomMessage',
-				chatRoomID: state.currentRoom,
-				userID: state.userId,
-				content: content
-			}));
+			state.socket.send(
+				JSON.stringify({
+					type: 'chatRoomMessage',
+					chatRoomID: state.currentRoom,
+					userID: state.userId,
+					content: content
+				})
+			);
 			chatForm.reset();
 		});
 	}
 
 	// Add friend / block / unblock buttons (searchbar actions)
-	const userActionInput = document.getElementById('userActionInput');
 	const addFriendBtn = document.getElementById('addFriendBtn');
 	const blockUserBtn = document.getElementById('blockUserBtn');
 	const unblockUserBtn = document.getElementById('unblockUserBtn');
 
-	if (addFriendBtn) addFriendBtn.onclick = () =>
-		actionOnUser({
-			url: '/api/friends/:userId',
-			method: 'POST',
-			successMsg: "Friend added !",
-			errorMsg: "Error during add"
-		});
-
-	if (blockUserBtn) blockUserBtn.onclick = () =>{
-		actionOnUser({
-			url: '/api/blocks/:userId',
-			method: 'POST',
-			successMsg: "User blocked !",
-			errorMsg: "Error during block"
-		});
-		state.socket.send(JSON.stringify({
-			type: 'chatHistory',
-			roomID: state.currentRoom,
-			userID: state.userId,
-			limit: 50
-		}));
+	if (addFriendBtn) {
+		addFriendBtn.onclick = () =>
+			actionOnUser({ url: '/api/friends/:userId', method: 'POST', successMsg: 'Friend added !', errorMsg: 'Error during add' });
 	}
-
-	if (unblockUserBtn) unblockUserBtn.onclick = () =>{
-		actionOnUser({
-			url: '/api/blocks/:userId',
-			method: 'DELETE',
-			successMsg: "User unblocked !",
-			errorMsg: "Error during unblock"
-		});
-		state.socket.send(JSON.stringify({
-			type: 'chatHistory',
-			roomID: state.currentRoom,
-			userID: state.userId,
-			limit: 50
-		}));
+	if (blockUserBtn) {
+		blockUserBtn.onclick = () => {
+			actionOnUser({ url: '/api/blocks/:userId', method: 'POST', successMsg: 'User blocked !', errorMsg: 'Error during block' });
+			state.socket!.send(JSON.stringify({ type: 'chatHistory', roomID: state.currentRoom, userID: state.userId, limit: 50 }));
+		};
 	}
-
+	if (unblockUserBtn) {
+		unblockUserBtn.onclick = () => {
+			actionOnUser({ url: '/api/blocks/:userId', method: 'DELETE', successMsg: 'User unblocked !', errorMsg: 'Error during unblock' });
+			state.socket!.send(JSON.stringify({ type: 'chatHistory', roomID: state.currentRoom, userID: state.userId, limit: 50 }));
+		};
+	}
 }
 
+// =======================
+// REGISTER HANDLERS
+// =======================
 
-
-function setupRegisterHandlers() {
-	const form = document.getElementById('registerForm');
+export function setupRegisterHandlers(): void {
+	const form = document.getElementById('registerForm') as HTMLFormElement | null;
 	if (!form) return;
-	form.onsubmit = async e => {
+
+	form.onsubmit = async (e: Event) => {
 		e.preventDefault();
 		const data = Object.fromEntries(new FormData(form).entries());
 		try {
@@ -603,25 +655,29 @@ function setupRegisterHandlers() {
 				history.pushState(null, '', '/login');
 				router();
 			} else {
-				const err = document.getElementById('register-error');
+				const err = document.getElementById('register-error') as HTMLElement;
 				err.textContent = json.error;
 				err.classList.remove('hidden');
 			}
 		} catch {
-			const err = document.getElementById('register-error');
+			const err = document.getElementById('register-error') as HTMLElement;
 			err.textContent = 'Register Error';
 			err.classList.remove('hidden');
 		}
 	};
 }
 
-function setupLoginHandlers() {
-	const form = document.getElementById('loginForm');
+// =======================
+// LOGIN HANDLERS
+// =======================
+
+export function setupLoginHandlers(): void {
+	const form = document.getElementById('loginForm') as HTMLFormElement | null;
 	if (!form) return;
 
-	form.onsubmit = async e => {
+	form.onsubmit = async (e: Event) => {
 		e.preventDefault();
-		const data = Object.fromEntries(new FormData(form).entries());
+		const data = Object.fromEntries(new FormData(form).entries()) as Record<string, string>;
 		localStorage.setItem('username', data.username);
 
 		try {
@@ -630,13 +686,13 @@ function setupLoginHandlers() {
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(data)
 			});
-			const json = await res.json();
+			const json = await res.json() as any;
 
 			if (res.ok) {
 				if (json.need2FASetup) {
 					console.log('2FA setup needed, token received:', json.token);
 					state.pendingToken = json.token;
-					await doSetup2FA(state.pendingToken);
+					await doSetup2FA(state.pendingToken!);
 				} else if (json.need2FAVerify) {
 					console.log('2FA verification needed');
 					state.pendingToken = json.token;
@@ -650,22 +706,24 @@ function setupLoginHandlers() {
 				}
 			} else {
 				console.error('Login failed:', json.error);
-				const err = document.getElementById('login-error');
+				const err = document.getElementById('login-error') as HTMLElement;
 				err.textContent = json.error || 'Login Error';
 				err.classList.remove('hidden');
 			}
 		} catch (err) {
 			console.error('Login error:', err);
-			const errEl = document.getElementById('login-error');
+			const errEl = document.getElementById('login-error') as HTMLElement;
 			errEl.textContent = 'Network Error';
 			errEl.classList.remove('hidden');
 		}
 	};
 }
 
+// =======================
+// 2FA SETUP FLOW
+// =======================
 
-
-async function doSetup2FA(token) {
+export async function doSetup2FA(token: string): Promise<void> {
 	if (!token) {
 		console.error('No token provided for 2FA setup');
 		return;
@@ -676,49 +734,48 @@ async function doSetup2FA(token) {
 		const res = await fetch('/api/auth/2fa/setup', {
 			method: 'POST',
 			headers: {
-				'Authorization': `Bearer ${token}`,
+				Authorization: `Bearer ${token}`,
 				'Content-Type': 'application/json'
 			},
 			body: JSON.stringify({})
 		});
-		
+
 		if (!res.ok) {
 			const errorData = await res.json();
 			throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
 		}
-		
-		const json = await res.json();
+
+		const json = await res.json() as any;
 		console.log('2FA setup response:', json);
-		
+
 		if (!json.otpauth_url || !json.base32) {
 			throw new Error('Invalid server response: missing required 2FA data');
 		}
-		
+
 		render(Setup2FAView(json.otpauth_url, json.base32));
-		setupSetup2FAHandlers(); // Utiliser la fonction existante
-	} catch (err) {
+		setupSetup2FAHandlers();
+	} catch (err: any) {
 		console.error('2FA setup error:', err);
-		render(`
-			<div class="max-w-md mx-auto mt-12 bg-white p-8 rounded shadow">
+		render(
+			`<div class="max-w-md mx-auto mt-12 bg-white p-8 rounded shadow">
 				<p class="text-red-500">Impossible to config 2fa, Err : ${err.message}</p>
 				<button id="back-login" class="mt-4 w-full py-2 px-4 bg-indigo-600 text-black rounded">
 					Retour
 				</button>
-			</div>
-		`);
-		document.getElementById('back-login')
-			.addEventListener('click', () => { 
-				history.pushState(null,'','/login'); 
-				router(); 
-			});
+			</div>`
+		);
+		document.getElementById('back-login')!.addEventListener('click', () => {
+			history.pushState(null, '', '/login');
+			router();
+		});
 	}
 }
 
-function setupSetup2FAHandlers() {
-	const btn = document.getElementById('verify-setup-2fa-btn');
+export function setupSetup2FAHandlers(): void {
+	const btn = document.getElementById('verify-setup-2fa-btn') as HTMLButtonElement | null;
 	if (!btn) return;
 	btn.onclick = async () => {
-		const code = document.getElementById('2fa-setup-code').value;
+		const code = (document.getElementById('2fa-setup-code') as HTMLInputElement).value;
 		try {
 			const res = await fetch('/api/auth/2fa/verify', {
 				method: 'POST',
@@ -728,13 +785,13 @@ function setupSetup2FAHandlers() {
 				},
 				body: JSON.stringify({ code })
 			});
-			const json = await res.json();
+			const json = await res.json() as any;
 			if (res.ok) {
 				localStorage.setItem('token', json.token);
 				state.authToken = json.token;
 				window.location.href = '/';
 			} else {
-				const err = document.getElementById('setup2fa-error');
+				const err = document.getElementById('setup2fa-error') as HTMLElement;
 				err.textContent = json.error;
 				err.classList.remove('hidden');
 			}
@@ -744,12 +801,12 @@ function setupSetup2FAHandlers() {
 	};
 }
 
-function setupVerify2FAHandlers() {
-	const form = document.getElementById('verifyForm');
+export function setupVerify2FAHandlers(): void {
+	const form = document.getElementById('verifyForm') as HTMLFormElement | null;
 	if (!form) return;
-	form.onsubmit = async e => {
+	form.onsubmit = async (e: Event) => {
 		e.preventDefault();
-		const code = document.getElementById('2fa-code').value;
+		const code = (document.getElementById('2fa-code') as HTMLInputElement).value;
 		try {
 			const res = await fetch('/api/auth/2fa/verify', {
 				method: 'POST',
@@ -759,16 +816,14 @@ function setupVerify2FAHandlers() {
 				},
 				body: JSON.stringify({ code })
 			});
-			const json = await res.json();
+			const json = await res.json() as any;
 			if (res.ok) {
 				localStorage.setItem('token', json.token);
 				state.authToken = json.token;
-				
-				// Rediriger vers la page d'accueil
 				history.pushState(null, '', '/');
 				router();
 			} else {
-				const err = document.getElementById('verify-error');
+				const err = document.getElementById('verify-error') as HTMLElement;
 				err.textContent = json.error;
 				err.classList.remove('hidden');
 			}
@@ -779,7 +834,10 @@ function setupVerify2FAHandlers() {
 }
 
 
-function setupAccountHandlers(user, friends = []) {
+/**
+ * Sets up event handlers on the Account page.
+ */
+export function setupAccountHandlers(user: any, friends: User[] = []): void {
 	// Back to home button
 	const backBtn = document.getElementById('backHomeBtn');
 	if (backBtn) {
@@ -794,69 +852,74 @@ function setupAccountHandlers(user, friends = []) {
 	}
 
 	// Avatar change handling
-	const avatarImg = document.getElementById('account-avatar');
-	const avatarInput = document.getElementById('avatarInput');
+	const avatarImg = document.getElementById('account-avatar') as HTMLImageElement;
+	const avatarInput = document.getElementById('avatarInput') as HTMLInputElement;
 	avatarImg.onclick = () => avatarInput.click();
-	avatarInput.onchange = async (e) => {
-		const file = e.target.files[0];
-		if (!file) return;
+	avatarInput.onchange = async (e: Event) => {
+		const files = (e.target as HTMLInputElement).files;
+		if (!files || files.length === 0) return;
+		const file = files[0];
 		// Instant preview
 		const reader = new FileReader();
-		reader.onload = (ev) => { avatarImg.src = ev.target.result; };
+		reader.onload = (ev) => { avatarImg.src = ev.target?.result as string; };
 		reader.readAsDataURL(file);
 		// Send FormData to server for avatar
 		const formData = new FormData();
 		formData.append('avatar', file);
 		const res = await fetch('/api/users/me/avatar', {
 			method: 'POST',
-			headers: { 'Authorization': `Bearer ${state.authToken}` },
-			body: formData,
+			headers: { Authorization: `Bearer ${state.authToken}` },
+			body: formData
 		});
-		if (!res.ok) 
-			showNotification({ message: 'Error during avatar uploading !', type: 'error', duration: 5000 });
+		if (!res.ok)
+			showNotification({ message: 'Error during avatar uploading!', type: 'error', duration: 5000 });
 	};
 
 	// Password change handling
-	document.getElementById('profileForm').onsubmit = async e => {
+	const profileForm = document.getElementById('profileForm') as HTMLFormElement;
+	profileForm.onsubmit = async (e: Event) => {
 		e.preventDefault();
-		const pwd = document.getElementById('newPassword').value;
-		if (!pwd) return showNotification({ message: 'New password needed !', type: 'error', duration: 5000 });
+		const pwd = (document.getElementById('newPassword') as HTMLInputElement).value;
+		if (!pwd)
+			return showNotification({ message: 'New password needed!', type: 'error', duration: 5000 });
 		try {
 			const res = await fetch('/api/users/me/password', {
 				method: 'POST',
-				headers: { 
+				headers: {
 					'Content-Type': 'application/json',
-					'Authorization': `Bearer ${state.authToken}`,
+					Authorization: `Bearer ${state.authToken}`
 				},
-				body: JSON.stringify({ newPassword: pwd }),
+				body: JSON.stringify({ newPassword: pwd })
 			});
-			if (res.ok) showNotification({ message: 'Password modified successfully!', type: 'success' });
-			else showNotification({ message: 'Error during password modification', type: 'error', duration: 5000 });
-		} catch { showNotification({ message: 'Network Error', type: 'error', duration: 5000 })};
-	};
-
-	// 2FA setup/reconfiguration
-	document.getElementById('setup2faBtn').onclick = async () => {
-		try {
-			const response = await fetch('/api/auth/me', {
-				headers: { 'Authorization': `Bearer ${state.authToken}` }
-			});
-			if (!response.ok) {
-				throw new Error('Failed to get userId');
-			}
-			await reconfigure2FA();
-		} catch (error) {
-			showNotification({ message: 'Error during 2FA reconfiguration' + error, type: 'error', duration: 5000 });
+			if (res.ok)
+				showNotification({ message: 'Password modified successfully!', type: 'success' });
+			else
+				showNotification({ message: 'Error during password modification', type: 'error', duration: 5000 });
+		} catch {
+			showNotification({ message: 'Network Error', type: 'error', duration: 5000 });
 		}
 	};
 
-	// Function to trigger the 2FA reconfiguration process
-	async function reconfigure2FA() {
+	// 2FA setup/reconfiguration
+	const setup2faBtn = document.getElementById('setup2faBtn') as HTMLButtonElement;
+	setup2faBtn.onclick = async () => {
+		try {
+			const response = await fetch('/api/auth/me', {
+				headers: { Authorization: `Bearer ${state.authToken}` }
+			});
+			if (!response.ok) throw new Error('Failed to get userId');
+			await reconfigure2FA();
+		} catch (error: any) {
+			showNotification({ message: 'Error during 2FA reconfiguration: ' + error.message, type: 'error', duration: 5000 });
+		}
+	};
+
+	async function reconfigure2FA(): Promise<void> {
 		try {
 			const response = await fetch('/api/auth/2fa/reconfig', {
 				method: 'POST',
 				headers: {
-					'Authorization': `Bearer ${state.authToken}`,
+					Authorization: `Bearer ${state.authToken}`,
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({})
@@ -868,67 +931,51 @@ function setupAccountHandlers(user, friends = []) {
 				setupSetup2FAHandlers();
 			} else {
 				if (data.need2FASetup) {
-					showNotification({ 
-						message: '2FA must be enabled first before reconfiguring', 
-						type: 'error', 
-						duration: 5000 
-					});
+					showNotification({ message: '2FA must be enabled first before reconfiguring', type: 'error', duration: 5000 });
 				} else {
-					showNotification({ 
-						message: data.error || 'Failed to reconfigure 2FA', 
-						type: 'error', 
-						duration: 5000 
-					});
+					showNotification({ message: data.error || 'Failed to reconfigure 2FA', type: 'error', duration: 5000 });
 				}
 			}
-		} catch (error) {
-			showNotification({ 
-				message: 'Error during 2FA reconfiguration', 
-				type: 'error', 
-				duration: 5000 
-			});
+		} catch {
+			showNotification({ message: 'Error during 2FA reconfiguration', type: 'error', duration: 5000 });
 		}
 	}
 
 	// Friend direct message buttons
-	document.querySelectorAll('.chat-friend-btn').forEach(btn => {
+	document.querySelectorAll<HTMLButtonElement>('.chat-friend-btn').forEach(btn => {
 		btn.onclick = async () => {
-			const friendUsername = btn.dataset.username;
+			const friendUsername = btn.dataset.username!;
 			await createDirectMessageWith(friendUsername);
 		};
 	});
 
 	// Friend profile buttons
-	document.querySelectorAll('.profile-friend-btn').forEach(btn => {
+	document.querySelectorAll<HTMLButtonElement>('.profile-friend-btn').forEach(btn => {
 		btn.onclick = () => {
-			const friendUsername = btn.dataset.username;
+			const friendUsername = btn.dataset.username!;
 			history.pushState(null, '', `/profile/${encodeURIComponent(friendUsername)}`);
 			router();
 		};
 	});
 
 	// Friend remove buttons
-	document.querySelectorAll('.remove-friend-btn').forEach(btn => {
+	document.querySelectorAll<HTMLButtonElement>('.remove-friend-btn').forEach(btn => {
 		btn.onclick = async () => {
-			const friendUsername = btn.dataset.username;
-			const friendUserId = await apiFetch(`/users/by-username/${encodeURIComponent(friendUsername)}`, {
-				headers: { 'Authorization': `Bearer ${state.authToken}` }
-			}).then(data => data.userId);
+			const friendUsername = btn.dataset.username!;
+			const friendUserId = await apiFetch<{ userId: number }>(
+				`/users/by-username/${encodeURIComponent(friendUsername)}`
+			).then(data => data.userId);
 			showNotification({
 				message: `Remove ${friendUsername} from your friends?`,
 				type: 'confirm',
 				onConfirm: async () => {
 					try {
-						await apiFetch(`/api/friends/${friendUserId}`, {
-							method: 'DELETE',
-							headers: { 'Authorization': `Bearer ${state.authToken}` }
-						});
+						await apiFetch(`/api/friends/${friendUserId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${state.authToken}` } });
 						showNotification({ message: `${friendUsername} removed from your friends`, type: 'success' });
-						// Refresh account view
 						history.pushState(null, '', '/account');
 						router();
-					} catch (e) {
-						showNotification({ message: 'Error removing friend : ' + e.message, type: 'error', duration: 5000 });
+					} catch (e: any) {
+						showNotification({ message: 'Error removing friend: ' + e.message, type: 'error', duration: 5000 });
 					}
 				},
 				onCancel: () => {
@@ -939,76 +986,75 @@ function setupAccountHandlers(user, friends = []) {
 	});
 
 	// Send friends status request
-	const friendsStatusList = friends.map(friend => ({
-		friendID: friend.our_index
-	}));
-	console.log('[FRONT] Envoi friendStatus :', friendsStatusList);
+	const friendsStatusList = friends.map(f => ({ friendID: f.our_index }));
 	if (state.socket && state.socket.readyState === WebSocket.OPEN && friendsStatusList.length) {
-		state.socket.send(JSON.stringify({
-			type: 'friendStatus',
-			action: 'request',
-			friendList: friendsStatusList
-		}));
+		state.socket.send(
+			JSON.stringify({ type: 'friendStatus', action: 'request', friendList: friendsStatusList })
+		);
 	}
 	state.friendsStatusList = friendsStatusList;
 }
 
+
 // ─── AUTH HELPERS ──────────────────────────────────────────────────────────────
 
-
-// Add an event listener for localStorage changes
-window.addEventListener('storage', (event) => {
+// Sync authToken across tabs
+window.addEventListener('storage', (event: StorageEvent) => {
 	if (event.key === 'token') {
-		// Token was changed in another tab
-		state.authToken = event.newValue;
+		state.authToken = event.newValue as string | null;
 		if (!state.authToken) {
-			// Token was removed, force logout
 			handleLogout();
 		}
 	}
 });
 
-// Centralized logout handling
-export function handleLogout() {
+/**
+ * Clears all auth state, closes socket and renders Home.
+ */
+export function handleLogout(): void {
 	localStorage.removeItem('token');
 	localStorage.removeItem('username');
 	localStorage.removeItem('currentRoom');
 
 	updateNav();
-	state.socket.send(JSON.stringify({
+	state.socket?.send(JSON.stringify({
 		type: 'friendStatus',
 		action: 'update',
 		state: 'offline',
-		userID: state.userID,
+		userID: state.userId,
 	}));
-
-	// Close WebSocket if it's open
-	if (state.socket && state.socket.readyState === WebSocket.OPEN) {
+	if (state.socket?.readyState === WebSocket.OPEN) {
 		state.socket.close();
 	}
-
 	state.authToken = null;
-	state.userId = null;
+	state.userId    = null;
 	state.currentRoom = 0;
-	
+
 	render(HomeView());
 }
 
-function setupProfileHandlers() {
-  // Back to previous page (or home)
-  const backBtn = document.getElementById('backBtnProfile');
-  if (backBtn) backBtn.onclick = () => history.back();
+/**
+ * Sets up the back button on profile view.
+ */
+function setupProfileHandlers(): void {
+	const backBtn = document.getElementById('backBtnProfile');
+	if (backBtn) backBtn.onclick = () => history.back();
 }
+
 
 
 // =======================
 // ROUTER
 // =======================
 
-export async function router() {
+/**
+ * Main SPA router: renders views based on current path.
+ */
+export async function router(): Promise<void> {
 	const path = window.location.pathname;
 	updateNav();
 
+	// Profile view
 	if (path.startsWith('/profile/')) {
 		const username = decodeURIComponent(path.split('/')[2] || '');
 		if (!username) {
@@ -1018,16 +1064,12 @@ export async function router() {
 		try {
 			const profileUser = await apiFetch(
 				`/api/users/username/${encodeURIComponent(username)}`,
-				{ headers: { 'Authorization': `Bearer ${state.authToken}` } }
+				{ headers: { Authorization: `Bearer ${state.authToken}` } }
 			);
 			render(ProfileView(profileUser));
 			setupProfileHandlers();
-		} catch (e) {
-			showNotification({
-				message: 'Error during profile loading : ' + e,
-				type: 'error',
-				duration: 5000,
-			});
+		} catch (e: any) {
+			showNotification({ message: 'Error during profile loading: ' + e.message, type: 'error', duration: 5000 });
 			history.pushState(null, '', '/');
 			router();
 		}
@@ -1045,6 +1087,7 @@ export async function router() {
 				setupLoginHandlers();
 			}
 			break;
+
 		case '/register':
 			if (isAuthenticated()) {
 				history.pushState(null, '', '/');
@@ -1055,6 +1098,7 @@ export async function router() {
 				setupRegisterHandlers();
 			}
 			break;
+
 		case '/account':
 			if (!isAuthenticated()) {
 				history.pushState(null, '', '/login');
@@ -1062,24 +1106,26 @@ export async function router() {
 				setupLoginHandlers();
 			} else {
 				try {
-					const user = await apiFetch('/api/users/me', { headers: { 'Authorization': `Bearer ${state.authToken}` } });
-					const friends = await apiFetch('/api/friends', { headers: { 'Authorization': `Bearer ${state.authToken}` } });
+					const user = await apiFetch('/api/users/me', { headers: { Authorization: `Bearer ${state.authToken}` } });
+					const friends = await apiFetch('/api/friends', { headers: { Authorization: `Bearer ${state.authToken}` } });
 					render(AccountView(user, friends));
 					initWebSocket();
 					setupAccountHandlers(user, friends);
-				} catch (e) {
-					showNotification({ message: 'Error during account loading :' + e, type: 'error', duration: 5000 });
+				} catch (e: any) {
+					showNotification({ message: 'Error during account loading: ' + e.message, type: 'error', duration: 5000 });
 					history.pushState(null, '', '/');
 					router();
 				}
 			}
 			break;
+
 		default:
 			render(HomeView());
 			if (isAuthenticated()) {
-				state.canvasViewState = "mainMenu";
+				state.canvasViewState = 'mainMenu';
 				setupHomeHandlers();
 				initWebSocket();
+				startTokenValidation();
 			}
 			break;
 	}

@@ -1,3 +1,5 @@
+import { WebSocket } from 'ws';
+
 export interface gameRooms{
 	gameID: number,
 	tournamentID?:number,
@@ -28,4 +30,20 @@ export interface userData{
 	gameDuration:number,
 	datas:string,
 	created_at:string
+}
+
+export interface players{
+	userID:number,
+	socket:WebSocket,
+	gameID?:number,
+	tournamentID?:number,
+	hasDisconnected?:boolean,
+	state:string // 'init'|'waiting'| 'playing'| 'tournamentWait' | 'tournamentPlay'
+}
+
+export interface Rooms{
+	gameID : number,
+	isPublic: boolean,
+	players: players[];
+	status:string //'waiting'|'playing'|'finished'|'terminated'-> give up don't count for win in stats
 }

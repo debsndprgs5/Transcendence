@@ -8,6 +8,10 @@ import {
 	ProfileView,
 	render
 } from './views';
+import { isAuthenticated, apiFetch, initWebSocket, state } from './api';
+import { showNotification, showUserActionsBubble } from './notifications';
+import { showPongMenu } from './pong_rooms';
+import { initGameSocket } from './pong_socket';
 
 interface User {
   username: string;
@@ -16,9 +20,7 @@ interface User {
 }
 
 
-import { isAuthenticated, apiFetch, initWebSocket, state } from './api';
-import { showNotification, showUserActionsBubble } from './notifications';
-import { showPongMenu } from './pong_rooms';
+
 
 // =======================
 // TOKEN VALIDATION
@@ -250,6 +252,7 @@ export async function createDirectMessageWith(friendUsername: string): Promise<v
 			{ headers: { Authorization: `Bearer ${state.authToken}` } }
 		).then(data => data.userId);
 
+		// Add friend to roomd to resolve module specifier "ws". Relative references must start with either "/", "./", or "../".
 		await apiFetch(`/api/chat/rooms/${room.roomID}/members`, {
 			method: 'POST',
 			headers: {
@@ -348,13 +351,6 @@ export function setupHomeHandlers(): void {
 		});
 	}
 
-	// "Create game" button
-	const newGameBtn = document.getElementById('newGameBtn');
-	if (newGameBtn) {
-		newGameBtn.addEventListener('click', () => {
-			console.log('Create new game clicked');
-		});
-	}
 
 	// Load rooms immediately when entering home view
 	loadRooms = async (): Promise<void> => {
@@ -508,7 +504,10 @@ export function setupHomeHandlers(): void {
 	// Call loadRooms immediately and set up WebSocket
 	if (state.authToken) {
 		loadRooms();
+	if (!state.socket || state.socket.readyState === WebSocket.CLOSED)
 		initWebSocket();
+	if (!state.gameSocket || state.gameSocket.readyState === WebSocket.CLOSED)
+		initGameSocket();
 	}
 
 	// General chat button
@@ -1109,7 +1108,10 @@ export async function router(): Promise<void> {
 					const user = await apiFetch('/api/users/me', { headers: { Authorization: `Bearer ${state.authToken}` } });
 					const friends = await apiFetch('/api/friends', { headers: { Authorization: `Bearer ${state.authToken}` } });
 					render(AccountView(user, friends));
-					initWebSocket();
+					if (!state.socket || state.socket.readyState === WebSocket.CLOSED)
+						initWebSocket();
+					if (!state.gameSocket || state.gameSocket.readyState === WebSocket.CLOSED)
+						initGameSocket();
 					setupAccountHandlers(user, friends);
 				} catch (e: any) {
 					showNotification({ message: 'Error during account loading: ' + e.message, type: 'error', duration: 5000 });
@@ -1124,8 +1126,12 @@ export async function router(): Promise<void> {
 			if (isAuthenticated()) {
 				state.canvasViewState = 'mainMenu';
 				setupHomeHandlers();
-				initWebSocket();
+				if (!state.socket || state.socket.readyState === WebSocket.CLOSED)
+					initWebSocket();
+				if (!state.gameSocket || state.gameSocket.readyState === WebSocket.CLOSED)
+					initGameSocket();
 				startTokenValidation();
+				
 			}
 			break;
 	}

@@ -9,6 +9,8 @@ export interface AppState {
 	canvasViewState: string;
 	friendsStatusList: { friendID: number }[];
 	loadRooms?: () => void;
+	gameSocket:WebSocket | null;
+	playerState:string;
 }
 
 export const state: AppState = {
@@ -19,6 +21,8 @@ export const state: AppState = {
 	currentRoom: 0,
 	canvasViewState: 'mainMenu',
 	friendsStatusList: [],
+	gameSocket:null,
+	playerState:'online'
 };
 
 // ─── AUTHENTICATION ──────────────────────────────────────────────────────

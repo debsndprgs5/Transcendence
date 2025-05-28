@@ -155,7 +155,7 @@ function handlePongMenuClick(e: MouseEvent): void {
 	}
 }
 
-function handleCreateGameButton(action: string): void {
+async function handleCreateGameButton(action: string): Promise<void> {
 	switch (action) {
 		case 'ballSpeedUp':
 			createGameFormData.ballSpeed = Math.min(100, createGameFormData.ballSpeed + 1);
@@ -173,6 +173,25 @@ function handleCreateGameButton(action: string): void {
 			state.canvasViewState = 'mainMenu';
 			break;
 		case 'confirmGame':
+			const reply = await apiFetch(`/pong/${state.userId}`, {
+			method: 'POST',
+			headers:{
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({
+				userID: state.userId,
+				name: createGameFormData.roomName,
+				ball_speed: createGameFormData.ballSpeed,
+				paddle_spped: createGameFormData.paddleSpeed,
+			})
+			});
+			const { gameID, gameName } = JSON.parse(reply);
+			if(!state.gameSocket) return;
+			state.gameSocket.send(JSON.stringify({
+				type:'joinGame',
+				gameName:createGameFormData.roomName,
+				gameID
+			}));
 			showNotification({
 				message: `Creating room: ${createGameFormData.roomName ?? ''}, ball: ${createGameFormData.ballSpeed}, paddle: ${createGameFormData.paddleSpeed}`,
 				type: 'success'

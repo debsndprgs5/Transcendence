@@ -14,29 +14,49 @@ export function setDb(database: sqlite3.Database) {
 // #       GAME ROOMS     #
 // ########################
 
-export const createGameRoom = (mode: string, rules: string, tournamentID: number | null = null) =>
-  run(
-    `INSERT INTO gameRooms (mode, rules, tournamentID) VALUES (?, ?, ?)`,
-    [mode, rules, tournamentID]
+// Create game room and return gameID
+export const createGameRoom = async (
+  type: string,
+  state: string,
+  mode: string,
+  rules: string,
+  name: string,
+  userID: number,
+  tournamentID: number | null = null
+): Promise<number> => {
+  const result = await run(
+    `INSERT INTO gameRooms (type, state, mode, rules, name, createdBy, tournamentID)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [type, state, mode, rules, name, userID, tournamentID]
   );
+  return result.lastID;
+};
 
+// Delete game room by ID
 export const deleteGameRoom = (gameID: number) =>
   run(`DELETE FROM gameRooms WHERE gameID = ?`, [gameID]);
 
+// Get a single game room by ID
 export const getGameRoom = (gameID: number) =>
   get<{ gameID: number; mode: string; rules: string; tournamentID: number | null }>(
     `SELECT * FROM gameRooms WHERE gameID = ?`,
     [gameID]
   );
 
+// Get all public waiting game rooms
+export const getAllPublicGames = () =>
+  getAll<{ gameID: number; name: string; mode: string; createdBy: number }>(
+    `SELECT gameID, name, mode, createdBy FROM gameRooms WHERE type = 'public' AND state = 'waiting'`
+  );
+
 // ########################
 // #    GAME MEMBERS      #
 // ########################
 
-export const addMemberToGameRoom = (gameID: number, userID: number, alias: string, tournamentID: number | null = null) =>
+export const addMemberToGameRoom = (gameID: number, userID: number,  tournamentID: number | null = null) =>
   run(
-    `INSERT INTO gameMembers (gameID, userID, alias, tournamentID) VALUES (?, ?, ?, ?)`,
-    [gameID, userID, alias, tournamentID]
+    `INSERT INTO gameMembers (gameID, userID, tournamentID) VALUES (?, ?,  ?)`,
+    [gameID, userID, tournamentID]
   );
 
 export const delMemberFromGameRoom = (gameID: number, userID: number) =>
@@ -47,6 +67,16 @@ export const getAllMembersFromGameRoom = (gameID: number) =>
     `SELECT userID, alias FROM gameMembers WHERE gameID = ?`,
     [gameID]
   );
+
+export const getLastAddedToRoom = (gameID:number) =>
+	get<{userID:number, alias:string}>(
+		`SELECT userID, alias
+		FROM gameMembers
+		WHERE gameID = ?
+		ORDER BY created_at DESC
+		LIMIT 1`, 
+		[gameID]
+	);
 
 // ########################
 // #     TOURNAMENTS      #

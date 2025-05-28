@@ -54,25 +54,29 @@ CREATE TABLE IF NOT EXISTS user_relationships (
 );
 
 
--- CREATE TABLE IF NOT EXISTS gameRooms(
--- 	gameID 						INTEGER PRIMARY KEY AUTOINCREMENT,
--- 	tournamentID 				INTEGER,
--- 	mode 						TEXT,
--- 	rules						TEXT,
--- 	created_at 					DATETIME DEFAULT CURRENT_TIMESTAMP,
--- 	FOREIGN KEY(tournamentID)	REFERENCES tournaments(tournamentID) ON DELETE CASCADE
--- );
+CREATE TABLE IF NOT EXISTS gameRooms(
+	gameID 						INTEGER PRIMARY KEY AUTOINCREMENT,
+ 	name 						TEXT,
+	tournamentID 				INTEGER,
+ 	type						TEXT, -- public | private 
+ 	state						TEXT, -- waiting| playing
+	mode 						TEXT,
+	rules						TEXT,
+	created_at 					DATETIME DEFAULT CURRENT_TIMESTAMP,
+	FOREIGN KEY(tournamentID)	REFERENCES tournaments(tournamentID) ON DELETE CASCADE
+);
 
 
--- CREATE TABLE IF NOT EXISTS gameMembers(
--- 	gameID 						INTEGER,
--- 	tournamentID 				INTEGER,
--- 	userID 						INTEGER,
--- 	alias 						TEXT,
--- 	FOREIGN KEY(gameID) 		REFERENCES gameRooms(gameID) ON DELETE CASCADE,
--- 	FOREIGN KEY(userID)			REFERENCES users(our_index) ON DELETE CASCADE,
--- 	FOREIGN KEY(tournamentID) 	REFERENCES tournaments(tournamentID) ON DELETE CASCADE
--- );
+CREATE TABLE IF NOT EXISTS gameMembers(
+	gameID 						INTEGER,
+	tournamentID 				INTEGER,
+	userID 						INTEGER,
+	alias 						TEXT,
+	created_at 					DATETIME DEFAULT CURRENT_TIMESTAMP,
+	FOREIGN KEY(gameID) 		REFERENCES gameRooms(gameID) ON DELETE CASCADE,
+	FOREIGN KEY(userID)			REFERENCES users(our_index) ON DELETE CASCADE,
+	FOREIGN KEY(tournamentID) 	REFERENCES tournaments(tournamentID) ON DELETE CASCADE
+);
 
 
 -- CREATE TABLE IF NOT EXISTS tournaments(

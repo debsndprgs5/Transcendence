@@ -173,6 +173,13 @@ async function handleCreateGameButton(action: string): Promise<void> {
 			state.canvasViewState = 'mainMenu';
 			break;
 		case 'confirmGame':
+			if(state.playerState !== 'init' && state.playerState !== 'online'){
+				showNotification({
+					message:`You can't create a game because you are suposed to be playing ${state.playerState}`,
+					type:'error'
+				});
+				return;
+			}
 			const reply = await apiFetch(`/api/pong/${state.userId}`, {
 			method:'POST',
 			headers:{
@@ -199,6 +206,7 @@ async function handleCreateGameButton(action: string): Promise<void> {
 				message: `Creating room: ${createGameFormData.roomName ?? ''}, ball: ${createGameFormData.ballSpeed}, paddle: ${createGameFormData.paddleSpeed}`,
 				type: 'success'
 			});
+			state.playerState = 'waiting';
 			break;
 	}
 }

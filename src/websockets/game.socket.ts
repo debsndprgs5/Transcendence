@@ -155,7 +155,9 @@ function beginGame(roomID:number){
 }
 
 async function handleInit(parsed:any, player:players){
+	
 	const {userID} = parsed;
+	console.log(`HANDLE INIT CALLED : ${userID}`)
 	if(userID !== player.userID)
 		player.socket.send(JSON.stringify({
 			type: 'init',
@@ -164,7 +166,9 @@ async function handleInit(parsed:any, player:players){
 	if(userID === player.userID)
 		player.socket.send(JSON.stringify({
 			type: 'init',
-			success: 'true'
+			userID:player.userID,
+			state:'init',
+			success: 'true',
 		}));
 }
 
@@ -207,6 +211,7 @@ const { userID, gameName, gameID } = parsed;
 		player.socket.send(JSON.stringify({
 			type: 'joinGame',
 			success: true,
+			state: player.state,
 			gameID,
 			userID,
 		}));
@@ -398,7 +403,7 @@ export default fp(async (fastify) => {
     const { url } = request;
 	console.log('[GAME][onupgrade]');
     if (url?.startsWith('/gameSocket')) {
-		console.log('[stratWith/game]')
+		console.log('[startWith/game]')
       wss.handleUpgrade(request, socket, head, (ws) => {
         wss.emit('connection', ws, request);
       });

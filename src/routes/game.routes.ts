@@ -8,7 +8,7 @@ import * as gameMgr from '../db/gameManagement';
 export async function gameRoutes(fastify: FastifyInstance) {
 
 	console.log('[GAME][ROUTES]');
-	//UserID create a game body:alias:
+	//UserID create a game 
 	fastify.post('/pong/:userID', async(request,reply) => {
 		console.log('[GAME][ROUTES][POST][CREATEGAME]');
 		try{
@@ -25,7 +25,7 @@ export async function gameRoutes(fastify: FastifyInstance) {
 			await getGameList(request,reply);
 		}
 		catch(error){
-			console.error('Error in /api/pong/random/:userID', error);
+			console.error('Error in /api/pong/list', error);
 					return reply.code(500).send({ 
 							error: 'Internal server error'}); 
 		}

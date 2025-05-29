@@ -1,9 +1,8 @@
 
-
-import {apiFetch, AppState, state} from './api.js'
 import { showNotification, showUserActionsBubble } from './notifications.js';
 //export async function gameSystemLog(msg)
 //export async function gameEndsLog(msg)
+import { isAuthenticated, apiFetch, initWebSocket, state } from './api';
 
 
 export async function initGameSocket(){
@@ -18,13 +17,10 @@ export async function initGameSocket(){
 	await new Promise<void>((resolve, reject) => {
 		gameSocket.onopen = () => {
 			console.log('OPENING GAME SOCKET');
-			gameSocket.send(JSON.stringify({
-				type: 'init',
-				userID: state.userId
-			}));
+			if(state.playerState === 'online' || !state.playerState)
+				state.playerState = 'init';
 			resolve(); // Wait ends here
 		};
-
 		gameSocket.onerror = (err) => {
 			console.error('[GAME]WebSocket error:', err);
 			reject(err);
@@ -40,20 +36,20 @@ export async function initGameSocket(){
 						state.gameSocket=gameSocket;
 						state.userId=data.userID;
 						state.playerState= data.state;
-						showNotification({ message: 'connection with game established', type: 'success' });
+						showNotification({ message: `connection with game established\n${data.state}`, type: 'success' });
 						//User in now register for game socket and is able to start
 					}
 					break;
 				}
 				case 'joinGame':{
 					if(data.success === false)
-						showNotification({ message:'Unable to join game' , type: 'error' });
+						showNotification({ message:`Unable to join game because ${data.reason}` , type: 'error' });
 					else 
 						showNotification({ message:'Game joined with success' , type: 'success' });
 					break;
 				}
 				case 'invite':{
-					handleInvite(state, data);
+					handleInvite(data);
 					break;
 				}
 				case 'startGame':{
@@ -70,7 +66,7 @@ export async function initGameSocket(){
 					break;
 				}
 				case 'endMatch':{
-					handleEndMatch(state, data);
+					handleEndMatch(data);
 					break;
 				}
 				case 'playerMoove':{
@@ -90,7 +86,8 @@ export async function initGameSocket(){
 	};
 
 	gameSocket.onclose = (event) =>{
-	
+		console.log(`${state.userId} got offline`);
+		state.playerState = 'offline';
 	};
 
 	gameSocket.onerror = (error) => {
@@ -99,7 +96,7 @@ export async function initGameSocket(){
 }
 
 
-export async function handleEndMatch(state:AppState, data:string){
+export async function handleEndMatch(data:string){
 	// if(data.action === 'legit'){
 	// //KICK both player from room , removes them and the room from db
 	// //update games stats/ history
@@ -114,7 +111,7 @@ export async function handleEndMatch(state:AppState, data:string){
 	// }
 }
 
-export async function handleInvite(state:AppState, data:string){
+export async function handleInvite(data:string){
 	const {action , response, userID} = JSON.parse(data);
 	if(action === 'reply'){
 		if(response !== 'accept')

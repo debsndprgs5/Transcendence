@@ -14,9 +14,9 @@ import { showPongMenu } from './pong_rooms';
 import { initGameSocket } from './pong_socket';
 
 interface User {
-  username: string;
-  avatarUrl?: string;
-  our_index: number;
+	username: string;
+	avatarUrl?: string;
+	our_index: number;
 }
 
 
@@ -504,10 +504,10 @@ export async function setupHomeHandlers(): Promise<void> {
 	// Call loadRooms immediately and set up WebSocket
 	if (state.authToken) {
 		loadRooms();
-	if (!state.socket || state.socket.readyState === WebSocket.CLOSED)
-		initWebSocket();
-	if (!state.gameSocket || state.gameSocket.readyState === WebSocket.CLOSED)
-		await initGameSocket();
+		if (!state.socket || state.socket.readyState === WebSocket.CLOSED)
+			initWebSocket();
+		if (!state.gameSocket || state.gameSocket.readyState === WebSocket.CLOSED)
+			await initGameSocket();
 	}
 
 	// General chat button
@@ -591,12 +591,29 @@ export async function setupHomeHandlers(): Promise<void> {
 	// Chat: form submission via WebSocket
 	const chatForm = document.getElementById('chatForm') as HTMLFormElement | null;
 	if (chatForm) {
-		chatForm.addEventListener('submit', (e) => {
+		chatForm.addEventListener('submit', async (e) => {
 			e.preventDefault();
 			const formData = new FormData(chatForm);
 			const content = formData.get('message');
 			if (!content || !state.socket || state.socket.readyState !== WebSocket.OPEN) return;
-
+			if (!state.userId)
+			{
+				try {
+					const resp = await fetch('/api/auth/me', {
+					headers: { Authorization: `Bearer ${state.authToken}` }
+					});
+					if (!resp.ok) throw new Error('Failed to get userId');
+					const data = await resp.json();
+					state.userId = data.userId;
+					if (!state.userId) {
+						console.log('userid impossible to get...');
+						return;
+					}
+				} catch (err) {
+					console.log('fetch userId error:', err);
+					return;
+				}
+			}
 			state.socket.send(
 				JSON.stringify({
 					type: 'chatRoomMessage',
@@ -819,8 +836,7 @@ export function setupVerify2FAHandlers(): void {
 			if (res.ok) {
 				localStorage.setItem('token', json.token);
 				state.authToken = json.token;
-				history.pushState(null, '', '/');
-				router();
+				window.location.href = '/';
 			} else {
 				const err = document.getElementById('verify-error') as HTMLElement;
 				err.textContent = json.error;

@@ -124,7 +124,6 @@ export async function initWebSocket(): Promise<void> {
 		console.warn("WebSocket: no auth token");
 		return;
 	}
-
 	try {
 		const resp = await fetch('/api/auth/me', {
 			headers: {
@@ -359,7 +358,7 @@ export function handleWebSocketMessage(msg: WebSocketMsg): void {
 		}
 
 		default:
-			console.warn('Unrecognized WebSocket message type:', msg.type);
+			console.warn('Unrecognized WebSocket message type:', msg);
 	}
 }
 

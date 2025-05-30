@@ -1032,6 +1032,10 @@ export function handleLogout(): void {
 	localStorage.removeItem('currentRoom');
 
 	updateNav();
+	if (state.gameSocket?.readyState === WebSocket.OPEN) {
+		state.gameSocket.close();
+	}
+	state.playerState = 'offline';
 	state.socket?.send(JSON.stringify({
 		type: 'friendStatus',
 		action: 'update',

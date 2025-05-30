@@ -1,5 +1,5 @@
 import { isAuthenticated, apiFetch, initWebSocket, state } from './api';
-import { drawCreateGameView } from './pong_views';
+import { drawCreateGameView, drawWaitingGameView } from './pong_views';
 import { showNotification } from './notifications';
 
 interface PongButton {
@@ -43,10 +43,22 @@ export function showPongMenu(): void {
 	const ctx = canvas.getContext('2d');
 	if (!ctx) return;
 
-	if (state.canvasViewState === 'mainMenu') {
-		drawMainMenu(canvas, ctx);
-	} else {
-		drawCreateGameView(canvas, ctx);
+	switch (state.canvasViewState) {
+		case 'mainMenu':
+			drawMainMenu(canvas, ctx);
+			break;
+
+		case 'createGame':
+			drawCreateGameView(canvas, ctx);
+			break;
+
+		case 'waitingGame':
+			drawWaitingGameView(canvas, ctx);
+			break;
+
+		default:
+			drawMainMenu(canvas, ctx);
+			break;
 	}
 }
 

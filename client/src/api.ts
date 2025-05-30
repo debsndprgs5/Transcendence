@@ -10,7 +10,7 @@ export interface AppState {
 	friendsStatusList: { friendID: number }[];
 	loadRooms?: () => void;
 	gameSocket:WebSocket | null;
-	playerState:string;
+	playerState: string;
 }
 
 export const state: AppState = {
@@ -21,8 +21,8 @@ export const state: AppState = {
 	currentRoom: 0,
 	canvasViewState: 'mainMenu',
 	friendsStatusList: [],
-	gameSocket:null,
-	playerState:'online'
+	playerState: 'online',
+	gameSocket: null,
 };
 
 // ─── AUTHENTICATION ──────────────────────────────────────────────────────
@@ -30,10 +30,12 @@ export const state: AppState = {
 /**
  * Checks if there's a valid auth token in localStorage.
  */
+
 export function isAuthenticated(): boolean {
 	state.authToken = localStorage.getItem('token');
 	return !!state.authToken;
 }
+
 
 // ─── API FETCH ────────────────────────────────────────────────────────────
 

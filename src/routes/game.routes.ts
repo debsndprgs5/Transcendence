@@ -16,18 +16,29 @@ export async function gameRoutes(fastify: FastifyInstance) {
 		}
 		catch(error){
 			console.error('Error in /api/pong/random/:userID', error);
-					return reply.code(500).send({ 
-							error: 'Internal server error'}); 
+			return reply.code(500).send({ 
+					error: 'Internal server error'}); 
 		}
 	});
 	fastify.get('/pong/list', async(request, reply)=>{
-				try{
+		try {
 			await getGameList(request,reply);
 		}
 		catch(error){
 			console.error('Error in /api/pong/list', error);
-					return reply.code(500).send({ 
-							error: 'Internal server error'}); 
+			return reply.code(500).send({ 
+					error: 'Internal server error'}); 
+		}
+	});
+	// get all the users in a room by roomID
+	fastify.get('/pong/:roomID/list', async (request, reply) => {
+		try {
+			const gameID = Number((request.params as any).roomID);
+			const members = await gameMgr.getAllMembersFromGameRoom(gameID);
+			return reply.send(members);
+		} catch (error) {
+			console.error('Error in get /api/pong/:roomID/list : ', error);
+			return reply.code(500).send({ error: 'Internal server error' });
 		}
 	});
 	// //UserID create a tournament 

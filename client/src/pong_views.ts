@@ -119,8 +119,65 @@ export function drawCreateGameView(
 
 export function drawWaitingGameView(
 	canvas: HTMLCanvasElement,
-	ctx: CanvasRenderingContext2D
+	ctx: CanvasRenderingContext2D,
+	roomName: string,
+	players: string[]
 ): void {
+	const width  = canvas.width;
+	const height = canvas.height;
 
+	// Clear
+	ctx.clearRect(0, 0, width, height);
+
+	// Background gradient (left → right: #2C5364 → #203A43 → #0F2027)
+	const grad = ctx.createLinearGradient(0, 0, width, 0);
+	grad.addColorStop(0.0, '#2C5364');
+	grad.addColorStop(0.5, '#203A43');
+	grad.addColorStop(1.0, '#0F2027');
+	ctx.fillStyle = grad;
+	ctx.fillRect(0, 0, width, height);
+
+	// Room title
+	ctx.fillStyle = 'white';
+	ctx.font      = `${Math.floor(height / 15)}px Orbitron`;
+	ctx.textAlign = 'center';
+	ctx.fillText(roomName, width / 2, height * 0.12);
+
+	// Player list label
+	ctx.fillStyle = 'white';
+	ctx.font      = `${Math.floor(height / 28)}px Orbitron`;
+	ctx.textAlign = 'left';
+	const listX = width * 0.2;
+	let currentY = height * 0.25;
+	const lineHeight = height * 0.06;
+	ctx.fillText('Players:', listX, currentY);
+
+	// List of players
+	players.forEach((player, index) => {
+		ctx.fillText(
+			`• ${player}`,
+			listX,
+			currentY + lineHeight * (index + 1)
+		);
+	});
+
+	// Leave Room button
+	const btnW = width  * 0.2;
+	const btnH = height * 0.08;
+	const btnX = width  / 2 - btnW / 2;
+	const btnY = height * 0.8;
+	ctx.fillStyle = '#f87171';
+	ctx.fillRect(btnX, btnY, btnW, btnH);
+
+	ctx.fillStyle = 'white';
+	ctx.font      = `${Math.floor(height / 22)}px Orbitron`;
+	ctx.textAlign = 'center';
+	ctx.fillText('Leave Room', width / 2, btnY + btnH * 0.65);
+
+	// store the leave button for click handling
+	(canvas as any)._waitingGameButtons = [
+		{ x: btnX, y: btnY, w: btnW, h: btnH, action: 'leaveRoom' }
+	];
 }
+
 

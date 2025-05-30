@@ -42,7 +42,7 @@ export function showPongMenu(): void {
 
 	const ctx = canvas.getContext('2d');
 	if (!ctx) return;
-
+	console.log('state.canvasViewState = ', state.canvasViewState);
 	switch (state.canvasViewState) {
 		case 'mainMenu':
 			drawMainMenu(canvas, ctx);
@@ -51,11 +51,13 @@ export function showPongMenu(): void {
 		case 'createGame':
 			drawCreateGameView(canvas, ctx);
 			break;
-
 		case 'waitingGame':
-			drawWaitingGameView(canvas, ctx);
+			drawWaitingGameView(
+				canvas, ctx,
+				state.currentGameName || 'Unknown Room',
+				state.currentPlayers || []
+			);
 			break;
-
 		default:
 			drawMainMenu(canvas, ctx);
 			break;
@@ -218,7 +220,25 @@ async function handleCreateGameButton(action: string): Promise<void> {
 				message: `Creating room: ${createGameFormData.roomName ?? ''}, ball: ${createGameFormData.ballSpeed}, paddle: ${createGameFormData.paddleSpeed}`,
 				type: 'success'
 			});
-			state.playerState = 'waiting';
+			state.playerState = 'waitingGame';
+			const playerslist = await apiFetch(
+					`/api/pong/${encodeURIComponent(gameID)}/list`,
+					{ headers: { Authorization: `Bearer ${state.authToken}` } }
+			);
+			// map playerslist object as a string map
+			const aliases = (playerslist as { alias: string }[]).map(p => p.alias);
+
+			// stock in state
+			state.currentGameName   = gameName;
+			state.currentPlayers    = aliases;
+			state.canvasViewState   = 'waitingGame';
+
+			// persist in local storage to survive refresh
+			localStorage.setItem('pong_view', 'waitingGame');
+			localStorage.setItem('pong_room', gameName);
+			localStorage.setItem('pong_players', JSON.stringify(aliases));
+
+			showPongMenu();
 			break;
 	}
 }

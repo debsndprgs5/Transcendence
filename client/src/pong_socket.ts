@@ -21,6 +21,11 @@ export async function initGameSocket(){
 				state.playerState = 'init';
 			resolve(); // Wait ends here
 		};
+		gameSocket.onclose = () =>{
+			//Set time out to 15sec just like in back ? 
+			//Keep OldState from state.playerSte in memory 
+
+		}
 		gameSocket.onerror = (err) => {
 			console.error('[GAME]WebSocket error:', err);
 			reject(err);
@@ -65,6 +70,13 @@ export async function initGameSocket(){
 						console.log(`[FRONT][GAMESOCKET] : [No socket for startGame][${state}]`);
 					break;
 				}
+				case 'statusUpdate':{
+					console.log(`[FRONT][GAMESOCKET][oldSTATUS]${state.playerState}||[newSTATUS]${state.playerState}`);
+					if(data.newState){
+						state.playerState = data.newState;
+					}
+					break;
+				}
 				case 'endMatch':{
 					handleEndMatch(data);
 					break;
@@ -76,6 +88,26 @@ export async function initGameSocket(){
 				}
 				case 'render':{
 					//Receive all data for game render 
+					break;
+				}
+				case'reconnected':{
+					console.log(`[FRONT][GAMESOCKET]user ${state.userId}: just reconneted`);
+					//What logic should we have for reconnected? 
+					state.playerState=data.state;
+					if(data.gameID){
+						//Returns to renderGame?
+						//PACEHODLER TO EXIT ROOM
+						showNotification({
+						message:'Do you want to leave room ?',
+						type:'confirm',
+						onConfirm: () => {
+							state.gameSocket?.send(JSON.stringify({
+								type:'leaveGame',
+								userID:state.userId,
+								gameID:data.gameID
+							}));
+						}});
+					}
 					break;
 				}
 			}

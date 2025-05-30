@@ -145,9 +145,7 @@ export async function initWebSocket(): Promise<void> {
 		}
 
 		const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-		const wsUrl = `${protocol}://${location.host}/chat/ws?token=${encodeURIComponent(
-			state.authToken!
-		)}`;
+		const wsUrl = `${protocol}://${location.host}/chat/ws?token=${encodeURIComponent(state.authToken!)}`;
 
 		if (state.socket && state.socket.readyState === WebSocket.OPEN) {
 			state.socket.close();

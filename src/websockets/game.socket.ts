@@ -34,7 +34,7 @@ export async function initGameSocket(ws: WebSocket, request: any) {
 	console.error('[verifyAndExtractUser ERROR]', e);
 	return null;
 	});
-	console.log('[verifyAndExtractUser RESULT]', result);
+	console.log('[verifyAndExtractUser SUCCESS]');
 	if (!result) return;
 
 	const { userId, fullUser } = result;
@@ -305,7 +305,6 @@ async function cleanupPlayerFromGame(player: players) {
 	// Remove player from DB and update their state
 	await GameManagement.delMemberFromGameRoom(gameID, player.userID);
 	player.state = 'init';
-
 	// Notify them (if socket still open)
 	if (player.socket.readyState === WebSocket.OPEN) {
 		player.socket.send(JSON.stringify({
@@ -352,6 +351,7 @@ export async function tryStartGameIfReady(gameID:number, maxPlayers = 2){
 			playerObjs.forEach(p => {
 				p.state = 'playing';
 				p.socket.send(JSON.stringify({ type: 'startGame', gameID }));
+				p.socket.send(JSON.stringify({type:'statusUpdate', playerState:p.state}))
 			});
 
 			// send first render and start game loop
@@ -373,6 +373,10 @@ export async function kickFromGameRoom(gameID:number, player?:players){
 		reason: 'too many players in room',
 		gameID
 	}));
+	player.socket.send(JSON.stringify({
+		type:'statusUpdate',
+		playerState: player.state
+	}))
 }
 
 export async function handlePlayerMove(parsed: any, player: players) {

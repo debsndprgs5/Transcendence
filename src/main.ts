@@ -64,9 +64,7 @@ async function bootstrap() {
     index: false  // on servira index.html manuellement
   });
 
-  // Mount WS plugin
-  await app.register(wsPlugin);
-  await app.register(gamePlugin);
+
 
   // Mount API Routes
   await app.register(async (fastify) => {
@@ -103,7 +101,9 @@ async function bootstrap() {
 		console.error('Error registering gamesRoutes')
 	}
   }, { prefix: '/api' })
-
+  // Mount WS plugin
+  await app.register(wsPlugin);
+  await app.register(gamePlugin);
   // Pour toute autre requête non-api, envoi de index.html
   app.setNotFoundHandler((request, reply) => {
     if (request.method === 'GET' && !request.url.startsWith('/api')) {

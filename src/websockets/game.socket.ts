@@ -139,6 +139,7 @@ export async function setupMessageHandlers(ws: WebSocket, player: players) {
 			case 'joinGame': await handleJoin(parsed, player); break;
 			case 'invite': await handleInvite(parsed, player); break;
 			case 'startGame': beginGame(parsed.roomID); break;
+			case 'leaveGame': handleLeaveGame(parsed, player); break;
 			case 'playerMove': await handlePlayerMove(parsed, player); break;
 			case 'render': await handleRender(parsed, player); break;
 			default:
@@ -216,6 +217,7 @@ const { userID, gameName, gameID } = parsed;
 			success: true,
 			state: player.state,
 			gameID:player.gameID,
+			gameName:gameName,
 			userID: player.userID
 		}));
 	} catch (err) {
@@ -313,6 +315,11 @@ async function cleanupPlayerFromGame(player: players) {
 			reason: 'Disconnected for too long',
 			gameID:player.gameID
 		}));
+		player.socket.send(JSON.stringify({
+			type:'statusUpdate',
+			newState:'init',
+			userID: player.userID
+		}));
 	}
 
 	// Check if other players remain in the game room
@@ -399,6 +406,11 @@ export async function handlePlayerMove(parsed: any, player: players) {
 			}));
 		}
 	}
+}
+
+export async function handleLeaveGame(parsed:any, player:players){
+	//Check for winner loser before 
+	await cleanupPlayerFromGame(player)
 }
 
 export default fp(async (fastify) => {

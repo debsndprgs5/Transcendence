@@ -333,8 +333,9 @@ export async function setupHomeHandlers(): Promise<void> {
 			localStorage.removeItem('token');
 			localStorage.removeItem('username');
 			history.pushState(null, '', '/');
-			handleLogout();
+			
 			router();
+			handleLogout();
 		});
 	}
 

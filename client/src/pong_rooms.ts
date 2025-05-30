@@ -1,5 +1,5 @@
 import { isAuthenticated, apiFetch, initWebSocket, state } from './api';
-import { drawCreateGameView } from './pong_views';
+import { drawCreateGameView, drawWaitingGameView } from './pong_views';
 import { showNotification } from './notifications';
 
 interface PongButton {
@@ -43,10 +43,22 @@ export function showPongMenu(): void {
 	const ctx = canvas.getContext('2d');
 	if (!ctx) return;
 
-	if (state.canvasViewState === 'mainMenu') {
-		drawMainMenu(canvas, ctx);
-	} else {
-		drawCreateGameView(canvas, ctx);
+	switch (state.canvasViewState) {
+		case 'mainMenu':
+			drawMainMenu(canvas, ctx);
+			break;
+
+		case 'createGame':
+			drawCreateGameView(canvas, ctx);
+			break;
+
+		case 'waitingGame':
+			drawWaitingGameView(canvas, ctx);
+			break;
+
+		default:
+			drawMainMenu(canvas, ctx);
+			break;
 	}
 }
 
@@ -192,7 +204,7 @@ async function handleCreateGameButton(action: string): Promise<void> {
 				paddle_speed: createGameFormData.paddleSpeed,
 			})
 			});
-			const { gameID, gameName } = reply;
+			const { gameID, gameName } = reply.room;
 			if(!state.gameSocket){
 				console.log('NO SOCKET FOR GAME');
 				return;
@@ -200,6 +212,7 @@ async function handleCreateGameButton(action: string): Promise<void> {
 			state.gameSocket.send(JSON.stringify({
 				type:'joinGame',
 				gameName,
+				userID:state.userId,
 				gameID
 			}));
 			showNotification({

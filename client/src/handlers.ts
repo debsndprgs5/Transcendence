@@ -333,6 +333,7 @@ export async function setupHomeHandlers(): Promise<void> {
 			localStorage.removeItem('token');
 			localStorage.removeItem('username');
 			history.pushState(null, '', '/');
+			handleLogout();
 			router();
 		});
 	}
@@ -1031,7 +1032,14 @@ export function handleLogout(): void {
 	localStorage.removeItem('username');
 	localStorage.removeItem('currentRoom');
 
-	updateNav();
+	
+	if (!state.gameSocket)
+		console.log(`[GAMESOCKET]NOT FOUND for ${state.userId}`);
+	if (state.gameSocket) {
+		console.log(`[GAMESOCKET]closing for ${state.userId}`);
+		state.gameSocket.close();
+	}
+	state.playerState = 'offline';
 	state.socket?.send(JSON.stringify({
 		type: 'friendStatus',
 		action: 'update',
@@ -1044,7 +1052,7 @@ export function handleLogout(): void {
 	state.authToken = null;
 	state.userId    = null;
 	state.currentRoom = 0;
-
+	updateNav();
 	render(HomeView());
 }
 

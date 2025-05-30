@@ -183,9 +183,9 @@ function handleDisconnect(player: players) {
 	const timeout = setTimeout(() => {
 		const stillDisconnected = MappedPlayers.get(player.userID);
 		if (stillDisconnected && stillDisconnected.hasDisconnected) {
-			console.log(`User ${player.userID} did not reconnect in time. Removing from game.`);
-			MappedPlayers.delete(player.userID);
+			console.log(`User ${player.userID} in game: ${player.gameID} did not reconnect in time. Removing from game.`);
 			cleanupPlayerFromGame(player);
+			MappedPlayers.delete(player.userID);
 		}
 	}, 15000);
 
@@ -208,17 +208,16 @@ const { userID, gameName, gameID } = parsed;
 
 	try {
 		await GameManagement.addMemberToGameRoom(gameID, userID);
+		console.log(`ADDING [USERID]${userID} in gameRoom${gameID}`);
 		player.state = 'waiting';
 		player.gameID = gameID;
 		player.socket.send(JSON.stringify({
 			type: 'joinGame',
 			success: true,
 			state: player.state,
-			gameID,
-			userID,
+			gameID:player.gameID,
+			userID: player.userID
 		}));
-
-		await tryStartGameIfReady(gameID);
 	} catch (err) {
 		console.error('handleJoin error', err);
 		player.socket.send(JSON.stringify({
@@ -227,7 +226,7 @@ const { userID, gameName, gameID } = parsed;
 			reason: 'Join failed',
 		}));
 	}
-
+	await tryStartGameIfReady(gameID);
 }
 
 export async function handleInvite(parsed:any, player:players){
@@ -298,21 +297,21 @@ export async function handleRender(parsed:any, player:players){
 }
 
 async function cleanupPlayerFromGame(player: players) {
-	const gameID = player.gameID;
+	 const gameID = player.gameID;
 	if (!gameID) {
 		console.warn(`cleanupPlayerFromGame called with no gameID`);
 		return;
 	}
 
 	// Remove player from DB and update their state
-	await GameManagement.delMemberFromGameRoom(gameID, player.userID);
+	await GameManagement.delMemberFromGameRoom(gameID , player.userID);
 	player.state = 'init';
 	// Notify them (if socket still open)
 	if (player.socket.readyState === WebSocket.OPEN) {
 		player.socket.send(JSON.stringify({
 			type: 'removed',
 			reason: 'Disconnected for too long',
-			gameID
+			gameID:player.gameID
 		}));
 	}
 
@@ -334,7 +333,7 @@ async function cleanupPlayerFromGame(player: players) {
 //does same logic but up to maxplayers instead 
 export async function tryStartGameIfReady(gameID:number, maxPlayers = 2){
 	const playersInGameRoom = await GameManagement.getAllMembersFromGameRoom(gameID);
-
+	console.log(`TRYSTARTGAME IF READY : ${gameID}`);
 	if (playersInGameRoom.length > maxPlayers) {
 		const playerToKick = await GameManagement.getLastAddedToRoom(gameID);
 		if(!playerToKick?.userID)

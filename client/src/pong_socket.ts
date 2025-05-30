@@ -40,7 +40,7 @@ export async function initGameSocket(){
 					if(data.success === 'true'){
 						state.gameSocket=gameSocket;
 						state.userId=data.userID;
-						state.playerState= data.state;
+						state.playerState= 'init';
 						showNotification({ message: `connection with game established\n${data.state}`, type: 'success' });
 						//User in now register for game socket and is able to start
 					}
@@ -50,7 +50,7 @@ export async function initGameSocket(){
 					if(data.success === false)
 						showNotification({ message:`Unable to join game because ${data.reason}` , type: 'error' });
 					else 
-						showNotification({ message:'Game joined with success' , type: 'success' });
+						showNotification({ message:`Game joined with success${data.gameID}` , type: 'success' });
 					break;
 				}
 				case 'invite':{

@@ -28,7 +28,12 @@ export function drawCreateGameView(
 	ctx.clearRect(0, 0, width, height);
 
 	// Background
-	ctx.fillStyle = '#0f172a';
+	const grad = ctx.createLinearGradient(0, 0, width, 0);
+	grad.addColorStop(0.0, '#2C5364');
+	grad.addColorStop(0.5, '#203A43');
+	grad.addColorStop(1.0, '#0F2027');
+
+	ctx.fillStyle = grad;
 	ctx.fillRect(0, 0, width, height);
 
 	// Title
@@ -110,3 +115,12 @@ export function drawCreateGameView(
 		{ x: backX,    y: backY,    w: backW,    h: backH,    action: 'backToMenu' }
 	];
 }
+
+
+export function drawWaitingGameView(
+	canvas: HTMLCanvasElement,
+	ctx: CanvasRenderingContext2D
+): void {
+
+}
+

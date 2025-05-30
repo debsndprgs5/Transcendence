@@ -35,6 +35,7 @@ export function showPongMenu(): void {
 	const canvas = document.getElementById('pong-canvas') as HTMLCanvasElement | null;
 	if (!canvas) return;
 
+	canvas.onclick = handlePongMenuClick;
 	canvas.onmousedown = handlePongMenuMouseDown;
 	canvas.onmouseup   = handlePongMenuMouseUp;
 	canvas.onmouseleave = handlePongMenuMouseUp;
@@ -121,40 +122,43 @@ export function drawMainMenu(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
 		return { x, y, w: btnW, h: btnH, action: btn.action };
 	});
 
-	canvas.onclick = handlePongMenuClick;
 }
 
-function handlePongMenuClick(e: MouseEvent): void {
+
+
+async function handlePongMenuClick(e: MouseEvent): Promise<void> {
 	const canvas = e.currentTarget as HTMLCanvasElement;
 	const rect   = canvas.getBoundingClientRect();
 	const x      = (e.clientX - rect.left) * (canvas.width  / rect.width);
 	const y      = (e.clientY - rect.top ) * (canvas.height / rect.height);
 
 	switch (state.canvasViewState) {
-		case 'mainMenu':
-			const btn = canvas._pongMenuBtns?.find(b =>
+		case 'mainMenu': {
+			// handle main menu buttons
+			const btnMain = canvas._pongMenuBtns?.find((b: PongButton) =>
 				x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h
 			);
-			if (!btn) return;
-			if (btn.action === 'Create Game') {
+			if (!btnMain) return;
+			if (btnMain.action === 'Create Game') {
 				state.canvasViewState = 'createGame';
 				showPongMenu();
 			} else {
-				alert(`Clicked: ${btn.action}`);
+				alert(`Clicked: ${btnMain.action}`);
 			}
 			break;
+		}
 
-		case 'createGame':
-			const btn = canvas._createGameButtons?.find(b =>
+		case 'createGame': {
+			// handle create game buttons
+			const btnCreate = canvas._createGameButtons?.find((b: PongButton) =>
 				x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h
 			);
-			if (btn) {
-				handleCreateGameButton(btn.action);
+			if (btnCreate) {
+				await handleCreateGameButton(btnCreate.action);
 				showPongMenu();
 			} else if (
-				// on clique dans la zone "Room name"
 				y > canvas.height * 0.22 && y < canvas.height * 0.28 &&
-				x > canvas.width * 0.2 && x < canvas.width * 0.9
+				x > canvas.width  * 0.2  && x < canvas.width  * 0.9
 			) {
 				showNotification({
 					message: 'Type a name for your room:',
@@ -166,18 +170,27 @@ function handlePongMenuClick(e: MouseEvent): void {
 					}
 				});
 			}
+			break;
+		}
 
-		case 'waitingGame':
-			const btn = (canvas as any)._waitingGameButtons?.find(b =>
-					 x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h
-				 );
-				 if (!btn) return;
-				 if (btn.action === 'leaveRoom') {
-					 await handleLeaveGame();
-					 showPongMenu();
-				 }
+		case 'waitingGame': {
+			// handle the leave room button
+			const btnWaiting = (canvas as any)._waitingGameButtons?.find((b: PongButton) =>
+				x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h
+			);
+			if (!btnWaiting) return;
+			if (btnWaiting.action === 'leaveRoom') {
+				await handleLeaveGame();
+				showPongMenu();
+			}
+			break;
+		}
+
+		default:
+			break;
 	}
 }
+
 
 async function handleCreateGameButton(action: string): Promise<void> {
 	switch (action) {
@@ -289,7 +302,10 @@ function handlePongMenuMouseUp(): void {
 
 async function handleLeaveGame(): Promise<void> {
 	try {
-		state.gameSocket.send(json.stringify())
+		state.gameSocket?.send(JSON.stringify({
+			type:'leaveGame',
+			userID:state.userId,
+		}));
 	} catch (err) {
 		console.error('Error leaving game:', err);
 		showNotification({ message: 'Error leaving game', type: 'error' });

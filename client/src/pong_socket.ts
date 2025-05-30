@@ -94,7 +94,7 @@ export async function initGameSocket(){
 					console.log(`[FRONT][GAMESOCKET]user ${state.userId}: just reconneted`);
 					//What logic should we have for reconnected? 
 					state.playerState=data.state;
-					if(data.gameID){
+					if(data.gameID && (state.playerState === 'waiting' || state.playerState === 'online')){
 						//Returns to renderGame?
 						//PACEHODLER TO EXIT ROOM
 						showNotification({

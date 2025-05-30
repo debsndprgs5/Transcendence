@@ -326,6 +326,17 @@ export async function setupHomeHandlers(): Promise<void> {
 		showPongMenu();
 	});
 
+	// Get back the pong view state
+	const savedView = localStorage.getItem('pong_view');
+	if (savedView === 'waitingGame') {
+		state.canvasViewState = 'waitingGame';
+		state.currentGameName = localStorage.getItem('pong_room') || undefined;
+		try {
+			state.currentPlayers = JSON.parse(localStorage.getItem('pong_players') || '[]');
+		} catch {
+			state.currentPlayers = [];
+		}
+	}
 	// Logout button
 	const logoutBtn = document.getElementById('logoutBtn');
 	if (logoutBtn) {
@@ -1046,6 +1057,7 @@ export function handleLogout(): void {
 		state: 'offline',
 		userID: state.userId,
 	}));
+	state.canvasViewState = 'mainMenu';
 	if (state.socket?.readyState === WebSocket.OPEN) {
 		state.socket.close();
 	}
@@ -1148,7 +1160,6 @@ export async function router(): Promise<void> {
 		default:
 			render(HomeView());
 			if (isAuthenticated()) {
-				state.canvasViewState = 'mainMenu';
 				setupHomeHandlers();
 				if (!state.socket || state.socket.readyState === WebSocket.CLOSED)
 					initWebSocket();

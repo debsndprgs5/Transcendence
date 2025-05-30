@@ -11,6 +11,7 @@ interface PongButton {
 declare global {
 	interface HTMLCanvasElement {
 		_createGameButtons?: PongButton[];
+		_waitingGameButtons?: PongButton[];
 	}
 }
 

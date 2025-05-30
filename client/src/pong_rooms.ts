@@ -206,7 +206,7 @@ async function handleCreateGameButton(action: string): Promise<void> {
 				paddle_speed: createGameFormData.paddleSpeed,
 			})
 			});
-			const { gameID, gameName } = reply;
+			const { gameID, gameName } = reply.room;
 			if(!state.gameSocket){
 				console.log('NO SOCKET FOR GAME');
 				return;
@@ -214,6 +214,7 @@ async function handleCreateGameButton(action: string): Promise<void> {
 			state.gameSocket.send(JSON.stringify({
 				type:'joinGame',
 				gameName,
+				userID:state.userId,
 				gameID
 			}));
 			showNotification({

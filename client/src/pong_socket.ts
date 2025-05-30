@@ -50,7 +50,7 @@ export async function initGameSocket(){
 					if(data.success === false)
 						showNotification({ message:`Unable to join game because ${data.reason}` , type: 'error' });
 					else 
-						showNotification({ message:'Game joined with success' , type: 'success' });
+						showNotification({ message:`Game joined with success${data.gameID}` , type: 'success' });
 					break;
 				}
 				case 'invite':{

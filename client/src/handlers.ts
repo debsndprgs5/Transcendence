@@ -333,6 +333,7 @@ export async function setupHomeHandlers(): Promise<void> {
 			localStorage.removeItem('token');
 			localStorage.removeItem('username');
 			history.pushState(null, '', '/');
+			handleLogout();
 			router();
 		});
 	}
@@ -564,7 +565,7 @@ export async function setupHomeHandlers(): Promise<void> {
 
 			if (state.socket && state.socket.readyState === WebSocket.OPEN) {
 				state.socket.send(
-					JSON.stringify({ type: 'chatHistory', roomID: roomId, limit: 50 })
+					JSON.stringify({ type: 'chatHistory', roomID: roomId, userID:state.userId , limit: 50 })
 				);
 			}
 			document.querySelectorAll<HTMLElement>('#room-list li').forEach((li) => {
@@ -636,14 +637,14 @@ export async function setupHomeHandlers(): Promise<void> {
 			actionOnUser({ url: '/api/friends/:userId', method: 'POST', successMsg: 'Friend added !', errorMsg: 'Error during add' });
 	}
 	if (blockUserBtn) {
-		blockUserBtn.onclick = () => {
-			actionOnUser({ url: '/api/blocks/:userId', method: 'POST', successMsg: 'User blocked !', errorMsg: 'Error during block' });
+		blockUserBtn.onclick = async() => {
+			await actionOnUser({ url: '/api/blocks/:userId', method: 'POST', successMsg: 'User blocked !', errorMsg: 'Error during block' });
 			state.socket!.send(JSON.stringify({ type: 'chatHistory', roomID: state.currentRoom, userID: state.userId, limit: 50 }));
 		};
 	}
 	if (unblockUserBtn) {
-		unblockUserBtn.onclick = () => {
-			actionOnUser({ url: '/api/blocks/:userId', method: 'DELETE', successMsg: 'User unblocked !', errorMsg: 'Error during unblock' });
+		unblockUserBtn.onclick = async() => {
+			await actionOnUser({ url: '/api/blocks/:userId', method: 'DELETE', successMsg: 'User unblocked !', errorMsg: 'Error during unblock' });
 			state.socket!.send(JSON.stringify({ type: 'chatHistory', roomID: state.currentRoom, userID: state.userId, limit: 50 }));
 		};
 	}
@@ -1031,8 +1032,11 @@ export function handleLogout(): void {
 	localStorage.removeItem('username');
 	localStorage.removeItem('currentRoom');
 
-	updateNav();
-	if (state.gameSocket?.readyState === WebSocket.OPEN) {
+	
+	if (!state.gameSocket)
+		console.log(`[GAMESOCKET]NOT FOUND for ${state.userId}`);
+	if (state.gameSocket) {
+		console.log(`[GAMESOCKET]closing for ${state.userId}`);
 		state.gameSocket.close();
 	}
 	state.playerState = 'offline';
@@ -1048,7 +1052,7 @@ export function handleLogout(): void {
 	state.authToken = null;
 	state.userId    = null;
 	state.currentRoom = 0;
-
+	updateNav();
 	render(HomeView());
 }
 

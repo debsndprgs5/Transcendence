@@ -130,42 +130,52 @@ function handlePongMenuClick(e: MouseEvent): void {
 	const x      = (e.clientX - rect.left) * (canvas.width  / rect.width);
 	const y      = (e.clientY - rect.top ) * (canvas.height / rect.height);
 
-	if (state.canvasViewState === 'mainMenu') {
-		const btn = canvas._pongMenuBtns?.find(b =>
-			x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h
-		);
-		if (!btn) return;
-		if (btn.action === 'Create Game') {
-			state.canvasViewState = 'createGame';
-			showPongMenu();
-		} else {
-			alert(`Clicked: ${btn.action}`);
-		}
-	} else {
-		// =======================
-		// CREATE GAME HANDLING
-		// =======================
-		const btn = canvas._createGameButtons?.find(b =>
-			x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h
-		);
-		if (btn) {
-			handleCreateGameButton(btn.action);
-			showPongMenu();
-		} else if (
-			// on clique dans la zone "Room name"
-			y > canvas.height * 0.22 && y < canvas.height * 0.28 &&
-			x > canvas.width * 0.2 && x < canvas.width * 0.9
-		) {
-			showNotification({
-				message: 'Type a name for your room:',
-				type: 'prompt',
-				placeholder: 'Room Name',
-				onConfirm: val => {
-					createGameFormData.roomName = val ?? null;
-					showPongMenu();
-				}
-			});
-		}
+	switch (state.canvasViewState) {
+		case 'mainMenu':
+			const btn = canvas._pongMenuBtns?.find(b =>
+				x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h
+			);
+			if (!btn) return;
+			if (btn.action === 'Create Game') {
+				state.canvasViewState = 'createGame';
+				showPongMenu();
+			} else {
+				alert(`Clicked: ${btn.action}`);
+			}
+			break;
+
+		case 'createGame':
+			const btn = canvas._createGameButtons?.find(b =>
+				x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h
+			);
+			if (btn) {
+				handleCreateGameButton(btn.action);
+				showPongMenu();
+			} else if (
+				// on clique dans la zone "Room name"
+				y > canvas.height * 0.22 && y < canvas.height * 0.28 &&
+				x > canvas.width * 0.2 && x < canvas.width * 0.9
+			) {
+				showNotification({
+					message: 'Type a name for your room:',
+					type: 'prompt',
+					placeholder: 'Room Name',
+					onConfirm: val => {
+						createGameFormData.roomName = val ?? null;
+						showPongMenu();
+					}
+				});
+			}
+
+		case 'waitingGame':
+			const btn = (canvas as any)._waitingGameButtons?.find(b =>
+					 x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h
+				 );
+				 if (!btn) return;
+				 if (btn.action === 'leaveRoom') {
+					 await handleLeaveGame();
+					 showPongMenu();
+				 }
 	}
 }
 
@@ -275,4 +285,22 @@ function handlePongMenuMouseUp(): void {
 		incrementInterval = null;
 	}
 	lastButtonAction = null;
+}
+
+async function handleLeaveGame(): Promise<void> {
+	try {
+		state.gameSocket.send(json.stringify())
+	} catch (err) {
+		console.error('Error leaving game:', err);
+		showNotification({ message: 'Error leaving game', type: 'error' });
+		return;
+	}
+
+	// cleanup local state & storage
+	state.canvasViewState   = 'mainMenu';
+	state.currentGameName   = undefined;
+	state.currentPlayers    = undefined;
+	localStorage.removeItem('pong_view');
+	localStorage.removeItem('pong_room');
+	localStorage.removeItem('pong_players');
 }

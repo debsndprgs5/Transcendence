@@ -143,8 +143,7 @@ export async function initWebSocket(): Promise<void> {
 			return;
 		}
 
-		const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-		const wsUrl = `${protocol}://${location.host}/chat/ws?token=${encodeURIComponent(state.authToken!)}`;
+		const wsUrl = `wss://${location.host}/chat/ws?token=${encodeURIComponent(state.authToken!)}`;
 
 		if (state.socket && state.socket.readyState === WebSocket.OPEN) {
 			state.socket.close();
@@ -159,6 +158,7 @@ export async function initWebSocket(): Promise<void> {
 						JSON.stringify({
 							type: 'chatHistory',
 							roomID: state.currentRoom,
+							userID: state.userId,
 							limit: 50,
 						})
 					);

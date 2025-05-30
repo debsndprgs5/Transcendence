@@ -81,6 +81,8 @@ export async function initGameSocket(ws: WebSocket, request: any) {
 
 	send(ws,{
 		type: 'init',
+		userID:player.userID,
+		state:'init',
 		success: 'true'
 	});
 

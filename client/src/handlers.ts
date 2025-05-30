@@ -564,7 +564,7 @@ export async function setupHomeHandlers(): Promise<void> {
 
 			if (state.socket && state.socket.readyState === WebSocket.OPEN) {
 				state.socket.send(
-					JSON.stringify({ type: 'chatHistory', roomID: roomId, limit: 50 })
+					JSON.stringify({ type: 'chatHistory', roomID: roomId, userID:state.userId , limit: 50 })
 				);
 			}
 			document.querySelectorAll<HTMLElement>('#room-list li').forEach((li) => {
@@ -636,14 +636,14 @@ export async function setupHomeHandlers(): Promise<void> {
 			actionOnUser({ url: '/api/friends/:userId', method: 'POST', successMsg: 'Friend added !', errorMsg: 'Error during add' });
 	}
 	if (blockUserBtn) {
-		blockUserBtn.onclick = () => {
-			actionOnUser({ url: '/api/blocks/:userId', method: 'POST', successMsg: 'User blocked !', errorMsg: 'Error during block' });
+		blockUserBtn.onclick = async() => {
+			await actionOnUser({ url: '/api/blocks/:userId', method: 'POST', successMsg: 'User blocked !', errorMsg: 'Error during block' });
 			state.socket!.send(JSON.stringify({ type: 'chatHistory', roomID: state.currentRoom, userID: state.userId, limit: 50 }));
 		};
 	}
 	if (unblockUserBtn) {
-		unblockUserBtn.onclick = () => {
-			actionOnUser({ url: '/api/blocks/:userId', method: 'DELETE', successMsg: 'User unblocked !', errorMsg: 'Error during unblock' });
+		unblockUserBtn.onclick = async() => {
+			await actionOnUser({ url: '/api/blocks/:userId', method: 'DELETE', successMsg: 'User unblocked !', errorMsg: 'Error during unblock' });
 			state.socket!.send(JSON.stringify({ type: 'chatHistory', roomID: state.currentRoom, userID: state.userId, limit: 50 }));
 		};
 	}

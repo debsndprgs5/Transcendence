@@ -253,7 +253,7 @@ async function handlePongMenuClick(e: MouseEvent): Promise<void> {
 				state.gameSocket.send(JSON.stringify({
 					type: 'joinGame',
 					userID: state.userId,
-					roomID
+					gameID: roomID
 				}));
 
 				// Get players list via API

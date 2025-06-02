@@ -209,7 +209,7 @@ const { userID, gameName, gameID } = parsed;
 
 	try {
 		await GameManagement.addMemberToGameRoom(gameID, userID);
-		console.log(`ADDING [USERID]${userID} in gameRoom${gameID}`);
+		console.log(`ADDING [USERID]${userID} in gameRoom : ${gameID}`);
 		player.state = 'waiting';
 		player.gameID = gameID;
 		player.socket.send(JSON.stringify({

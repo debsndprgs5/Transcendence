@@ -63,8 +63,8 @@ export const delMemberFromGameRoom = (gameID: number, userID: number) =>
   run(`DELETE FROM gameMembers WHERE gameID = ? AND userID = ?`, [gameID, userID]);
 
 export const getAllMembersFromGameRoom = (gameID: number) =>
- getAll<{ username: string }>(
-    `SELECT u.username
+ getAll<{ username: string , userID:number }>(
+    `SELECT u.username, u.our_index
      FROM gameMembers gm
      JOIN users u ON gm.userID = u.our_index
      WHERE gm.gameID = ?`,

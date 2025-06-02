@@ -87,7 +87,7 @@ export async function createGameRoom(request: FastifyRequest, reply: FastifyRepl
 				success: true,
 				room: {
 					gameID,
-					name: body.name || 'Untitled Room',
+					gameName: body.name,
 					createdBy: body.userID
 				}
 			});

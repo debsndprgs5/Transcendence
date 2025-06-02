@@ -1,56 +1,65 @@
 import * as gameMgr from '../types/game'
 
-const MappedGames = new Map<gameMgr.Rooms, gameMgr.players[]>();
+const MappedGames = new Map<number, gameMgr.players[]>();
 
-export async function beginGameLoop(gameID:number, players:gameMgr.players[]){
-	//Adds the game and the players to mappedGames
-	//Makes sure no players are in 2 rooms in same time 
-	//kick last joined rooms if ever  
+interface Game{
+	mapped:Map<number, gameMgr.players[]>,
+	settings:string,
+	balls:string,//{ball1{px,py, vx, vy}, ball2{px,py,vx,vy}...}
+	playersPos:string,//{p1{pos}, p2{pos}...}
+	winCondition:string,
+	limit:number,
 }
 
-export async function getWinCondition(gameRoom:gameMgr.Rooms){
-	//returns a JSONstring{type:'score'|time, limit:points or second}
-	//Looks in settings of game object to find out 
-}
 
-export async function checkWinCondtion(gameRoom:gameMgr.Rooms){
+
+
+
+export async function checkWin(currentGame:Game):Promise< boolean >{
 	//return a bool 
 	//called at the end of each 'frame'
 	//if true stop loop 
+	//Looks if of the the players in Mapped has a score equal or bigger to limit
+	//if so return true
+	return false;
 }
 
-export async function declareWinner(gameRoom:gameMgr.Rooms){
+export async function declareWinner(currentGame:Map<number, gameMgr.players[]>){
 	//check who fill up the win condtion
 	//update db 
 	//kick all from room 
 	//del room
-	//send winner to win sockets | loser the lose socket 
+	//send winner to win sockets | loser the lose socket
+	//update game history/playerstattus
 }
 
-export async function receivePlayerMove(gameID:number, playerID:number){
-	//when socket recieve player moves update the whole game state
+
+
+export async function beginGame(gameID:number, players:gameMgr.players[], tournamentID?:number){
+	for(const p of players){
+		p.socket.send(JSON.stringify({
+			type:'statusUpdate',
+			state:'playing'
+		}));
+	}
+	//push players and gameRoom in map 
+	//call the loop
 }
 
-export async function getRenderData(gameRoom:gameMgr.Rooms){
-	//look at the current game and update data string 
-	//returns a JSON string 
-	//{ p1:pos, oppnonent1:pos, ball_1_posX: , ball_1_posY: , ball_1_speed: , ball_1_vx: , ball_1_vy: ...}
+
+export async function sendRender(currentGame:Game){
+
 }
 
-export async function gameLogic(gameRoom:gameMgr.Rooms){
-	//the function that does the actual loop and calls all the other to run the game
+export async function gameLoop(currentGame:Game){
+	sendRender(currentGame);
+	checkCollisions(currentGame);
+	handleMove(currentGame);
+	if(checkWin(currentGame) === true){
+		declareWinner(currentGame)
+		return;
+	}
+	setTimeout(() => {
+		gameLoop(currentGame);
+	}, 1000 / 60); // 60 FPS game loop (~16.67ms/frame)
 }
-
-// export async function beginGame(gameID:number, players:gameMgr.players[], tournamentID?:number){
-// 	const currentGame.gameMgr.Rooms = {
-// 		gameID,
-// 		tournamentID,
-// 		status:'starting'
-// 	}
-// 	for(const p of players){
-// 		p.socket.send(JSON.stringify({
-// 			type:'statusUpdate',
-// 			state:'playing'
-// 		}));
-// 	}
-// }

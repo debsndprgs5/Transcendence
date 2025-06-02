@@ -1,5 +1,5 @@
 import { isAuthenticated, apiFetch, initWebSocket, state } from './api';
-import { drawCreateGameView, drawWaitingGameView } from './pong_views';
+import { drawCreateGameView, drawWaitingGameView, drawJoinGameView } from './pong_views';
 import { showNotification } from './notifications';
 
 interface PongButton {
@@ -27,6 +27,21 @@ export const createGameFormData = {
 	paddleSpeed: 50
 };
 
+export async function fetchAvailableRooms(): Promise<{ roomID: number; roomName: string }[]> {
+	const resp = await apiFetch('/api/pong/list', {
+		headers: { Authorization: `Bearer ${state.authToken}` }
+	});
+
+	console.log('fetchAvailableRooms – raw response:', resp);
+
+	const rawGames = Array.isArray((resp as any).games) ? (resp as any).games : [];
+
+	return rawGames.map((r: { gameID: number; name: string }) => ({
+		roomID: r.gameID,
+		roomName: r.name
+	}));
+}
+
 // =======================
 // PONG MENU
 // =======================
@@ -35,7 +50,7 @@ export function showPongMenu(): void {
 	const canvas = document.getElementById('pong-canvas') as HTMLCanvasElement | null;
 	if (!canvas) return;
 
-	canvas.onclick = handlePongMenuClick;
+	canvas.onclick    = handlePongMenuClick;
 	canvas.onmousedown = handlePongMenuMouseDown;
 	canvas.onmouseup   = handlePongMenuMouseUp;
 	canvas.onmouseleave = handlePongMenuMouseUp;
@@ -43,7 +58,9 @@ export function showPongMenu(): void {
 
 	const ctx = canvas.getContext('2d');
 	if (!ctx) return;
+
 	console.log('state.canvasViewState = ', state.canvasViewState);
+
 	switch (state.canvasViewState) {
 		case 'mainMenu':
 			drawMainMenu(canvas, ctx);
@@ -52,6 +69,7 @@ export function showPongMenu(): void {
 		case 'createGame':
 			drawCreateGameView(canvas, ctx);
 			break;
+
 		case 'waitingGame':
 			drawWaitingGameView(
 				canvas, ctx,
@@ -59,6 +77,15 @@ export function showPongMenu(): void {
 				state.currentPlayers || []
 			);
 			break;
+
+		case 'joinGame':
+			drawJoinGameView(
+				canvas,
+				ctx,
+				state.availableRooms || []
+			);
+			break;
+
 		default:
 			drawMainMenu(canvas, ctx);
 			break;
@@ -142,6 +169,10 @@ async function handlePongMenuClick(e: MouseEvent): Promise<void> {
 			if (btnMain.action === 'Create Game') {
 				state.canvasViewState = 'createGame';
 				showPongMenu();
+			} else if (btnMain.action === 'Join Game') {
+				state.availableRooms = await fetchAvailableRooms();
+				state.canvasViewState = 'joinGame';
+				showPongMenu();
 			} else {
 				alert(`Clicked: ${btnMain.action}`);
 			}
@@ -181,6 +212,77 @@ async function handlePongMenuClick(e: MouseEvent): Promise<void> {
 			if (!btnWaiting) return;
 			if (btnWaiting.action === 'leaveRoom') {
 				await handleLeaveGame();
+				showPongMenu();
+			}
+			break;
+		}
+
+		case 'joinGame': {
+			// handle clicks on "Join Game" view
+			const btns = (canvas as any)._joinGameButtons as PongButton[] | undefined;
+			if (!btns) return;
+
+			const clickedBtn = btns.find((b: PongButton) =>
+				x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h
+			);
+			if (!clickedBtn) return;
+
+			if (clickedBtn.action === 'back') {
+				state.canvasViewState = 'mainMenu';
+				showPongMenu();
+			} else if (clickedBtn.action.startsWith('join:')) {
+				// Extract roomID from action string
+				const [, roomIDStr] = clickedBtn.action.split(':');
+				const roomID = Number(roomIDStr);
+
+				// get corresponding roomName in state.availableRooms
+				const roomInfo = state.availableRooms?.find(r => r.roomID === roomID);
+				const roomName = roomInfo ? roomInfo.roomName : 'Unknown Room';
+
+				// Verify that socket exists
+				if (!state.gameSocket) {
+					console.error('No gameSocket available');
+					showNotification({
+						message: 'Cannot join game : Socket unavailable.',
+						type: 'error'
+					});
+					return;
+				}
+
+				// Send ws request to join game
+				state.gameSocket.send(JSON.stringify({
+					type: 'joinGame',
+					userID: state.userId,
+					gameName:roomName,
+					roomID
+				}));
+
+				// Get players list via API
+				let usernames: string[] = [];
+				try {
+					const playerslist = await apiFetch(
+						`/api/pong/${encodeURIComponent(roomID)}/list`,
+						{ headers: { Authorization: `Bearer ${state.authToken}` } }
+					);
+					// playerslist should be an array of username: string
+					usernames = (playerslist as { username: string }[]).map(u => u.username);
+				} catch (err) {
+					console.error('Error getting players list:', err);
+					showNotification({
+						message: 'Error getting players list',
+						type: 'error'
+					});
+				}
+
+				// store in localstorage / state like if u created the room
+				state.currentGameName   = roomName;
+				state.currentPlayers    = usernames;
+				state.canvasViewState   = 'waitingGame';
+
+				localStorage.setItem('pong_view', 'waitingGame');
+				localStorage.setItem('pong_room', roomName);
+				localStorage.setItem('pong_players', JSON.stringify(usernames));
+
 				showPongMenu();
 			}
 			break;

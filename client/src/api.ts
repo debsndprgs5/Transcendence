@@ -6,6 +6,7 @@ export interface AppState {
 	socket: WebSocket | null;
 	userId: number | null;
 	currentRoom: number;
+	availableRooms: { roomID: number; roomName: string }[];
 	canvasViewState: string;
 	currentGameName?: string;
 	currentPlayers?: string[];
@@ -21,6 +22,7 @@ export const state: AppState = {
 	socket: null,
 	userId: null,
 	currentRoom: 0,
+	availableRooms: [],
 	canvasViewState: 'mainMenu',
 	currentGameName: undefined,
 	currentPlayers: undefined,

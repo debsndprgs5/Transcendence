@@ -40,3 +40,17 @@ export async function getRenderData(gameRoom:gameMgr.Rooms){
 export async function gameLogic(gameRoom:gameMgr.Rooms){
 	//the function that does the actual loop and calls all the other to run the game
 }
+
+export async function beginGame(gameID:number, players:gameMgr.players[], tournamentID?:number){
+	const currentGame.gameMgr.Rooms = {
+		gameID,
+		tournamentID,
+		status:'starting'
+	}
+	for(const p of players){
+		p.socket.send(JSON.stringify({
+			type:'statusUpdate',
+			state:'playing'
+		}));
+	}
+}

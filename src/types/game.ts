@@ -44,6 +44,6 @@ export interface players{
 export interface Rooms{
 	gameID : number,
 	isPublic: boolean,
-	players: players[];
+	tournamentID?:number,
 	status:string //'waiting'|'playing'|'finished'|'terminated'-> give up don't count for win in stats
 }

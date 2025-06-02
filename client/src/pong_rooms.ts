@@ -250,17 +250,17 @@ async function handleCreateGameButton(action: string): Promise<void> {
 					{ headers: { Authorization: `Bearer ${state.authToken}` } }
 			);
 			// map playerslist object as a string map
-			const aliases = (playerslist as { alias: string }[]).map(p => p.alias);
+			const usernames = (playerslist as { username: string }[]).map(u => u.username);
 
 			// stock in state
 			state.currentGameName   = gameName;
-			state.currentPlayers    = aliases;
+			state.currentPlayers    = usernames;
 			state.canvasViewState   = 'waitingGame';
 
 			// persist in local storage to survive refresh
 			localStorage.setItem('pong_view', 'waitingGame');
 			localStorage.setItem('pong_room', gameName);
-			localStorage.setItem('pong_players', JSON.stringify(aliases));
+			localStorage.setItem('pong_players', JSON.stringify(usernames));
 
 			showPongMenu();
 			break;

@@ -325,7 +325,7 @@ async function handleCreateGameButton(action: string): Promise<void> {
 			},
 			body: JSON.stringify({
 				userID: state.userId,
-				name: createGameFormData.roomName,
+				name: createGameFormData.roomName ? createGameFormData.roomName : 'New Room',
 				ball_speed: createGameFormData.ballSpeed,
 				paddle_speed: createGameFormData.paddleSpeed,
 			})

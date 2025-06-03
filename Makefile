@@ -1,4 +1,4 @@
-
+#BONJOUR ME VOIT TU SI GITIGNORE
 # Variables
 WORK_DIR = $(shell pwd)
 SHELL := /bin/bash

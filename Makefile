@@ -1,4 +1,3 @@
-
 # Variables
 WORK_DIR = $(shell pwd)
 SHELL := /bin/bash

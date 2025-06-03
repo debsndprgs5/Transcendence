@@ -77,7 +77,7 @@ export const getLastAddedToRoom = (gameID:number) =>
 		FROM gameMembers
 		WHERE gameID = ?
 		ORDER BY created_at DESC
-		LIMIT 1`, 
+		LIMIT 1`,
 		[gameID]
 	);
 

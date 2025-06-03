@@ -202,7 +202,7 @@ const { userID, gameName, gameID } = parsed;
 		player.socket.send(JSON.stringify({
 			type: 'joinGame',
 			success: false,
-			reason: 'You are not ready to play',
+			reason: `you are in ${player.state} mode`,
 		}));
 		return;
 	}
@@ -255,7 +255,6 @@ export async function handleInvite(parsed:any, player:players){
 			type: 'invite',
 			action: 'receive',
 			fromID: userID,
-			fromAlias: alias,
 			gameID
 		}));
 	}

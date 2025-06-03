@@ -15,15 +15,13 @@ Majors :
 
 1. Framework backend  (Fastify + Node.js)
 
-2. Multiple players (plus de 2 joueurs simultanés)
+2. Remote players (online multi)
 
-3. Remote players (online multi)
+3. Live chat
 
-4. Live chat
+4. 2FA + JWT
 
-5. AI opponent
-
-6. 2FA + JWT
+5. User management
 
 
 Minors :
@@ -32,12 +30,7 @@ Minors :
 
 2. Front (Tailwind)
 
-3. Stats dashboards
-
-4. Multi-language
-(optionnels)
-
-5. Extra browser
+3. Extra browser
 
 
 ## 1. Architecture générale

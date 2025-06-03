@@ -73,7 +73,7 @@ export const getAllMembersFromGameRoom = (gameID: number) =>
 
 export const getLastAddedToRoom = (gameID:number) =>
 	get<{userID:number}>(
-		`SELECT userID,
+		`SELECT userID
 		FROM gameMembers
 		WHERE gameID = ?
 		ORDER BY created_at DESC

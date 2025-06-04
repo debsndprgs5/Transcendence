@@ -24,7 +24,7 @@ export interface players{
 	tournamentID?:number,
 	score?:number,
 	hasDisconnected?:boolean,
-	state:string // 'init'|'waiting'| 'playing'| 'tournamentWait' | 'tournamentPlay'
+	state:string ,// 'init'|'waiting'| 'playing'| 'tournamentWait' | 'tournamentPlay'
 	playerSide?:string,
 	playerPos?:number
 }

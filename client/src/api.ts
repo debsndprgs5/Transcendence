@@ -222,8 +222,7 @@ export interface WebSocketMsg {
  */
 export function handleWebSocketMessage(msg: WebSocketMsg): void {
 	const MESSAGE_LIMIT = 15;
-	console.log('handleWebSocketMessage:', msg.type, msg);
-
+	
 	switch (msg.type) {
 		case 'system': {
 			const chatDiv = document.getElementById('chat');

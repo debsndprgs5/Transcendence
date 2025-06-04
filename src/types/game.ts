@@ -1,20 +1,5 @@
 import { WebSocket } from 'ws';
 
-export interface gameRooms{
-	gameID: number,
-	tournamentID?:number,
-	mode:string,
-	rules:string,
-	created_at: string
-}
-
-export interface gameMembers{
-	gameID: number,
-	tournamentID?: number,
-	userID: number,
-	alias: string
-}
-
 export interface tournaments{
 	tournamentID: number,
 	round: number,
@@ -41,13 +26,15 @@ export interface players{
 	hasDisconnected?:boolean,
 	state:string // 'init'|'waiting'| 'playing'| 'tournamentWait' | 'tournamentPlay'
 	paddle:paddle
+	playerSide?:string,
+	playerPos?:number
 }
 
 export interface balls{
 	gameID:number,
 	posX:number,
 	posY:number,
-	radius:string,
+	radius:number,
 	vector:{x:number, y:number}
 }
 
@@ -56,7 +43,10 @@ export interface pongRoom{
 	players:players[],
 	balls:balls[],
 	winCondtion:string, //'score' || 'time'
-	limit:number //score limit or seconds limit
+	limit:number ,//score limit or seconds limit
+	mode:string,
+	settings?:string,
+	created_at?:string
 }
 
 export class paddle{
@@ -97,5 +87,5 @@ export class paddle{
 
 export class ball
 {
-	
+
 }

@@ -5,8 +5,9 @@ import * as UserManagement from '../db/userManagement';
 import * as GameManagement from '../db/gameManagement';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import * as dotenv from 'dotenv';
-import { players } from '../types/game'
+import { players, pongRoom, balls } from '../types/game'
 import path from 'path';
+import {setPongRoom} from '../utils/pongUtils'
 //import {getRenderData, beginGame} from '../services/pong'
 
 
@@ -138,7 +139,6 @@ export async function setupMessageHandlers(ws: WebSocket, player: players) {
 			case 'init': await handleInit(parsed, player); break;
 			case 'joinGame': await handleJoin(parsed, player); break;
 			case 'invite': await handleInvite(parsed, player); break;
-			case 'startGame': beginGame(parsed.roomID); break;
 			case 'leaveGame': handleLeaveGame(parsed, player); break;
 			case 'playerMove': await handlePlayerMove(parsed, player); break;
 			case 'render': await handleRender(parsed, player); break;
@@ -152,23 +152,18 @@ export async function setupMessageHandlers(ws: WebSocket, player: players) {
 
 
 
-function beginGame(roomID:number){
+async function beginGame(roomID:number, players:players[]){
 	console.log('GAME IS NOT IMPLEMENTED YET SORRY');
-	//Creates Room object 
-	/*Room{
-		gameID
-		players[]
-		balls[]
-		stats/players[]
-	}
-		player{
-			gameID
-			userID
-			Uname
-			pos
-			
-		}
-	*/ 
+	//Creates Room object
+	const newGame:pongRoom = await setPongRoom(roomID, players);
+	for(const p of players)
+		p.socket.send(JSON.stringify({
+			//Send first render ? 
+			//all players Uname ? 
+			//all players pos ? 
+		}));
+	//send socket to all players to startGame
+	//Call the loop/gameLogic with newGame
 }
 
 async function handleInit(parsed:any, player:players){
@@ -353,7 +348,7 @@ async function cleanupPlayerFromGame(player: players) {
 //does same logic but up to maxplayers instead 
 export async function tryStartGameIfReady(gameID:number, maxPlayers = 2){
 	const playersInGameRoom = await GameManagement.getAllMembersFromGameRoom(gameID);
-	console.log(`TRYSTARTGAME IF READY for roomID: ${gameID}`);
+	console.log(`TRYSTARTGAME IF READY for roomID: ${gameID}\n NUMBER OF PLAYERS IN ROOM : ${playersInGameRoom.length}`);
 	if (playersInGameRoom.length > maxPlayers) {
 		const playerToKick = await GameManagement.getLastAddedToRoom(gameID);
 		if(!playerToKick?.userID)
@@ -365,18 +360,19 @@ export async function tryStartGameIfReady(gameID:number, maxPlayers = 2){
 
 	if (playersInGameRoom.length === maxPlayers) {
 		const playerObjs = playersInGameRoom
-			.map(p => MappedPlayers.get(p.userID))
-			.filter(p => p?.state === 'waiting') as players[];
-
+		.map(p => MappedPlayers.get(p.userID))
+		.filter((p): p is players => !!p);
+		console.log(`starting game in process for user:${playerObjs.length}\n`);
 		if (playerObjs.length === maxPlayers) {
 			playerObjs.forEach(p => {
+				console.log(`starting game in process for user:${p}\n`);
 				p.state = 'playing';
 				p.socket.send(JSON.stringify({ type: 'startGame', gameID }));
 				p.socket.send(JSON.stringify({type:'statusUpdate', playerState:p.state}))
 			});
 
 			// send first render and start game loop
-			 beginGame(gameID);
+			 beginGame(gameID, playerObjs);
 		}
 	}
 }

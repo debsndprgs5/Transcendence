@@ -33,6 +33,7 @@ export async function initGameSocket(){
 	});
 
 	gameSocket.onmessage = (event) =>{
+		console.log('GAMESocket:', event.type, event);
 		try{
 			const data = JSON.parse(event.data);
 			switch (data.type){
@@ -58,16 +59,10 @@ export async function initGameSocket(){
 					break;
 				}
 				case 'startGame':{
-					if(state.gameSocket){
-						state.gameSocket.send(JSON.stringify({
-							type:'render',
-							action: 'beginGame',
-							gameID:data.gameID,
-							data:null
-						}));
-					}
-					else 
-						console.log(`[FRONT][GAMESOCKET] : [No socket for startGame][${state}]`);
+					//What's needed to start babylonJS render ? 
+					//all pongRoom object ?
+					//all players Uname + pos 
+					// all ball pos
 					break;
 				}
 				case 'statusUpdate':{

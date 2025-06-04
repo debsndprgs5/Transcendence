@@ -1,15 +1,10 @@
-// import * as gameMgr from '../types/game'
-
-// const MappedGames = new Map<number, gameMgr.players[]>();
-
-// interface Game{
-// 	mapped:Map<number, gameMgr.players[]>,
-// 	settings:string,
-// 	balls:string,//{ball1{px,py, vx, vy}, ball2{px,py,vx,vy}...}
-// 	playersPos:string,//{p1{pos}, p2{pos}...}
-// 	winCondition:string,
-// 	limit:number,
-// }
+import * as gameMgr from '../types/game'
+import {
+	players,
+	balls,
+	pongRoom
+} from '../types/game'
+const MappedGames = new Map<number, pongRoom>();
 
 
 
@@ -50,7 +45,7 @@
 
 // }
 
-// export async function gameLoop(currentGame:Game){
+// export async function gameLoop(currentGame:pongRoom){
 // 	sendRender(currentGame);
 // 	checkCollisions(currentGame);
 // 	handleMove(currentGame);
@@ -58,6 +53,7 @@
 // 		declareWinner(currentGame)
 // 		return;
 // 	}
+
 // 	setTimeout(() => {
 // 		gameLoop(currentGame);
 // 	}, 1000 / 60); // 60 FPS game loop (~16.67ms/frame)

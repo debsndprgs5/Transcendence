@@ -353,7 +353,7 @@ async function cleanupPlayerFromGame(player: players) {
 //does same logic but up to maxplayers instead 
 export async function tryStartGameIfReady(gameID:number, maxPlayers = 2){
 	const playersInGameRoom = await GameManagement.getAllMembersFromGameRoom(gameID);
-	console.log(`TRYSTARTGAME IF READY : ${gameID}`);
+	console.log(`TRYSTARTGAME IF READY for roomID: ${gameID}`);
 	if (playersInGameRoom.length > maxPlayers) {
 		const playerToKick = await GameManagement.getLastAddedToRoom(gameID);
 		if(!playerToKick?.userID)

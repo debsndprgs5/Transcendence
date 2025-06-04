@@ -40,6 +40,7 @@ export interface players{
 	score?:number,
 	hasDisconnected?:boolean,
 	state:string // 'init'|'waiting'| 'playing'| 'tournamentWait' | 'tournamentPlay'
+	paddle:paddle
 }
 
 export interface balls{
@@ -58,3 +59,43 @@ export interface pongRoom{
 	limit:number //score limit or seconds limit
 }
 
+export class paddle{
+	 x:number;
+	 y:number;
+	 hitbox: [number, number, number, number];
+	 width:number;
+	 length:number;
+	 type: 'H' | 'V';
+	 speed: number;
+
+	constructor(x:number, y:number, width:number, length:number, speed:number, type: 'H' | 'V'){
+		this.x = x;
+		this.y = y;
+		this.width = width;
+		this.length = length;
+		this.type = type;
+		this.speed = speed;
+		this.hitbox = [x, x + width, y, y + width];
+ 	}
+	deplacement_plus(): void{
+		if (this.type == 'H'){
+			this.x += this.speed;
+		}
+		if (this.type == 'V'){
+			this.y += this.speed;
+		}
+	}
+	deplacement_moins(): void{
+		if (this.type == 'H'){
+			this.x -= this.speed;
+		}
+		if (this.type == 'V'){
+			this.y -= this.speed;
+		}
+	}
+}
+
+export class ball
+{
+	
+}

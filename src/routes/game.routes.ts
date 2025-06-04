@@ -41,30 +41,7 @@ export async function gameRoutes(fastify: FastifyInstance) {
 			return reply.code(500).send({ error: 'Internal server error' });
 		}
 	});
-	// //UserID create a tournament 
-	// fastify.post('/pong/tournament/:userID', async(request, reply) => {
-	// 	try{
-	// 		await createTournament(request,reply);
-	// 	}
-	// 	catch(error){
-	// 		console.error('Error in /api/pong/tournament/:userID', error);
-	// 				return reply.code(500).send({ 
-	// 						error: 'Internal server error'}); 
-	// 	}
-	// });
-	// //UserID ask for targID stats
-	// fastify.get('/pong/stats/:targID', async(request, reply)=>{
-	// try{
-	// 	await getStats(request , reply);
-	// } 
-	// catch(error){
-	// 	console.error('Error getting stats');
-	// 	return reply.code(500).send({
-	// 		error: 'Internal server error'});
-//  	}
-// 	});
-
- }	
+}
 
 
 export async function createGameRoom(request: FastifyRequest, reply: FastifyReply) {
@@ -118,13 +95,3 @@ export async function getGameList(request: FastifyRequest, reply: FastifyReply) 
 	}
 }
 
-
-// export async function createTournament(request:FastifyRequest, reply:FastifyReply){
-// 	//Create tournament and a related chatRoom
-// 	//adds UserID in the chatRoom
-// 	//reply with TournamentID:, chatRoomID:, chatName:'Tournament'
-// }
-
-// export async function getStats(request:FastifyRequest, reply:FastifyReply){
-
-// }

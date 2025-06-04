@@ -268,87 +268,52 @@ export function drawJoinGameView(
 }
 
 
-export function drawInGameView(
-	canvas: HTMLCanvasElement,
-	ctx: CanvasRenderingContext2D,
-	rooms: { roomID: number; roomName: string }[]
-): void {
-	const width  = canvas.width;
-	const height = canvas.height;
 
-	// Clear the entire canvas
-	ctx.clearRect(0, 0, width, height);
+// export function drawInGameView(
+//   canvas: HTMLCanvasElement,
+//   ctx: CanvasRenderingContext2D,
+//   gameData: PongGameData
+// ): void {
+//   const width  = canvas.width;
+//   const height = canvas.height;
 
-	// Background gradient (left → right: #2C5364 → #203A43 → #0F2027)
-	const grad = ctx.createLinearGradient(0, 0, width, 0);
-	grad.addColorStop(0.0, '#2C5364');
-	grad.addColorStop(0.5, '#203A43');
-	grad.addColorStop(1.0, '#0F2027');
-	ctx.fillStyle = grad;
-	ctx.fillRect(0, 0, width, height);
+//   ctx.clearRect(0, 0, width, height);
 
-	// Title: "Join Game"
-	ctx.fillStyle   = 'white';
-	ctx.font        = `${Math.floor(height / 15)}px Orbitron`;
-	ctx.textAlign   = 'center';
-	ctx.fillText('Join Game', width / 2, height * 0.12);
+//   // Background
+//   const grad = ctx.createLinearGradient(0, 0, width, 0);
+//   grad.addColorStop(0.0, '#2C5364');
+//   grad.addColorStop(0.5, '#203A43');
+//   grad.addColorStop(1.0, '#0F2027');
+//   ctx.fillStyle = grad;
+//   ctx.fillRect(0, 0, width, height);
 
-	// Label for rooms list
-	ctx.fillStyle   = 'white';
-	ctx.font        = `${Math.floor(height / 28)}px Orbitron`;
-	ctx.textAlign   = 'left';
-	const listX     = width * 0.1;
-	let currentY    = height * 0.25;
-	const lineHeight = height * 0.06;
+//   // Draw left paddle 
+//   ctx.fillStyle = 'white';
+//   ctx.fillRect(
+//     20,                   // x fixed to 20px from left side
+//     gameData.leftPaddleY, // y dynamic
+//     gameData.paddleWidth, // ex. 10px
+//     gameData.paddleHeight // ex. 100px
+//   );
 
-	ctx.fillText('Available Rooms:', listX, currentY);
+//   // Draw right paddle
+//   ctx.fillStyle = 'white';
+//   ctx.fillRect(
+//     width - 20 - gameData.paddleWidth, // x fixed to 20px from right side
+//     gameData.rightPaddleY,
+//     gameData.paddleWidth,
+//     gameData.paddleHeight
+//   );
 
-	// Prepare an array to store clickable areas for each room
-	const joinButtons: { x: number; y: number; w: number; h: number; action: string }[] = [];
-
-	// Draw each room as a bullet + text, and register a button area
-	rooms.forEach((room, index) => {
-		const textY = currentY + lineHeight * (index + 1);
-		// draw the room name with a bullet
-		ctx.fillText(`• ${room.roomName}`, listX, textY);
-
-		// define a clickable area around the text
-		// We'll assume each line occupies roughly (width * 0.8) in width and lineHeight in height
-		const btnX = listX;
-		const btnY = textY - lineHeight * 0.75; // adjust so that vertical click is centered on the text
-		const btnW = width * 0.8;
-		const btnH = lineHeight;
-		joinButtons.push({
-			x: btnX,
-			y: btnY,
-			w: btnW,
-			h: btnH,
-			action: `join:${room.roomID}`
-		});
-	});
-
-	// Draw a "Back to Menu" button at the bottom
-	const btnW = width  * 0.3;
-	const btnH = height * 0.08;
-	const btnX = width  / 2 - btnW / 2;
-	const btnY = height * 0.85;
-	ctx.fillStyle = '#f87171';
-	ctx.fillRect(btnX, btnY, btnW, btnH);
-
-	ctx.fillStyle  = 'white';
-	ctx.font       = `${Math.floor(height / 22)}px Orbitron`;
-	ctx.textAlign  = 'center';
-	ctx.fillText('Back to Menu', width / 2, btnY + btnH * 0.65);
-
-	// Register the "Back" button
-	joinButtons.push({
-		x: btnX,
-		y: btnY,
-		w: btnW,
-		h: btnH,
-		action: 'back'
-	});
-
-	// Store the buttons on the canvas for click handling
-	(canvas as any)._joinGameButtons = joinButtons;
-}
+//   // Draw ball
+//   ctx.beginPath();
+//   ctx.arc(
+//     gameData.ballX,
+//     gameData.ballY,
+//     gameData.ballRadius,
+//     0,
+//     2 * Math.PI
+//   );
+//   ctx.fillStyle = 'white';
+//   ctx.fill();
+// }

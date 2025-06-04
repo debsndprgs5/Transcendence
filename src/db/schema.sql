@@ -79,35 +79,39 @@ CREATE TABLE IF NOT EXISTS gameMembers(
 	FOREIGN KEY(tournamentID) 	REFERENCES tournaments(tournamentID) ON DELETE CASCADE
 );
 
+-- 1. Main Tournament table
+CREATE TABLE IF NOT EXISTS tournaments (
+  tournamentID   INTEGER PRIMARY KEY AUTOINCREMENT,
+  name           TEXT    NOT NULL,
+  createdBy      INTEGER NOT NULL,  -- owner userID
+  maxPlayers     INTEGER NOT NULL,  -- max players in tournament
+  status         TEXT    NOT NULL,  -- 'open' | 'ongoing' | 'finished'
+  created_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(createdBy) REFERENCES users(our_index)
+);
 
--- CREATE TABLE IF NOT EXISTS tournaments(
--- 	tournamentID 	INTEGER PRIMARY KEY AUTOINCREMENT,
--- 	round			INTEGER,
--- 	players_data 	TEXT --JSON string to keep tracks of all present and future matches
--- );
+-- 2. Register tournament players
+CREATE TABLE IF NOT EXISTS tournamentMembers (
+  tournamentID   INTEGER NOT NULL,
+  userID         INTEGER NOT NULL,
+  points         INTEGER DEFAULT 0,          -- victory = 10 pts, defeat = 0pts, even = 5 pts
+  matchesPlayed  INTEGER DEFAULT 0,
+  PRIMARY KEY (tournamentID, userID),
+  FOREIGN KEY(tournamentID) REFERENCES tournaments(tournamentID) ON DELETE CASCADE,
+  FOREIGN KEY(userID) REFERENCES users(our_index) ON DELETE CASCADE
+);
 
+-- 3. Matches results
+CREATE TABLE IF NOT EXISTS tournamentMatches (
+  matchID        INTEGER PRIMARY KEY AUTOINCREMENT,
+  tournamentID   INTEGER NOT NULL,
+  playerA        INTEGER NOT NULL,
+  playerB        INTEGER NOT NULL,
+  scoreA         INTEGER NOT NULL,
+  scoreB         INTEGER NOT NULL,
+  played_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(tournamentID) REFERENCES tournaments(tournamentID) ON DELETE CASCADE,
+  FOREIGN KEY(playerA) REFERENCES users(our_index) ON DELETE CASCADE,
+  FOREIGN KEY(playerB) REFERENCES users(our_index) ON DELETE CASCADE
+);
 
-
--- CREATE TABLE IF NOT EXISTS userStats(
--- 	gameID							INTEGER,
--- 	userID 							INTEGER,
--- 	mode							TEXT, --'tournament'|'1v1_invite'|'1v1_random'
--- 	result	 						TEXT, -- 'winner'|'loser'|'1st'/'2nd'....
--- 	score							TEXT, -- JSON {user:userID, opponent1: opponant1ID, ...}
--- 	gameDuration					INTEGER, --in seconds ?
--- 	datas							TEXT, -- big JSON string not for now
--- 	created_at 						DATETIME DEFAULT CURRENT_TIMESTAMP,
--- 	FOREIGN KEY(tournamentID) 		REFERENCES tournaments(tournamentID) ON DELETE CASCADE,
--- 	FOREIGN KEY(userID) 			REFERENCES users(our_index) ON DELETE CASCADE
--- );
-
-
-
--- --Adding the GD(GeneralDummy) -> he owns the general chat at 0
--- INSERT OR IGNORE INTO users(our_index, rand_id, username, password_hashed)
--- VALUES (0, '0', 'GeneralDummy', '0');
-
--- INSERT OR IGNORE INTO chatRooms(roomID, ownerID)
--- VALUES (0, 0);
-
--- 	

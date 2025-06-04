@@ -40,9 +40,8 @@ async function getRightSockets(authorID: number): Promise<Map<number, WebSocket>
 async function SendGeneralMessage(authorID: number, message: string) {
 	for (const [clientID, socket] of MappedClients.entries()) {
 		const blockedByClient = await chatManagement.isBlocked(clientID, authorID);
-		const blockedByAuthor = await chatManagement.isBlocked(authorID, clientID);
 
-		if (!blockedByClient && !blockedByAuthor) {
+		if (!blockedByClient) {
 			if (socket.readyState === WebSocket.OPEN) {
 				socket.send(message);
 			}

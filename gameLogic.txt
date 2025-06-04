@@ -1,49 +1,13 @@
-()CLIENT 
-		send player moves 
-		recive render every tick 
 
-			
-									WEBSOCKET 
-												on message(type:'data'||'render',...)
+Logique tournoi 
 
 
 
-SERVER 
-		recive player moves/ update db and render
-		send render every tick
+Logique pong 
 
+Stats 
 
-
-
-
-DB TABLES : 
-			gameRoom{
-				roomID:
-				mode:
-				tournamentID: NULLABLE
-				rules -> JSON string{ball_velocity: , playerSpeed: , typeofwin: 'time'|'score',... }
-				created at : 
-			}
-			gameMembers{
-				gameRoomID:
-				tournamentID: NULLABLE
-				userID:
-				alias:
-			}
-			tournament{
-				tournamentID:
-				round: 
-				players_data JSON string{next round:{roomID:[pID:pID], roomID:[pID:pID]}}
-			}
-			stats{
-				roomID:
-				type:
-				result:
-				score:{user: , opponent: } --allows inifinte amount of opponent
-				time:
-				data{big JSON STRING or even separate table } -- ball location on win/losses for heatmap 
-															  -- last bounce location before win-losses
-															  -- avrg ball_velocity before win/losses
-															  -- best combo(wins and|or point in a row/match)
-															  -- avrg tick/points 
-			}
+BONUS : IA 
+		Multi 
+		Autre jeu 
+		3D ?

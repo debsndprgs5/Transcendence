@@ -11,8 +11,28 @@
 // 	limit:number,
 // }
 
+export interface Game{
+	players:players[],
+	gameID:number,
+	balls:balls[],
+}
 
+interface players{
+	userID:number,
+	pos:number,
+	side:string,
+	score:number,
+	stats:string
+}
 
+interface balls{
+	posX:,
+	posY:,
+	vec:string//{0.90:50,9.26:50}
+	vecY:,
+	speed:,
+	radius:
+}
 
 
 // export async function checkWin(currentGame:Game):Promise< boolean >{

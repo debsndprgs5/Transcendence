@@ -154,7 +154,21 @@ export async function setupMessageHandlers(ws: WebSocket, player: players) {
 
 function beginGame(roomID:number){
 	console.log('GAME IS NOT IMPLEMENTED YET SORRY');
-
+	//Creates Room object 
+	/*Room{
+		gameID
+		players[]
+		balls[]
+		stats/players[]
+	}
+		player{
+			gameID
+			userID
+			Uname
+			pos
+			
+		}
+	*/ 
 }
 
 async function handleInit(parsed:any, player:players){

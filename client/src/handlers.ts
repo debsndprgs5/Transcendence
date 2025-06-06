@@ -337,6 +337,18 @@ export async function setupHomeHandlers(): Promise<void> {
 			state.currentPlayers = [];
 		}
 	}
+	const savedTView = localStorage.getItem('tournament_view');
+	if (savedTView === 'waitingTournament') {
+		const name = localStorage.getItem('tournament_name');
+		const idStr= localStorage.getItem('tournament_id');
+		const playersJson = localStorage.getItem('tournament_players');
+		if (name && idStr && playersJson) {
+			state.currentTournamentName    = name;
+			state.currentTournamentID      = Number(idStr);
+			state.currentTournamentPlayers = JSON.parse(playersJson);
+			state.canvasViewState          = 'waitingTournament';
+		}
+	}
 	// Logout button
 	const logoutBtn = document.getElementById('logoutBtn');
 	if (logoutBtn) {

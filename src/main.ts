@@ -11,6 +11,7 @@ import gamePlugin from './websockets/game.socket';
 import * as dotenv from 'dotenv';
 import dbPlugin from './db/db';
 import { gameRoutes } from './routes/game.routes'
+import { tournamentRoutes } from './routes/tournament.routes'
 
 
 
@@ -33,13 +34,13 @@ async function bootstrap() {
   });
 
 
-  // Configuration CORS
+  // Config CORS
   await app.register(require('@fastify/cors'), {
     origin: true,
     credentials: true
   });
 
-  // Cookie plugin avec configuration correcte
+  // Cookie plugin
   await app.register(cookie, {
     secret: process.env.COOKIE_SECRET || '&hotzBs@bziCO$oy2xTY0pq7QiBJ9Jz4Clgb$@od0MWzuU*ybL', // secret pour signer les cookies
     parseOptions: {  // options pour le parsing des cookies
@@ -50,18 +51,18 @@ async function bootstrap() {
     }
   });
 
-  // 1) bundle client (JS + CSS)
+  // bundle client (JS + CSS)
   await app.register(fastifyStatic, {
     root: path.resolve(__dirname, '../client/dist'),
     prefix: '/dist/',
-    decorateReply: false // on ne veut pas remplacer sendFile ici
+    decorateReply: false
   });
 
-  // 2) éléments statiques (index.html, favicon…)  
+  // Static elems (index.html, favicon…)  
   await app.register(fastifyStatic, {
     root: path.resolve(__dirname, '../client'),
     prefix: '/',
-    index: false  // on servira index.html manuellement
+    index: false 
   });
 
 
@@ -93,13 +94,20 @@ async function bootstrap() {
       console.error('Error registering account routes:', err)
     }
 
-	//pong routes 
-	try{
-		await fastify.register(gameRoutes)
-	}
-	catch(err){
-		console.error('Error registering gamesRoutes')
-	}
+    //pong routes 
+	  try{
+		  await fastify.register(gameRoutes)
+    } catch (err) {
+      console.error('Error registering game routes:', err)
+    }
+
+    // Tournaments routes
+    try {
+      await fastify.register(tournamentRoutes)
+    } catch (err) {
+      console.error('Error registering tournament routes:', err)
+    }
+
   }, { prefix: '/api' })
   // Mount WS plugin
   await app.register(wsPlugin);
@@ -126,7 +134,7 @@ async function bootstrap() {
       port, 
       host: '0.0.0.0'
     });
-    console.log('🚀 Server listening on http://0.0.0.0:${PORT}');
+    console.log('🚀 Server listening on port ', port);
   } catch (err) {
     console.error('Error starting server:', err);
     process.exit(1);

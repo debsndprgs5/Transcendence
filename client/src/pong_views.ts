@@ -1,4 +1,4 @@
-import { createGameFormData } from './pong_rooms';
+import { createGameFormData, createTournamentFormData } from './pong_rooms';
 import { state } from './api';
 
 interface PongButton {
@@ -268,52 +268,212 @@ export function drawJoinGameView(
 }
 
 
+export function drawTournamentView(
+	canvas: HTMLCanvasElement,
+	ctx: CanvasRenderingContext2D,
+	tournaments: { tournamentID: number; name: string }[]
+): void {
+	const width  = canvas.width;
+	const height = canvas.height;
 
-// export function drawInGameView(
-//   canvas: HTMLCanvasElement,
-//   ctx: CanvasRenderingContext2D,
-//   gameData: PongGameData
-// ): void {
-//   const width  = canvas.width;
-//   const height = canvas.height;
+	// Background gradient
+	ctx.clearRect(0, 0, width, height);
+	const grad = ctx.createLinearGradient(0, 0, width, 0);
+	grad.addColorStop(0.0, '#2C5364');
+	grad.addColorStop(0.5, '#203A43');
+	grad.addColorStop(1.0, '#0F2027');
+	ctx.fillStyle = grad;
+	ctx.fillRect(0, 0, width, height);
 
-//   ctx.clearRect(0, 0, width, height);
+	// Title
+	ctx.fillStyle = 'white';
+	ctx.font      = `${Math.floor(height / 15)}px Orbitron`;
+	ctx.textAlign = 'center';
+	ctx.fillText('TOURNAMENT', width / 2, height * 0.12);
 
-//   // Background
-//   const grad = ctx.createLinearGradient(0, 0, width, 0);
-//   grad.addColorStop(0.0, '#2C5364');
-//   grad.addColorStop(0.5, '#203A43');
-//   grad.addColorStop(1.0, '#0F2027');
-//   ctx.fillStyle = grad;
-//   ctx.fillRect(0, 0, width, height);
+	// Form on the left
+	const formX = width * 0.05;
+	const labelX = formX;
+	const valueX = formX + width * 0.25;
+	const yName      = height * 0.25;
+	const yBallSpeed = height * 0.40;
+	const yPaddle    = height * 0.55;
+	ctx.fillStyle = 'white';
+	ctx.font      = `${Math.floor(height / 28)}px Orbitron`;
+	ctx.textAlign = 'left';
 
-//   // Draw left paddle 
-//   ctx.fillStyle = 'white';
-//   ctx.fillRect(
-//     20,                   // x fixed to 20px from left side
-//     gameData.leftPaddleY, // y dynamic
-//     gameData.paddleWidth, // ex. 10px
-//     gameData.paddleHeight // ex. 100px
-//   );
+	ctx.fillText('Tournament Name:', labelX, yName);
+	ctx.fillText('Ball speed:',       labelX, yBallSpeed);
+	ctx.fillText('Paddle speed:',     labelX, yPaddle);
 
-//   // Draw right paddle
-//   ctx.fillStyle = 'white';
-//   ctx.fillRect(
-//     width - 20 - gameData.paddleWidth, // x fixed to 20px from right side
-//     gameData.rightPaddleY,
-//     gameData.paddleWidth,
-//     gameData.paddleHeight
-//   );
+	ctx.fillText(createTournamentFormData.tournamentName || '________', valueX, yName);
+	ctx.fillText(`${createTournamentFormData.ballSpeed}`,               valueX, yBallSpeed);
+	ctx.fillText(`${createTournamentFormData.paddleSpeed}`,             valueX, yPaddle);
 
-//   // Draw ball
-//   ctx.beginPath();
-//   ctx.arc(
-//     gameData.ballX,
-//     gameData.ballY,
-//     gameData.ballRadius,
-//     0,
-//     2 * Math.PI
-//   );
-//   ctx.fillStyle = 'white';
-//   ctx.fill();
-// }
+	// Underline “Tournament Name”
+	const nameText  = createTournamentFormData.tournamentName || '________';
+	const metrics   = ctx.measureText(nameText);
+	const underlineY = yName + 4;
+	ctx.strokeStyle = 'white';
+	ctx.lineWidth   = 2;
+	ctx.beginPath();
+	ctx.moveTo(valueX, underlineY);
+	ctx.lineTo(valueX + metrics.width, underlineY);
+	ctx.stroke();
+
+	// +/- buttons for ball/paddle speeds
+	const btnW = width  * 0.05;
+	const btnH = height * 0.05;
+	const plusX  = valueX + width * 0.12;
+	const minusX = valueX + width * 0.20;
+	const yBallC  = yBallSpeed - btnH / 2;
+	const yPadC   = yPaddle    - btnH / 2;
+
+	ctx.fillStyle = '#38bdf8';
+	ctx.fillRect(plusX,  yBallC,   btnW, btnH);
+	ctx.fillRect(minusX, yBallC,   btnW, btnH);
+	ctx.fillRect(plusX,  yPadC,    btnW, btnH);
+	ctx.fillRect(minusX, yPadC,    btnW, btnH);
+
+	ctx.fillStyle = 'black';
+	ctx.font      = `${Math.floor(height / 30)}px Orbitron`;
+	ctx.textAlign = 'center';
+	ctx.fillText('+', plusX  + btnW / 2, yBallC + btnH * 0.7);
+	ctx.fillText('-', minusX + btnW / 2, yBallC + btnH * 0.7);
+	ctx.fillText('+', plusX  + btnW / 2, yPadC  + btnH * 0.7);
+	ctx.fillText('-', minusX + btnW / 2, yPadC  + btnH * 0.7);
+
+	// button “Create Tournament” under form
+	const createW = width  * 0.23;
+	const createH = height * 0.08;
+	const createX = formX;
+	const createY = height * 0.65;
+	ctx.fillStyle = '#22c55e';
+	ctx.fillRect(createX, createY, createW, createH);
+	ctx.fillStyle = 'black';
+	ctx.font      = `${Math.floor(height / 25)}px Orbitron`;
+	ctx.textAlign = 'center';
+	ctx.fillText('Create Tournament', createX + createW/2, createY + createH * 0.65);
+
+	// Open Tournaments on right
+	const listX     = width * 0.60;
+	const listLabelY = height * 0.25;
+	ctx.fillStyle = 'white';
+	ctx.font      = `${Math.floor(height / 28)}px Orbitron`;
+	ctx.textAlign = 'left';
+	ctx.fillText('Open Tournaments:', listX, listLabelY);
+
+	const lineHeight = height * 0.05;
+	const joinButtons: PongButton[] = [];
+
+	tournaments.forEach((t, i) => {
+		const textY = listLabelY + lineHeight * (i + 1);
+		ctx.fillText(`• ${t.name}`, listX, textY);
+
+		const btnX = listX;
+		const btnY = textY - lineHeight * 0.75;
+		const btnW = width * 0.35;
+		const btnH = lineHeight;
+		joinButtons.push({
+			x: btnX,
+			y: btnY,
+			w: btnW,
+			h: btnH,
+			action: `join:${t.tournamentID}`
+		});
+	});
+
+	// Back button
+	const backW = width  * 0.15;
+	const backH = height * 0.06;
+	const backX = formX;
+	const backY = height * 0.05;
+	ctx.fillStyle = '#f87171';
+	ctx.fillRect(backX, backY, backW, backH);
+	ctx.fillStyle = 'white';
+	ctx.font      = `${Math.floor(height / 32)}px Orbitron`;
+	ctx.textAlign = 'center';
+	ctx.fillText('← Back', backX + backW/2, backY + backH * 0.62);
+
+	// Save button locations
+	canvas._tournamentButtons = [
+		// Click on “Tournament Name”
+		{ x: valueX - 4, y: yName - 28, w: metrics.width + 8, h: 32, action: 'editTournamentName' },
+		// +/- ballSpeed
+		{ x: plusX,   y: yBallC, w: btnW, h: btnH, action: 'ballSpeedUp'   },
+		{ x: minusX,  y: yBallC, w: btnW, h: btnH, action: 'ballSpeedDown' },
+		// +/- paddleSpeed
+		{ x: plusX,   y: yPadC, w: btnW, h: btnH, action: 'paddleSpeedUp'   },
+		{ x: minusX,  y: yPadC, w: btnW, h: btnH, action: 'paddleSpeedDown' },
+		// Create
+		{ x: createX, y: createY, w: createW, h: createH, action: 'createTournament' },
+		// Back
+		{ x: backX,   y: backY,   w: backW,  h: backH, action: 'backToMenu' },
+		// Join on right
+		...joinButtons
+	];
+}
+
+
+export function drawWaitingTournamentView(
+	canvas: HTMLCanvasElement,
+	ctx: CanvasRenderingContext2D,
+	tournamentName: string,
+	players: string[]
+): void {
+	const width  = canvas.width;
+	const height = canvas.height;
+
+	// Clear entire canvas
+	ctx.clearRect(0, 0, width, height);
+
+	// Background gradient (left → right: #2C5364 → #203A43 → #0F2027)
+	const grad = ctx.createLinearGradient(0, 0, width, 0);
+	grad.addColorStop(0.0, '#2C5364');
+	grad.addColorStop(0.5, '#203A43');
+	grad.addColorStop(1.0, '#0F2027');
+	ctx.fillStyle = grad;
+	ctx.fillRect(0, 0, width, height);
+
+	// Tournament title
+	ctx.fillStyle = 'white';
+	ctx.font      = `${Math.floor(height / 15)}px Orbitron`;
+	ctx.textAlign = 'center';
+	ctx.fillText(tournamentName, width / 2, height * 0.12);
+
+	// Player list label
+	ctx.fillStyle = 'white';
+	ctx.font      = `${Math.floor(height / 28)}px Orbitron`;
+	ctx.textAlign = 'left';
+	const listX = width * 0.18;
+	let currentY = height * 0.25;
+	const lineHeight = height * 0.06;
+	ctx.fillText('Participants:', listX, currentY);
+
+	// List of players
+	players.forEach((player, index) => {
+		ctx.fillText(
+			`• ${player}`,
+			listX,
+			currentY + lineHeight * (index + 1)
+		);
+	});
+
+	// Leave Tournament button
+	const btnW = width  * 0.25;
+	const btnH = height * 0.08;
+	const btnX = width  / 2 - btnW / 2;
+	const btnY = height * 0.8;
+	ctx.fillStyle = '#f87171';
+	ctx.fillRect(btnX, btnY, btnW, btnH);
+
+	ctx.fillStyle = 'white';
+	ctx.font      = `${Math.floor(height / 22)}px Orbitron`;
+	ctx.textAlign = 'center';
+	ctx.fillText('Leave Tournament', width / 2, btnY + btnH * 0.65);
+
+	// store the leave button for click handling
+	(canvas as any)._waitingTournamentButtons = [
+		{ x: btnX, y: btnY, w: btnW, h: btnH, action: 'leaveTournament' }
+	];
+}

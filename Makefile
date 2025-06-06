@@ -61,7 +61,7 @@ docker-run:
 
 
 # -------------------------------------------------------------------
-# install : install backend + Tailwind + plugin static (v4)
+# install : install backend + Tailwind + plugin static (v4) ---- LEGACY - DEPRECATED
 # -------------------------------------------------------------------
 # install:
 # 	@echo "🔧 Installing dependencies…"
@@ -103,6 +103,7 @@ clear_db:
 	rm -rf src/db/ourdatabase.db
 	touch src/db/ourdatabase.db
 	rm -rf client/avatars/*
+	docker volume rm db_volume
 
 
 

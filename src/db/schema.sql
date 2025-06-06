@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS gameMembers(
 	FOREIGN KEY(tournamentID) 	REFERENCES tournaments(tournamentID) ON DELETE CASCADE
 );
 
--- 1. Main Tournament table
+--  Main Tournament table
 CREATE TABLE IF NOT EXISTS tournaments (
   tournamentID   INTEGER PRIMARY KEY AUTOINCREMENT,
   name           TEXT    NOT NULL,
@@ -90,7 +90,7 @@ CREATE TABLE IF NOT EXISTS tournaments (
   FOREIGN KEY(createdBy) REFERENCES users(our_index)
 );
 
--- 2. Register tournament players
+--  Register tournament players
 CREATE TABLE IF NOT EXISTS tournamentMembers (
   tournamentID   INTEGER NOT NULL,
   userID         INTEGER NOT NULL,
@@ -101,7 +101,7 @@ CREATE TABLE IF NOT EXISTS tournamentMembers (
   FOREIGN KEY(userID) REFERENCES users(our_index) ON DELETE CASCADE
 );
 
--- 3. Matches results
+--  Matches results
 CREATE TABLE IF NOT EXISTS tournamentMatches (
   matchID        INTEGER PRIMARY KEY AUTOINCREMENT,
   tournamentID   INTEGER NOT NULL,

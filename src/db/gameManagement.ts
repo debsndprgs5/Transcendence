@@ -85,42 +85,90 @@ export const getLastAddedToRoom = (gameID:number) =>
 // #     TOURNAMENTS      #
 // ########################
 
-export const createTournament = (round: number, playersData: string) =>
-	run(`INSERT INTO tournaments (round, players_data) VALUES (?, ?)`, [round, playersData]);
+export const createTournament = (
+	name: string,
+	createdBy: number,
+	maxPlayers: number,
+	status: string
+) => {
+	return run(
+		`INSERT INTO tournaments (name, createdBy, maxPlayers, status)
+		 VALUES (?, ?, ?, ?)`,
+		[name, createdBy, maxPlayers, status]
+	);
+};
 
 export const delTournament = (tournamentID: number) =>
 	run(`DELETE FROM tournaments WHERE tournamentID = ?`, [tournamentID]);
 
-export const updateTournamentData = (tournamentID: number, playersData: string) =>
-	run(`UPDATE tournaments SET players_data = ? WHERE tournamentID = ?`, [playersData, tournamentID]);
-
-export const getTournamentData = (tournamentID: number) =>
-	get<{ tournamentID: number; round: number; players_data: string }>(
+export const getTournamentById = (tournamentID: number) =>
+	get<{ tournamentID: number; name: string; createdBy: number; maxPlayers: number; status: string; created_at: string }>(
 		`SELECT * FROM tournaments WHERE tournamentID = ?`,
 		[tournamentID]
 	);
 
+export const getAllTournaments = () =>
+	getAll<{ tournamentID: number; name: string; createdBy: number; maxPlayers: number; status: string }>(
+		`SELECT tournamentID, name, createdBy, maxPlayers, status FROM tournaments`
+	);
+
+// Add a member to a tournament
+export const addMemberToTournament = (tournamentID: number, userID: number) =>
+	run(
+		`INSERT INTO tournamentMembers (tournamentID, userID, points, matchesPlayed)
+		 VALUES (?, ?, 0, 0)`,
+		[tournamentID, userID]
+	);
+
+// Eventually remove a member from a tournament
+export const delMemberFromTournament = (tournamentID: number, userID: number) =>
+	run(`DELETE FROM tournamentMembers WHERE tournamentID = ? AND userID = ?`, [tournamentID, userID]);
+
+// Get all members from a tournament
 export const getAllTournamentMembers = (tournamentID: number) =>
-	getAll<{ userID: number; alias: string }>(
-		`SELECT userID, alias FROM gameMembers WHERE tournamentID = ?`,
+	getAll<{ userID: number; points: number; matchesPlayed: number }>(
+		`SELECT userID, points, matchesPlayed
+		 FROM tournamentMembers
+		 WHERE tournamentID = ?`,
 		[tournamentID]
 	);
 
-export const updateTournamentRound = (tournamentID: number, round: number) =>
-	run(`UPDATE tournaments SET round = ? WHERE tournamentID = ?`, [round, tournamentID]);
+// Update tournament member's stats
+export const updateMemberStats = (
+	tournamentID: number,
+	userID: number,
+	points: number,
+	matchesPlayed: number
+) =>
+	run(
+		`UPDATE tournamentMembers
+		 SET points = ?, matchesPlayed = ?
+		 WHERE tournamentID = ? AND userID = ?`,
+		[points, matchesPlayed, tournamentID, userID]
+	);
 
-export const getAllTournaments = () =>
-  getAll<{ tournamentID: number; round: number; players_data: string }>(
-    `SELECT * FROM tournaments`
-  );
+// register a match's results
+export const createMatchResult = (
+	tournamentID: number,
+	playerA: number,
+	playerB: number,
+	scoreA: number,
+	scoreB: number
+) =>
+	run(
+		`INSERT INTO tournamentMatches (tournamentID, playerA, playerB, scoreA, scoreB)
+		 VALUES (?, ?, ?, ?, ?)`,
+		[tournamentID, playerA, playerB, scoreA, scoreB]
+	);
 
-
-export const addMemberToTournament = (tournamentID: number, userID: number, alias: string | null = null) =>
-  run(
-    `INSERT INTO gameMembers (gameID, tournamentID, userID, alias)
-     VALUES (?, ?, ?, ?)`,
-    [null, tournamentID, userID, alias]
-  );
+// List all played matches of a tournament
+export const getAllMatches = (tournamentID: number) =>
+	getAll<{ matchID: number; playerA: number; playerB: number; scoreA: number; scoreB: number; played_at: string }>(
+		`SELECT matchID, playerA, playerB, scoreA, scoreB, played_at
+		 FROM tournamentMatches
+		 WHERE tournamentID = ?`,
+		[tournamentID]
+	);
 
 // ########################
 // #      USERSTAT        #

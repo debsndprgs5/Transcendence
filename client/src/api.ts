@@ -7,6 +7,10 @@ export interface AppState {
 	userId: number | null;
 	currentRoom: number;
 	availableRooms: { roomID: number; roomName: string }[];
+	availableTournaments?: { tournamentID: number; name: string }[];
+	currentTournamentName?: string;
+	currentTournamentPlayers?: string[];
+	currentTournamentID?: number;
 	canvasViewState: string;
 	currentGameName?: string;
 	currentPlayers?: string[];
@@ -23,6 +27,10 @@ export const state: AppState = {
 	userId: null,
 	currentRoom: 0,
 	availableRooms: [],
+	availableTournaments: [],
+	currentTournamentName: undefined,
+	currentTournamentPlayers: undefined,
+	currentTournamentID: undefined,
 	canvasViewState: 'mainMenu',
 	currentGameName: undefined,
 	currentPlayers: undefined,

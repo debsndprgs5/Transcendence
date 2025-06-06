@@ -2,35 +2,44 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import * as gameMgr from '../db/gameManagement';
 
 export async function tournamentRoutes(fastify: FastifyInstance) {
-	//    Create new tournament : POST /api/tournament/:userID
-	//    expected body (JSON) :
-	//    {
-	//      "round": <number>,
-	//      "players_data": <string (JSON)>  // "[]" or {"bracket": ...}
-	//    }
-
+	// Create tournament
 	fastify.post('/tournament/:userID', async (request: FastifyRequest, reply: FastifyReply) => {
 		console.log('[TOURNAMENT][ROUTES][POST][CREATETOURNAMENT]');
 		try {
 			const userID = Number((request.params as any).userID);
-			const body = request.body as { round: number; players_data: string };
+			const body = request.body as {
+				name: string;
+				maxPlayers: number;
+				status: 'open' | 'ongoing' | 'finished';
+			};
 
-			if (typeof body.round !== 'number' || typeof body.players_data !== 'string') {
-				return reply.code(400).send({ success: false, message: 'Error : Invalid payload' });
+			if (
+				typeof body.name !== 'string' ||
+				typeof body.maxPlayers !== 'number' ||
+				(body.status !== 'open' && body.status !== 'ongoing' && body.status !== 'finished')
+			) {
+				return reply.code(400).send({ success: false, message: 'Invalid payload' });
 			}
 
-			// Create tournament and get the generated ID
-			const result = await gameMgr.createTournament(body.round, body.players_data);
+			const result = await gameMgr.createTournament(
+				body.name,
+				userID,
+				body.maxPlayers,
+				body.status
+			);
 			const newTournamentID = (result as any).lastID as number;
 
-			await gameMgr.addMemberToTournament(newTournamentID, userID, 'TournamentOwner');
+			// Add creator in `tournamentMembers`
+			await gameMgr.addMemberToTournament(newTournamentID, userID);
 
 			return reply.status(201).send({
 				success: true,
 				tournament: {
 					tournamentID: newTournamentID,
-					round: body.round,
-					players_data: body.players_data
+					name: body.name,
+					createdBy: userID,
+					maxPlayers: body.maxPlayers,
+					status: body.status
 				}
 			});
 		} catch (error) {
@@ -39,18 +48,25 @@ export async function tournamentRoutes(fastify: FastifyInstance) {
 		}
 	});
 
-	// Get the tournament list : GET /api/tournament/list
+	// List all tournaments
 	fastify.get('/tournament/list', async (request: FastifyRequest, reply: FastifyReply) => {
 		console.log('[TOURNAMENT][ROUTES][GET][LISTTournaments]');
 		try {
 			const all = await gameMgr.getAllTournaments();
-			// Return an array
 			return reply.send({
 				success: true,
-				tournaments: (all as { tournamentID: number; round: number; players_data: string }[]).map(t => ({
+				tournaments: (all as {
+					tournamentID: number;
+					name: string;
+					createdBy: number;
+					maxPlayers: number;
+					status: string;
+				}[]).map(t => ({
 					tournamentID: t.tournamentID,
-					round: t.round,
-					players_data: t.players_data
+					name: t.name,
+					createdBy: t.createdBy,
+					maxPlayers: t.maxPlayers,
+					status: t.status
 				}))
 			});
 		} catch (error) {
@@ -59,21 +75,31 @@ export async function tournamentRoutes(fastify: FastifyInstance) {
 		}
 	});
 
-	// 3) Get a specific tournament's infos (round + players_data) : GET /api/tournament/:tournamentID
+	// Get tournament details (infos + members list + eventually matches)
 	fastify.get('/tournament/:tournamentID', async (request: FastifyRequest, reply: FastifyReply) => {
 		console.log('[TOURNAMENT][ROUTES][GET][GETTOURNAMENTDATA]');
 		try {
 			const tournamentID = Number((request.params as any).tournamentID);
-			const data = await gameMgr.getTournamentData(tournamentID);
-			if (!data) {
+			const info = await gameMgr.getTournamentById(tournamentID);
+			if (!info) {
 				return reply.code(404).send({ success: false, message: 'Tournament not found' });
 			}
+			// Get registered members
+			const members = await gameMgr.getAllTournamentMembers(tournamentID);
+			// Get played matches
+			const matches = await gameMgr.getAllMatches(tournamentID);
+
 			return reply.send({
 				success: true,
 				tournament: {
-					tournamentID: data.tournamentID,
-					round: data.round,
-					players_data: data.players_data
+					tournamentID: info.tournamentID,
+					name: info.name,
+					createdBy: info.createdBy,
+					maxPlayers: info.maxPlayers,
+					status: info.status,
+					created_at: info.created_at,
+					members, // array { userID, points, matchesPlayed }
+					matches  // array { matchID, playerA, playerB, scoreA, scoreB, played_at }
 				}
 			});
 		} catch (error) {
@@ -82,7 +108,7 @@ export async function tournamentRoutes(fastify: FastifyInstance) {
 		}
 	});
 
-	// 4) Delete a tournament : DELETE /api/tournament/:tournamentID
+	// Delete tournament
 	fastify.delete('/tournament/:tournamentID', async (request: FastifyRequest, reply: FastifyReply) => {
 		console.log('[TOURNAMENT][ROUTES][DELETE][DELTournament]');
 		try {
@@ -95,60 +121,21 @@ export async function tournamentRoutes(fastify: FastifyInstance) {
 		}
 	});
 
-	// 5) Mettre à jour le players_data d’un tournoi (par ex. pour setter le bracket) :
-	//    PUT /api/tournament/:tournamentID/data
-	//    Body attendu : { "players_data": "<nouveau JSON string>" }
-	fastify.put('/tournament/:tournamentID/data', async (request: FastifyRequest, reply: FastifyReply) => {
-		console.log('[TOURNAMENT][ROUTES][PUT][UPDATETOURNAMENTDATA]');
-		try {
-			const tournamentID = Number((request.params as any).tournamentID);
-			const body = request.body as { players_data: string };
-			if (typeof body.players_data !== 'string') {
-				return reply.code(400).send({ success: false, message: 'Invalid payload' });
-			}
-			await gameMgr.updateTournamentData(tournamentID, body.players_data);
-			return reply.send({ success: true, message: 'Tournament data updated' });
-		} catch (error) {
-			console.error('Error in PUT /api/tournament/:tournamentID/data:', error);
-			return reply.code(500).send({ success: false, message: 'Server error' });
-		}
-	});
-
-	// 6) Mettre à jour le round courant d’un tournoi :
-	//    PUT /api/tournament/:tournamentID/round
-	//    Body attendu : { "round": <nouveau round (number)> }
-	fastify.put('/tournament/:tournamentID/round', async (request: FastifyRequest, reply: FastifyReply) => {
-		console.log('[TOURNAMENT][ROUTES][PUT][UPDATEROUND]');
-		try {
-			const tournamentID = Number((request.params as any).tournamentID);
-			const body = request.body as { round: number };
-			if (typeof body.round !== 'number') {
-				return reply.code(400).send({ success: false, message: 'Invalid payload' });
-			}
-			await gameMgr.updateTournamentRound(tournamentID, body.round);
-			return reply.send({ success: true, message: 'Tournament round updated' });
-		} catch (error) {
-			console.error('Error in PUT /api/tournament/:tournamentID/round:', error);
-			return reply.code(500).send({ success: false, message: 'Server error' });
-		}
-	});
-
-	// 7) Inscrire (joindre) un utilisateur à un tournoi :
-	//    POST /api/tournament/:tournamentID/join/:userID
+	// Add a member to a tournament
 	fastify.post('/tournament/:tournamentID/join/:userID', async (request: FastifyRequest, reply: FastifyReply) => {
 		console.log('[TOURNAMENT][ROUTES][POST][JOINTOURNAMENT]');
 		try {
 			const tournamentID = Number((request.params as any).tournamentID);
 			const userID = Number((request.params as any).userID);
-			const body = request.body as { alias?: string }; // alias facultatif
 
-			// Vérifier si l’utilisateur est déjà membre
-			const existingMembers = await gameMgr.getAllTournamentMembers(tournamentID);
-			if (existingMembers.find(m => m.userID === userID)) {
+			// Verif if already registered
+			const existing = await gameMgr.getAllTournamentMembers(tournamentID);
+			if (existing.find(m => m.userID === userID)) {
 				return reply.code(400).send({ success: false, message: 'Already registered' });
 			}
 
-			await addMemberToTournament(tournamentID, userID, body?.alias ?? null);
+			// Register in tournamentMembers
+			await gameMgr.addMemberToTournament(tournamentID, userID);
 			return reply.send({ success: true, message: 'Joined tournament' });
 		} catch (error) {
 			console.error('Error in POST /api/tournament/:tournamentID/join/:userID:', error);
@@ -156,8 +143,7 @@ export async function tournamentRoutes(fastify: FastifyInstance) {
 		}
 	});
 
-	// 8) Récupérer la liste des membres d’un tournoi :
-	//    GET /api/tournament/:tournamentID/members
+	// List a specific tournament's players
 	fastify.get('/tournament/:tournamentID/members', async (request: FastifyRequest, reply: FastifyReply) => {
 		console.log('[TOURNAMENT][ROUTES][GET][GETMEMBERS]');
 		try {
@@ -166,6 +152,103 @@ export async function tournamentRoutes(fastify: FastifyInstance) {
 			return reply.send({ success: true, members });
 		} catch (error) {
 			console.error('Error in GET /api/tournament/:tournamentID/members:', error);
+			return reply.code(500).send({ success: false, message: 'Server error' });
+		}
+	});
+
+	// Keep match's results
+	//    expected : { playerA, playerB, scoreA, scoreB }
+	fastify.post('/tournament/:tournamentID/match', async (request: FastifyRequest, reply: FastifyReply) => {
+		console.log('[TOURNAMENT][ROUTES][POST][CREATEMATCH]');
+		try {
+			const tournamentID = Number((request.params as any).tournamentID);
+			const body = request.body as { playerA: number; playerB: number; scoreA: number; scoreB: number };
+
+			if (
+				typeof body.playerA !== 'number' ||
+				typeof body.playerB !== 'number' ||
+				typeof body.scoreA !== 'number' ||
+				typeof body.scoreB !== 'number'
+			) {
+				return reply.code(400).send({ success: false, message: 'Invalid payload' });
+			}
+
+			// Keep results in tournamentMatches
+			const result = await gameMgr.createMatchResult(
+				tournamentID,
+				body.playerA,
+				body.playerB,
+				body.scoreA,
+				body.scoreB
+			);
+			const newMatchID = (result as any).lastID as number;
+
+			// Update players stats in tournamentMembers
+			// Victory = +10, Loose = 0, Tie = +5
+			let pointsA = 0;
+			let pointsB = 0;
+			if (body.scoreA > body.scoreB) {
+				pointsA = 10;
+				pointsB = 0;
+			} else if (body.scoreA < body.scoreB) {
+				pointsA = 0;
+				pointsB = 10;
+			} else {
+				pointsA = 5;
+				pointsB = 5;
+			}
+
+			// Get the previous number of points/matches for player A
+			const membersA = await gameMgr.getAllTournamentMembers(tournamentID);
+			const recordA = membersA.find(m => m.userID === body.playerA);
+			const oldPointsA      = recordA?.points ?? 0;
+			const oldMatchesA     = recordA?.matchesPlayed ?? 0;
+			await gameMgr.updateMemberStats(tournamentID, body.playerA, oldPointsA + pointsA, oldMatchesA + 1);
+
+			// same for player B
+			const recordB = membersA.find(m => m.userID === body.playerB);
+			const oldPointsB  = recordB?.points ?? 0;
+			const oldMatchesB = recordB?.matchesPlayed ?? 0;
+			await gameMgr.updateMemberStats(tournamentID, body.playerB, oldPointsB + pointsB, oldMatchesB + 1);
+
+			return reply.status(201).send({
+				success: true,
+				match: {
+					matchID: newMatchID,
+					tournamentID,
+					playerA: body.playerA,
+					playerB: body.playerB,
+					scoreA: body.scoreA,
+					scoreB: body.scoreB
+				}
+			});
+		} catch (error) {
+			console.error('Error in POST /api/tournament/:tournamentID/match:', error);
+			return reply.code(500).send({ success: false, message: 'Server error' });
+		}
+	});
+
+	// List a specific tournament's matches
+	fastify.get('/tournament/:tournamentID/matches', async (request: FastifyRequest, reply: FastifyReply) => {
+		console.log('[TOURNAMENT][ROUTES][GET][LISTMATCHES]');
+		try {
+			const tournamentID = Number((request.params as any).tournamentID);
+			const matches = await gameMgr.getAllMatches(tournamentID);
+			return reply.send({ success: true, matches });
+		} catch (error) {
+			console.error('Error in GET /api/tournament/:tournamentID/matches:', error);
+			return reply.code(500).send({ success: false, message: 'Server error' });
+		}
+	});
+	// Leave a tournament
+	fastify.post('/tournament/:tournamentID/leave/:userID', async (request, reply) => {
+		try {
+			const tournamentID = Number((request.params as any).tournamentID);
+			const userID = Number((request.params as any).userID);
+			await gameMgr.delMemberFromTournament(tournamentID, userID);
+			return reply.send({ success: true, message: 'Left tournament' });
+		} catch (err) {
+			console.error('Error leaving tournament:', err);
 			return reply.code(500).send({ success: false, message: 'Server error' });
 		}
 	});

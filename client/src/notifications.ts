@@ -1,4 +1,5 @@
 import { createDirectMessageWith, router } from './handlers';
+import { apiFetch, state } from './api';
 
 // ─── NOTIFICATIONS ────────────────────────────────────────────────────────────────
 
@@ -27,8 +28,8 @@ export function showNotification({
 	type = 'info',
 	duration = 3000,
 	placeholder = '',
-  onConfirm = null as ((value?: string) => void) | null,
-  onCancel  = null as (() => void) | null,
+	onConfirm = null as ((value?: string) => void) | null,
+	onCancel  = null as (() => void) | null,
 }: NotificationOptions): void {
 	if (type === 'prompt') {
 		// Prompt modal
@@ -166,17 +167,18 @@ export function showNotification({
 }
 
 // Show a floating action bubble below the clicked username
+
 export function showUserActionsBubble(target: Element, username: string): void {
-	// Remove any old bubble
+	// Delete any previous bubble
 	document.querySelectorAll('.user-action-bubble').forEach(el => el.remove());
 
 	const chatDiv = document.getElementById('chat');
 	const parent = chatDiv?.parentElement;
-
 	if (parent && window.getComputedStyle(parent).position === 'static') {
 		parent.style.position = 'relative';
 	}
 
+	// Make the bubble's html container
 	const bubble = document.createElement('div');
 	bubble.className = 'user-action-bubble';
 	bubble.innerHTML = `
@@ -185,11 +187,11 @@ export function showUserActionsBubble(target: Element, username: string): void {
 		</svg>
 		<button data-action="profile">👤 <span>Profile</span></button>
 		<button data-action="dm">💬 <span>Direct Message</span></button>
-		<button data-action="invite" disabled>🎮 <span>Invite Game</span></button>
+		<button data-action="invite">🎮 <span>Invite Game</span></button>
 	`;
-
 	parent?.appendChild(bubble);
 
+	// put the bubble under the clicked element
 	const parentRect = parent!.getBoundingClientRect();
 	const targetRect = (target as Element).getBoundingClientRect();
 	const bubbleRect = bubble.getBoundingClientRect();
@@ -202,6 +204,7 @@ export function showUserActionsBubble(target: Element, username: string): void {
 	bubble.style.top = `${top}px`;
 	bubble.style.left = `${left}px`;
 
+	// Arrow pointing to clicked user
 	const arrow = bubble.querySelector<SVGElement>('.user-action-bubble__arrow');
 	if (arrow) {
 		let arrowLeft = targetRect.left - parentRect.left + targetRect.width / 2 - left - 14;
@@ -209,7 +212,7 @@ export function showUserActionsBubble(target: Element, username: string): void {
 		arrow.style.left = `${arrowLeft}px`;
 	}
 
-	// Close bubble on outside click
+	// Close bubble if you click outside
 	setTimeout(() => {
 		document.addEventListener('mousedown', function onClickOutside(e) {
 			if (!bubble.contains(e.target as Node)) {
@@ -219,7 +222,7 @@ export function showUserActionsBubble(target: Element, username: string): void {
 		});
 	}, 20);
 
-	// Actions
+	// Handling buttons actions
 	bubble.addEventListener('click', async (e: MouseEvent) => {
 		const btn = (e.target as HTMLElement).closest('button');
 		const action = btn?.getAttribute('data-action');
@@ -227,12 +230,73 @@ export function showUserActionsBubble(target: Element, username: string): void {
 
 		if (action === 'profile') {
 			history.pushState(null, '', `/profile/${encodeURIComponent(username)}`);
-			router();
+			router()
 			bubble.remove();
+
 		} else if (action === 'dm') {
 			await createDirectMessageWith(username);
 			bubble.remove();
+
+		} else if (action === 'invite') {
+			// get the id of clicked user
+			let targetUserID: number;
+			try {
+				const resp = await apiFetch(`/api/users/by-username/${encodeURIComponent(username)}`, {
+					headers: {
+						'Content-Type': 'application/json',
+						Authorization: `Bearer ${state.authToken}`
+					}
+				});
+				targetUserID = resp.userId as number;
+			} catch (err) {
+				console.error('Error getting ID of clicked user :', err);
+				showNotification({ message: 'Unable to find this user', type: 'error' });
+				bubble.remove();
+				return;
+			}
+
+			// Create a private room
+			let newGameID: number;
+			let newGameName: string;
+			try {
+				const createResp = await apiFetch(`/api/pong/${state.userId}`, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						Authorization: `Bearer ${state.authToken}`
+					},
+					body: JSON.stringify({
+						userID: state.userId,
+						name: 'Private Room',
+						ball_speed: 50,
+						paddle_speed: 50
+					})
+				});
+				newGameID = (createResp.room.gameID as number);
+				newGameName = (createResp.room.gameName as string);
+			} catch (err) {
+				console.error('Error while creating “Private Room” :', err);
+				showNotification({ message: 'Create private room failed', type: 'error' });
+				bubble.remove();
+				return;
+			}
+
+			// Send websocket notif to clicked user
+			if (state.gameSocket) {
+				state.gameSocket.send(JSON.stringify({
+					type: 'invite',
+					action: 'send',
+					toUserID: targetUserID,
+					fromUserID: state.userId,
+					fromUsername: username, 
+					gameID: newGameID,
+					gameName: newGameName
+				}));
+			} else {
+				console.warn('No open websocket to send invite');
+			}
+
+			bubble.remove();
 		}
-		// "invite" does nothing
 	});
 }

@@ -19,7 +19,33 @@ export function render(html: string): void {
 export function HomeView(): string {
 	if (!isAuthenticated()) {
 		return `
-			<section class="bg-white rounded-lg shadow-lg overflow-hidden md:flex">
+			<section class="rounded-lg shadow-lg overflow-hidden md:flex" style="background: conic-gradient(
+							from 90deg,
+							rgba(187,119,2,1)    0deg,
+							rgba(187,119,2,1)   27.692deg,
+							rgba(202,134,27,1)  27.692deg,
+							rgba(202,134,27,1)  55.385deg,
+							rgba(210,147,54,1)  55.385deg,
+							rgba(210,147,54,1)  83.077deg,
+							rgba(210,158,79,1)  83.077deg,
+							rgba(210,158,79,1) 110.769deg,
+							rgba(203,165,102,1)110.769deg,
+							rgba(188,169,121,1)138.462deg,
+							rgba(188,169,121,1)166.154deg,
+							rgba(168,170,136,1)166.154deg,
+							rgba(168,170,136,1)193.846deg,
+							rgba(146,166,144,1)193.846deg,
+							rgba(146,166,144,1)221.538deg,
+							rgba(123,159,146,1)221.538deg,
+							rgba(123,159,146,1)249.231deg,
+							rgba(103,148,141,1)249.231deg,
+							rgba(103,148,141,1)276.923deg,
+							rgba( 88,135,130,1)276.923deg,
+							rgba( 88,135,130,1)304.615deg,
+							rgba( 79,120,113,1)304.615deg,
+							rgba( 79,120,113,1)332.308deg,
+							rgba( 79,105, 92,1)332.308deg 360deg
+						);">
 				<div class="p-8 md:w-1/2">
 					<h1 class="text-4xl font-bold text-indigo-600 mb-4">
 						Welcome in Transcendence
@@ -37,11 +63,6 @@ export function HomeView(): string {
 							Login
 						</a>
 					</div>
-				</div>
-				<div class="md:w-1/2 bg-indigo-50 flex items-center justify-center">
-					<img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExMGxybmhtZmdwNTU0YjVqOThnMXdmaGlic3QxdXFod2N0aDZnNTRpNCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o72FkiKGMGauydfyg/giphy.gif"
-							 alt="not implemented yet"
-							 class="w-3/4 h-auto">
 				</div>
 			</section>
 		`;

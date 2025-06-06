@@ -241,6 +241,28 @@ export function drawJoinGameView(
 		});
 	});
 
+	// Join random button
+	const randW = width  * 0.2;
+	const randH = height * 0.08;
+	const randX = width  * 0.75;
+	const randY = height * 0.25;
+	ctx.fillStyle = '#10b981';
+	ctx.fillRect(randX, randY, randW, randH);
+
+	ctx.fillStyle = 'white';
+	ctx.font      = `${Math.floor(height / 28)}px Orbitron`;
+	ctx.textAlign = 'center';
+	ctx.fillText('Join Random', randX + randW / 2, randY + randH * 0.65);
+
+	// join random button pos saving
+	joinButtons.push({
+		x: randX,
+		y: randY,
+		w: randW,
+		h: randH,
+		action: 'joinRandom'
+	});
+
 	// Draw a "Back to Menu" button at the bottom
 	const btnW = width  * 0.3;
 	const btnH = height * 0.08;

@@ -3,6 +3,7 @@ import { showNotification, showUserActionsBubble } from './notifications.js';
 //export async function gameSystemLog(msg)
 //export async function gameEndsLog(msg)
 import { isAuthenticated, apiFetch, initWebSocket, state } from './api';
+import { showPongMenu } from './pong_rooms';
 
 
 export async function initGameSocket(){
@@ -143,41 +144,87 @@ export async function handleEndMatch(data:string){
 	// }
 }
 
-export async function handleInvite(data:string){
-	const {action , response, userID} = JSON.parse(data);
-	if(action === 'reply'){
-		if(response !== 'accept')
-			console.log(`The user you tried to invite is ${response}`);
-		else 
-			console.log('The user you invited just joined the GameRoom');
-	}
-	if(action == 'receive'){
+export async function handleInvite(raw: string) {
+  const data = JSON.parse(raw);
 
-		const username = apiFetch(`user/by-index/${userID}`)
-			showNotification({
-						message: `${username} invited you to play, join ?`,
-						type: 'confirm',
-						onConfirm: async () => {
-							const response = 'accept'
-							if(state.gameSocket){
-								state.gameSocket.send(JSON.stringify({
-									type:'invite',
-									action: 'reply',
-									response
-								}));
-							}
-						},
-						onCancel:async() => {
-							const response = 'decline'
-							if(state.gameSocket){
-								state.gameSocket.send(JSON.stringify({
-									type:'invite',
-									action: 'reply',
-									response
-								}));
-							}
-						}
+  // Invite received
+  if (data.type === 'invite' && data.action === 'send') {
+    const { fromUsername, fromUserID, gameID, gameName } = data;
+    showNotification({
+      message: `${fromUsername} vous invite à "${gameName}". Accepter ?`,
+      type: 'confirm',
+      onConfirm: async () => {
+        // User accepted -> send response to server
+        if (state.gameSocket) {
+          state.gameSocket.send(JSON.stringify({
+            type: 'invite',
+            action: 'reply',
+            response: 'accept',
+            toUserID: fromUserID,     // send back to sender
+            gameID
+          }));
+        }
+        // send socket to join the game
+        if (state.gameSocket) {
+          state.gameSocket.send(JSON.stringify({
+            type: 'joinGame',
+            userID: state.userId,
+            gameID
+          }));
+        }
+        // init waiting game
+        state.currentGameName = gameName;
+        state.currentPlayers = [ state.username ];
+        state.canvasViewState = 'waitingGame';
+        localStorage.setItem('pong_view', 'waitingGame');
+        localStorage.setItem('pong_room', gameName);
+        localStorage.setItem('pong_players', JSON.stringify([ state.username ]));
+        showPongMenu();
+      },
+      onCancel: async () => {
+        // User declined -> send response to server
+        if (state.gameSocket) {
+          state.gameSocket.send(JSON.stringify({
+            type: 'invite',
+            action: 'reply',
+            response: 'decline',
+            toUserID: fromUserID,
+            gameID
+          }));
+        }
+      }
+    });
 
-			});
-	}
+  // Handle response for the one who sent the invite
+  } else if (data.type === 'invite' && data.action === 'reply') {
+    const { response, toUserID, gameID } = data;
+    // Only the one who invited has to handle this, so
+    if (toUserID !== state.userId) {
+      return; // we return if not the right user
+    }
+    if (response === 'accept') {
+      // invited user accepted
+      if (state.gameSocket) {
+        state.gameSocket.send(JSON.stringify({
+          type: 'joinGame',
+          userID: state.userId,
+          gameID
+        }));
+      }
+      // Go aswell on waiting game
+      const name = state.currentGameName ?? 'Private Room';
+      state.currentGameName = name;
+      state.currentPlayers = [ state.username ];
+      state.canvasViewState = 'waitingGame';
+      localStorage.setItem('pong_view', 'waitingGame');
+      localStorage.setItem('pong_room', name);
+      localStorage.setItem('pong_players', JSON.stringify([ state.username ]));
+      showNotification({ message: 'Invitation accepted. Starting the game.', type: 'success' });
+      showPongMenu();
+
+    } else {
+      // Invited one has refused
+      showNotification({ message: 'Invitation declined.', type: 'info' });
+    }
+  }
 }

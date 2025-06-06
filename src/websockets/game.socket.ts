@@ -231,56 +231,80 @@ const { userID, gameName, gameID } = parsed;
 	await tryStartGameIfReady(gameID);
 }
 
-export async function handleInvite(parsed:any, player:players){
-	const { actionRequested } = parsed;
+export async function handleInvite(parsed: any, player: players) {
+	const { action } = parsed;
 
-	if (actionRequested === 'send') {
-		const { userID, alias, targetID, gameID } = parsed;
-		const target = MappedPlayers.get(targetID);
+	// the one who invites (front-A) sends { type:'invite', action:'send', toUserID, fromUserID, fromUsername, gameID }
+	if (action === 'send') {
+		const { toUserID, fromUserID, fromUsername, gameID } = parsed;
+		// Look for receiver socket
+		const invitee = MappedPlayers.get(toUserID);
 
-		if (!target) {
-			player.socket.send(JSON.stringify({ type: 'invite', action: 'reply', response: 'offline' }));
-			return;
-		}
-
-		if (target.state !== 'init') {
-			player.socket.send(JSON.stringify({ type: 'invite', action: 'reply', response: 'busy' }));
-			return;
-		}
-
-		player.state = 'waiting';
-		target.state = 'invited';
-
-		target.socket.send(JSON.stringify({
-			type: 'invite',
-			action: 'receive',
-			fromID: userID,
-			gameID
-		}));
-	}
-
-	if (actionRequested === 'reply') {
-		const { fromID, toID, response, gameID } = parsed;
-		const inviter = MappedPlayers.get(fromID);
-		const invitee = MappedPlayers.get(toID);
-
-		if (inviter)
-			inviter.socket.send(JSON.stringify({
+		// If user is not connected
+		if (!invitee) {
+			// Send back 'offline'
+			return send(player.socket, {
 				type: 'invite',
 				action: 'reply',
-				response,
-				targetID: toID
-			}));
+				response: 'offline',
+				gameID
+			});
+		}
 
+		// If user is not in init state
+		if (invitee.state !== 'init') {
+			return send(player.socket, {
+				type: 'invite',
+				action: 'reply',
+				response: 'busy',
+				gameID
+			});
+		}
+
+		// we make the invitor in waiting state and the invited in invited state
+		player.state = 'waiting';
+		invitee.state = 'invited';
+
+		// Notify the receiver that he received an invite
+		return send(invitee.socket, {
+			type: 'invite',
+			action: 'receive',
+			fromUserID,
+			fromUsername,
+			gameID
+		});
+	}
+
+	// the invited (front-B) answers { type:'invite', action:'reply', response:'accept'|'decline', toUserID<Invitor userID>, gameID }
+	if (action === 'reply') {
+		const { response, toUserID, gameID } = parsed;
+		const inviter = MappedPlayers.get(toUserID);
+		const invitee = player; // the one who answered
+
+		// Notify the invitor of the answer
+		if (inviter) {
+			send(inviter.socket, {
+				type: 'invite',
+				action: 'reply',
+				response,     // 'accept' or 'decline'
+				gameID,
+				fromUserID: invitee.userID // signals who responds
+			});
+		}
+
+		// if the invited has accepted, we add B to the db and try to start
 		if (response === 'accept') {
-			await GameManagement.addMemberToGameRoom(gameID, toID);
-			invitee!.state = 'waiting';
+			await GameManagement.addMemberToGameRoom(gameID, invitee.userID);
+			invitee.state = 'waiting';
 			if (inviter) inviter.state = 'waiting';
 
 			await tryStartGameIfReady(gameID, 2);
-		} else {
-			if (invitee) invitee.state = 'init';
 		}
+		// If B refused, get back in init state
+		else {
+			invitee.state = 'init';
+		}
+		return;
 	}
 }
 
@@ -413,19 +437,19 @@ export async function handleLeaveGame(parsed:any, player:players){
 }
 
 export default fp(async (fastify) => {
-  const wss = new WebSocketServer({ noServer: true });
+	const wss = new WebSocketServer({ noServer: true });
 
-  fastify.server.on('upgrade', (request, socket, head) => {
-    const { url } = request;
+	fastify.server.on('upgrade', (request, socket, head) => {
+		const { url } = request;
 	console.log('[GAME][onupgrade]');
-    if (url?.startsWith('/gameSocket')) {
+		if (url?.startsWith('/gameSocket')) {
 		console.log('[startWith/game]')
-      wss.handleUpgrade(request, socket, head, (ws) => {
-        wss.emit('connection', ws, request);
-      });
-    }
-  });
+			wss.handleUpgrade(request, socket, head, (ws) => {
+				wss.emit('connection', ws, request);
+			});
+		}
+	});
 
-  wss.on('connection', initGameSocket);
+	wss.on('connection', initGameSocket);
 });
 

@@ -42,8 +42,8 @@ async function bootstrap() {
 
   // Cookie plugin
   await app.register(cookie, {
-    secret: process.env.COOKIE_SECRET || '&hotzBs@bziCO$oy2xTY0pq7QiBJ9Jz4Clgb$@od0MWzuU*ybL', // secret pour signer les cookies
-    parseOptions: {  // options pour le parsing des cookies
+    secret: process.env.COOKIE_SECRET || '&hotzBs@bziCO$oy2xTY0pq7QiBJ9Jz4Clgb$@od0MWzuU*ybL', // secret to sign cookies
+    parseOptions: {  // cookies parsing options
       secure: process.env.NODE_ENV === 'production',
       httpOnly: false,
       sameSite: 'lax',
@@ -112,7 +112,7 @@ async function bootstrap() {
   // Mount WS plugin
   await app.register(wsPlugin);
   await app.register(gamePlugin);
-  // Pour toute autre requête non-api, envoi de index.html
+  // for non-api request, return index
   app.setNotFoundHandler((request, reply) => {
     if (request.method === 'GET' && !request.url.startsWith('/api')) {
       return reply.sendFile('index.html')
@@ -120,7 +120,9 @@ async function bootstrap() {
     reply.callNotFound()
   })
 
-  // Gestion globale des erreurs
+
+
+  // Global error handling
   app.setErrorHandler((error, request, reply) => {
     console.error('Server error:', error);
     reply.status(500).send({
@@ -134,14 +136,20 @@ async function bootstrap() {
       port, 
       host: '0.0.0.0'
     });
-    console.log('🚀 Server listening on port ', port);
+    const sessionManager = process.env.SESSION_MANAGER || '';
+
+    // Use a regex to extract the pattern cXrXpX (e.g. c2r10p2) in session manager in env
+    const match = sessionManager.match(/c\d+r\d+p\d+/);
+    const sessionId = match ? match[0] : 'unknown';
+
+    console.log(`🚀 Server listening on ${sessionId}:${port}`);
   } catch (err) {
     console.error('Error starting server:', err);
     process.exit(1);
   }
 }
 
-// Gestion des erreurs non capturées
+// Handle unexpected errors
 process.on('unhandledRejection', (err) => {
   console.error('Unhandled rejection:', err);
   process.exit(1);

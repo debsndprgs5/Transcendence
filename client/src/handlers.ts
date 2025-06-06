@@ -376,7 +376,7 @@ export async function setupHomeHandlers(): Promise<void> {
 		});
 	}
 
-
+	
 	// Load rooms immediately when entering home view
 	loadRooms = async (): Promise<void> => {
 		try {

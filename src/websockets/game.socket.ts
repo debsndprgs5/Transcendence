@@ -5,13 +5,13 @@ import * as UserManagement from '../db/userManagement';
 import * as GameManagement from '../db/gameManagement';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import * as dotenv from 'dotenv';
-import { players, pongRoom, balls } from '../types/game'
 import path from 'path';
-import {setPongRoom} from '../utils/pongUtils'
-//import {getRenderData, beginGame} from '../services/pong'
+//import {setPongRoom} from '../utils/pongUtils'
+import * as Interfaces from '../shared/gameTypes'
+import {beginMockGame} from '../services/pong'
 
 
-const MappedPlayers= new Map<number, players>();
+const MappedPlayers= new Map<number, Interfaces.playerInterface>();
 
 
 dotenv.config({
@@ -43,7 +43,7 @@ export async function initGameSocket(ws: WebSocket, request: any) {
 	const existingPlayer = MappedPlayers.get(userId);
 
 	// Handle reconnect
-	if (existingPlayer?.hasDisconnected) {
+	if (existingPlayer?.hasDisconnected && existingPlayer?.socket) {
 		console.log(`User ${userId} reconnected`);
 		existingPlayer.hasDisconnected = false;
 		existingPlayer.socket = ws;
@@ -57,21 +57,22 @@ export async function initGameSocket(ws: WebSocket, request: any) {
 			state: existingPlayer.state,
 			gameID: existingPlayer.gameID,
 		});
-
+		console.log(`RECONCETION HANDLE FOR BACK`)
 		setupMessageHandlers(ws, existingPlayer);
 		return;
 	}
 
-	// Disconnect old connection if needed
-	if (existingPlayer) {
+	if (existingPlayer?.socket) {
+		console.log(`[GAME] Closing old socket for user ${userId}`);
 		try {
 			existingPlayer.socket.close(1000, '[GAME]:New connection established');
 		} catch (e) {
 			console.warn('Failed to close previous socket:', e);
 		}
+		console.log(`[GAME] Old socket close triggered for user ${userId}`);
 	}
 
-	const player: players = {
+	const player: Interfaces.playerInterface<WebSocket> = {
 		socket: ws,
 		userID: userId,
 		state: 'init',
@@ -79,12 +80,12 @@ export async function initGameSocket(ws: WebSocket, request: any) {
 	};
 
 	MappedPlayers.set(userId, player);
-
+	console.log(`TRYING TO SEND INIT GAME`)
 	send(ws,{
 		type: 'init',
 		userID:player.userID,
 		state:'init',
-		success: 'true'
+		success: true
 	});
 
 	setupMessageHandlers(ws, player);
@@ -125,7 +126,7 @@ async function verifyAndExtractUser(
 }
 
 
-export async function setupMessageHandlers(ws: WebSocket, player: players) {
+export async function setupMessageHandlers(ws: WebSocket, player: Interfaces.playerInterface) {
 	ws.on('message', async (data: RawData) => {
 
 		let parsed: any;
@@ -142,6 +143,7 @@ export async function setupMessageHandlers(ws: WebSocket, player: players) {
 			case 'leaveGame': handleLeaveGame(parsed, player); break;
 			case 'playerMove': await handlePlayerMove(parsed, player); break;
 			case 'render': await handleRender(parsed, player); break;
+			case 'reconnected' :  handleDisconnect(player);break;
 			default:
 				send(ws, { error: 'Unknown message type' });
 		}
@@ -152,40 +154,63 @@ export async function setupMessageHandlers(ws: WebSocket, player: players) {
 
 
 
-async function beginGame(roomID:number, players:players[]){
+async function beginGame(roomID:number, players:Interfaces.playerInterface[]){
 	console.log('GAME IS NOT IMPLEMENTED YET SORRY');
 	//Creates Room object
-	const newGame:pongRoom = await setPongRoom(roomID, players);
+	//const newGame:pongRoom = await setPongRoom(roomID, players);
 	for(const p of players)
-		p.socket.send(JSON.stringify({
+		p.socket?.send(JSON.stringify({
+			type:'beginGame',
 			//Send first render ? 
 			//all players Uname ? 
 			//all players pos ? 
 		}));
+	await beginMockGame(roomID, players);
 	//send socket to all players to startGame
 	//Call the loop/gameLogic with newGame
 }
 
-async function handleInit(parsed:any, player:players){
+async function handleInit(parsed:any, player:Interfaces.playerInterface){
 	
 	const {userID} = parsed;
 	console.log(`HANDLE INIT CALLED : ${userID}`)
 	if(userID !== player.userID)
-		player.socket.send(JSON.stringify({
+		player.socket?.send(JSON.stringify({
 			type: 'init',
-			success: 'failure'
+			success: false
 		}));
 	if(userID === player.userID)
-		player.socket.send(JSON.stringify({
+		player.socket?.send(JSON.stringify({
 			type: 'init',
 			userID:player.userID,
 			state:'init',
-			success: 'true',
+			success: true
 		}));
+}
+async function handleReconnect(userID: number, newSocket: WebSocket) {
+	const player = MappedPlayers.get(userID);
+	if (!player || !player.hasDisconnected) {
+		console.log(`[GAME] Reconnect failed or not needed for user ${userID}`);
+		return;
+	}
+
+	console.log(`[GAME] Reconnected: user ${userID}`);
+
+	// Re-associate new socket
+	player.socket = newSocket;
+	player.hasDisconnected = false;
+
+	// Clear the disconnect timeout
+	if ((player as any).disconnectTimeout) {
+		clearTimeout((player as any).disconnectTimeout);
+		delete (player as any).disconnectTimeout;
+	}
+
+	// You might want to notify the game loop/UI here
 }
 
 
-function handleDisconnect(player: players) {
+function handleDisconnect(player: Interfaces.playerInterface) {
 	console.log(`User ${player.userID} disconnected. Waiting 15s for reconnect...`);
 	player.hasDisconnected = true;
 
@@ -204,11 +229,11 @@ function handleDisconnect(player: players) {
 }
 
 //When user create gameRoom front send joinGame for him 
-export async function handleJoin(parsed:any, player:players){
+export async function handleJoin(parsed:any, player:Interfaces.playerInterface){
 const { userID, gameName, gameID } = parsed;
 
 	if (player.state !== 'init') {
-		player.socket.send(JSON.stringify({
+		player.socket?.send(JSON.stringify({
 			type: 'joinGame',
 			success: false,
 			reason: `you are in ${player.state} mode`,
@@ -221,7 +246,7 @@ const { userID, gameName, gameID } = parsed;
 		console.log(`ADDING [USERID]${userID} in gameRoom : ${gameID}`);
 		player.state = 'waiting';
 		player.gameID = gameID;
-		player.socket.send(JSON.stringify({
+		player.socket?.send(JSON.stringify({
 			type: 'joinGame',
 			success: true,
 			state: player.state,
@@ -231,7 +256,7 @@ const { userID, gameName, gameID } = parsed;
 		}));
 	} catch (err) {
 		console.error('handleJoin error', err);
-		player.socket.send(JSON.stringify({
+		player.socket?.send(JSON.stringify({
 			type: 'joinGame',
 			success: false,
 			reason: 'Join failed',
@@ -240,7 +265,7 @@ const { userID, gameName, gameID } = parsed;
 	await tryStartGameIfReady(gameID);
 }
 
-export async function handleInvite(parsed:any, player:players){
+export async function handleInvite(parsed:any, player:Interfaces.playerInterface){
 	const { actionRequested } = parsed;
 
 	if (actionRequested === 'send') {
@@ -248,19 +273,19 @@ export async function handleInvite(parsed:any, player:players){
 		const target = MappedPlayers.get(targetID);
 
 		if (!target) {
-			player.socket.send(JSON.stringify({ type: 'invite', action: 'reply', response: 'offline' }));
+			player.socket?.send(JSON.stringify({ type: 'invite', action: 'reply', response: 'offline' }));
 			return;
 		}
 
 		if (target.state !== 'init') {
-			player.socket.send(JSON.stringify({ type: 'invite', action: 'reply', response: 'busy' }));
+			player.socket?.send(JSON.stringify({ type: 'invite', action: 'reply', response: 'busy' }));
 			return;
 		}
 
 		player.state = 'waiting';
 		target.state = 'invited';
 
-		target.socket.send(JSON.stringify({
+		target.socket?.send(JSON.stringify({
 			type: 'invite',
 			action: 'receive',
 			fromID: userID,
@@ -274,7 +299,7 @@ export async function handleInvite(parsed:any, player:players){
 		const invitee = MappedPlayers.get(toID);
 
 		if (inviter)
-			inviter.socket.send(JSON.stringify({
+			inviter.socket?.send(JSON.stringify({
 				type: 'invite',
 				action: 'reply',
 				response,
@@ -294,11 +319,11 @@ export async function handleInvite(parsed:any, player:players){
 }
 
 
-export async function handleRender(parsed:any, player:players){
+export async function handleRender(parsed:any, player:Interfaces.playerInterface){
 	//Send all players and balls pos/velocity/angle 
 	//const renderData = await getRenderData()
 	const renderData=null;
-	player.socket.send(JSON.stringify({
+	player.socket?.send(JSON.stringify({
 		type:'render',
 		gameID:player.gameID,
 		userID:player.userID,
@@ -306,7 +331,7 @@ export async function handleRender(parsed:any, player:players){
 	}));
 }
 
-async function cleanupPlayerFromGame(player: players) {
+async function cleanupPlayerFromGame(player: Interfaces.playerInterface) {
 	 const gameID = player.gameID;
 	if (!gameID) {
 		console.warn(`cleanupPlayerFromGame called with no gameID`);
@@ -317,13 +342,12 @@ async function cleanupPlayerFromGame(player: players) {
 	await GameManagement.delMemberFromGameRoom(gameID , player.userID);
 	player.state = 'init';
 	// Notify them (if socket still open)
-	if (player.socket.readyState === WebSocket.OPEN) {
-		player.socket.send(JSON.stringify({
+	if (player.socket?.readyState === WebSocket.OPEN) {
+		player.socket?.send(JSON.stringify({
 			type: 'removed',
-			reason: 'Disconnected for too long',
 			gameID:player.gameID
 		}));
-		player.socket.send(JSON.stringify({
+		player.socket?.send(JSON.stringify({
 			type:'statusUpdate',
 			newState:'init',
 			userID: player.userID
@@ -361,14 +385,14 @@ export async function tryStartGameIfReady(gameID:number, maxPlayers = 2){
 	if (playersInGameRoom.length === maxPlayers) {
 		const playerObjs = playersInGameRoom
 		.map(p => MappedPlayers.get(p.userID))
-		.filter((p): p is players => !!p);
+		.filter((p): p is Interfaces.playerInterface => !!p);
 		console.log(`starting game in process for user:${playerObjs.length}\n`);
 		if (playerObjs.length === maxPlayers) {
 			playerObjs.forEach(p => {
 				console.log(`starting game in process for user:${p}\n`);
 				p.state = 'playing';
-				p.socket.send(JSON.stringify({ type: 'startGame', gameID }));
-				p.socket.send(JSON.stringify({type:'statusUpdate', playerState:p.state}))
+				p.socket?.send(JSON.stringify({ type: 'startGame', gameID }));
+				p.socket?.send(JSON.stringify({type:'statusUpdate', playerState:p.state}))
 			});
 
 			// send first render and start game loop
@@ -378,25 +402,25 @@ export async function tryStartGameIfReady(gameID:number, maxPlayers = 2){
 }
 
 
-export async function kickFromGameRoom(gameID:number, player?:players){
+export async function kickFromGameRoom(gameID:number, player?:Interfaces.playerInterface){
 	if(!player){
 		console.warn('IS PLAYER STILL CONNECTED ??');
 		return;
 	}
 	await GameManagement.delMemberFromGameRoom(gameID, player.userID);
 	player.state = 'init';
-	player.socket.send(JSON.stringify({
+	player.socket?.send(JSON.stringify({
 		type: 'kicked',
 		reason: 'too many players in room',
 		gameID
 	}));
-	player.socket.send(JSON.stringify({
+	player.socket?.send(JSON.stringify({
 		type:'statusUpdate',
 		playerState: player.state
 	}))
 }
 
-export async function handlePlayerMove(parsed: any, player: players) {
+export async function handlePlayerMove(parsed: any, player: Interfaces.playerInterface) {
 	const { direction, gameID } = parsed;
 
 	// Get all players from the game room
@@ -407,8 +431,8 @@ export async function handlePlayerMove(parsed: any, player: players) {
 		if (p.userID === player.userID) continue;
 
 		const targetPlayer = MappedPlayers.get(p.userID);
-		if (targetPlayer && targetPlayer.socket.readyState === WebSocket.OPEN) {
-			targetPlayer.socket.send(JSON.stringify({
+		if (targetPlayer && targetPlayer.socket?.readyState === WebSocket.OPEN) {
+			targetPlayer.socket?.send(JSON.stringify({
 				type: 'playerMove', 
 				userID: player.userID,
 				direction
@@ -417,7 +441,7 @@ export async function handlePlayerMove(parsed: any, player: players) {
 	}
 }
 
-export async function handleLeaveGame(parsed:any, player:players){
+export async function handleLeaveGame(parsed:any, player:Interfaces.playerInterface){
 	//Check for winner loser before 
 	await cleanupPlayerFromGame(player)
 }

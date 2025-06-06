@@ -1,4 +1,8 @@
 import { WebSocket } from 'ws';
+import {playerInterface,
+		paddleInterface,
+		ballInterface,
+		gameRoomInterface } from '../shared/gameTypes'
 
 export interface tournaments{
 	tournamentID: number,
@@ -17,34 +21,62 @@ export interface userData{
 	created_at:string
 }
 
-export interface players{
-	userID:number,
-	socket:WebSocket,
-	gameID?:number,
-	tournamentID?:number,
-	score?:number,
-	hasDisconnected?:boolean,
-	state:string ,// 'init'|'waiting'| 'playing'| 'tournamentWait' | 'tournamentPlay'
-	playerSide?:string,
-	playerPos?:number
+
+
+export class paddleClass{
+	 paddleInterface:paddleInterface;
+
+	constructor(paddleInterface:paddleInterface){
+		this.paddleInterface = paddleInterface;
+ 	}
+	deplacement_plus(): void{
+		if (this.paddleInterface.type == 'H'){
+			this.paddleInterface.x += this.paddleInterface.speed;
+		}
+		if (this.paddleInterface.type == 'V'){
+			this.paddleInterface.y += this.paddleInterface.speed;
+		}
+	}
+	deplacement_moins(): void{
+		if (this.paddleInterface.type == 'H'){
+			this.paddleInterface.x -= this.paddleInterface.speed;
+		}
+		if (this.paddleInterface.type == 'V'){
+			this.paddleInterface.y -= this.paddleInterface.speed;
+		}
+	}
 }
 
-export interface balls{
-	gameID:number,
-	posX:number,
-	posY:number,
-	radius:number,
-	vector:{x:number, y:number}
+export class ball
+{
+
 }
 
-export interface pongRoom{
-	gameID:number,
-	players:players[],
-	balls:balls[],
-	winCondtion:string, //'score' || 'time'
-	limit:number ,//score limit or seconds limit
-	mode:string,
-	settings?:string,
-	created_at?:string
-}
 
+
+//Assuming 500/100 map
+const MAX_WIDTH=100 //y
+const MAX_LENGTH=500 //x
+
+export class playerClass{
+	
+	playerInterface:playerInterface// 'init'|'waiting'| 'playing'| 'tournamentWait' | 'tournamentPlay'
+
+	paddle?:paddleClass;
+
+	constructor(playerInterface:playerInterface,
+				paddleInterface:paddleInterface){
+	this.playerInterface = playerInterface;
+	}
+	setupFirstPos():void{
+		if(this.paddle){
+			if(this.paddle.paddleInterface.type === 'H')
+				this.paddle.paddleInterface.x = MAX_WIDTH/2
+			else if(this.paddle.paddleInterface.type === 'V')
+				this.paddle.paddleInterface.y = MAX_LENGTH/2
+		}
+	}
+	moveUp():void{
+		
+	}
+}

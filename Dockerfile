@@ -11,6 +11,7 @@ RUN npm install
 
 # 2) copy the front
 COPY client ./client
+COPY shared ./client/src/shared
 COPY tailwind.config.js ./
 
 # 3) build CSS + JS client
@@ -38,7 +39,7 @@ COPY --from=builder-front /app/client ./client
 # Copy tsconfig and server-source
 COPY tsconfig.json ./
 COPY src ./src
-
+COPY shared ./src/shared
 # 3) compile back-end
 RUN npx tsc -p tsconfig.json
 
@@ -69,6 +70,7 @@ COPY --from=builder-back /app/client ./client
 
 # 3) copy DB
 COPY src/db ./db
+COPY shared ./src/shared
 
 EXPOSE ${PORT}
 

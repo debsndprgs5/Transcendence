@@ -1,6 +1,8 @@
 import { isAuthenticated, apiFetch, initWebSocket, state } from './api';
 import { drawCreateGameView, drawWaitingGameView, drawJoinGameView } from './pong_views';
 import { showNotification } from './notifications';
+import { SocketMessage, SocketMessageMap } from './shared/gameTypes';
+//import { WebSocket } from 'ws';
 
 interface PongButton {
 	x: number;
@@ -240,7 +242,7 @@ async function handlePongMenuClick(e: MouseEvent): Promise<void> {
 				const roomName = roomInfo ? roomInfo.roomName : 'Unknown Room';
 
 				// Verify that socket exists
-				if (!state.gameSocket) {
+				if (!state.playerInterface?.socket) {
 					console.error('No gameSocket available');
 					showNotification({
 						message: 'Cannot join game : Socket unavailable.',
@@ -248,14 +250,15 @@ async function handlePongMenuClick(e: MouseEvent): Promise<void> {
 					});
 					return;
 				}
-
+				const msg:SocketMessageMap['joinGame'] = {
+					type:'joinGame',
+					userID:state.userId,
+					gameID:roomID,
+					gameName:roomName
+				}
 				// Send ws request to join game
-				state.gameSocket.send(JSON.stringify({
-					type: 'joinGame',
-					userID: state.userId,
-					gameID: roomID
-				}));
-
+				state.playerInterface?.socket.send(JSON.stringify(msg));
+				state.playerInterface.gameID = roomID;
 				// Get players list via API
 				let usernames: string[] = [];
 				try {
@@ -311,9 +314,9 @@ async function handleCreateGameButton(action: string): Promise<void> {
 			state.canvasViewState = 'mainMenu';
 			break;
 		case 'confirmGame':
-			if(state.playerState !== 'init' && state.playerState !== 'online'){
+			if(state.playerInterface?.state !== 'init' && state.playerInterface?.state !== 'online'){
 				showNotification({
-					message:`You can't create a game because you are suposed to be playing ${state.playerState}`,
+					message:`You can't create a game because you are : ${state.playerInterface?.state}`,
 					type:'error'
 				});
 				return;
@@ -331,21 +334,23 @@ async function handleCreateGameButton(action: string): Promise<void> {
 			})
 			});
 			const { gameID, gameName } = reply.room;
-			if(!state.gameSocket){
+			if(!state.playerInterface?.socket){
 				console.log('NO SOCKET FOR GAME');
 				return;
 			}
-			state.gameSocket.send(JSON.stringify({
+			const msg:SocketMessageMap['joinGame']= {
 				type:'joinGame',
-				gameName,
 				userID:state.userId,
-				gameID
-			}));
+				gameName:gameName,
+				gameID:gameID
+			}
+			state.playerInterface?.socket.send(JSON.stringify(msg));
 			showNotification({
 				message: `Creating room: ${createGameFormData.roomName ?? ''}, ball: ${createGameFormData.ballSpeed}, paddle: ${createGameFormData.paddleSpeed}`,
 				type: 'success'
 			});
-			state.playerState = 'waitingGame';
+			state.playerInterface.state = 'waitingGame';
+			state.playerInterface.gameID= gameID;
 			const playerslist = await apiFetch(
 					`/api/pong/${encodeURIComponent(gameID)}/list`,
 					{ headers: { Authorization: `Bearer ${state.authToken}` } }
@@ -403,10 +408,19 @@ function handlePongMenuMouseUp(): void {
 
 async function handleLeaveGame(): Promise<void> {
 	try {
-		state.gameSocket?.send(JSON.stringify({
+		const uID= state.userId;
+		const gID = state.playerInterface?.gameID;
+		if(uID && gID){
+		console.log(`LEAVING ROOM`);
+		const msg:SocketMessageMap['leaveGame'] = {
 			type:'leaveGame',
-			userID:state.userId,
-		}));
+			userID:uID,
+			gameID:gID
+		}
+		state.playerInterface?.socket?.send(JSON.stringify(msg));
+		}
+		else
+			console.log(`[FRONT LEAVE GAME][uID]:${uID} | [gID]:${gID}`)
 	} catch (err) {
 		console.error('Error leaving game:', err);
 		showNotification({ message: 'Error leaving game', type: 'error' });

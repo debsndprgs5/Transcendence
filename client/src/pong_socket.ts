@@ -1,145 +1,107 @@
 
 import { showNotification, showUserActionsBubble } from './notifications.js';
-//export async function gameSystemLog(msg)
-//export async function gameEndsLog(msg)
 import { isAuthenticated, apiFetch, initWebSocket, state } from './api';
+import type { SocketMessageMap } from './shared/gameTypes';
+//import { WebSocket } from 'ws';
 
+export async function initGameSocket() {
+	if (!state.authToken) return;
 
-export async function initGameSocket(){
-	console.log('INIT GAME SOCKET CALL ');
-	
-	if(!state.authToken)
-		return;
 	const wsUrl = `wss://${location.host}/gameSocket/ws?token=${encodeURIComponent(state.authToken)}`;
 	const gameSocket = new WebSocket(wsUrl);
-	state.gameSocket=gameSocket;
+	state.socket = gameSocket;
 
-	await new Promise<void>((resolve, reject) => {
-		gameSocket.onopen = () => {
-			console.log('OPENING GAME SOCKET');
-			if(state.playerState === 'online' || !state.playerState)
-				state.playerState = 'init';
-			resolve(); // Wait ends here
-		};
-		gameSocket.onclose = () =>{
-			//Set time out to 15sec just like in back ? 
-			//Keep OldState from state.playerSte in memory 
+	gameSocket.onopen = () => {
+		console.log('[GAME] WebSocket connected')
+		if(state.playerInterface)
+			state.playerInterface.state='online';
+		else
+			console.log(`NO PLAYER INFERFACE SETUP`);
+	};
 
-		}
-		gameSocket.onerror = (err) => {
-			console.error('[GAME]WebSocket error:', err);
-			reject(err);
-		};
-	});
-
-	gameSocket.onmessage = (event) =>{
-		console.log('GAMESocket:', event.type, event);
-		try{
+	gameSocket.onmessage = (event) => {
+		try {
 			const data = JSON.parse(event.data);
-			switch (data.type){
-				case 'init':{
-					if(data.success === 'true'){
-						state.gameSocket=gameSocket;
-						state.userId=data.userID;
-						state.playerState= 'init';
-						showNotification({ message: `connection with game established\n${data.state}`, type: 'success' });
-						//User in now register for game socket and is able to start
-					}
-					break;
-				}
-				case 'joinGame':{
-					if(data.success === false)
-						showNotification({ message:`Unable to join game because ${data.reason}` , type: 'error' });
-					else 
-						showNotification({ message:`Game joined with success${data.gameID}` , type: 'success' });
-					break;
-				}
-				case 'invite':{
-					handleInvite(data);
-					break;
-				}
-				case 'startGame':{
-					//What's needed to start babylonJS render ? 
-					//all pongRoom object ?
-					//all players Uname + pos 
-					// all ball pos
-					break;
-				}
-				case 'statusUpdate':{
-					console.log(`[FRONT][GAMESOCKET][oldSTATUS]${state.playerState}||[newSTATUS]${state.playerState}`);
-					if(data.newState){
-						state.playerState = data.newState;
-					}
-					break;
-				}
-				case 'endMatch':{
-					handleEndMatch(data);
-					break;
-				}
-				case 'playerMoove':{
-					//does front should received this on top of render ? 
-					//Update oppononent mouvement 
-					break;
-				}
-				case 'render':{
-					//Receive all data for game render 
-					break;
-				}
-				case'reconnected':{
-					console.log(`[FRONT][GAMESOCKET]user ${state.userId}: just reconneted`);
-					//What logic should we have for reconnected? 
-					state.playerState=data.state;
-					if(data.gameID && (state.playerState === 'waiting' || state.playerState === 'online')){
-						//Returns to renderGame?
-						//PACEHODLER TO EXIT ROOM
-						showNotification({
-						message:'Do you want to leave room ?',
-						type:'confirm',
-						onConfirm: () => {
-							state.gameSocket?.send(JSON.stringify({
-								type:'leaveGame',
-								userID:state.userId,
-								gameID:data.gameID
-							}));
-						}});
-					}
-					break;
-				}
-			}
-		}
-		catch(err){
-			console.error('Failed to handle GameSocket message:', err);
+			handleSocketMessage(data, gameSocket);
+		} catch (err) {
+			console.error('[GAME] WebSocket message parse error:', err);
 		}
 	};
 
-	gameSocket.onclose = (event) =>{
-		console.log(`${state.userId} got offline`);
-		state.playerState = 'offline';
+	gameSocket.onclose = () => {
+		console.warn('[GAME] WebSocket closed');
 	};
 
-	gameSocket.onerror = (error) => {
-		console.error('[GAME]WebSocket error:', error);
+	gameSocket.onerror = (err) => {
+		console.error('[GAME] WebSocket error:', err);
 	};
 }
 
 
-export async function handleEndMatch(data:string){
-	// if(data.action === 'legit'){
-	// //KICK both player from room , removes them and the room from db
-	// //update games stats/ history
+function handleSocketMessage(data: any, gameSocket:WebSocket) {
+	// if(!state.playerInterface){
+	// 	console.log(`NO PLAYER INTERFACE FOR STATE`);
+	// 	return;
 	// }
-	// if(data.action === 'playerGaveUp'){
-	// //give the win to the other, removes other from game and both from db 
-	// //don't update stats 
-	// }
-	// if(data.action == 'oppponentGaveUp'){
-	// //give the win to player, removes him from game both from db 
-	// //don't update stats 
-	// }
+	switch (data.type) {
+		case 'init':
+			handleInit(data, gameSocket);
+			break;
+		case 'joinGame':
+			handleJoinGame(data);
+			break;
+		case 'invite':
+			handleInvite(data);
+			break;
+		case 'startGame':
+			handleStartGame(data);
+			break;
+		case 'statusUpdate':
+			if(state.playerInterface)
+				state.playerInterface.state = data.newState;
+			break;
+		case 'playerMove':
+			handlePlayerMove(data);
+			break;
+		case 'render':
+			handleRenderData(data);
+			break;
+		case 'endMatch':
+			handleEndMatch(data);
+			break;
+		case 'reconnected':
+			handleReconnection(data);
+			break;
+		default:
+			console.warn('Unknown message type:', data);
+	}
 }
 
-export async function handleInvite(data:string){
-	const {action , response, userID} = JSON.parse(data);
+export async function handleInit(data:SocketMessageMap['init'], gameSocket:WebSocket){
+		if (data.success) {
+		state.playerInterface = {
+			userID: data.userID,
+			socket: gameSocket,
+			state: data.state,
+		};
+
+		showNotification({
+			message: `Connected to game socket. State: ${data.state}`,
+			type: 'success',
+		});
+	}
+}
+
+
+export async function handleJoinGame(data:SocketMessageMap['joinGame']){
+		if(data.success === false)
+			showNotification({ message:`Unable to join game because ${data.reason}` , type: 'error' });
+		else 
+			showNotification({ message:`Game joined with success${data.gameID}` , type: 'success' });
+}
+
+ export async function handleInvite(data:SocketMessageMap['invite']){
+	const {action , response, userID} = data;
 	if(action === 'reply'){
 		if(response !== 'accept')
 			console.log(`The user you tried to invite is ${response}`);
@@ -154,25 +116,83 @@ export async function handleInvite(data:string){
 						type: 'confirm',
 						onConfirm: async () => {
 							const response = 'accept'
-							if(state.gameSocket){
-								state.gameSocket.send(JSON.stringify({
+							if(state.playerInterface?.socket){
+								const msg:SocketMessageMap['invite'] = {
 									type:'invite',
 									action: 'reply',
 									response
-								}));
+								}
+								state.playerInterface.socket.send(JSON.stringify(msg));
 							}
 						},
 						onCancel:async() => {
 							const response = 'decline'
-							if(state.gameSocket){
-								state.gameSocket.send(JSON.stringify({
+							if(state.playerInterface?.socket){
+								const msg:SocketMessageMap['invite'] = {
 									type:'invite',
 									action: 'reply',
 									response
-								}));
+								}
+								state.playerInterface.socket.send(JSON.stringify(msg));
 							}
 						}
 
 			});
 	}
 }
+
+export async function handleStartGame(data:SocketMessageMap['startGame']){
+	//calls babylon render with data from back 
+}
+
+export async function handlePlayerMove(data:SocketMessageMap['playerMove']){
+	//Does the front should receveid those on the of render every tick ? 
+}
+
+export async function handleRenderData(data:SocketMessageMap['renderData']){
+	//update the BABYLON SCENE only ? 
+}
+
+export async function handleEndMatch(data:SocketMessageMap['endMatch']){
+	if(data.isWinner)
+		console.log('YOU WON');//Needs to call a winning view
+	else 
+		console.log('YOU LOST');//Needs to call losing view 
+	//post the routes for data ?NONONO only back update state after a match
+}
+
+export async function handleReconnection(data:SocketMessageMap['reconnected']){
+	//based on data.state log the correct views back 
+	console.log(`[FRONT][GAMESOCKET]user ${state.userId}: just reconneted`);
+	//What logic should we have for reconnected?
+	if(state.playerInterface){
+		state.playerInterface.state=data.state;
+		if(data.gameID ){
+			//Returns to renderGame?
+			//PACEHODLER TO EXIT ROOM
+			showNotification({
+			message:'Do you want to leave room ?',
+			type:'confirm',
+			onConfirm: () => {
+				state.playerInterface?.socket?.send(JSON.stringify({
+					type:'leaveGame',
+					userID:state.userId,
+					gameID:data.gameID
+				}));
+			}});
+		}
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+

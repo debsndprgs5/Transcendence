@@ -3,7 +3,10 @@ import { showNotification, showUserActionsBubble } from './notifications.js';
 import { isAuthenticated, apiFetch, initWebSocket, state } from './api';
 import type { SocketMessageMap } from './shared/gameTypes';
 //import { WebSocket } from 'ws';
+import { PongRenderer } from './pong_render.js';
 
+
+	let pongRenderer: PongRenderer | null = null;
 export async function initGameSocket() {
 	if (!state.authToken) return;
 
@@ -60,10 +63,14 @@ function handleSocketMessage(data: any, gameSocket:WebSocket) {
 			if(state.playerInterface)
 				state.playerInterface.state = data.newState;
 			break;
+		case 'giveSide':
+			if(state.playerInterface)
+				state.playerInterface.playerSide = data.side;
+			break;
 		case 'playerMove':
 			handlePlayerMove(data);
 			break;
-		case 'render':
+		case 'renderData':
 			handleRenderData(data);
 			break;
 		case 'endMatch':
@@ -141,8 +148,19 @@ export async function handleJoinGame(data:SocketMessageMap['joinGame']){
 	}
 }
 
-export async function handleStartGame(data:SocketMessageMap['startGame']){
-	//calls babylon render with data from back 
+export async function handleStartGame(data: SocketMessageMap['startGame']) {
+  if (!pongRenderer) {
+    const canvas = document.getElementById('renderCanvas');
+    if (!canvas || !(canvas instanceof HTMLCanvasElement)) {
+      throw new Error('Canvas element #renderCanvas not found or is not a canvas element');
+    }
+
+    if (!state.playerInterface) {
+      throw new Error('playerInterface is not defined');
+    }
+
+    pongRenderer = new PongRenderer(canvas, state.playerInterface.socket);
+  }
 }
 
 export async function handlePlayerMove(data:SocketMessageMap['playerMove']){
@@ -150,7 +168,17 @@ export async function handlePlayerMove(data:SocketMessageMap['playerMove']){
 }
 
 export async function handleRenderData(data:SocketMessageMap['renderData']){
-	//update the BABYLON SCENE only ? 
+	if (!pongRenderer) {
+		console.warn('PongRenderer not initialized yet.');
+		return;
+	  }
+	
+	  pongRenderer.updatePositions({
+		paddle1Y: data.paddle1Y,
+		paddle2Y: data.paddle2Y,
+		ballX: data.ballX,
+		ballY: data.ballY,
+	  });
 }
 
 export async function handleEndMatch(data:SocketMessageMap['endMatch']){

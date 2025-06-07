@@ -9,7 +9,7 @@ export interface playerInterface<SocketType= any>{
 	score?:number,
 	hasDisconnected?:boolean,
 	state:string // 'init'|'waiting'| 'playing'| 'tournamentWait' | 'tournamentPlay'
-	playerSide?:string,
+	playerSide?:"left" | "right",
 	playerPos?:number
 }
 
@@ -49,11 +49,12 @@ export type SocketMessageMap = {
 	invite: { type: 'invite'; action: 'reply' | 'receive'; response?: string; userID?: number };
 	startGame:{type:'startGame'; userID:number; gameID:number};
 	statusUpdate:{type:'statusUpdate'; userID:number; newState:string};
-	playerMove:{type:'playerMove'; action:'+'|'-';userID:number; distance:number};
-	renderData:{type:'renderData'};
+	playerMove:{type:'playerMove'; gameID:number; userID:number; direction:number};
+	renderData:{type:'renderData'; paddle1Y:number; paddle2Y:number;ballX:number;ballY:number};
 	endMatch:{type:'endMatch'; isWinner:boolean};
 	reconnected:{type:'reconnected'; userID:number; state:string; gameID?:number; tournamentID?:number};
 	leaveGame:{type:'leaveGame'; userID:number; gameID:number};
+	giveSide:{type:'giveSide'; userID:number, gameID:number, side:'right'|'left'};
 };
 
 export type SocketMessage = SocketMessageMap[keyof SocketMessageMap];

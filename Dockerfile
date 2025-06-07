@@ -5,9 +5,9 @@ FROM node:18-alpine AS builder-front
 
 WORKDIR /app
 
-# 1) install dependencies for TS client
+# 1) install dependencies for TS client and babylon
 COPY package*.json tsconfig.client.json ./
-RUN npm install
+ RUN npm install
 
 # 2) copy the front
 COPY client ./client

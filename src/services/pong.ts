@@ -6,6 +6,7 @@ import * as Interfaces from '../shared/gameTypes'
 	SOON -> let the game run for 20sec so I can try paddles
 */
 
+const MappedGames = new Map<number, { game: Interfaces.gameRoomInterface; players: Interfaces.playerInterface[] }>();
 
 export async function declareWinner(
 	currentGame: Interfaces.gameRoomInterface,
@@ -33,36 +34,110 @@ export async function beginMockGame(gameID: number, players: Interfaces.playerIn
 		return;
 	}
 
-	// Shuffle and assign sides
+	// Assign player sides randomly
 	const shuffled = players.sort(() => Math.random() - 0.5);
 	shuffled[0].playerSide = 'left';
 	shuffled[1].playerSide = 'right';
 
-	// Inform each player
+	// Notify players they're in 'playing' state
 	for (const p of shuffled) {
 		const statusMsg: Interfaces.SocketMessageMap['statusUpdate'] = {
 			type: 'statusUpdate',
 			userID: p.userID,
 			newState: 'playing',
 		};
-
 		p.socket.send(JSON.stringify(statusMsg));
+		const sideMsg: Interfaces.SocketMessageMap['giveSide'] = {
+			type:'giveSide',
+			userID:p.userID!,
+			gameID:p.gameID!,
+			side:p.playerSide!
+		};
+		p.socket.send(JSON.stringify(sideMsg));
 	}
 
-	// Randomly pick winner
-	const winnerSide = Math.random() < 0.5 ? 'left' : 'right';
-
-	// Fake currentGame for now (if not fully implemented)
+	// Create and store game instance
 	const mockGame: Interfaces.gameRoomInterface = {
 		gameID,
 		winCondtion: 'score',
 		limit: 5,
 		mode: 'duo',
 	};
-
-	await declareWinner(mockGame, shuffled, winnerSide);
+	MappedGames.set(gameID, { game: mockGame, players: shuffled });
+	await mockGameLoop(gameID);
 }
 
+export async function mockGameLoop(gameID: number) {
+	const gameEntry = MappedGames.get(gameID);
+	if (!gameEntry) {
+		console.error(`Game ${gameID} not found in map.`);
+		return;
+	}
+
+	const { game, players } = gameEntry;
+	const startTime = Date.now();
+
+	function loopFrame() {
+		const elapsed = Date.now() - startTime;
+
+		// === 1. Send renderData to all players (placeholder content) ===
+		for (const p of players) {
+			const renderMsg: Interfaces.SocketMessageMap['renderData'] = {
+				type: 'renderData',
+				paddle1Y:players[0].playerPos!,
+				paddle2Y:players[1].playerPos!,
+				ballX:0,
+				ballY:0
+				// TODO: include actual positions later
+			};
+			p.socket.send(JSON.stringify(renderMsg));
+		}
+
+		// === 2. Stop after 10 seconds ===
+		if (elapsed >= 10_000) {
+			const winnerSide = Math.random() < 0.5 ? 'left' : 'right';
+			declareWinner(game, players, winnerSide);
+			return;
+		}
+
+		// === 3. Next frame ===
+		setTimeout(loopFrame, 1000 / 60);
+	}
+
+	loopFrame();
+}
+
+export async function playerMove(gameID: number, userID: number, direction: 'right' | 'left') {
+	const gameEntry = MappedGames.get(gameID);
+	if (!gameEntry) {
+		console.warn(`No game found with ID: ${gameID}`);
+		return;
+	}
+
+	const player = gameEntry.players.find(p => p.userID === userID);
+	if (!player) {
+		console.warn(`No player with userID ${userID} in game ${gameID}`);
+		return;
+	}
+
+	// === Initialize playerPos if not set ===
+	if (player.playerPos === undefined) {
+		player.playerPos = 0;
+	}
+
+	const SPEED_UNIT = 0.2; // BabylonJS-style units per frame
+	const movement = SPEED_UNIT * 1; //Needs to adds paddleSpeed here 
+
+	// === Update playerPos ===
+	if (direction === 'right') {
+		player.playerPos += movement;
+	} else if (direction === 'left') {
+		player.playerPos -= movement;
+	}
+
+	// === Clamp position ===
+	player.playerPos = Math.max(-5, Math.min(5, player.playerPos));
+}
 
 // export async function sendRender(currentGame:Interfaces.pongRoom, players:Interfaces.playerInterface[]){
 // //BroadCast data to all players related to Currentgame

@@ -8,7 +8,7 @@ import * as dotenv from 'dotenv';
 import path from 'path';
 //import {setPongRoom} from '../utils/pongUtils'
 import * as Interfaces from '../shared/gameTypes'
-import {beginMockGame} from '../services/pong'
+import {beginMockGame, playerMove} from '../services/pong'
 
 
 const MappedPlayers= new Map<number, Interfaces.playerInterface>();
@@ -423,22 +423,7 @@ export async function kickFromGameRoom(gameID:number, player?:Interfaces.playerI
 export async function handlePlayerMove(parsed: any, player: Interfaces.playerInterface) {
 	const { direction, gameID } = parsed;
 
-	// Get all players from the game room
-	const allPlayers = await GameManagement.getAllMembersFromGameRoom(gameID);
-	//send the move , the player ID and roomID to the gameLoop?
-	// Broadcast to all players in the room except the one who moved
-	for (const p of allPlayers) {
-		if (p.userID === player.userID) continue;
-
-		const targetPlayer = MappedPlayers.get(p.userID);
-		if (targetPlayer && targetPlayer.socket?.readyState === WebSocket.OPEN) {
-			targetPlayer.socket?.send(JSON.stringify({
-				type: 'playerMove', 
-				userID: player.userID,
-				direction
-			}));
-		}
-	}
+	await playerMove(gameID, player.userID, direction)
 }
 
 export async function handleLeaveGame(parsed:any, player:Interfaces.playerInterface){

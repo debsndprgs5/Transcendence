@@ -39,7 +39,7 @@ export class PongRenderer {
     const radius = 15;
 
     this.camera = new BABYLON.ArcRotateCamera("camera", alpha, beta, radius, BABYLON.Vector3.Zero(), this.scene);
-    this.camera.attachControl(this.engine.getRenderingCanvas(), true);
+ 
   }
 
   private setupLighting() {
@@ -74,19 +74,16 @@ private initInputListeners() {
   window.addEventListener('keydown', (e) => {
     if (e.repeat) return; // ignore repeats
 
-    if (e.key === 'ArrowLeft') this.sendMove(-1);
-    else if (e.key === 'ArrowRight') this.sendMove(1);
+    if (e.key === 'ArrowLeft') this.sendMove('left');
+    else if (e.key === 'ArrowRight') this.sendMove('right');
   });
 
   window.addEventListener('keyup', (e) => {
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') this.sendMove(0);
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') this.sendMove(e.key === 'ArrowLeft' ? 'left' : 'right');
   });
 }
 
-  private sendMove(direction: number) {
-    if (this.currentMoveDir === direction) return; // no duplicate sends
-    this.currentMoveDir = direction;
-
+  private sendMove(direction:string) {
     if (this.socket.readyState === WebSocket.OPEN && state.playerInterface?.gameID !== undefined && state.userId !== undefined) {
     const msg: SocketMessageMap['playerMove'] = {
       type: 'playerMove',

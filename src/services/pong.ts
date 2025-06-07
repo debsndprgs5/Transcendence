@@ -93,8 +93,8 @@ export async function mockGameLoop(gameID: number) {
 			p.socket.send(JSON.stringify(renderMsg));
 		}
 
-		// === 2. Stop after 10 seconds ===
-		if (elapsed >= 10_000) {
+		// === 2. Stop after 30 seconds ===
+		if (elapsed >= 30_000) {
 			const winnerSide = Math.random() < 0.5 ? 'left' : 'right';
 			declareWinner(game, players, winnerSide);
 			return;
@@ -125,7 +125,7 @@ export async function playerMove(gameID: number, userID: number, direction: 'rig
 		player.playerPos = 0;
 	}
 
-	const SPEED_UNIT = 0.2; // BabylonJS-style units per frame
+	const SPEED_UNIT = 0.8; // BabylonJS-style units per frame
 	const movement = SPEED_UNIT * 1; //Needs to adds paddleSpeed here 
 
 	// === Update playerPos ===

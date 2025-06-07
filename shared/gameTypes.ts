@@ -49,7 +49,7 @@ export type SocketMessageMap = {
 	invite: { type: 'invite'; action: 'reply' | 'receive'; response?: string; userID?: number };
 	startGame:{type:'startGame'; userID:number; gameID:number};
 	statusUpdate:{type:'statusUpdate'; userID:number; newState:string};
-	playerMove:{type:'playerMove'; gameID:number; userID:number; direction:number};
+	playerMove:{type:'playerMove'; gameID:number; userID:number; direction:string};
 	renderData:{type:'renderData'; paddle1Y:number; paddle2Y:number;ballX:number;ballY:number};
 	endMatch:{type:'endMatch'; isWinner:boolean};
 	reconnected:{type:'reconnected'; userID:number; state:string; gameID?:number; tournamentID?:number};

@@ -391,8 +391,8 @@ export async function tryStartGameIfReady(gameID:number, maxPlayers = 2){
 			playerObjs.forEach(p => {
 				console.log(`starting game in process for user:${p}\n`);
 				p.state = 'playing';
+				p.socket?.send(JSON.stringify({type:'statusUpdate', playerState:p.state}));
 				p.socket?.send(JSON.stringify({ type: 'startGame', gameID }));
-				p.socket?.send(JSON.stringify({type:'statusUpdate', playerState:p.state}))
 			});
 
 			// send first render and start game loop

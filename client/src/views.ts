@@ -99,6 +99,7 @@ export function HomeView(): string {
 							<img src="/screen.png" alt="CRT frame" class="w-full h-auto">
 							<div class="absolute top-[14%] left-[14%] w-[71.2%] h-[55%]">
 								<canvas id="pong-canvas" class="w-full h-full rounded-[4px] shadow-inner bg-black"></canvas>
+								
 							</div>
 						</div>
 					</div>

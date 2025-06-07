@@ -120,13 +120,13 @@ async function bootstrap() {
       message: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   });
-	const port = process.env.PORT ? Number(process.env.PORT) : 3000;
+	const port = process.env.PORT ? Number(process.env.PORT) : 1400;
   try {
     await app.listen({ 
       port, 
       host: '0.0.0.0'
     });
-    console.log('🚀 Server listening on http://0.0.0.0:${PORT}');
+    console.log(`🚀 Server listening on https://0.0.0.0:${port}`);
   } catch (err) {
     console.error('Error starting server:', err);
     process.exit(1);

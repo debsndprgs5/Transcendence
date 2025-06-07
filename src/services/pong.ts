@@ -136,7 +136,7 @@ export async function playerMove(gameID: number, userID: number, direction: 'rig
 	}
 
 	// === Clamp position ===
-	player.playerPos = Math.max(-5, Math.min(5, player.playerPos));
+	player.playerPos = Math.max(-5+1.5, Math.min(5-1.5, player.playerPos));
 }
 
 // export async function sendRender(currentGame:Interfaces.pongRoom, players:Interfaces.playerInterface[]){

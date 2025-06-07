@@ -5,8 +5,9 @@ import type { SocketMessageMap } from './shared/gameTypes';
 //import { WebSocket } from 'ws';
 import { PongRenderer } from './pong_render.js';
 
-
-	let pongRenderer: PongRenderer | null = null;
+export const pongState = {
+  pongRenderer: null as PongRenderer | null,
+};
 export async function initGameSocket() {
 	if (!state.authToken) return;
 
@@ -149,8 +150,8 @@ export async function handleJoinGame(data:SocketMessageMap['joinGame']){
 }
 
 export async function handleStartGame(data: SocketMessageMap['startGame']) {
-  if (!pongRenderer) {
-    const canvas = document.getElementById('renderCanvas');
+  if (!pongState.pongRenderer) {
+    const canvas = document.getElementById('babylon-canvas');
     if (!canvas || !(canvas instanceof HTMLCanvasElement)) {
       throw new Error('Canvas element #renderCanvas not found or is not a canvas element');
     }
@@ -159,7 +160,7 @@ export async function handleStartGame(data: SocketMessageMap['startGame']) {
       throw new Error('playerInterface is not defined');
     }
 
-    pongRenderer = new PongRenderer(canvas, state.playerInterface.socket);
+    pongState.pongRenderer = new PongRenderer(canvas, state.playerInterface.socket);
   }
 }
 
@@ -168,12 +169,12 @@ export async function handlePlayerMove(data:SocketMessageMap['playerMove']){
 }
 
 export async function handleRenderData(data:SocketMessageMap['renderData']){
-	if (!pongRenderer) {
+	if (!pongState.pongRenderer) {
 		console.warn('PongRenderer not initialized yet.');
 		return;
 	  }
 	
-	  pongRenderer.updatePositions({
+	  pongState.pongRenderer.updatePositions({
 		paddle1Y: data.paddle1Y,
 		paddle2Y: data.paddle2Y,
 		ballX: data.ballX,

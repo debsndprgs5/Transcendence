@@ -160,7 +160,7 @@ async function beginGame(roomID:number, players:Interfaces.playerInterface[]){
 	//const newGame:pongRoom = await setPongRoom(roomID, players);
 	for(const p of players)
 		p.socket?.send(JSON.stringify({
-			type:'beginGame',
+			type:'startGame',
 			//Send first render ? 
 			//all players Uname ? 
 			//all players pos ? 

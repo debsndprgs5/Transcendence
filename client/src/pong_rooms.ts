@@ -2,6 +2,9 @@ import { isAuthenticated, apiFetch, initWebSocket, state } from './api';
 import { drawCreateGameView, drawWaitingGameView, drawJoinGameView } from './pong_views';
 import { showNotification } from './notifications';
 import { SocketMessage, SocketMessageMap } from './shared/gameTypes';
+import { pongState } from './pong_socket.js';
+import { PongRenderer } from './pong_render.js'
+
 //import { WebSocket } from 'ws';
 
 interface PongButton {
@@ -60,7 +63,11 @@ export function showPongMenu(): void {
 
 	const ctx = canvas.getContext('2d');
 	if (!ctx) return;
-
+	// Dispose of pongRenderer if exists but not in 'playingGame' state
+	if (state.canvasViewState !== 'playingGame' && pongState.pongRenderer) {
+		pongState.pongRenderer.dispose();
+		pongState.pongRenderer = null;
+	}
 	console.log('state.canvasViewState = ', state.canvasViewState);
 
 	switch (state.canvasViewState) {
@@ -87,7 +94,22 @@ export function showPongMenu(): void {
 				state.availableRooms || []
 			);
 			break;
-
+		    case 'playingGame':
+      // Create PongRenderer once
+      if (!pongState.pongRenderer) {
+        if (!state.playerInterface?.socket) {
+          console.error('WebSocket not initialized for PongRenderer');
+          return;
+        }
+		const Babcanvas = document.getElementById('babylon-canvas');
+		if (!Babcanvas || !(Babcanvas instanceof HTMLCanvasElement)) {
+		throw new Error('Canvas element #renderCanvas not found or is not a canvas element');
+		}
+        pongState.pongRenderer = new PongRenderer(Babcanvas, state.playerInterface.socket);
+      }
+      // The pongRenderer starts its own render loop automatically.
+      // No need to draw manually here.
+      break;
 		default:
 			drawMainMenu(canvas, ctx);
 			break;

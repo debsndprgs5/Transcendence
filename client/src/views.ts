@@ -102,6 +102,8 @@ export function HomeView(): string {
 							</div>
 						</div>
 					</div>
+					<!-- RENDER BABYLON -->
+					<canvas id="babylon-canvas" class="w-full h-full rounded-[4px] shadow-inner bg-black"></canvas>
 					<!-- Colonne Chat -->
 					<div
 						class="p-4 sm:p-6 rounded-lg shadow-lg flex flex-col"

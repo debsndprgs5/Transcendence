@@ -1,13 +1,22 @@
 import * as Interfaces from '../shared/gameTypes'
-
+import createTypedEventSocket from '../shared/gameEventMapper'
 import {
 	paddleClass,
 	playerClass,
 	ballClass,
-	balls,
 } from '../types/game'
 
-/* GAMELOOP (with some obvious placeholder here and there)
+const MappedGames = new Map<
+  number,
+  {
+    game: Interfaces.gameRoomInterface & { parsedSettings?: any };
+    players: Interfaces.playerInterface[];
+    loopTimeout?: NodeJS.Timeout;
+    startTime: number;
+  }
+>();
+
+/* GAMELOOP (with some obvious placeholder here and there) */
 
 export async function gameloop(balls:ballClass[], players:playerClass[], type: 2 | 4){
 	for(let ball of balls){
@@ -33,7 +42,7 @@ export async function gameloop(balls:ballClass[], players:playerClass[], type: 2
 			player.paddle.paddleInterface.move_minus();
 		}
 	}
-	//render 
+	createTypedEventSocket()
 }
 
 export function test_score(balls:ballClass[], players:[playerClass, playerClass] | [playerClass, playerClass, playerClass, playerClass], type: 2 | 4, width:number, lenght:number){
@@ -119,7 +128,7 @@ export function bounce_player(ball:ballClass, paddle:paddleClass){
 		ball.last_bounce = paddle;
 	}
 }
-*/
+
 
 /*BIG PACEHODLER FOR MATCHES MANAGMENT 
 	NOW -> set random winner when match start based on player side

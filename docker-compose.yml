@@ -2,8 +2,6 @@ services:
   app:
     build: .
     image: transcendence:latest
-    ports:
-      - "${PORT}:${PORT}"
     volumes:
       - ./client/src:/app/client/src
       - ./src:/app/src
@@ -19,6 +17,21 @@ services:
       - WORK_DIR=${WORK_DIR}
       - USER=${USER}
       - SESSION_MANAGER=${SESSION_MANAGER}
+    networks:
+      - transcendence_net
+
+  waf:
+    build:
+      context: ./src/WAF
+      args:
+        - APP_TARGET_PORT_BUILD_ARG=${PORT}
+    ports:
+      - "443:443"
+      - "80:80"
+    depends_on:
+      - app
+    networks:
+      - transcendence_net
 
 volumes:
   transcendence_volume:
@@ -42,4 +55,8 @@ volumes:
       type: none
       device: ./client/avatars
       o: bind
+
+networks:
+  transcendence_net:
+    driver: bridge
 

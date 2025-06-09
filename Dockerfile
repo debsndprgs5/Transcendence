@@ -7,7 +7,8 @@ WORKDIR /app
 
 # 1) install dependencies for TS client
 COPY package*.json tsconfig.client.json ./
-RUN npm install
+# RUN npm install
+RUN npm install --prefer-offline --no-audit --progress=false
 
 # 2) copy the front
 COPY client ./client
@@ -29,7 +30,8 @@ WORKDIR /app
 COPY package*.json ./
 RUN apk add --no-cache python3 make g++ \
  && ln -sf python3 /usr/bin/python \
- && npm install \
+#  && npm install \
+ && npm install --prefer-offline --no-audit --progress=false \
  && apk del python3 make g++
 
 # 2) copy backend TS + dist client from builder-front
@@ -70,6 +72,6 @@ COPY --from=builder-back /app/client ./client
 # 3) copy DB
 COPY src/db ./db
 
-EXPOSE ${PORT}
+# EXPOSE ${PORT}      #a decommenter si vous voulez tester sans le WAF
 
 CMD ["node", "dist/main.js"]

@@ -1,14 +1,13 @@
 #!/bin/bash
 
-TARGET_URL="http://localhost:8080/"
+TARGET_URL="https://localhost/"
 BLOCKED_COUNT=0
 TOTAL_TESTS=0
 
 run_test() {
     local description="$1"
-    local command_args="$2" # Renamed to avoid conflict if $2 contains spaces
-    local expected_pattern="^403$" # Default expected pattern is exactly 403
-    # Allow overriding expected pattern for specific tests
+    local command_args="$2"
+    local expected_pattern="^403$"
     if [ -n "$3" ]; then
         expected_pattern="$3"
     fi
@@ -16,14 +15,11 @@ run_test() {
 
     echo -n "Test: $description ... "
     # shellcheck disable=SC2086
-    # The $command_args needs to be evaluated by shell if it contains multiple curl options
-    full_curl_output=$(eval curl -s -o /dev/null -w "%{http_code}" $command_args)
+    full_curl_output=$(eval curl -k -s -o /dev/null -w "%{http_code}" $command_args)
 
-    # Attempt to extract a 3-digit number from the end of the string
     if [[ "$full_curl_output" =~ ([0-9]{3})$ ]]; then
         http_code="${BASH_REMATCH[1]}"
     else
-        # If no 3-digit number at the end, use the full output (might indicate other errors)
         http_code="$full_curl_output"
     fi
 
@@ -32,7 +28,7 @@ run_test() {
         BLOCKED_COUNT=$((BLOCKED_COUNT + 1))
     else
         echo "NON BLOQUÉ ($http_code) - ÉCHEC"
-        echo "   Commande: curl $command_args"
+        echo "   Commande: curl -k $command_args" # Ajout de -k pour l'affichage de la commande
         echo "   Attendu (pattern): $expected_pattern, Reçu: $http_code"
     fi
     echo "-----------------------------------------------------------------"
@@ -73,17 +69,38 @@ run_test "User-Agent (ZmEu)" "-A \"ZmEu\" \"${TARGET_URL}\""
 run_test "User-Agent (masscan)" "-A \"masscan/1.0\" \"${TARGET_URL}\""
 
 # --- Tests de Protocoles/Méthodes ---
-# Pour TRACE, Nginx peut retourner 405 (Method Not Allowed), ce qui est aussi un refus.
-run_test "Méthode HTTP (TRACE)" "-X TRACE ${TARGET_URL}" "^(403|405)$"
-run_test "Injection CRLF dans Header" "-H \"X-Test: value%0d%0aInjected: header\" ${TARGET_URL}"
+run_test "Méthode HTTP (TRACE)" "-X TRACE \"${TARGET_URL}\"" "^(403|405)$"
+run_test "Injection CRLF dans Header" "-H \"X-Test: value%0d%0aInjected: header\" \"${TARGET_URL}\""
 
 # --- Tests de Scanner ---
-run_test "Requête typique de scanner (Acunetix)" "${TARGET_URL}acunetix-wvs-test-for-some-inexistent-file"
+run_test "Requête typique de scanner (Acunetix)" "\"${TARGET_URL}acunetix-wvs-test-for-some-inexistent-file\""
 
 # --- Tests de limites ---
-# Ces tests peuvent nécessiter un PL plus élevé ou des configurations de seuil spécifiques
-run_test "Nombre excessif d'arguments" "${TARGET_URL}?a=1&b=2&c=3&d=4&e=5&f=6&g=7&h=8&i=9&j=10&k=11&l=12&m=13&n=14&o=15&p=16&q=17&r=18&s=19&t=20&u=21"
-run_test "Argument très long" "${TARGET_URL}?longparam=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 1024)"
+run_test "Nombre excessif d'arguments" "\"${TARGET_URL}?a=1&b=2&c=3&d=4&e=5&f=6&g=7&h=8&i=9&j=10&k=11&l=12&m=13&n=14&o=15&p=16&q=17&r=18&s=19&t=20&u=21\""
+run_test "Argument très long" "\"${TARGET_URL}?longparam=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 1024)\""
+
+
+# --- Test de Limite de Taux (Rate Limiting / DoS Protection) ---
+echo "Test: Limite de Taux (DoS Protection)"
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+RATE_LIMIT_TRIGGERED=false
+
+for i in $(seq 1 50); do
+    # shellcheck disable=SC2086
+    eval curl -k -s -o /dev/null -w "%{http_code}" "\"${TARGET_URL}index.html?burst1=$i\"" > /dev/null
+done
+
+echo -n "   Vérification du blocage après les rafales ... "
+http_code_after_burst=$(curl -k -s -o /dev/null -w "%{http_code}" "${TARGET_URL}index.html?afterburst=true")
+if [[ "$http_code_after_burst" =~ ^(429|403)$ ]]; then # CRS DoS protection utilise souvent 429
+    echo "BLOQUÉ ($http_code_after_burst) - SUCCÈS"
+    BLOCKED_COUNT=$((BLOCKED_COUNT + 1))
+    RATE_LIMIT_TRIGGERED=true
+else
+    echo "NON BLOQUÉ ($http_code_after_burst) - ÉCHEC"
+    echo "      Attendu (pattern): ^(429|403)$, Reçu: $http_code_after_burst"
+fi
+echo "-----------------------------------------------------------------"
 
 
 echo "Nombre total de tests: $TOTAL_TESTS"

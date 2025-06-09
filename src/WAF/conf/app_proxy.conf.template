@@ -1,0 +1,41 @@
+# Redirection HTTP vers HTTPS
+server {
+    listen 80;
+    server_name _;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name _;
+
+    ssl_certificate /etc/nginx/ssl/nginx.crt;
+    ssl_certificate_key /etc/nginx/ssl/nginx.key;
+
+    # Nécessaire pour que Nginx puisse résoudre le nom d'hôte 'app' (le nom du service Docker)
+    resolver 127.0.0.11 valid=30s; # Adresse du résolveur DNS interne de Docker
+
+    location / {
+        # Fait suivre la requête à votre application 'app' qui écoute en HTTPS
+        # sur le port spécifié par la variable d'environnement APP_TARGET_PORT.
+        proxy_pass https://app:${APP_TARGET_PORT};
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        # Le WAF est contacté en HTTPS, donc X-Forwarded-Proto est https.
+        proxy_set_header X-Forwarded-Proto https;
+
+        # Configuration pour le support des WebSockets (utilisé par votre chat/jeu)
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        # Pour le développement, si 'app' utilise un certificat SSL auto-signé,
+        # Nginx doit être configuré pour ne pas vérifier ce certificat.
+        proxy_ssl_verify off;
+    }
+
+    access_log /var/log/nginx/app_access.log;
+    error_log /var/log/nginx/app_error.log;
+}

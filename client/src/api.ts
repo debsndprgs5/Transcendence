@@ -6,6 +6,7 @@ export interface AppState {
 	authToken: string | null;
 	pendingToken: string | null;
 	socket: WebSocket | null;
+	gameSocket:WebSocket|null;
 	userId?: number;
 	currentRoom: number;
 	availableRooms: { roomID: number; roomName: string }[];
@@ -23,6 +24,7 @@ export const state: AppState = {
 	authToken: null,
 	pendingToken: null,
 	socket: null,
+	gameSocket:null,
 	currentRoom: 0,
 	availableRooms: [],
 	canvasViewState: 'mainMenu',

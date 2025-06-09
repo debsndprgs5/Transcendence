@@ -65,6 +65,7 @@ export async function handleInit(
   socket.send('init', {
     userID: player.userID,
     state: 'init',
+	username:player.username,
     success,
   });
 }
@@ -186,18 +187,21 @@ export async function handleInvite(parsed: any, player: Interfaces.playerInterfa
     if (pending && pending.inviterID === fromID) {
       clearTimeout(pending.timeout);
       PendingInvites.delete(toID);
-    
+	}
     await Helpers.processInviteReply(inviter, invitee, response);
   }
 }
+
 export async function handleLeaveGame(parsed: any, player: Interfaces.playerInterface) {
   const gameID = player.gameID;
   if (!gameID || gameID === -1) {
     console.warn(`handleLeaveGame: player ${player.userID} is not in a game`);
     return;
   }
-
-  await Helpers.kickFromGameRoom(gameID, player, `${player.username} left`);
+	if(parsed.islegit === true)
+		await Helpers.kickFromGameRoom(gameID, player);
+	else
+  		await Helpers.kickFromGameRoom(gameID, player, `${player.username} left`);
 
   console.log(`Game room ${gameID} deleted after player ${player.userID} left.`);
 }

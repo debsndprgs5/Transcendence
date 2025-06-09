@@ -22,7 +22,7 @@ export interface players{
 	socket:WebSocket,
 	gameID?:number,
 	tournamentID?:number,
-	score?:number,
+	score:number,
 	hasDisconnected?:boolean,
 	state:string // 'init'|'waiting'| 'playing'| 'tournamentWait' | 'tournamentPlay'
 	paddle:paddle
@@ -49,10 +49,14 @@ export interface pongRoom{
 	created_at?:string
 }
 
+export interface window{
+	width:number;
+	length:number;
+}
+
 export class paddle{
 	 x:number;
 	 y:number;
-	 hitbox: [number, number, number, number];
 	 width:number;
 	 length:number;
 	 type: 'H' | 'V';
@@ -65,9 +69,18 @@ export class paddle{
 		this.length = length;
 		this.type = type;
 		this.speed = speed;
-		this.hitbox = [x, x + width, y, y + width];
  	}
-	deplacement_plus(): void{
+
+	return_default(): void {
+		this.x = x;
+		this.y = y;
+		this.width = width;
+		this.length = length;
+		this.type = type;
+		this.speed = speed;
+	}
+
+	move_add(): void{
 		if (this.type == 'H'){
 			this.x += this.speed;
 		}
@@ -75,7 +88,8 @@ export class paddle{
 			this.y += this.speed;
 		}
 	}
-	deplacement_moins(): void{
+
+	move_minus(): void{
 		if (this.type == 'H'){
 			this.x -= this.speed;
 		}
@@ -87,5 +101,41 @@ export class paddle{
 
 export class ball
 {
+	x:number;
+	y:number;
+	radius:number;
+	speed:number;
+	vector: [number, number];
+	score:number;
+	last_bounce?: paddle;
 
+	constructor(x:number, y:number, radius:number, speed:number)
+	{
+		this.x = x;
+		this.y = y;
+		this.speed = speed;
+		this.radius = radius;
+		this.vector = [1, 0];
+		this.score = 0;
+	}
+
+	return_default(): void{
+		this.x = x;
+		this.y = y;
+		this.speed = speed;
+		this.radius = radius;
+		this.vector = [1, 0];
+		this.score = 0;
+	}
+
+	bounce_x(): void{
+		this.x *= -1;
+	}
+	bounce_y(): void{
+		this.y *= -1;
+	}
+	move(): void{
+		this.x += this.vector[0] + this.speed;
+		this.y += this.vector[1] + this.speed;
+	}
 }

@@ -1,14 +1,8 @@
-//import * as gameMgr from '../types/game'
-import {
-	players,
-	pongRoom,
-	paddle,
-	ball,
-	balls,
-} from '../types/game'
-const MappedGames = new Map<number, pongRoom>();
+import * as Interfaces from '../shared/gameTypes'
 
-export async function gameloop(balls:ball[], players:players[], type: 2 | 4){
+/* GAMELOOP
+
+export function gameloop(balls:ball[], players:players[], type: 2 | 4){
 	for(let ball of balls){
 		bounce_arena(ball, arena.width, arena.length);
 	}
@@ -118,48 +112,86 @@ export function bounce_player(ball:ball, paddle:paddle){
 	}
 }
 
-// export async function checkWin(currentGame:Game):Promise< boolean >{
-// 	//return a bool 
-// 	//called at the end of each 'frame'
-// 	//if true stop loop 
-// 	//Looks if of the the players in Mapped has a score equal or bigger to limit
-// 	//if so return true
-// 	return false;
+
+*/
+
+/*BIG PACEHODLER FOR MATCHES MANAGMENT 
+	NOW -> set random winner when match start based on player side
+
+	SOON -> let the game run for 20sec so I can try paddles
+*/
+
+
+export async function declareWinner(
+	currentGame: Interfaces.gameRoomInterface,
+	players: Interfaces.playerInterface[],
+	winnerSide: 'left' | 'right'
+) {
+	for (const p of players) {
+		const isWinner = p.playerSide === winnerSide;
+
+		const endMessage: Interfaces.SocketMessageMap['endMatch'] = {
+			type: 'endMatch',
+			isWinner: isWinner,
+		};
+
+		p.socket.send(JSON.stringify(endMessage));
+	}
+
+	// Optional: Save match result to DB, if needed
+}
+
+
+export async function beginMockGame(gameID: number, players: Interfaces.playerInterface[]) {
+	if (players.length !== 2) {
+		console.error("Only 2-player games are supported for now.");
+		return;
+	}
+
+	// Shuffle and assign sides
+	const shuffled = players.sort(() => Math.random() - 0.5);
+	shuffled[0].playerSide = 'left';
+	shuffled[1].playerSide = 'right';
+
+	// Inform each player
+	for (const p of shuffled) {
+		const statusMsg: Interfaces.SocketMessageMap['statusUpdate'] = {
+			type: 'statusUpdate',
+			userID: p.userID,
+			newState: 'playing',
+		};
+
+		p.socket.send(JSON.stringify(statusMsg));
+	}
+
+	// Randomly pick winner
+	const winnerSide = Math.random() < 0.5 ? 'left' : 'right';
+
+	// Fake currentGame for now (if not fully implemented)
+	const mockGame: Interfaces.gameRoomInterface = {
+		gameID,
+		winCondtion: 'score',
+		limit: 5,
+		mode: 'duo',
+	};
+
+	await declareWinner(mockGame, shuffled, winnerSide);
+}
+
+
+// export async function sendRender(currentGame:Interfaces.pongRoom, players:Interfaces.playerInterface[]){
+// //BroadCast data to all players related to Currentgame
 // }
 
-// export async function declareWinner(currentGame:Map<number, gameMgr.players[]>){
-// 	//check who fill up the win condtion
-// 	//update db 
-// 	//kick all from room 
-// 	//del room
-// 	//send winner to win sockets | loser the lose socket
-// 	//update game history/playerstattus
+// export async function handleMove(currentGame:Interfaces.pongRoom){
+// 	//The sockets recive the players moving allready can't socket update game directly ?
 // }
 
-
-
-// export async function beginGame(gameID:number, players:gameMgr.players[], tournamentID?:number){
-// 	for(const p of players){
-// 		p.socket.send(JSON.stringify({
-// 			type:'statusUpdate',
-// 			state:'playing'
-// 		}));
-// 	}
-// 	//push players and gameRoom in map 
-// 	//call the loop
-// }
-
-
-// export async function sendRender(currentGame:Game){
-
-// }
-
-// export async function gameLoop(currentGame:pongRoom){
-// 	sendRender(currentGame);
-// 	checkCollisions(currentGame);
-// 	handleMove(currentGame);
-// 	if(checkWin(currentGame) === true){
-// 		declareWinner(currentGame)
+// export async function gameLoop(currentGame:Interfaces.pongRoom, players:Interfaces.playerInterface[]){
+// 	sendRender(currentGame, players);
+// 	handleMove(currentGame)
+// 	if(await checkWin(currentGame)=== true){
+// 		declareWinner(currentGame, players)
 // 		return;
 // 	}
 

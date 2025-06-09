@@ -1,4 +1,8 @@
 import { WebSocket } from 'ws';
+import {playerInterface,
+		paddleInterface,
+		ballInterface,
+		gameRoomInterface } from '../shared/gameTypes'
 
 export interface tournaments{
 	tournamentID: number,
@@ -17,125 +21,62 @@ export interface userData{
 	created_at:string
 }
 
-export interface players{
-	userID:number,
-	socket:WebSocket,
-	gameID?:number,
-	tournamentID?:number,
-	score:number,
-	hasDisconnected?:boolean,
-	state:string // 'init'|'waiting'| 'playing'| 'tournamentWait' | 'tournamentPlay'
-	paddle:paddle
-	playerSide?:string,
-	playerPos?:number
-}
 
-export interface balls{
-	gameID:number,
-	posX:number,
-	posY:number,
-	radius:number,
-	vector:{x:number, y:number}
-}
 
-export interface pongRoom{
-	gameID:number,
-	players:players[],
-	balls:balls[],
-	winCondtion:string, //'score' || 'time'
-	limit:number ,//score limit or seconds limit
-	mode:string,
-	settings?:string,
-	created_at?:string
-}
+export class paddleClass{
+	 paddleInterface:paddleInterface;
 
-export interface window{
-	width:number;
-	length:number;
-}
-
-export class paddle{
-	 x:number;
-	 y:number;
-	 width:number;
-	 length:number;
-	 type: 'H' | 'V';
-	 speed: number;
-
-	constructor(x:number, y:number, width:number, length:number, speed:number, type: 'H' | 'V'){
-		this.x = x;
-		this.y = y;
-		this.width = width;
-		this.length = length;
-		this.type = type;
-		this.speed = speed;
+	constructor(paddleInterface:paddleInterface){
+		this.paddleInterface = paddleInterface;
  	}
-
-	return_default(): void {
-		this.x = x;
-		this.y = y;
-		this.width = width;
-		this.length = length;
-		this.type = type;
-		this.speed = speed;
-	}
-
 	move_add(): void{
-		if (this.type == 'H'){
-			this.x += this.speed;
+		if (this.paddleInterface.type == 'H'){
+			this.paddleInterface.x += this.paddleInterface.speed;
 		}
-		if (this.type == 'V'){
-			this.y += this.speed;
+		if (this.paddleInterface.type == 'V'){
+			this.paddleInterface.y += this.paddleInterface.speed;
 		}
 	}
-
 	move_minus(): void{
-		if (this.type == 'H'){
-			this.x -= this.speed;
+		if (this.paddleInterface.type == 'H'){
+			this.paddleInterface.x -= this.paddleInterface.speed;
 		}
-		if (this.type == 'V'){
-			this.y -= this.speed;
+		if (this.paddleInterface.type == 'V'){
+			this.paddleInterface.y -= this.paddleInterface.speed;
 		}
 	}
 }
 
 export class ball
 {
-	x:number;
-	y:number;
-	radius:number;
-	speed:number;
-	vector: [number, number];
-	score:number;
-	last_bounce?: paddle;
 
-	constructor(x:number, y:number, radius:number, speed:number)
-	{
-		this.x = x;
-		this.y = y;
-		this.speed = speed;
-		this.radius = radius;
-		this.vector = [1, 0];
-		this.score = 0;
-	}
+}
 
-	return_default(): void{
-		this.x = x;
-		this.y = y;
-		this.speed = speed;
-		this.radius = radius;
-		this.vector = [1, 0];
-		this.score = 0;
-	}
 
-	bounce_x(): void{
-		this.x *= -1;
+
+//Assuming 500/100 map
+const MAX_WIDTH=100 //y
+const MAX_LENGTH=500 //x
+
+export class playerClass{
+	
+	playerInterface:playerInterface// 'init'|'waiting'| 'playing'| 'tournamentWait' | 'tournamentPlay'
+
+	paddle?:paddleClass;
+
+	constructor(playerInterface:playerInterface,
+				paddleInterface:paddleInterface){
+	this.playerInterface = playerInterface;
 	}
-	bounce_y(): void{
-		this.y *= -1;
+	setupFirstPos():void{
+		if(this.paddle){
+			if(this.paddle.paddleInterface.type === 'H')
+				this.paddle.paddleInterface.x = MAX_WIDTH/2
+			else if(this.paddle.paddleInterface.type === 'V')
+				this.paddle.paddleInterface.y = MAX_LENGTH/2
+		}
 	}
-	move(): void{
-		this.x += this.vector[0] + this.speed;
-		this.y += this.vector[1] + this.speed;
+	moveUp():void{
+		
 	}
 }

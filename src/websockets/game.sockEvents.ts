@@ -5,7 +5,8 @@ import {TypedEventSocket, createTypedEventSocket} from '../shared/gameEventWrapp
 import {getPlayerBySocket, getPlayerById, getAllMembersFromGameID, delPlayer} from './game.socket'
 import{stopMockGameLoop, startMockGameLoop, playerMove} from '../services/pong'
 
-
+//Map of pending invite for timeout and duplicates managment
+const PendingInvites = new Map<number, { inviterID: number; timeout: NodeJS.Timeout }>();
 
 //ADD event here if needed for gameSocket
 export function handleAllEvents(
@@ -117,7 +118,17 @@ export async function handleJoin(parsed: any, player: Interfaces.playerInterface
 
 export async function handleInvite(parsed: any, player: Interfaces.playerInterface) {
   const { actionRequested, userID, targetID } = parsed;
-
+    // === Safeguard: prevent self-invite ===
+  if (actionRequested === 'send' && userID === targetID) {
+    const typedSocket = createTypedEventSocket(player.socket);
+    typedSocket.send('invite', {
+      type: 'invite',
+      action: 'reply',
+      response: 'you cannot invite yourself',
+      targetID,
+    });
+    return;
+  }
   if (actionRequested === 'send') {
     const target = getPlayerById(targetID);
     const typedSocket = createTypedEventSocket(player.socket);
@@ -131,7 +142,38 @@ export async function handleInvite(parsed: any, player: Interfaces.playerInterfa
       });
       return;
     }
+    
+    // === Save pending invite and set timeout to auto-cancel after 15s ===
+    const timeout = setTimeout(() => {
+      const entry = PendingInvites.get(targetID);
+      if (entry && entry.inviterID === userID) {
+        PendingInvites.delete(targetID);
+        const inviterSocket = getPlayerById(userID)?.socket;
+        if (inviterSocket) {
+          createTypedEventSocket(inviterSocket).send('invite', {
+            type: 'invite',
+            action: 'reply',
+            response: 'timeout',
+            targetID,
+          });
+        }
+        const targetSocket = getPlayerById(targetID)?.socket;
+        if (targetSocket) {
+          createTypedEventSocket(targetSocket).send('invite', {
+            type: 'invite',
+            action: 'reply',
+            response: 'timeout',
+            targetID,
+          });
+        }
 
+        // reset states (to check if not already handled inside helpers)
+        Helpers.updatePlayerState(player, 'init');
+        Helpers.updatePlayerState(target, 'init');
+      }
+    }, 15000);
+
+    PendingInvites.set(targetID, { inviterID: userID, timeout });
     await Helpers.processInviteSend(player, target);
   }
 
@@ -139,7 +181,12 @@ export async function handleInvite(parsed: any, player: Interfaces.playerInterfa
     const { fromID, toID, response } = parsed;
     const inviter = getPlayerById(fromID);
     const invitee = getPlayerById(toID);
-
+        // === Clear timeout and pending entry ===
+    const pending = PendingInvites.get(toID);
+    if (pending && pending.inviterID === fromID) {
+      clearTimeout(pending.timeout);
+      PendingInvites.delete(toID);
+    
     await Helpers.processInviteReply(inviter, invitee, response);
   }
 }

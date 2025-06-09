@@ -52,68 +52,102 @@ export async function fetchAvailableRooms(): Promise<{ roomID: number; roomName:
 // =======================
 
 export function showPongMenu(): void {
-	const canvas = document.getElementById('pong-canvas') as HTMLCanvasElement | null;
-	if (!canvas) return;
+    const canvas = document.getElementById('pong-canvas') as HTMLCanvasElement | null;
+    const babylonCanvas = document.getElementById('babylon-canvas') as HTMLCanvasElement | null;
+    if (!canvas || !babylonCanvas) return;
 
-	canvas.onclick    = handlePongMenuClick;
-	canvas.onmousedown = handlePongMenuMouseDown;
-	canvas.onmouseup   = handlePongMenuMouseUp;
-	canvas.onmouseleave = handlePongMenuMouseUp;
-	window.addEventListener('mouseup', handlePongMenuMouseUp);
+    // Set up event listeners for menu interactions
+    canvas.onclick = handlePongMenuClick;
+    canvas.onmousedown = handlePongMenuMouseDown;
+    canvas.onmouseup = handlePongMenuMouseUp;
+    canvas.onmouseleave = handlePongMenuMouseUp;
+    window.addEventListener('mouseup', handlePongMenuMouseUp);
 
-	const ctx = canvas.getContext('2d');
-	if (!ctx) return;
-	// Dispose of pongRenderer if exists but not in 'playingGame' state
-	if (state.canvasViewState !== 'playingGame' && pongState.pongRenderer) {
-		pongState.pongRenderer.dispose();
-		pongState.pongRenderer = null;
-	}
-	console.log('state.canvasViewState = ', state.canvasViewState);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-	switch (state.canvasViewState) {
-		case 'mainMenu':
-			drawMainMenu(canvas, ctx);
-			break;
+    // Handle canvas visibility based on game state
+    if (state.canvasViewState === 'playingGame') {
+        // When in game, show Babylon canvas and hide menu canvas
+        babylonCanvas.style.display = 'block';
+        babylonCanvas.style.position = 'absolute';
+        babylonCanvas.style.top = '14%';
+        babylonCanvas.style.left = '14%';
+        babylonCanvas.style.width = '71.2%';
+        babylonCanvas.style.height = '55%';
+        canvas.style.display = 'none';
+    } else {
+        // In menu states, show menu canvas and hide Babylon canvas
+        babylonCanvas.style.display = 'none';
+        canvas.style.display = 'block';
+    }
 
-		case 'createGame':
-			drawCreateGameView(canvas, ctx);
-			break;
+    // Dispose of pongRenderer if exists but not in 'playingGame' state
+    if (state.canvasViewState !== 'playingGame' && pongState.pongRenderer) {
+        pongState.pongRenderer.dispose();
+        pongState.pongRenderer = null;
+    }
+    console.log('state.canvasViewState = ', state.canvasViewState);
 
-		case 'waitingGame':
-			drawWaitingGameView(
-				canvas, ctx,
-				state.currentGameName || 'Unknown Room',
-				state.currentPlayers || []
-			);
-			break;
+    // Handle different view states
+    switch (state.canvasViewState) {
+        case 'mainMenu':
+            drawMainMenu(canvas, ctx);
+            break;
 
-		case 'joinGame':
-			drawJoinGameView(
-				canvas,
-				ctx,
-				state.availableRooms || []
-			);
-			break;
-		    case 'playingGame':
-      // Create PongRenderer once
-      if (!pongState.pongRenderer) {
-        if (!state.playerInterface?.socket) {
-          console.error('WebSocket not initialized for PongRenderer');
-          return;
-        }
-		const Babcanvas = document.getElementById('babylon-canvas');
-		if (!Babcanvas || !(Babcanvas instanceof HTMLCanvasElement)) {
-		throw new Error('Canvas element #renderCanvas not found or is not a canvas element');
-		}
-        pongState.pongRenderer = new PongRenderer(Babcanvas, state.playerInterface.socket);
-      }
-      // The pongRenderer starts its own render loop automatically.
-      // No need to draw manually here.
-      break;
-		default:
-			drawMainMenu(canvas, ctx);
-			break;
-	}
+        case 'createGame':
+            drawCreateGameView(canvas, ctx);
+            break;
+
+        case 'waitingGame':
+            drawWaitingGameView(
+                canvas, ctx,
+                state.currentGameName || 'Unknown Room',
+                state.currentPlayers || []
+            );
+            break;
+
+        case 'joinGame':
+            drawJoinGameView(
+                canvas,
+                ctx,
+                state.availableRooms || []
+            );
+            break;
+
+        case 'playingGame':
+            // Initialize game renderer if not exists
+            if (!pongState.pongRenderer) {
+                if (!state.playerInterface?.socket) {
+                    console.error('WebSocket not initialized for PongRenderer');
+                    return;
+                }
+
+                // Ensure proper canvas setup for BabylonJS
+                if (!babylonCanvas || !(babylonCanvas instanceof HTMLCanvasElement)) {
+                    throw new Error('Canvas element #babylon-canvas not found or is not a canvas element');
+                }
+
+                // Setup BabylonJS renderer
+                pongState.pongRenderer = new PongRenderer(babylonCanvas, state.playerInterface.socket);
+
+                // Ensure proper canvas size and ratio
+                const resizeObserver = new ResizeObserver(() => {
+                    babylonCanvas.width = babylonCanvas.clientWidth;
+                    babylonCanvas.height = babylonCanvas.clientHeight;
+                    if (pongState.pongRenderer) {
+                        // Trigger Babylon engine resize if needed
+                        pongState.pongRenderer.handleResize();
+                    }
+                });
+                resizeObserver.observe(babylonCanvas);
+            }
+            break;
+
+        default:
+            drawMainMenu(canvas, ctx);
+            break;
+    }
 }
 
 export function drawMainMenu(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D): void {

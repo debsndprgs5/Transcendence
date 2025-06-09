@@ -1,0 +1,300 @@
+import * as Interfaces from '../shared/gameTypes'
+import * as GameManagement from '../db/gameManagement'
+import {TypedEventSocket, createTypedEventSocket} from '../shared/gameEventWrapper'
+import {getPlayerBySocket, getPlayerById, getAllMembersFromGameID} from './game.socket'
+import{stopMockGameLoop, startMockGameLoop} from '../services/pong'
+
+
+
+//ALL STUFF THAT CAN HAPPENDS ANYWHERE
+export function updatePlayerState(
+  player: Interfaces.playerInterface,
+  newState: Interfaces.playerInterface['state']
+) {
+  player.state = newState;
+
+  if (player.socket) {
+    const typedSocket = createTypedEventSocket(player.socket);
+    typedSocket.send('statusUpdate', {
+      userID: player.userID,
+      newState
+    });
+  }
+}
+
+
+//ALL STUFF THAT CAN HAPPEND BEFORE A GAME 
+
+//when user A send request to user B
+export async function processInviteSend(player: Interfaces.playerInterface, target: Interfaces.playerInterface) {
+  const typedSocket = createTypedEventSocket(player.socket);
+
+  if (player.state !== 'init') {
+    typedSocket.send('invite', {
+      type: 'invite',
+      action: 'reply',
+      response: 'you are busy',
+      targetID: target.userID
+    });
+    return;
+  }
+
+  if (target.state !== 'init') {
+    typedSocket.send('invite', {
+      type: 'invite',
+      action: 'reply',
+      response: 'busy',
+      targetID: target.userID
+    });
+    return;
+  }
+
+  // Update states
+  updatePlayerState(player, 'waiting');
+  updatePlayerState(target, 'invited');
+
+  const targetSocket = createTypedEventSocket(target.socket);
+  targetSocket.send('invite', {
+    type: 'invite',
+    action: 'receive',
+    fromID: player.userID,
+  });
+}
+
+//when userB reply to A
+export async function processInviteReply(inviter: Interfaces.playerInterface, invitee: Interfaces.playerInterface, response: string) {
+  if (!inviter || !invitee) return;
+
+  const inviterSocket = createTypedEventSocket(inviter.socket);
+  inviterSocket.send('invite', {
+    type: 'invite',
+    action: 'reply',
+    response,
+    targetID: invitee.userID
+  });
+
+  if (response === 'accept') {
+    // Create game & add players
+    const quickRoomID = await createQuickGameAndAddPlayers(inviter.userID, invitee.userID, inviter.username);
+
+    // Update states for both players
+    updatePlayerState(inviter, 'waiting');
+    updatePlayerState(invitee, 'waiting');
+
+    tryStartGameIfReady(quickRoomID);
+
+  } else {
+    // Reset both players states to init
+    updatePlayerState(inviter, 'init');
+    updatePlayerState(invitee, 'init');
+  }
+}
+
+//A and B can play we create the game
+export async function createQuickGameAndAddPlayers(inviterID: number, inviteeID: number, inviterUsername: string) {
+  const type = 'private';
+  const state = 'waiting';
+  const mode = 'duo';
+  const name = `${inviterUsername}'s party`;
+  const rules = JSON.stringify({
+    ball_speed: 50,
+    paddle_speed: 50,
+    win_condition: 'score',
+    limit: 10,
+  });
+
+  // Create the quick game room
+  const quickRoomID = await GameManagement.createGameRoom(type, state, mode, rules, name, inviterID);
+
+  // Add both players to the room
+  await GameManagement.addMemberToGameRoom(quickRoomID, inviterID);
+  await GameManagement.addMemberToGameRoom(quickRoomID, inviteeID);
+
+  return quickRoomID;
+}
+
+
+//ALL STUFF THAT HAPPEND JUST BEFORE OR DURING THE GAME
+export async function beginGame(gameID: number, players: Interfaces.playerInterface[]) {
+
+  // Determine mode and required player count
+  const modeRow = await GameManagement.getModePerGameID(gameID);
+  const mode = modeRow?.mode || 'duo';
+  const expectedCount = mode === 'quator' ? 4 : 2;
+
+  if (players.length !== expectedCount) {
+    console.error(`[beginGame] GameID ${gameID} expected ${expectedCount} players for mode '${mode}'`);
+    return;
+  }
+
+  // Assign player sides
+  const shuffled = [...players].sort(() => Math.random() - 0.5);
+  const sides = mode === 'quator'
+    ? ['left', 'right', 'top', 'bottom'] as const
+    : ['left', 'right'] as const;
+
+  shuffled.forEach((player, index) => {
+    player.playerSide = sides[index];
+
+    updatePlayerState(player, 'playing');
+    // Send side assignment
+    const typedSocket = createTypedEventSocket(player.socket);
+
+    const sideMsg: Interfaces.SocketMessageMap['giveSide'] = {
+      type: 'giveSide',
+      userID: player.userID,
+      gameID,
+      side: player.playerSide!,
+    };
+    typedSocket.send('giveSide', sideMsg);
+    // Send start signal
+    const startMsg: Interfaces.SocketMessageMap['startGame'] = {
+      type: 'startGame',
+      userID: player.userID,
+      gameID,
+    };
+    typedSocket.send('startGame', startMsg);
+  });
+
+// Extract all rules for the game (simulate fetching from DB or config)
+  const fullRules = await GameManagement.getModeAndRulesForGameID(gameID);
+
+  // Fallbacks if needed
+  const winCondition = fullRules?.rules?.win_condition ?? 'score';
+  const limit = fullRules?.rules?.limit ?? 15;
+  const ballSpeed = fullRules?.rules?.ball_speed ?? 50;
+  const paddleSpeed = fullRules?.rules?.paddle_speed ?? 50;
+
+  // Set state in DB or memory
+  GameManagement.setStateforGameID(gameID, 'playing');
+
+  // Pass players and rules directly to avoid DB hits in loop
+  startMockGameLoop(gameID, shuffled, {
+    winCondtion: winCondition,
+    limit,
+    ballSpeed,
+    paddleSpeed,
+  });
+}
+
+export async function tryStartGameIfReady(gameID: number) {
+  // Get mode from DB for this gameID
+  const modeRow = await GameManagement.getModePerGameID(gameID);
+  if (!modeRow) {
+    console.error(`[tryStartGameIfReady] No mode found for gameID ${gameID}`);
+    return;
+  }
+
+  // Determine maxPlayers based on mode string
+  let maxPlayers: number;
+  switch (modeRow.mode) {
+    case 'duo':
+      maxPlayers = 2;
+      break;
+    case 'quator':
+      maxPlayers = 4;
+      break;
+    default:
+      console.warn(`[tryStartGameIfReady] Unknown mode '${modeRow.mode}' for gameID ${gameID}, defaulting to 2`);
+      maxPlayers = 2;
+      break;
+  }
+
+  const playersInGameRoom = await getAllMembersFromGameID(gameID);
+
+  if (playersInGameRoom.length > maxPlayers) {
+    const playerToKick = await GameManagement.getLastAddedToRoom(gameID);
+    if (!playerToKick?.userID) return;
+
+    const excluded = getPlayerById(playerToKick.userID);
+    kickFromGameRoom(gameID, excluded.userID, 'an error has occured');
+
+    // Recursive call to re-check after kicking
+    return tryStartGameIfReady(gameID);
+  }
+
+  if (playersInGameRoom.length === maxPlayers) {
+    const playerObjs = playersInGameRoom
+      .map(p => getPlayerById(p.userID))//same HERE
+      .filter((p): p is Interfaces.playerInterface => !!p);
+
+    console.log(`starting game in process for user count: ${playerObjs.length}`);
+
+    if (playerObjs.length === maxPlayers) {
+      playerObjs.forEach(p => {
+        updatePlayerState(p, 'playing');  // Event-driven status update
+      });
+
+      // start the game (send first render and start game loop)
+      beginGame(gameID, playerObjs);
+    }
+  }
+}
+
+
+
+//ALL STUFF THAT HAPPENDS AFTER THE GAME 
+
+export async function kickFromGameRoom(
+  gameID: number,
+  triggeringPlayer?: Interfaces.playerInterface,
+  reason?: string
+) {
+  // Get all current players in the room from in-memory map
+  const players = getAllMembersFromGameID(gameID);
+  if (!players || players.length === 0) {
+    console.warn(`[kickFromGameRoom] No players found in room ${gameID}`);
+    return;
+  }
+
+  // If reason is provided, kick **all** players with reason
+  if (reason) {
+    console.log(`[kickFromGameRoom] Kicking all players from room ${gameID}. Reason: ${reason}`);
+
+    for (const p of players) {
+      const player = getPlayerById(p.userID);
+      if (!player) continue;
+
+      const typedSocket = createTypedEventSocket(player.socket);
+
+      // Remove player from DB room membership
+      await GameManagement.delMemberFromGameRoom(gameID, player.userID);
+
+      // Send 'kicked' message with reason
+      typedSocket.send('kicked', {
+        type: 'kicked',
+        userID: player.userID,
+        reason,
+      });
+
+      // Reset player state and gameID
+      updatePlayerState(player, 'init');
+      player.gameID = -1;
+    }
+
+    // Remove the game room and stop game loop
+    await GameManagement.deleteGameRoom(gameID);
+    stopMockGameLoop(gameID);
+    return;
+  }
+
+  // No reason: kick only the triggeringPlayer
+  if (!triggeringPlayer) {
+    console.warn('[kickFromGameRoom] No triggeringPlayer and no reason provided - nothing to do');
+    return;
+  }
+
+  // Remove triggeringPlayer from DB membership
+  await GameManagement.delMemberFromGameRoom(gameID, triggeringPlayer.userID);
+
+  // Reset triggeringPlayer state and gameID, no 'kicked' message (normal leave)
+  updatePlayerState(triggeringPlayer, 'init');
+  triggeringPlayer.gameID = -1;
+
+  // Optionally, check if room empty and cleanup if so:
+  const remainingPlayers = getAllMembersFromGameID(gameID);
+  if (!remainingPlayers || remainingPlayers.length === 0) {
+    await GameManagement.deleteGameRoom(gameID);
+    stopMockGameLoop(gameID);
+  }
+}

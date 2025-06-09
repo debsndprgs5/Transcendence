@@ -14,7 +14,7 @@ export class PongRenderer {
   private ball!: BABYLON.Mesh;
 
   private socket: WebSocket;
-  private currentMoveDir: number = 0; // -1: up, 1: down, 0: no move
+
 
   constructor(canvas: HTMLCanvasElement, socket: WebSocket) {
     this.socket = socket;
@@ -119,14 +119,14 @@ private createWalls() {
 
 private initInputListeners() {
   window.addEventListener('keydown', (e) => {
-    if (e.repeat) return; // ignore repeats
+   // if (e.repeat) return; // ignore repeats
 
     if (e.key === 'ArrowLeft') this.sendMove('left');
     else if (e.key === 'ArrowRight') this.sendMove('right');
   });
 
   window.addEventListener('keyup', (e) => {
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') this.sendMove(e.key === 'ArrowLeft' ? 'left' : 'right');
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') this.sendMove('stop');
   });
 }
 

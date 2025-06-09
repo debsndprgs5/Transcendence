@@ -8,6 +8,7 @@ export interface playerInterface<SocketType= any>{
 	tournamentID?:number,
 	score?:number,
 	hasDisconnected?:boolean,
+	disconnectTimeOut:NodeJS.timeout
 	state:string // 'init'|'waiting'| 'playing'| 'tournamentWait' | 'tournamentPlay'
 	playerSide?:"left" | "right",
 	playerPos?:number
@@ -50,11 +51,26 @@ export type SocketMessageMap = {
 	startGame:{type:'startGame'; userID:number; gameID:number};
 	statusUpdate:{type:'statusUpdate'; userID:number; newState:string};
 	playerMove:{type:'playerMove'; gameID:number; userID:number; direction:string};
-	renderData:{type:'renderData'; paddle1Y:number; paddle2Y:number;ballX:number;ballY:number};
+	renderData:{type:'renderData'; players:string; balls:string};
 	endMatch:{type:'endMatch'; isWinner:boolean};
 	reconnected:{type:'reconnected'; userID:number; state:string; gameID?:number; tournamentID?:number};
 	leaveGame:{type:'leaveGame'; userID:number; gameID:number};
-	giveSide:{type:'giveSide'; userID:number, gameID:number, side:'right'|'left'};
+	giveSide:{type:'giveSide'; userID:number; gameID:number; side:'right'|'left'};
+	kicked:{type:'kicked'; userID:number; reason:string}
 };
 
 export type SocketMessage = SocketMessageMap[keyof SocketMessageMap];
+
+// All valid socket event names
+export type SocketEvent = keyof SocketMessageMap;
+
+// Handler function signature (frontend or backend)
+export type EventHandler<SocketType = any> = (
+	socket: SocketType,
+	data: SocketMessageMap[keyof SocketMessageMap]
+) => void;
+
+// A map of event names to their specific handler functions
+export type EventHandlerMap<SocketType = any> = {
+	[K in SocketEvent]?: (socket: SocketType, data: SocketMessageMap[K]) => void;
+};

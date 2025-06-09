@@ -2,8 +2,8 @@ import { isAuthenticated, apiFetch, initWebSocket, state } from './api';
 import { drawCreateGameView, drawWaitingGameView, drawJoinGameView } from './pong_views';
 import { showNotification } from './notifications';
 import { SocketMessage, SocketMessageMap } from './shared/gameTypes';
-import { pongState } from './pong_socket.js';
-import { PongRenderer } from './pong_render.js'
+import { pongState } from './pong_socket';
+import { PongRenderer } from './pong_render'
 
 //import { WebSocket } from 'ws';
 

@@ -1,9 +1,9 @@
 
-import { showNotification, showUserActionsBubble } from './notifications.js';
+import { showNotification, showUserActionsBubble } from './notifications';
 import { isAuthenticated, apiFetch, initWebSocket, state } from './api';
 import type { SocketMessageMap } from './shared/gameTypes';
 //import { WebSocket } from 'ws';
-import { PongRenderer } from './pong_render.js';
+import { PongRenderer } from './pong_render';
 
 export const pongState = {
   pongRenderer: null as PongRenderer | null,
@@ -42,23 +42,20 @@ export async function initGameSocket() {
 }
 
 
-function handleSocketMessage(data: any, gameSocket:WebSocket) {
-	// if(!state.playerInterface){
-	// 	console.log(`NO PLAYER INTERFACE FOR STATE`);
-	// 	return;
-	// }
+async function handleSocketMessage(data: any, gameSocket:WebSocket) {
+
 	switch (data.type) {
 		case 'init':
-			handleInit(data, gameSocket);
+			await handleInit(data, gameSocket);
 			break;
 		case 'joinGame':
-			handleJoinGame(data);
+			await handleJoinGame(data);
 			break;
 		case 'invite':
-			handleInvite(data);
+			await handleInvite(data);
 			break;
 		case 'startGame':
-			handleStartGame(data);
+			await handleStartGame(data);
 			break;
 		case 'statusUpdate':
 			if(state.playerInterface)
@@ -69,16 +66,16 @@ function handleSocketMessage(data: any, gameSocket:WebSocket) {
 				state.playerInterface.playerSide = data.side;
 			break;
 		case 'playerMove':
-			handlePlayerMove(data);
+			await handlePlayerMove(data);
 			break;
 		case 'renderData':
-			handleRenderData(data);
+			await handleRenderData(data);
 			break;
 		case 'endMatch':
-			handleEndMatch(data);
+			await handleEndMatch(data);
 			break;
 		case 'reconnected':
-			handleReconnection(data);
+			await handleReconnection(data);
 			break;
 		default:
 			console.warn('Unknown message type:', data);
@@ -183,10 +180,15 @@ export async function handleRenderData(data:SocketMessageMap['renderData']){
 }
 
 export async function handleEndMatch(data:SocketMessageMap['endMatch']){
+	pongState.pongRenderer?.dispose();
 	if(data.isWinner)
 		console.log('YOU WON');//Needs to call a winning view
 	else 
 		console.log('YOU LOST');//Needs to call losing view 
+	state.playerInterface?.socket.send(JSON.stringify({
+			type:'leaveGame',
+			gameID:state.playerInterface.gameID
+	}));
 	//post the routes for data ?NONONO only back update state after a match
 }
 

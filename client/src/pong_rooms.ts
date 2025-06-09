@@ -1,9 +1,9 @@
 import { isAuthenticated, apiFetch, initWebSocket, state } from './api';
 import { drawCreateGameView, drawWaitingGameView, drawJoinGameView } from './pong_views';
 import { showNotification } from './notifications';
-import { SocketMessage, SocketMessageMap } from './shared/gameTypes';
 import { pongState } from './pong_socket';
 import { PongRenderer } from './pong_render'
+import { createTypedEventSocket } from './shared/gameEventWrapper'
 
 //import { WebSocket } from 'ws';
 
@@ -95,6 +95,7 @@ export function showPongMenu(): void {
             drawMainMenu(canvas, ctx);
             break;
 
+<<<<<<< HEAD
         case 'createGame':
             drawCreateGameView(canvas, ctx);
             break;
@@ -148,7 +149,6 @@ export function showPongMenu(): void {
             drawMainMenu(canvas, ctx);
             break;
     }
-}
 
 export function drawMainMenu(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D): void {
 	const width = canvas.width;
@@ -306,14 +306,12 @@ async function handlePongMenuClick(e: MouseEvent): Promise<void> {
 					});
 					return;
 				}
-				const msg:SocketMessageMap['joinGame'] = {
-					type:'joinGame',
+				const typedSocket = createTypedEventSocket(state.playerInterface.socket);
+				typedSocket.send('joinGame',{
 					userID:state.userId,
 					gameID:roomID,
 					gameName:roomName
-				}
-				// Send ws request to join game
-				state.playerInterface?.socket.send(JSON.stringify(msg));
+				})
 				state.playerInterface.gameID = roomID;
 				// Get players list via API
 				let usernames: string[] = [];
@@ -394,13 +392,12 @@ async function handleCreateGameButton(action: string): Promise<void> {
 				console.log('NO SOCKET FOR GAME');
 				return;
 			}
-			const msg:SocketMessageMap['joinGame']= {
-				type:'joinGame',
-				userID:state.userId,
-				gameName:gameName,
-				gameID:gameID
-			}
-			state.playerInterface?.socket.send(JSON.stringify(msg));
+			 const typedSocket = createTypedEventSocket(state.playerInterface.socket);
+			typedSocket.send('joinGame', {
+			userID: state.userId,
+			gameID: gameID,
+			gameName: createGameFormData.roomName!,
+			});
 			showNotification({
 				message: `Creating room: ${createGameFormData.roomName ?? ''}, ball: ${createGameFormData.ballSpeed}, paddle: ${createGameFormData.paddleSpeed}`,
 				type: 'success'
@@ -461,27 +458,28 @@ function handlePongMenuMouseUp(): void {
 	}
 	lastButtonAction = null;
 }
-
+		
 async function handleLeaveGame(): Promise<void> {
-	try {
-		const uID= state.userId;
-		const gID = state.playerInterface?.gameID;
-		if(uID && gID){
-		console.log(`LEAVING ROOM`);
-		const msg:SocketMessageMap['leaveGame'] = {
-			type:'leaveGame',
-			userID:uID,
-			gameID:gID
-		}
-		state.playerInterface?.socket?.send(JSON.stringify(msg));
-		}
-		else
-			console.log(`[FRONT LEAVE GAME][uID]:${uID} | [gID]:${gID}`)
-	} catch (err) {
-		console.error('Error leaving game:', err);
-		showNotification({ message: 'Error leaving game', type: 'error' });
-		return;
-	}
+ 	
+	const uID= state.userId;
+	const gID = state.playerInterface?.gameID;
+
+  try {
+    if (!state.playerInterface?.socket) throw new Error('Socket unavailable');
+    const typedSocket = createTypedEventSocket(state.playerInterface.socket);
+
+    typedSocket.send('leaveGame', {
+      userID: uID!,
+      gameID: gID!,
+      islegit: false,
+    });
+
+    console.log(`[LEAVE][INFO] User ${uID} sent leaveGame for room ${gID}`);
+  } catch (err) {
+    console.error('[LEAVE][ERROR] Failed to send leaveGame:', err);
+    showNotification({ message: 'Error leaving game', type: 'error' });
+    return;
+  }
 
 	// cleanup local state & storage
 	state.canvasViewState   = 'mainMenu';

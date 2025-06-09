@@ -1,8 +1,15 @@
 import * as Interfaces from '../shared/gameTypes'
 
-/* GAMELOOP
+import {
+	paddleClass,
+	playerClass,
+	ballClass,
+	balls,
+} from '../types/game'
 
-export function gameloop(balls:ball[], players:players[], type: 2 | 4){
+/* GAMELOOP (with some obvious placeholder here and there)
+
+export async function gameloop(balls:ballClass[], players:playerClass[], type: 2 | 4){
 	for(let ball of balls){
 		bounce_arena(ball, arena.width, arena.length);
 	}
@@ -11,7 +18,8 @@ export function gameloop(balls:ball[], players:players[], type: 2 | 4){
 			bounce_player(ball, player.paddle);
 		}
 	}
-	test_score(balls, players, players.length, arena.width, arena.lenght);
+	test_score(balls, players as [playerClass, playerClass] | [playerClass, playerClass, playerClass, playerClass], players.length as 2 | 4
+		, arena.width, arena.lenght);
 	for (let player of players){
 		if (player.score == PongRoom.limit){
 			//send winner signal
@@ -19,16 +27,16 @@ export function gameloop(balls:ball[], players:players[], type: 2 | 4){
 	}
 	for (let player of players){
 		if (signal_key_down || signal_key_left){
-			player.paddle.move_add();
+			player.paddle.paddleInterface.move_add();
 		}
 		if (signal_key_up || signal_key_right){
-			player.paddle.move_minus();
+			player.paddle.paddleInterface.move_minus();
 		}
 	}
 	//render 
 }
 
-export function test_score(balls:ball[], players:[players, players] | [players, players, players, players], type: 2 | 4, width:number, lenght:number){
+export function test_score(balls:ballClass[], players:[playerClass, playerClass] | [playerClass, playerClass, playerClass, playerClass], type: 2 | 4, width:number, lenght:number){
 	let score:number = 0;
 	let	reset:boolean = false;
 
@@ -58,7 +66,7 @@ export function test_score(balls:ball[], players:[players, players] | [players, 
 				if (ball.score){
 					if (player.paddle == ball.last_bounce){
 						player.score++
-						ball.last_bounce = player[0].paddle;
+						ball.last_bounce = player.paddle;
 						score--;
 						reset = true;
 					}
@@ -72,7 +80,7 @@ export function test_score(balls:ball[], players:[players, players] | [players, 
 	}
 	if (reset){
 		for (let player of players){
-			player.paddle.return_default();
+			player.paddle.paddleInterface.return_default();
 		}
 		for (let ball of balls){
 			ball.return_default();
@@ -80,25 +88,25 @@ export function test_score(balls:ball[], players:[players, players] | [players, 
 	}
 }
 
-export function bounce_arena(ball:ball, width:number, length:number){
+export function bounce_arena(ball:ballClass, width:number, length:number){
 	if (ball.x - ball.radius <= 0 || ball.x + ball.radius >= width)
 		ball.bounce_x();
 	if (ball.y - ball.radius <= 0 || ball.y + ball.radius >= length)
 		ball.bounce_y();
 }
 
-export function bounce_player(ball:ball, paddle:paddle){
+export function bounce_player(ball:ballClass, paddle:paddleClass){
 	let close_x:number = ball.x;
 	let	close_y:number = ball.y;
 
-	if (ball.x < paddle.x)
-		close_x = paddle.x;
-	else if (ball.x > paddle.x + paddle.width)
-		close_x = paddle.x + paddle.width;
-	if (ball.y < paddle.y)
-		close_y = paddle.y;
-	else if (ball.y > paddle.y + paddle.length)
-		close_y = paddle.y + paddle.length;
+	if (ball.x < paddle.paddleInterface.x)
+		close_x = paddle.paddleInterface.x;
+	else if (ball.x > paddle.paddleInterface.x + paddle.paddleInterface.width)
+		close_x = paddle.paddleInterface.x + paddle.paddleInterface.width;
+	if (ball.y < paddle.paddleInterface.y)
+		close_y = paddle.paddleInterface.y;
+	else if (ball.y > paddle.paddleInterface.y + paddle.paddleInterface.length)
+		close_y = paddle.paddleInterface.y + paddle.paddleInterface.length;
 
 	let dist_x:number = close_x - ball.x;
 	let dist_y:number = close_y - ball.y;
@@ -111,8 +119,6 @@ export function bounce_player(ball:ball, paddle:paddle){
 		ball.last_bounce = paddle;
 	}
 }
-
-
 */
 
 /*BIG PACEHODLER FOR MATCHES MANAGMENT 

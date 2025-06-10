@@ -1,9 +1,14 @@
-//import { WebSocket } from 'ws';
+import { createTypedEventSocket } from './gameEventWrapper';
+
+// Single source of truth for TypedSocket type
+export type TypedSocket = ReturnType<typeof createTypedEventSocket>;
+
 
 export interface playerInterface<SocketType= any>{
 	userID:number,
 	username?:string,
 	socket:SocketType,
+	typedSocket: TypedSocket,
 	gameID?:number,
 	tournamentID?:number,
 	score?:number,
@@ -69,6 +74,7 @@ export type SocketMessageMap = {
 	giveSide:{type:'giveSide'; userID:number; gameID:number; side:'right'|'left'| 'top'| 'bottom'};
 	kicked:{type:'kicked'; userID:number; reason:string};
 	close:{type:'close'};
+	removeEventListener:{type:'removeEventListener'};
 };
 
 export type SocketMessage = SocketMessageMap[keyof SocketMessageMap];

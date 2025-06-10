@@ -1,6 +1,6 @@
 import { showNotification } from './notifications';
 import { isAuthenticated, apiFetch, initWebSocket, state } from './api';
-import {createTypedEventSocket} from './shared/gameEventWrapper';
+import { TypedSocket } from './shared/gameTypes';
 import * as BABYLON from 'babylonjs';
 
 export class PongRenderer{
@@ -204,13 +204,11 @@ export class PongRenderer{
 	}
 
 	private sendMove(direction:string){
-		const typedSocket = createTypedEventSocket(state.playerInterface!.socket);
 		if (
 			state.playerInterface?.gameID !== undefined &&
-			state.userId !== undefined &&
-			typedSocket.socket.readyState === WebSocket.OPEN
+			state.userId !== undefined
 		) {
-			typedSocket.send('playerMove', {
+			state.typedSocket.send('playerMove', {
 			gameID: state.playerInterface.gameID,
 			userID: state.userId,
 			direction,

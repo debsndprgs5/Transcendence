@@ -1,7 +1,7 @@
 import * as Interfaces from '../shared/gameTypes'
 import * as GameManagement from '../db/gameManagement'
 import * as Helpers from './game.sockHelpers'
-import { createTypedEventSocket } from '../shared/gameEventWrapper'
+import { TypedSocket } from '../shared/gameTypes';
 import {getPlayerBySocket, getPlayerByUserID, getAllMembersFromGameID, delPlayer} from './game.socket'
 import{stopMockGameLoop, startMockGameLoop, playerMove} from '../services/pong'
 
@@ -9,28 +9,28 @@ import{stopMockGameLoop, startMockGameLoop, playerMove} from '../services/pong'
 const PendingInvites = new Map<number, { inviterID: number; timeout: NodeJS.Timeout }>();
 
 //ADD event here if needed for gameSocket
-export function handleAllEvents(typedSocket: ReturnType<typeof createTypedEventSocket>) {
-   typedSocket.on('init', async (_ignored, data) => {
+export function handleAllEvents(typedSocket:TypedSocket) {
+   typedSocket.on('init', async (socket:WebSocket, data:Interfaces.SocketMessageMap['init']) => {
      const player = getPlayerBySocket(typedSocket.socket as any);
      handleInit(data, player);
    });
 
-  typedSocket.on('joinGame', async (_ignored, data) => {
+  typedSocket.on('joinGame', async (socket:WebSocket, data:Interfaces.SocketMessageMap['joinGame']) => {
     const player = getPlayerBySocket(typedSocket.socket as any);
     handleJoin(data, player);
   });
 
-  typedSocket.on('invite', async (_ignored, data) => {
+  typedSocket.on('invite', async (socket:WebSocket, data:Interfaces.SocketMessageMap['invite']) => {
     const player = getPlayerBySocket(typedSocket.socket as any);
     handleInvite(data, player);
   });
 
-  typedSocket.on('leaveGame', async (_ignored, data) => {
+  typedSocket.on('leaveGame', async (socket:WebSocket, data:Interfaces.SocketMessageMap['leaveGame']) => {
     const player = getPlayerBySocket(typedSocket.socket as any);
     handleLeaveGame(data, player);
   });
 
-  typedSocket.on('playerMove', async (_ignored, data) => {
+  typedSocket.on('playerMove', async (socket:WebSocket, data:Interfaces.SocketMessageMap['playerMove']) => {
     const player = getPlayerBySocket(typedSocket.socket as any);
     handlePlayerMove(data, player);
   });
@@ -54,26 +54,26 @@ export function handleAllEvents(typedSocket: ReturnType<typeof createTypedEventS
 
 export async function handleInit(
   data: { userID: number },
-  player: Interfaces.playerInterface
+  player: Interfaces.playerInterface,
 ) {
   console.log(`HANDLE INIT CALLED : ${data.userID}`);
 
   const success = data.userID === player.userID;
 
-  const socket = createTypedEventSocket(player.socket);
-
-  socket.send('init', {
+  player.typedSocket.send('init', {
     userID: player.userID,
     success,
   });
 }
 
-export async function handleJoin(parsed: any, player: Interfaces.playerInterface) {
+export async function handleJoin(
+    parsed: any,
+    player: Interfaces.playerInterface) {
   const { userID, gameName, gameID } = parsed;
-  const typedSocket = createTypedEventSocket(player.socket);
+
 
   if (player.state !== 'init') {
-    typedSocket.send('joinGame', {
+    player.typedSocket.send('joinGame', {
       success: false,
       reason: `you are in ${player.state} mode`,
       userID: player.userID,
@@ -91,18 +91,18 @@ export async function handleJoin(parsed: any, player: Interfaces.playerInterface
     Helpers.updatePlayerState(player, 'waiting');
     player.gameID = gameID;
     // Send joinGame success response
-    typedSocket.send('joinGame', {
+    player.typedSocket.send('joinGame', {
       success: true,
       gameID: player.gameID,
       gameName,
-      userID: player.userID,
+      userID:userID,
     });
   } catch (err) {
     console.error('handleJoin error', err);
-    typedSocket.send('joinGame', {
+    player.typedSocket.send('joinGame', {
       success: false,
       reason: 'Join failed',
-      userID: player.userID,
+      userID: userID,
       gameID,
       gameName,
     });
@@ -111,12 +111,13 @@ export async function handleJoin(parsed: any, player: Interfaces.playerInterface
   Helpers.tryStartGameIfReady(gameID);
 }
 
-export async function handleInvite(parsed: any, player: Interfaces.playerInterface) {
+export async function handleInvite(
+      parsed: any,
+      player: Interfaces.playerInterface,) {
   const { actionRequested, userID, targetID } = parsed;
     // === Safeguard: prevent self-invite ===
   if (actionRequested === 'send' && userID === targetID) {
-    const typedSocket = createTypedEventSocket(player.socket);
-    typedSocket.send('invite', {
+    player.typedSocket.send('invite', {
       action: 'reply' as const,
       response: 'you cannot invite yourself',
       targetID,
@@ -125,10 +126,9 @@ export async function handleInvite(parsed: any, player: Interfaces.playerInterfa
   }
   if (actionRequested === 'send') {
     const target = getPlayerByUserID(targetID);
-    const typedSocket = createTypedEventSocket(player.socket);
 
     if (!target) {
-      typedSocket.send('invite', {
+      player.typedSocket.send('invite', {
         action: 'reply' as const,
         response: 'offline',
         targetID
@@ -141,17 +141,17 @@ export async function handleInvite(parsed: any, player: Interfaces.playerInterfa
       const entry = PendingInvites.get(targetID);
       if (entry && entry.inviterID === userID) {
         PendingInvites.delete(targetID);
-        const inviterSocket = getPlayerByUserID(userID)?.socket;
-        if (inviterSocket) {
-          createTypedEventSocket(inviterSocket).send('invite', {
+        const inviter = getPlayerByUserID(userID)?.socket;
+        if (inviter) {
+          inviter.typedSocket.send('invite', {
             action: 'reply' as const,
             response: 'timeout',
             targetID,
           });
         }
-        const targetSocket = getPlayerByUserID(targetID)?.socket;
-        if (targetSocket) {
-          createTypedEventSocket(targetSocket).send('invite', {
+        const target = getPlayerByUserID(targetID)?.socket;
+        if (target) {
+          target.typedSocket.send('invite', {
             action: 'reply' as const,
             response: 'timeout',
             targetID,

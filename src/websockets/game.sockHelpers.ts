@@ -13,9 +13,8 @@ export function updatePlayerState(
 ) {
   player.state = newState;
 
-  if (player.socket) {
-    const typedSocket = createTypedEventSocket(player.socket);
-    typedSocket.send('statusUpdate', {
+  if (player.typedSocket) {
+    player.typedSocket.send('statusUpdate', {
       userID: player.userID,
       newState
     });
@@ -27,10 +26,9 @@ export function updatePlayerState(
 
 //when user A send request to user B
 export async function processInviteSend(player: Interfaces.playerInterface, target: Interfaces.playerInterface) {
-  const typedSocket = createTypedEventSocket(player.socket);
 
   if (player.state !== 'init') {
-    typedSocket.send('invite', {
+    player.typedSocket.send('invite', {
       action: 'reply',
       response: 'you are busy',
       targetID: target.userID
@@ -39,7 +37,7 @@ export async function processInviteSend(player: Interfaces.playerInterface, targ
   }
 
   if (target.state !== 'init') {
-    typedSocket.send('invite', {
+    target.typedSocket.send('invite', {
       action: 'reply',
       response: 'busy',
       targetID: target.userID
@@ -51,8 +49,7 @@ export async function processInviteSend(player: Interfaces.playerInterface, targ
   updatePlayerState(player, 'waiting');
   updatePlayerState(target, 'invited');
 
-  const targetSocket = createTypedEventSocket(target.socket);
-  targetSocket.send('invite', {
+  target.typedSocket.send('invite', {
     action: 'receive',
     fromID: player.userID,
   });
@@ -62,8 +59,7 @@ export async function processInviteSend(player: Interfaces.playerInterface, targ
 export async function processInviteReply(inviter: Interfaces.playerInterface, invitee: Interfaces.playerInterface, response: string) {
   if (!inviter || !invitee) return;
 
-  const inviterSocket = createTypedEventSocket(inviter.socket);
-  inviterSocket.send('invite', {
+  inviter.typedSocket.send('invite', {
     action: 'reply',
     response,
     targetID: invitee.userID
@@ -134,22 +130,20 @@ export async function beginGame(gameID: number, players: Interfaces.playerInterf
 
     updatePlayerState(player, 'playing');
     // Send side assignment
-    const typedSocket = createTypedEventSocket(player.socket);
-
     const sideMsg: Interfaces.SocketMessageMap['giveSide'] = {
       type:'giveSide',
       userID: player.userID,
       gameID,
       side: player.playerSide!,
     };
-    typedSocket.send('giveSide', sideMsg);
+    player.typedSocket.send('giveSide', sideMsg);
     // Send start signal
     const startMsg: Interfaces.SocketMessageMap['startGame'] = {
       type:'startGame',
       userID: player.userID,
       gameID,
     };
-    typedSocket.send('startGame', startMsg);
+    player.typedSocket.send('startGame', startMsg);
   });
 
 // Extract all rules for the game (simulate fetching from DB or config)
@@ -259,14 +253,11 @@ export async function kickFromGameRoom(
     for (const p of players) {
       const player = getPlayerByUserID(p.userID);
       if (!player) continue;
-
-      const typedSocket = createTypedEventSocket(player.socket);
-
       // Remove player from DB room membership
       await GameManagement.delMemberFromGameRoom(gameID, player.userID);
 
       // Send 'kicked' message with reason
-      typedSocket.send('kicked', {
+      player.typedSocket.send('kicked', {
         userID: player.userID,
         reason: reason ?? '',
       });

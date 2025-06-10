@@ -1,5 +1,6 @@
 import { handleLogout } from './handlers';
 import * as Interfaces from './shared/gameTypes';
+import { TypedSocket } from './shared/gameTypes';
 //import { WebSocket } from 'ws';
 
 export interface AppState {
@@ -7,6 +8,7 @@ export interface AppState {
 	pendingToken: string | null;
 	socket: WebSocket | null;
 	gameSocket:WebSocket|null;
+	typedSocket:TypedSocket;
 	userId?: number;
 	currentRoom: number;
 	availableRooms: { roomID: number; roomName: string }[];
@@ -25,6 +27,7 @@ export const state: AppState = {
 	pendingToken: null,
 	socket: null,
 	gameSocket:null,
+	typedSocket:null,
 	currentRoom: 0,
 	availableRooms: [],
 	canvasViewState: 'mainMenu',

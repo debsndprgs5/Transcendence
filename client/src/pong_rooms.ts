@@ -3,9 +3,8 @@ import { drawCreateGameView, drawWaitingGameView, drawJoinGameView } from './pon
 import { showNotification } from './notifications';
 import { pongState } from './pong_socket';
 import { PongRenderer } from './pong_render'
-import { createTypedEventSocket } from './shared/gameEventWrapper'
+import { TypedSocket } from './shared/gameTypes';
 
-//import { WebSocket } from 'ws';
 
 interface PongButton {
 	x: number;
@@ -301,8 +300,7 @@ async function handlePongMenuClick(e: MouseEvent): Promise<void> {
 					});
 					return;
 				}
-				const typedSocket = createTypedEventSocket(state.playerInterface.socket);
-				typedSocket.send('joinGame',{
+				state.typedSocket.send('joinGame',{
 					userID:state.userId,
 					gameID:roomID,
 					gameName:roomName
@@ -387,8 +385,7 @@ async function handleCreateGameButton(action: string): Promise<void> {
 				console.log('NO SOCKET FOR GAME');
 				return;
 			}
-			 const typedSocket = createTypedEventSocket(state.playerInterface.socket);
-			typedSocket.send('joinGame', {
+			state.typedSocket.send('joinGame', {
 			userID: state.userId,
 			gameID: gameID,
 			gameName: createGameFormData.roomName!,
@@ -460,10 +457,8 @@ async function handleLeaveGame(): Promise<void> {
 	const gID = state.playerInterface?.gameID;
 
 	try {
-		if (!state.playerInterface?.socket) throw new Error('Socket unavailable');
-		const typedSocket = createTypedEventSocket(state.playerInterface.socket);
-
-		typedSocket.send('leaveGame', {
+		if (!state.playerInterface?.typedSocket) throw new Error('TYPEDsocket unavailable');
+		state.typedSocket.send('leaveGame', {
 			userID: uID!,
 			gameID: gID!,
 			islegit: false,

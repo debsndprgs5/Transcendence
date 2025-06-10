@@ -190,7 +190,7 @@ export async function tryStartGameIfReady(gameID: number) {
       break;
   }
 
-  const playersInGameRoom = await getAllMembersFromGameID(gameID) ?? [];
+  const playersInGameRoom = getAllMembersFromGameID(gameID) ?? [];
 
   if (playersInGameRoom.length > maxPlayers) {
     const playerToKick = await GameManagement.getLastAddedToRoom(gameID);

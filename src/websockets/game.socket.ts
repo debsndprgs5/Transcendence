@@ -13,11 +13,9 @@ import { playerMove } from '../services/pong'
 import { TypedSocket } from '../shared/gameTypes';
 import {handleAllEvents} from './game.sockEvents'
 
-interface PlayerWithTimeout extends Interfaces.playerInterface {
-  disconnectTimeout?: NodeJS.Timeout;
-}
 
-export const MappedPlayers = new Map<number, PlayerWithTimeout>();
+
+export const MappedPlayers = new Map<number, Interfaces.playerInterface<WebSocket>>();
 
 dotenv.config({
 	path: path.resolve(process.cwd(), '.env'),
@@ -98,7 +96,7 @@ export async function initGameSocket(ws: WebSocket, request: any) {
         username: user!.username,
         hasDisconnected: false,
     };
-
+    MappedPlayers.set(result.userId, player)
     // Register handlers ONCE
     handleAllEvents(typedSocket);
 

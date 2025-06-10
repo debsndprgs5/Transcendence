@@ -40,11 +40,14 @@ export function handleAllEvents(typedSocket: ReturnType<typeof createTypedEventS
     handleDisconnect(player);
   });
 
-  typedSocket.socket.on('close', () => {
-    const player = getPlayerBySocket(typedSocket.socket as any);
-    handleDisconnect(player);
-  });
+  // if ('on' in typedSocket.socket) {
+  // typedSocket.socket.on('close', () => {
+  //   const player = getPlayerBySocket(typedSocket.socket as any);
+  //   handleDisconnect(player);
+  // });
+  // }
 }
+
 
 
 //HANDLERS 

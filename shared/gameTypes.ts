@@ -68,6 +68,7 @@ export type SocketMessageMap = {
 	leaveGame:{type:'leaveGame'; userID:number; gameID:number; islegit:boolean};
 	giveSide:{type:'giveSide'; userID:number; gameID:number; side:'right'|'left'| 'top'| 'bottom'};
 	kicked:{type:'kicked'; userID:number; reason:string};
+	close:{type:'close'};
 };
 
 export type SocketMessage = SocketMessageMap[keyof SocketMessageMap];

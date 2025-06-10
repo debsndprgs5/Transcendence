@@ -164,18 +164,18 @@ export function createTypedEventSocket<
         return wrappedSockets.get(socket);
     }
 
-    console.log('Creating typed socket wrapper with initial handlers:', Object.keys(handlers));
+    //console.log('Creating typed socket wrapper with initial handlers:', Object.keys(handlers));
     
     const eventHandlers: Partial<EventHandlerMap<SocketType>> = { ...handlers };
 
     function isEventEmitter(socket: any): socket is EventEmitter {
         const isEmitter = socket && typeof socket.setMaxListeners === 'function';
-        console.log('Socket is EventEmitter:', isEmitter);
+      //  console.log('Socket is EventEmitter:', isEmitter);
         return isEmitter;
     }
 
     if (isEventEmitter(socket)) {
-        console.log('Setting max listeners to 40');
+      //  console.log('Setting max listeners to 40');
         socket.setMaxListeners(40);
     }
 
@@ -183,31 +183,31 @@ export function createTypedEventSocket<
         try {
             const dataStr = 'data' in event ? event.data : event;
             const data = JSON.parse(dataStr) as SocketMessage;
-            console.log('Received message of type:', data.type);
+            //console.log('Received message of type:', data.type);
             
             const handler = eventHandlers[data.type];
             if (handler) {
-                console.log('Found handler for type:', data.type);
+               //console.log('Found handler for type:', data.type);
                 handler(socket, data as any);
             } else {
                 console.log('No handler found for type:', data.type);
             }
         } catch (err) {
             console.warn('Invalid message received:', 'data' in event ? event.data : event);
-            console.error('Parse error:', err);
+            //console.error('Parse error:', err);
         }
     };
 
     // Add the "message" event listener once
-    console.log('Setting up main message listener');
+   // console.log('Setting up main message listener');
     if ('addEventListener' in socket) {
-        console.log('Using addEventListener for main message handler');
+ //       console.log('Using addEventListener for main message handler');
         socket.addEventListener('message', onRawMessage as EventListener);
     } else if ('on' in socket) {
-        console.log('Using .on for main message handler');
+  //      console.log('Using .on for main message handler');
         (socket as any).on('message', onRawMessage);
     } else {
-        console.error('Socket does not support event listening');
+  //      console.error('Socket does not support event listening');
         throw new Error('Socket does not support event listening');
     }
 
@@ -215,22 +215,22 @@ export function createTypedEventSocket<
         event: K,
         handler: (socket: SocketType, data: SocketMessageMap[K]) => void
     ) {
-        console.log('on() called for event:', event);
-        console.log('Current handlers before adding:', Object.keys(eventHandlers));
+      //  console.log('on() called for event:', event);
+      //  console.log('Current handlers before adding:', Object.keys(eventHandlers));
         
         if (!eventHandlers[event]) {
-            console.log('Adding first handler for event:', event);
+      //      console.log('Adding first handler for event:', event);
             eventHandlers[event] = handler as any;
         } else {
-            console.log('Stacking handler for event:', event);
+        //    console.log('Stacking handler for event:', event);
             const prev = eventHandlers[event]!;
             eventHandlers[event] = ((sock: SocketType, data: SocketMessageMap[K]) => {
-                console.log('Executing stacked handlers for:', event);
+          //      console.log('Executing stacked handlers for:', event);
                 (prev as any)(sock, data);
                 handler(sock, data);
             }) as any;
         }
-        console.log('Current handlers after adding:', Object.keys(eventHandlers));
+     //   console.log('Current handlers after adding:', Object.keys(eventHandlers));
     }
 
     function send<K extends SocketEvent>(
@@ -238,7 +238,7 @@ export function createTypedEventSocket<
         payload: Omit<SocketMessageMap[K], 'type'>
     ) {
         const msg = JSON.stringify({ type: event, ...payload });
-        console.log('Sending message:', { type: event, ...payload });
+    //    console.log('Sending message:', { type: event, ...payload });
         socket.send(msg);
     }
 
@@ -254,7 +254,7 @@ export function createTypedEventSocket<
 
 
     const wrapper = { on, send, socket, cleanup };
-    console.log('Created socket wrapper with handlers:', Object.keys(eventHandlers));
+  //  console.log('Created socket wrapper with handlers:', Object.keys(eventHandlers));
     
     // Store the wrapper in WeakMap
     wrappedSockets.set(socket, wrapper);

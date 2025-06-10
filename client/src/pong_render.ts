@@ -183,8 +183,9 @@ export class PongRenderer{
 	}
 
   	public handleResize() {
-		window.addEventListener('resize', () => {
-		this.engine.resize();
+      this.engine.resize();
+		  window.addEventListener('resize', () => {
+		  this.engine.resize();
 		});
 	}
 

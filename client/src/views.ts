@@ -15,154 +15,157 @@ export function render(html: string): void {
 /**
  * Returns the HTML for the home view, depending on authentication.
  */
-
 export function HomeView(): string {
-	if (!isAuthenticated()) {
-		return `
-			<section class="bg-white rounded-lg shadow-lg overflow-hidden md:flex">
-				<div class="p-8 md:w-1/2">
-					<h1 class="text-4xl font-bold text-indigo-600 mb-4">
-						Welcome in Transcendence
-					</h1>
-					<p class="text-gray-700 mb-6">
-						Play pong with your friends, chat with them and have fun !
-					</p>
-					<div class="space-x-4">
-						<a href="/register" data-link
-							 class="inline-block px-6 py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition">
-							Register now
-						</a>
-						<a href="/login" data-link
-							 class="inline-block px-6 py-3 border border-indigo-600 text-indigo-600 font-medium rounded-lg hover:bg-indigo-50 transition">
-							Login
-						</a>
-					</div>
-				</div>
-				<div class="md:w-1/2 bg-indigo-50 flex items-center justify-center">
-					<img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExMGxybmhtZmdwNTU0YjVqOThnMXdmaGlic3QxdXFod2N0aDZnNTRpNCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o72FkiKGMGauydfyg/giphy.gif"
-							 alt="not implemented yet"
-							 class="w-3/4 h-auto">
-				</div>
-			</section>
-		`;
-	}
+  if (!isAuthenticated()) {
+    return `
+      <section class="bg-white rounded-lg shadow-lg overflow-hidden md:flex">
+        <div class="p-8 md:w-1/2">
+          <h1 class="text-4xl font-bold text-indigo-600 mb-4">
+            Welcome in Transcendence
+          </h1>
+          <p class="text-gray-700 mb-6">
+            Play pong with your friends, chat with them and have fun !
+          </p>
+          <div class="space-x-4">
+            <a href="/register" data-link
+               class="inline-block px-6 py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition">
+              Register now
+            </a>
+            <a href="/login" data-link
+               class="inline-block px-6 py-3 border border-indigo-600 text-indigo-600 font-medium rounded-lg hover:bg-indigo-50 transition">
+              Login
+            </a>
+          </div>
+        </div>
+        <div class="md:w-1/2 bg-indigo-50 flex items-center justify-center">
+          <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExMGxybmhtZmdwNTU0YjVqOThnMXdmaGlic3QxdXFod2N0aDZnNTRpNCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o72FkiKGMGauydfyg/giphy.gif"
+               alt="not implemented yet"
+               class="w-3/4 h-auto">
+        </div>
+      </section>
+    `;
+  }
 
-	const userName = localStorage.getItem('username') || '';
-	return `
-		<main class="flex-grow w-full" style="
-			background: linear-gradient(
-				90deg,
-				rgba(164,116,81,1)   0%,
-				rgba(156,152,129,1) 16.667%,
-				rgba(115,160,157,1) 33.333%,
-				rgba(59,137,154,1)  50.000%,
-				rgba(9,91,121,1)    66.667%,
-				rgba(0,40,71,1)     83.333%,
-				rgba(0,1,22,1)     100.000%
-			);">
-			<div class="pt-6 px-[4px] sm:px-[8px] lg:px-[12px] mx-auto w-[95vw] max-w-[1600px]">
-				<h1 class="text-2xl font-semibold text-indigo-100 mb-4">
-					Welcome, <strong>${userName}</strong>!
-				</h1>
-				<div class="grid gap-6 grid-cols-1 md:grid-cols-[57%_43%]">
-					<!-- Colonne Pong -->
-					<div
-						class="flex justify-center items-center p-4 sm:p-6 rounded-lg shadow-lg"
-						style="background: conic-gradient(
-							from 90deg,
-							rgba(187,119,2,1)    0deg,
-							rgba(187,119,2,1)   27.692deg,
-							rgba(202,134,27,1)  27.692deg,
-							rgba(202,134,27,1)  55.385deg,
-							rgba(210,147,54,1)  55.385deg,
-							rgba(210,147,54,1)  83.077deg,
-							rgba(210,158,79,1)  83.077deg,
-							rgba(210,158,79,1) 110.769deg,
-							rgba(203,165,102,1)110.769deg,
-							rgba(188,169,121,1)138.462deg,
-							rgba(188,169,121,1)166.154deg,
-							rgba(168,170,136,1)166.154deg,
-							rgba(168,170,136,1)193.846deg,
-							rgba(146,166,144,1)193.846deg,
-							rgba(146,166,144,1)221.538deg,
-							rgba(123,159,146,1)221.538deg,
-							rgba(123,159,146,1)249.231deg,
-							rgba(103,148,141,1)249.231deg,
-							rgba(103,148,141,1)276.923deg,
-							rgba( 88,135,130,1)276.923deg,
-							rgba( 88,135,130,1)304.615deg,
-							rgba( 79,120,113,1)304.615deg,
-							rgba( 79,120,113,1)332.308deg,
-							rgba( 79,105, 92,1)332.308deg 360deg
-						);">
-						<div class="relative w-full max-w-5xl">
-							<img src="/screen.png" alt="CRT frame" class="w-full h-auto">
-							<div class="absolute top-[14%] left-[14%] w-[71.2%] h-[55%]">
-								<canvas id="pong-canvas" class="w-full h-full rounded-[4px] shadow-inner bg-black"></canvas>
-								
-							</div>
-						</div>
-					</div>
-					<!-- RENDER BABYLON -->
-					<canvas id="babylon-canvas" class="w-full h-full rounded-[4px] shadow-inner bg-black"></canvas>
-					<!-- Colonne Chat -->
-					<div
-						class="p-4 sm:p-6 rounded-lg shadow-lg flex flex-col"
-						style="background: conic-gradient(
-							from 90deg,
-							rgba(187,119,2,1)    0deg,
-							rgba(187,119,2,1)   27.692deg,
-							rgba(202,134,27,1)  27.692deg,
-							rgba(202,134,27,1)  55.385deg,
-							rgba(210,147,54,1)  55.385deg,
-							rgba(210,147,54,1)  83.077deg,
-							rgba(210,158,79,1)  83.077deg,
-							rgba(210,158,79,1) 110.769deg,
-							rgba(203,165,102,1)110.769deg,
-							rgba(188,169,121,1)138.462deg,
-							rgba(188,169,121,1)166.154deg,
-							rgba(168,170,136,1)166.154deg,
-							rgba(168,170,136,1)193.846deg,
-							rgba(146,166,144,1)193.846deg,
-							rgba(146,166,144,1)221.538deg,
-							rgba(123,159,146,1)221.538deg,
-							rgba(123,159,146,1)249.231deg,
-							rgba(103,148,141,1)249.231deg,
-							rgba(103,148,141,1)276.923deg,
-							rgba( 88,135,130,1)276.923deg,
-							rgba( 88,135,130,1)304.615deg,
-							rgba( 79,120,113,1)304.615deg,
-							rgba( 79,120,113,1)332.308deg,
-							rgba( 79,105, 92,1)332.308deg 360deg
-						);">
-						<h2 class="text-2xl font-semibold text-gray-900 mb-4 flex justify-between items-center">
-							<button id="generalChatBtn" class="text-gray-900 hover:text-gray-700 transition-colors">
-								Chat
-							</button>
-							<div class="flex items-center gap-2">
-								<input id="userActionInput" type="text" placeholder="Username or ID"
-											 class="px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-200 text-sm" style="width:140px;" />
-								<button id="addFriendBtn" class="px-2 py-1 bg-green-400 text-black rounded hover:bg-green-500 transition text-xs">Add Friend</button>
-								<button id="blockUserBtn" class="px-2 py-1 bg-yellow-400 text-black rounded hover:bg-yellow-500 transition text-xs">Block</button>
-								<button id="unblockUserBtn" class="px-2 py-1 bg-gray-300 text-black rounded hover:bg-gray-400 transition text-xs">Unblock</button>
-								<button id="newChatRoomBtn" class="px-3 py-1 bg-indigo-100 text-indigo-600 rounded hover:bg-indigo-200 transition text-sm">New Room</button>
-							</div>
-						</h2>
-						<div class="flex-1 overflow-auto mb-4 flex">
-							<ul id="room-list" class="w-1/3 border-r border-gray-300 pr-4 space-y-2 overflow-auto min-h-0 text-gray-900"></ul>
-							<div class="w-2/3 pl-4 flex flex-col">
-								<div id="chat" class="flex-1 overflow-auto space-y-2 mb-4 break-words text-gray-900"></div>
-								<form id="chatForm" class="flex space-x-2">
-									<input name="message" placeholder="Write a message…" class="flex-1 border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-[#6DD5FA]">
-									<button type="submit" class="px-4 py-2 bg-[#2980B9] text-white rounded-lg hover:bg-[#2278A1] transition">Send</button>
-								</form>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-		</main>
-	`;
+  const userName = localStorage.getItem('username') || '';
+  return `
+<main class="flex-grow w-full" style="background: linear-gradient(
+  90deg,
+  rgba(164,116,81,1)   0%,
+  rgba(156,152,129,1) 16.667%,
+  rgba(115,160,157,1) 33.333%,
+  rgba(59,137,154,1)  50.000%,
+  rgba(9,91,121,1)    66.667%,
+  rgba(0,40,71,1)     83.333%,
+  rgba(0,1,22,1)     100.000%
+);">
+  <div class="pt-6 px-[4px] sm:px-[8px] lg:px-[12px] mx-auto w-[95vw] max-w-[1600px]">
+    <h1 class="text-2xl font-semibold text-indigo-100 mb-4">
+      Welcome, <strong>${userName}</strong>!
+    </h1>
+    <div class="grid gap-6 grid-cols-1 md:grid-cols-[57%_43%]">
+
+      <!-- Colonne Pong/Menu -->
+      <div class="flex justify-center items-center p-4 sm:p-6 rounded-lg shadow-lg"
+           style="background: conic-gradient(
+             from 90deg,
+             rgba(187,119,2,1)    0deg,
+             rgba(187,119,2,1)   27.692deg,
+             rgba(202,134,27,1)  27.692deg,
+             rgba(202,134,27,1)  55.385deg,
+             rgba(210,147,54,1)  55.385deg,
+             rgba(210,147,54,1)  83.077deg,
+             rgba(210,158,79,1)  83.077deg,
+             rgba(210,158,79,1) 110.769deg,
+             rgba(203,165,102,1)110.769deg,
+             rgba(188,169,121,1)138.462deg,
+             rgba(188,169,121,1)166.154deg,
+             rgba(168,170,136,1)166.154deg,
+             rgba(168,170,136,1)193.846deg,
+             rgba(146,166,144,1)193.846deg,
+             rgba(146,166,144,1)221.538deg,
+             rgba(123,159,146,1)221.538deg,
+             rgba(123,159,146,1)249.231deg,
+             rgba(103,148,141,1)249.231deg,
+             rgba(103,148,141,1)276.923deg,
+             rgba( 88,135,130,1)276.923deg,
+             rgba( 88,135,130,1)304.615deg,
+             rgba( 79,120,113,1)304.615deg,
+             rgba( 79,120,113,1)332.308deg,
+             rgba( 79,105, 92,1)332.308deg 360deg
+           );">
+        <div class="relative w-full max-w-5xl aspect-video">
+          <img src="/screen.png" alt="CRT frame" class="w-full h-auto">
+          <div class="absolute top-[14%] left-[14%] w-[71.2%] h-[55%]">
+            <canvas
+              id="pong-canvas"
+              class="w-full h-full rounded-[4px] shadow-inner bg-black"
+            ></canvas>
+            <canvas
+              id="babylon-canvas"
+              class="w-full h-full rounded-[4px] shadow-inner bg-black hidden"
+            ></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Colonne Chat -->
+      <div class="p-4 sm:p-6 rounded-lg shadow-lg flex flex-col"
+           style="background: conic-gradient(
+             from 90deg,
+             rgba(187,119,2,1)    0deg,
+             rgba(187,119,2,1)   27.692deg,
+             rgba(202,134,27,1)  27.692deg,
+             rgba(202,134,27,1)  55.385deg,
+             rgba(210,147,54,1)  55.385deg,
+             rgba(210,147,54,1)  83.077deg,
+             rgba(210,158,79,1)  83.077deg,
+             rgba(210,158,79,1) 110.769deg,
+             rgba(203,165,102,1)110.769deg,
+             rgba(188,169,121,1)138.462deg,
+             rgba(188,169,121,1)166.154deg,
+             rgba(168,170,136,1)166.154deg,
+             rgba(168,170,136,1)193.846deg,
+             rgba(146,166,144,1)193.846deg,
+             rgba(146,166,144,1)221.538deg,
+             rgba(123,159,146,1)221.538deg,
+             rgba(123,159,146,1)249.231deg,
+             rgba(103,148,141,1)249.231deg,
+             rgba(103,148,141,1)276.923deg,
+             rgba( 88,135,130,1)276.923deg,
+             rgba( 88,135,130,1)304.615deg,
+             rgba( 79,120,113,1)304.615deg,
+             rgba( 79,120,113,1)332.308deg,
+             rgba( 79,105, 92,1)332.308deg 360deg
+           );">
+        <h2 class="text-2xl font-semibold text-gray-900 mb-4 flex justify-between items-center">
+          <button id="generalChatBtn" class="text-gray-900 hover:text-gray-700 transition-colors">
+            Chat
+          </button>
+          <div class="flex items-center gap-2">
+            <input id="userActionInput" type="text" placeholder="Username or ID"
+                   class="px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-200 text-sm" style="width:140px;" />
+            <button id="addFriendBtn" class="px-2 py-1 bg-green-400 text-black rounded hover:bg-green-500 transition text-xs">Add Friend</button>
+            <button id="blockUserBtn" class="px-2 py-1 bg-yellow-400 text-black rounded hover:bg-yellow-500 transition text-xs">Block</button>
+            <button id="unblockUserBtn" class="px-2 py-1 bg-gray-300 text-black rounded hover:bg-gray-400 transition text-xs">Unblock</button>
+            <button id="newChatRoomBtn" class="px-3 py-1 bg-indigo-100 text-indigo-600 rounded hover:bg-indigo-200 transition text-sm">New Room</button>
+          </div>
+        </h2>
+        <div class="flex-1 overflow-auto mb-4 flex">
+          <ul id="room-list" class="w-1/3 border-r border-gray-300 pr-4 space-y-2 overflow-auto min-h-0 text-gray-900"></ul>
+          <div class="w-2/3 pl-4 flex flex-col">
+            <div id="chat" class="flex-1 overflow-auto space-y-2 mb-4 break-words text-gray-900"></div>
+            <form id="chatForm" class="flex space-x-2">
+              <input name="message" placeholder="Write a message…"
+                     class="flex-1 border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-[#6DD5FA]" />
+              <button type="submit" class="px-4 py-2 bg-[#2980B9] text-white rounded-lg hover:bg-[#2278A1] transition">Send</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+  `;
 }
 
 /**

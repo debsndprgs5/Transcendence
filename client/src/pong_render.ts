@@ -33,9 +33,10 @@ export class PongRenderer{
 		this.createWalls();
 		this.createGameObjects();
 		this.setupInitialPositions();
+		this.initInputListeners();
 		this.startRenderLoop();
 		this.handleResize();
-		this.initInputListeners();
+		
 	}
 	private setupCamera() {
 		const distance = 18;

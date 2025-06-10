@@ -3,7 +3,8 @@ import {
   SocketMessage,
   SocketMessageMap,
   EventHandlerMap,
-} from './gameTypes'; // path to your shared types
+} from './gameTypes';
+import { EventEmitter } from 'events';
 //import {WebSocket} from 'ws'
 
 //MARCHE PAS AVEC 2 types sockets differents 
@@ -56,6 +57,7 @@ import {
 //   return { on, send, socket };
 // }
 
+
 export function createTypedEventSocket<
   SocketType extends { send: (data: string) => void } & (
     | { addEventListener: (type: string, listener: any) => void }
@@ -63,9 +65,18 @@ export function createTypedEventSocket<
   )
 >(
   socket: SocketType,
-  handlers: Partial<EventHandlerMap<SocketType>> = {}
+  handlers: Partial<EventHandlerMap<SocketType>> = {} 
 ) {
   const eventHandlers: Partial<EventHandlerMap<SocketType>> = { ...handlers };
+    // Check if the socket supports EventEmitter's methods
+  function isEventEmitter(socket: any): socket is EventEmitter {
+    return socket && typeof socket.setMaxListeners === 'function';
+  }
+
+  // Set a higher listener limit if supported
+  if (isEventEmitter(socket)) {
+    socket.setMaxListeners(40);
+  }
 
   const onRawMessage = (event: MessageEvent | { data: string }) => {
     try {
@@ -78,7 +89,23 @@ export function createTypedEventSocket<
     }
   };
 
-  if ('addEventListener' in socket) {
+  // Check if the event type is already in eventHandlers before adding a listener
+  const addListener = (event: SocketEvent, listener: EventListener) => {
+  if (!(event in eventHandlers)) {
+    // If eventHandler doesn't exist, we add it
+    eventHandlers[event] = listener as any;
+    if ('addEventListener' in socket) {
+      socket.addEventListener(event, listener);
+    } else if ('on' in socket) {
+      (socket as any).on(event, listener);
+    }
+  } else {
+    console.log(`Listener for "${event}" already exists, skipping.`);
+  }
+};
+
+  // Add the "message" event listener once
+   if ('addEventListener' in socket) {
     socket.addEventListener('message', onRawMessage as EventListener);
   } else if ('on' in socket) {
     (socket as any).on('message', onRawMessage);

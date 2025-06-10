@@ -51,7 +51,26 @@ export async function startMockGameLoop(
   players.forEach(p => {
     if (p.playerPos === undefined) p.playerPos = 0;
   });
+   // === Create a new game object ===
+    // === Create a new game object ===
+  const gameEntry = {
+    game: {
+       gameID,            // gameID to match the game's unique ID
+      winCondtion: rules.winCondtion, // winCondtion is either 'score' or 'time'
+      limit: rules.limit,            // The score or time limit
+      mode: players.length === 2 ? 'duo' : 'quatuor', // Mode based on the number of players (defaulting to '2p' or '4p')
+      ballSpeed: rules.ballSpeed,    // ballSpeed from rules
+      paddleSpeed: rules.paddleSpeed, // paddleSpeed from rules
+      settings: '',  // Add an empty string or a custom setting if needed
+      created_at: new Date().toISOString(), // Create timestamp for the game start
+    },
+    players,
+    loopTimeout: undefined, // Make sure to set this to undefined initially
+    startTime, // Include startTime for elapsed time calculations
+  };
 
+  // === Add the game to the MappedGames map ===
+  MappedGames.set(gameID, gameEntry);
   function loopFrame() {
     const elapsed = (Date.now() - startTime) / 1000;
 

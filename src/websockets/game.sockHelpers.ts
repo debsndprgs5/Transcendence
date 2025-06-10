@@ -1,7 +1,7 @@
 import * as Interfaces from '../shared/gameTypes'
 import * as GameManagement from '../db/gameManagement'
-import {TypedEventSocket, createTypedEventSocket} from '../shared/gameEventWrapper'
-import {getPlayerBySocket, getPlayerById, getAllMembersFromGameID} from './game.socket'
+import {createTypedEventSocket} from '../shared/gameEventWrapper'
+import {getPlayerBySocket, getPlayerByUserID, getAllMembersFromGameID} from './game.socket'
 import{stopMockGameLoop, startMockGameLoop} from '../services/pong'
 
 
@@ -67,7 +67,6 @@ export async function processInviteReply(inviter: Interfaces.playerInterface, in
 
   const inviterSocket = createTypedEventSocket(inviter.socket);
   inviterSocket.send('invite', {
-    type: 'invite',
     action: 'reply',
     response,
     targetID: invitee.userID
@@ -200,13 +199,13 @@ export async function tryStartGameIfReady(gameID: number) {
       break;
   }
 
-  const playersInGameRoom = await getAllMembersFromGameID(gameID);
+  const playersInGameRoom = await getAllMembersFromGameID(gameID) ?? [];
 
   if (playersInGameRoom.length > maxPlayers) {
     const playerToKick = await GameManagement.getLastAddedToRoom(gameID);
     if (!playerToKick?.userID) return;
 
-    const excluded = getPlayerById(playerToKick.userID);
+    const excluded = getPlayerByUserID(playerToKick.userID);
     kickFromGameRoom(gameID, excluded.userID, 'an error has occured');
 
     // Recursive call to re-check after kicking
@@ -215,7 +214,7 @@ export async function tryStartGameIfReady(gameID: number) {
 
   if (playersInGameRoom.length === maxPlayers) {
     const playerObjs = playersInGameRoom
-      .map(p => getPlayerById(p.userID))//same HERE
+      .map(p => getPlayerByUserID(p.userID))//same HERE
       .filter((p): p is Interfaces.playerInterface => !!p);
 
     console.log(`starting game in process for user count: ${playerObjs.length}`);
@@ -252,7 +251,7 @@ export async function kickFromGameRoom(
     console.log(`[kickFromGameRoom] Kicking all players from room ${gameID}. Reason: ${reason}`);
 
     for (const p of players) {
-      const player = getPlayerById(p.userID);
+      const player = getPlayerByUserID(p.userID);
       if (!player) continue;
 
       const typedSocket = createTypedEventSocket(player.socket);
@@ -264,7 +263,7 @@ export async function kickFromGameRoom(
       typedSocket.send('kicked', {
         type: 'kicked',
         userID: player.userID,
-        reason,
+        reason: reason ?? '',
       });
 
       // Reset player state and gameID

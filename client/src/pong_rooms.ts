@@ -95,7 +95,6 @@ export function showPongMenu(): void {
             drawMainMenu(canvas, ctx);
             break;
 
-<<<<<<< HEAD
         case 'createGame':
             drawCreateGameView(canvas, ctx);
             break;
@@ -130,8 +129,13 @@ export function showPongMenu(): void {
                 }
 
                 // Setup BabylonJS renderer
-                pongState.pongRenderer = new PongRenderer(babylonCanvas, state.playerInterface.socket);
-
+								const side = state.playerInterface.playerSide ?? 'left';
+								pongState.pongRenderer = new PongRenderer(
+								  babylonCanvas,
+								  state.playerInterface.socket,
+								  window.devicePixelRatio,
+								  side
+								);
                 // Ensure proper canvas size and ratio
                 const resizeObserver = new ResizeObserver(() => {
                     babylonCanvas.width = babylonCanvas.clientWidth;
@@ -141,7 +145,7 @@ export function showPongMenu(): void {
                         pongState.pongRenderer.handleResize();
                     }
                 });
-                resizeObserver.observe(babylonCanvas);
+                resizeObserver.observe(babylonCanvas as unknown as Element);
             }
             break;
 
@@ -149,6 +153,7 @@ export function showPongMenu(): void {
             drawMainMenu(canvas, ctx);
             break;
     }
+}
 
 export function drawMainMenu(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D): void {
 	const width = canvas.width;

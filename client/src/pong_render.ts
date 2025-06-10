@@ -16,11 +16,11 @@ export class PongRenderer{
 	private sideWalls:BABYLON.Mesh[]=[];
 	private frontWalls:BABYLON.Mesh[]=[];
 
-	private playerCount: 2 | 4;
+	private playerCount: number;
 	private playerSide: 'left' | 'right' | 'top' | 'bottom';
 	//TO ADD (ARRAY{UName:{side:string, socre:number}/....})
 
-	constructor(canvas: HTMLCanvasElement, socket: WebSocket, playerCount: 2 | 4, playerSide: 'left' | 'right' | 'top' | 'bottom') {
+	constructor(canvas: HTMLCanvasElement, socket: WebSocket, playerCount: number, playerSide: 'left' | 'right' | 'top' | 'bottom') {
 		this.socket = socket;
 		this.playerCount = playerCount;
 		this.playerSide = playerSide;
@@ -182,7 +182,7 @@ export class PongRenderer{
 		});
 	}
 
-  	private handleResize() {
+  	public handleResize() {
 		window.addEventListener('resize', () => {
 		this.engine.resize();
 		});

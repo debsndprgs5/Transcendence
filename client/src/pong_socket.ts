@@ -46,38 +46,38 @@ export async function initGameSocket() {
 async function handleEvents(
 	typedSocket:ReturnType<typeof import('./shared/gameEventWrapper').createTypedEventSocket>, ws:WebSocket){
 
-	typedSocket.on('init' , async(ws:WebSocket,data:Interfaces.SocketMessageMap['init'])=> {
+	typedSocket.on('init' , async(_socket, data:Interfaces.SocketMessageMap['init'])=> {
 		await handleInit(data, state.gameSocket!);
 	});
-	typedSocket.on('joinGame', async(ws:WebSocket,data:Interfaces.SocketMessageMap['joinGame'])=>{
+	typedSocket.on('joinGame', async(_socket, data:Interfaces.SocketMessageMap['joinGame'])=>{
 		await handleJoinGame(data);
 	});
-	typedSocket.on('invite', async(ws:WebSocket,data:Interfaces.SocketMessageMap['invite'])=>{
+	typedSocket.on('invite', async(_socket, data:Interfaces.SocketMessageMap['invite'])=>{
 		await handleInvite(data, typedSocket);
 	});
-	typedSocket.on('startGame',async(ws:WebSocket,data:Interfaces.SocketMessageMap['startGame']) =>{
+	typedSocket.on('startGame',async(_socket, data:Interfaces.SocketMessageMap['startGame']) =>{
 		await handleStartGame(data);
 	});
-	typedSocket.on('statusUpdate', async (ws:WebSocket,data:Interfaces.SocketMessageMap['statusUpdate']) => {
+	typedSocket.on('statusUpdate', async (_socket, data:Interfaces.SocketMessageMap['statusUpdate']) => {
 		if (state.playerInterface) {
 			state.playerInterface.state = data.newState;
 		}
 	});
-	typedSocket.on('giveSide', async (ws:WebSocket,data:Interfaces.SocketMessageMap['giveSide']) => {
+	typedSocket.on('giveSide', async (_socket, data:Interfaces.SocketMessageMap['giveSide']) => {
 		if (state.playerInterface) {
 			state.playerInterface.playerSide = data.side;
 		}
 	});
-	typedSocket.on('renderData',async(ws:WebSocket,data:Interfaces.SocketMessageMap['renderData']) =>{
+	typedSocket.on('renderData',async(_socket, data:Interfaces.SocketMessageMap['renderData']) =>{
 		await handleRenderData(data);
 	});
-	typedSocket.on('endMatch', async(ws:WebSocket,data:Interfaces.SocketMessageMap['endMatch'])=>{
+	typedSocket.on('endMatch', async(_socket, data:Interfaces.SocketMessageMap['endMatch'])=>{
 		await handleEndMatch(data);
 	});
-	typedSocket.on('kicked', async(ws:WebSocket,data:Interfaces.SocketMessageMap['kicked'])=>{
+	typedSocket.on('kicked', async(_socket, data:Interfaces.SocketMessageMap['kicked'])=>{
 		await handleKicked(data);
 	});
-	typedSocket.on('reconnected', async(ws:WebSocket,data:Interfaces.SocketMessageMap['reconnected'])=>{
+	typedSocket.on('reconnected', async(_socket, data:Interfaces.SocketMessageMap['reconnected'])=>{
 		await handleReconnection(data);
 	});
 	
@@ -87,9 +87,9 @@ export async function handleInit(data:Interfaces.SocketMessageMap['init'], gameS
 		if (data.success) {
 		state.playerInterface = {
 			userID: data.userID,
-			//username:data.username,
+  			username: '', //placeholder for now 
 			socket: gameSocket,
-			state: data.state,
+			state: data.state ?? 'init',
 		};
 
 		showNotification({
@@ -199,8 +199,9 @@ export async function handleEndMatch(data: Interfaces.SocketMessageMap['endMatch
 	if (state.playerInterface?.socket && state.playerInterface.gameID !== undefined) {
 		const typedSocket = createTypedEventSocket(state.playerInterface.socket);
 		typedSocket.send('leaveGame', {
-			gameID: state.playerInterface.gameID,
-			islegit:true
+			userID: state.playerInterface!.userID,
+			gameID: state.playerInterface!.gameID!,
+			islegit: true
 		});
 	} else {
 		console.warn('[ENDMATCH] Could not send leaveGame, missing socket or gameID.');
@@ -222,8 +223,9 @@ export async function handleKicked(data: Interfaces.SocketMessageMap['kicked']) 
   pongState.pongRenderer = null;
 
   // Reset game-related state
-  state.playerInterface.gameID = -1;
-
+  if (state.playerInterface) {
+    state.playerInterface.gameID = -1;
+  }
   // TODO: Update the UI to return the user to the main menu or lobby view
 }
 

@@ -1,7 +1,9 @@
-import * as Interfaces from '../shared/gameTypes'
 /*BIG PACEHODLER FOR MATCHES MANAGMENT 
 	SOON -> let the game run for 20sec so I can try paddles
 */
+import * as Interfaces from '../shared/gameTypes'
+import { createTypedEventSocket } from '../shared/gameEventWrapper'
+
 
 const MappedGames = new Map<
   number,
@@ -26,7 +28,7 @@ export async function declareWinner(
     };
 
     // Use your typed socket send helper here
-    const typedSocket = Interfaces.createTypedEventSocket(p.socket);
+    const typedSocket = createTypedEventSocket(p.socket);
     typedSocket.send('endMatch', endMessage);
   }
   // Optional: save to DB here
@@ -75,7 +77,7 @@ export async function startMockGameLoop(
         balls,
       };
 
-      Interfaces.createTypedEventSocket(p.socket).send('renderData', renderMsg);
+      createTypedEventSocket(p.socket).send('renderData', renderMsg);
     }
 
     // === Game end conditions ===
@@ -83,10 +85,8 @@ export async function startMockGameLoop(
     if (rules.winCondtion === 'time' && elapsed >= rules.limit) {
       const winnerSide =
         players.length === 4
-          ? (['left', 'right', 'top', 'bottom'] as const)[
-              Math.floor(Math.random() * 4)
-            ]
-          : ['left', 'right'][Math.floor(Math.random() * 2)];
+          ? (['left', 'right', 'top', 'bottom'] as const)[Math.floor(Math.random() * 4)]
+          : (['left', 'right'] as const)[Math.floor(Math.random() * 2)];
 
       declareWinner(MappedGames.get(gameID)!.game, players, [winnerSide]);
       return;
@@ -96,12 +96,10 @@ export async function startMockGameLoop(
     if (rules.winCondtion === 'score' && elapsed >= 30) {
       console.log('[DEBUG] Ending game after 30s with winCond = score');
 
-      const winnerSide =
-        players.length === 4
-          ? (['left', 'right', 'top', 'bottom'] as const)[
-              Math.floor(Math.random() * 4)
-            ]
-          : ['left', 'right'][Math.floor(Math.random() * 2)];
+    const winnerSide =
+      players.length === 4
+        ? (['left', 'right', 'top', 'bottom'] as const)[Math.floor(Math.random() * 4)]
+        : (['left', 'right'] as const)[Math.floor(Math.random() * 2)];
 
       declareWinner(MappedGames.get(gameID)!.game, players, [winnerSide]);
       return;

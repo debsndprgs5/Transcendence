@@ -9,7 +9,7 @@ import path from 'path';
 //import {setPongRoom} from '../utils/pongUtils'
 import * as Interfaces from '../shared/gameTypes'
 import {createTypedEventSocket} from '../shared/gameEventWrapper'
-import {beginMockGame, playerMove} from '../services/pong'
+import { playerMove } from '../services/pong'
 import {handleAllEvents} from './game.sockEvents'
 
 const MappedPlayers = new Map<number, Interfaces.playerInterface<WebSocket>>();
@@ -55,11 +55,12 @@ export async function initGameSocket(ws: WebSocket, request: any) {
     } catch {}
   }
 
+  const uname = await UserManagement.getUnameByIndex(userId) ?? 'Unknown';
   const player: Interfaces.playerInterface<WebSocket> = {
     socket: ws,
     userID: userId,
     state: 'init',
-    username: await UserManagement.getUnameByIndex(userId),
+    username: uname,
     hasDisconnected: false,
   };
 

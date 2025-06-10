@@ -22,10 +22,13 @@ export async function initGameSocket() {
 	state.typedSocket = typedSocket;
 	gameSocket.onopen = () => {
 		console.log('[GAME] WebSocket connected');
-
+		state.playerInterface ={
+			userID:state.userId!,
+			socket:state.gameSocket,
+			typedSocket:typedSocket,
+			state:'online'
+		}
 		if (state.playerInterface) {
-			state.playerInterface.state = 'online';
-
 			// Send the 'init' message to backend
 			typedSocket.send('init', {
 			userID: state.userId!,

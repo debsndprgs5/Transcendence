@@ -114,7 +114,6 @@ export async function handleInvite(parsed: any, player: Interfaces.playerInterfa
   if (actionRequested === 'send' && userID === targetID) {
     const typedSocket = createTypedEventSocket(player.socket);
     typedSocket.send('invite', {
-      type: 'invite',
       action: 'reply' as const,
       response: 'you cannot invite yourself',
       targetID,
@@ -127,7 +126,6 @@ export async function handleInvite(parsed: any, player: Interfaces.playerInterfa
 
     if (!target) {
       typedSocket.send('invite', {
-        type: 'invite',
         action: 'reply' as const,
         response: 'offline',
         targetID
@@ -143,7 +141,6 @@ export async function handleInvite(parsed: any, player: Interfaces.playerInterfa
         const inviterSocket = getPlayerByUserID(userID)?.socket;
         if (inviterSocket) {
           createTypedEventSocket(inviterSocket).send('invite', {
-            type: 'invite',
             action: 'reply' as const,
             response: 'timeout',
             targetID,
@@ -152,7 +149,6 @@ export async function handleInvite(parsed: any, player: Interfaces.playerInterfa
         const targetSocket = getPlayerByUserID(targetID)?.socket;
         if (targetSocket) {
           createTypedEventSocket(targetSocket).send('invite', {
-            type: 'invite',
             action: 'reply' as const,
             response: 'timeout',
             targetID,
@@ -179,7 +175,7 @@ export async function handleInvite(parsed: any, player: Interfaces.playerInterfa
       clearTimeout(pending.timeout);
       PendingInvites.delete(toID);
 	}
-    await Helpers.processInviteReply(inviter, invitee, response);
+    await Helpers.processInviteReply(inviter!, invitee!, response);
   }
 }
 

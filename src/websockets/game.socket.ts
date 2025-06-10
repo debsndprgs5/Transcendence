@@ -18,14 +18,6 @@ interface PlayerWithTimeout extends Interfaces.playerInterface {
 
 export const MappedPlayers = new Map<number, PlayerWithTimeout>();
 
-export function getPlayerBySocket(ws: WebSocket): playerInterface<WebSocket> {
-    for (const player of MappedPlayers.values()) {
-        if (player.socket === ws) return player as playerInterface<WebSocket>;
-    }
-    throw new Error('Player not found for socket');
-}
-
-
 dotenv.config({
 	path: path.resolve(process.cwd(), '.env'),
 }); // get env
@@ -67,12 +59,12 @@ export async function initGameSocket(ws: WebSocket, request: any) {
     } catch {}
   }
 
-  const uname = await UserManagement.getUnameByIndex(userId) ?? 'Unknown';
+  const user = await UserManagement.getUnameByIndex(userId);
   const player: Interfaces.playerInterface<WebSocket> = {
     socket: ws,
     userID: userId,
     state: 'init',
-    username: uname,
+    username: user!.username,
     hasDisconnected: false,
   };
 

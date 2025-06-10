@@ -53,7 +53,6 @@ export async function processInviteSend(player: Interfaces.playerInterface, targ
 
   const targetSocket = createTypedEventSocket(target.socket);
   targetSocket.send('invite', {
-    type: 'invite',
     action: 'receive',
     fromID: player.userID,
   });
@@ -72,7 +71,7 @@ export async function processInviteReply(inviter: Interfaces.playerInterface, in
 
   if (response === 'accept') {
     // Create game & add players
-    const quickRoomID = await createQuickGameAndAddPlayers(inviter.userID, invitee.userID, inviter.username);
+    const quickRoomID = await createQuickGameAndAddPlayers(inviter.userID, invitee.userID, inviter.username!);
 
     // Update states for both players
     updatePlayerState(inviter, 'waiting');
@@ -138,7 +137,7 @@ export async function beginGame(gameID: number, players: Interfaces.playerInterf
     const typedSocket = createTypedEventSocket(player.socket);
 
     const sideMsg: Interfaces.SocketMessageMap['giveSide'] = {
-      type: 'giveSide',
+      type:'giveSide',
       userID: player.userID,
       gameID,
       side: player.playerSide!,
@@ -146,7 +145,7 @@ export async function beginGame(gameID: number, players: Interfaces.playerInterf
     typedSocket.send('giveSide', sideMsg);
     // Send start signal
     const startMsg: Interfaces.SocketMessageMap['startGame'] = {
-      type: 'startGame',
+      type:'startGame',
       userID: player.userID,
       gameID,
     };
@@ -234,7 +233,7 @@ export async function tryStartGameIfReady(gameID: number) {
 
 export async function kickFromGameRoom(
   gameID: number,
-  triggeringPlayer?: Interfaces.playerInterface | number,
+  triggeringPlayer?: Interfaces.playerInterface|number,
   reason?: string
 ) {
   let player: Interfaces.playerInterface | undefined;
@@ -268,7 +267,6 @@ export async function kickFromGameRoom(
 
       // Send 'kicked' message with reason
       typedSocket.send('kicked', {
-        type: 'kicked',
         userID: player.userID,
         reason: reason ?? '',
       });
@@ -291,11 +289,11 @@ export async function kickFromGameRoom(
   }
 
   // Remove triggeringPlayer from DB membership
-  await GameManagement.delMemberFromGameRoom(gameID, triggeringPlayer.userID);
+  await GameManagement.delMemberFromGameRoom(gameID, player.userID);
 
   // Reset triggeringPlayer state and gameID, no 'kicked' message (normal leave)
-  updatePlayerState(triggeringPlayer, 'init');
-  triggeringPlayer.gameID = -1;
+  updatePlayerState(player, 'init');
+  player.gameID = -1;
 
   // Optionally, check if room empty and cleanup if so:
   const remainingPlayers = getAllMembersFromGameID(gameID);

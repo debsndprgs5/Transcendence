@@ -3,7 +3,7 @@ import { isAuthenticated, apiFetch, initWebSocket, state } from './api';
 import { PongRenderer } from './pong_render';
 import * as Interfaces from './shared/gameTypes';
 import {createTypedEventSocket} from './shared/gameEventWrapper';
-
+import { showPongMenu } from './pong_rooms';
 
 export const pongState = {
   pongRenderer: null as PongRenderer | null,
@@ -154,6 +154,8 @@ export async function handleStartGame(data: Interfaces.SocketMessageMap['startGa
 	}
 
 	pongState.pongRenderer = new PongRenderer(canvas, state.playerInterface.socket, 2, state.playerInterface.playerSide!);
+	state.canvasViewState = 'playingGame';
+	showPongMenu();
   }
 }
 

@@ -52,107 +52,97 @@ export async function fetchAvailableRooms(): Promise<{ roomID: number; roomName:
 // =======================
 
 export function showPongMenu(): void {
-    const canvas = document.getElementById('pong-canvas') as HTMLCanvasElement | null;
-    const babylonCanvas = document.getElementById('babylon-canvas') as HTMLCanvasElement | null;
-    if (!canvas || !babylonCanvas) return;
+	  const canvas       = document.getElementById('pong-canvas')    as HTMLCanvasElement | null;
+	  const babylonCanvas = document.getElementById('babylon-canvas') as HTMLCanvasElement | null;
+	  if (!canvas || !babylonCanvas) return;
 
-    // Set up event listeners for menu interactions
-    canvas.onclick = handlePongMenuClick;
-    canvas.onmousedown = handlePongMenuMouseDown;
-    canvas.onmouseup = handlePongMenuMouseUp;
-    canvas.onmouseleave = handlePongMenuMouseUp;
-    window.addEventListener('mouseup', handlePongMenuMouseUp);
+		// Set up event listeners for menu interactions
+		canvas.onclick = handlePongMenuClick;
+		canvas.onmousedown = handlePongMenuMouseDown;
+		canvas.onmouseup = handlePongMenuMouseUp;
+		canvas.onmouseleave = handlePongMenuMouseUp;
+		window.addEventListener('mouseup', handlePongMenuMouseUp);
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+		const ctx = canvas.getContext('2d');
+		if (!ctx) return;
 
-    // Handle canvas visibility based on game state
-    if (state.canvasViewState === 'playingGame') {
-        // When in game, show Babylon canvas and hide menu canvas
-        babylonCanvas.style.display = 'block';
-        babylonCanvas.style.position = 'absolute';
-        babylonCanvas.style.top = '14%';
-        babylonCanvas.style.left = '14%';
-        babylonCanvas.style.width = '71.2%';
-        babylonCanvas.style.height = '55%';
-        canvas.style.display = 'none';
-    } else {
-        // In menu states, show menu canvas and hide Babylon canvas
-        babylonCanvas.style.display = 'none';
-        canvas.style.display = 'block';
-    }
+		// Handle canvas visibility based on game state
+	  if (state.canvasViewState === 'playingGame') {
+	    canvas.style.display        = 'none';
+	    babylonCanvas.style.display = 'block';
+	  } else {
+	    babylonCanvas.style.display = 'none';
+	    canvas.style.display        = 'block';
+	  }
 
-    // Dispose of pongRenderer if exists but not in 'playingGame' state
-    if (state.canvasViewState !== 'playingGame' && pongState.pongRenderer) {
-        pongState.pongRenderer.dispose();
-        pongState.pongRenderer = null;
-    }
-    console.log('state.canvasViewState = ', state.canvasViewState);
+		// Dispose of pongRenderer if exists but not in 'playingGame' state
+		if (state.canvasViewState !== 'playingGame' && pongState.pongRenderer) {
+				pongState.pongRenderer.dispose();
+				pongState.pongRenderer = null;
+		}
+		console.log('state.canvasViewState = ', state.canvasViewState);
 
-    // Handle different view states
-    switch (state.canvasViewState) {
-        case 'mainMenu':
-            drawMainMenu(canvas, ctx);
-            break;
+		// Handle different view states
+		switch (state.canvasViewState) {
+				case 'mainMenu':
+						drawMainMenu(canvas, ctx);
+						break;
 
-        case 'createGame':
-            drawCreateGameView(canvas, ctx);
-            break;
+				case 'createGame':
+						drawCreateGameView(canvas, ctx);
+						break;
 
-        case 'waitingGame':
-            drawWaitingGameView(
-                canvas, ctx,
-                state.currentGameName || 'Unknown Room',
-                state.currentPlayers || []
-            );
-            break;
+				case 'waitingGame':
+						drawWaitingGameView(
+								canvas, ctx,
+								state.currentGameName || 'Unknown Room',
+								state.currentPlayers || []
+						);
+						break;
 
-        case 'joinGame':
-            drawJoinGameView(
-                canvas,
-                ctx,
-                state.availableRooms || []
-            );
-            break;
+				case 'joinGame':
+						drawJoinGameView(
+								canvas,
+								ctx,
+								state.availableRooms || []
+						);
+						break;
 
-        case 'playingGame':
-            // Initialize game renderer if not exists
-            if (!pongState.pongRenderer) {
-                if (!state.playerInterface?.socket) {
-                    console.error('WebSocket not initialized for PongRenderer');
-                    return;
-                }
+		    case 'playingGame':
+		      if (!pongState.pongRenderer) {
+		        if (!state.playerInterface?.socket) {
+		          console.error('WebSocket not initialized for PongRenderer');
+		          return;
+		        }
+		        const side = state.playerInterface.playerSide ?? 'left';
+		        const playerCount = state.currentPlayers?.length ?? 2;
 
-                // Ensure proper canvas setup for BabylonJS
-                if (!babylonCanvas || !(babylonCanvas instanceof HTMLCanvasElement)) {
-                    throw new Error('Canvas element #babylon-canvas not found or is not a canvas element');
-                }
 
-                // Setup BabylonJS renderer
-								const side = state.playerInterface.playerSide ?? 'left';
-								pongState.pongRenderer = new PongRenderer(
-								  babylonCanvas,
-								  state.playerInterface.socket,
-								  window.devicePixelRatio,
-								  side
-								);
-                // Ensure proper canvas size and ratio
-                const resizeObserver = new ResizeObserver(() => {
-                    babylonCanvas.width = babylonCanvas.clientWidth;
-                    babylonCanvas.height = babylonCanvas.clientHeight;
-                    if (pongState.pongRenderer) {
-                        // Trigger Babylon engine resize if needed
-                        pongState.pongRenderer.handleResize();
-                    }
-                });
-                resizeObserver.observe(babylonCanvas as unknown as Element);
-            }
-            break;
+		        const r = babylonCanvas.getBoundingClientRect();
+		        babylonCanvas.width  = Math.floor(r.width);
+		        babylonCanvas.height = Math.floor(r.height);
 
-        default:
-            drawMainMenu(canvas, ctx);
-            break;
-    }
+		        pongState.pongRenderer = new PongRenderer(
+		          babylonCanvas,
+		          state.playerInterface.socket,
+		          playerCount,
+		          side
+		        );
+
+		        const obs = new ResizeObserver(() => {
+		          const rr = babylonCanvas.getBoundingClientRect();
+		          babylonCanvas.width  = Math.floor(rr.width);
+		          babylonCanvas.height = Math.floor(rr.height);
+		          pongState.pongRenderer?.handleResize();
+		        });
+		        obs.observe(babylonCanvas as unknown as Element);
+		      }
+		      break;
+
+		    default:
+		      drawMainMenu(canvas, ctx);
+		      break;
+		  }
 }
 
 export function drawMainMenu(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D): void {
@@ -465,26 +455,26 @@ function handlePongMenuMouseUp(): void {
 }
 		
 async function handleLeaveGame(): Promise<void> {
- 	
+	
 	const uID= state.userId;
 	const gID = state.playerInterface?.gameID;
 
-  try {
-    if (!state.playerInterface?.socket) throw new Error('Socket unavailable');
-    const typedSocket = createTypedEventSocket(state.playerInterface.socket);
+	try {
+		if (!state.playerInterface?.socket) throw new Error('Socket unavailable');
+		const typedSocket = createTypedEventSocket(state.playerInterface.socket);
 
-    typedSocket.send('leaveGame', {
-      userID: uID!,
-      gameID: gID!,
-      islegit: false,
-    });
+		typedSocket.send('leaveGame', {
+			userID: uID!,
+			gameID: gID!,
+			islegit: false,
+		});
 
-    console.log(`[LEAVE][INFO] User ${uID} sent leaveGame for room ${gID}`);
-  } catch (err) {
-    console.error('[LEAVE][ERROR] Failed to send leaveGame:', err);
-    showNotification({ message: 'Error leaving game', type: 'error' });
-    return;
-  }
+		console.log(`[LEAVE][INFO] User ${uID} sent leaveGame for room ${gID}`);
+	} catch (err) {
+		console.error('[LEAVE][ERROR] Failed to send leaveGame:', err);
+		showNotification({ message: 'Error leaving game', type: 'error' });
+		return;
+	}
 
 	// cleanup local state & storage
 	state.canvasViewState   = 'mainMenu';

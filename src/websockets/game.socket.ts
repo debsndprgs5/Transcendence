@@ -1,4 +1,4 @@
-import { WebSocketServer, WebSocket, RawData } from 'ws';
+import { WebSocket, WebSocketServer } from 'ws';
 import fp from 'fastify-plugin';
 import { user } from '../types/user';
 import * as UserManagement from '../db/userManagement';
@@ -12,7 +12,19 @@ import {createTypedEventSocket} from '../shared/gameEventWrapper'
 import { playerMove } from '../services/pong'
 import {handleAllEvents} from './game.sockEvents'
 
-const MappedPlayers = new Map<number, Interfaces.playerInterface<WebSocket>>();
+interface PlayerWithTimeout extends Interfaces.playerInterface {
+  disconnectTimeout?: NodeJS.Timeout;
+}
+
+export const MappedPlayers = new Map<number, PlayerWithTimeout>();
+
+export function getPlayerBySocket(ws: WebSocket): playerInterface<WebSocket> {
+    for (const player of MappedPlayers.values()) {
+        if (player.socket === ws) return player as playerInterface<WebSocket>;
+    }
+    throw new Error('Player not found for socket');
+}
+
 
 dotenv.config({
 	path: path.resolve(process.cwd(), '.env'),
@@ -128,13 +140,13 @@ async function verifyAndExtractUser(
     }
 }
 
-export function getPlayerBySocket(ws: WebSocket): Interfaces.playerInterface {
-  // Your logic to find player from MappedPlayers by matching ws socket
+export function getPlayerBySocket(ws: WebSocket): Interfaces.playerInterface<WebSocket> {
   for (const player of MappedPlayers.values()) {
-    if (player.socket === ws) return player;
+    if (player.socket === ws) return player as Interfaces.playerInterface<WebSocket>;
   }
   throw new Error('Player not found for socket');
 }
+
 
 export function getPlayerByUserID(userID: number): Interfaces.playerInterface | undefined {
   return MappedPlayers.get(userID);

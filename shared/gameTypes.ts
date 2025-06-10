@@ -8,8 +8,8 @@ export interface playerInterface<SocketType= any>{
 	tournamentID?:number,
 	score?:number,
 	hasDisconnected?:boolean,
-	disconnectTimeOut?:NodeJS.Timeout
-	state:string // 'init'|'waiting'| 'playing'| 'tournamentWait' | 'tournamentPlay'
+	disconnectTimeOut?:NodeJS.Timeout,
+	state:string, // 'init'|'waiting'| 'playing'| 'tournamentWait' | 'tournamentPlay'
 	playerSide?:"left" | "right"| "top" | "bottom",
 	playerPos?:number
 }
@@ -47,7 +47,14 @@ export interface gameRoomInterface{
 export type SocketMessageMap = {
 	init: { type: 'init'; success?: boolean; userID: number; state?: string };
 	joinGame: { type: 'joinGame'; success?: boolean; reason?: string; gameID?: number , gameName?:string, userID?:number};
-	invite: { type: 'invite'; action: 'reply' | 'receive'; response?: string; userID?: number };
+	invite: { 
+		type: 'invite'; 
+		action: 'reply' | 'receive'; 
+		response?: string; 
+		userID?: number;
+		targetID?: number;
+		fromID?: number;
+	};
 	startGame:{type:'startGame'; userID:number; gameID:number};
 	statusUpdate:{type:'statusUpdate'; userID:number; newState:string};
 	playerMove:{type:'playerMove'; gameID:number; userID:number; direction:string};

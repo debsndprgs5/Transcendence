@@ -11,37 +11,37 @@ const PendingInvites = new Map<number, { inviterID: number; timeout: NodeJS.Time
 //ADD event here if needed for gameSocket
 export function handleAllEvents(typedSocket: ReturnType<typeof createTypedEventSocket>) {
    typedSocket.on('init', async (_ignored, data) => {
-     const player = getPlayerBySocket(typedSocket.socket as unknown as WebSocket);
+     const player = getPlayerBySocket(typedSocket.socket as any);
      handleInit(data, player);
    });
 
   typedSocket.on('joinGame', async (_ignored, data) => {
-    const player = getPlayerBySocket(typedSocket.socket as unknown as WebSocket);
+    const player = getPlayerBySocket(typedSocket.socket as any);
     handleJoin(data, player);
   });
 
   typedSocket.on('invite', async (_ignored, data) => {
-    const player = getPlayerBySocket(typedSocket.socket as unknown as WebSocket);
+    const player = getPlayerBySocket(typedSocket.socket as any);
     handleInvite(data, player);
   });
 
   typedSocket.on('leaveGame', async (_ignored, data) => {
-    const player = getPlayerBySocket(typedSocket.socket as unknown as WebSocket);
+    const player = getPlayerBySocket(typedSocket.socket as any);
     handleLeaveGame(data, player);
   });
 
   typedSocket.on('playerMove', async (_ignored, data) => {
-    const player = getPlayerBySocket(typedSocket.socket as unknown as WebSocket);
+    const player = getPlayerBySocket(typedSocket.socket as any);
     handlePlayerMove(data, player);
   });
 
   typedSocket.on('reconnected', () => {
-    const player = getPlayerBySocket(typedSocket.socket as unknown as WebSocket);
+    const player = getPlayerBySocket(typedSocket.socket as any);
     handleDisconnect(player);
   });
 
   typedSocket.socket.on('close', () => {
-    const player = getPlayerBySocket(typedSocket.socket as unknown as WebSocket);
+    const player = getPlayerBySocket(typedSocket.socket as any);
     handleDisconnect(player);
   });
 }
@@ -115,7 +115,7 @@ export async function handleInvite(parsed: any, player: Interfaces.playerInterfa
     const typedSocket = createTypedEventSocket(player.socket);
     typedSocket.send('invite', {
       type: 'invite',
-      action: 'reply' | 'receive',
+      action: 'reply' as const,
       response: 'you cannot invite yourself',
       targetID,
     });
@@ -128,7 +128,7 @@ export async function handleInvite(parsed: any, player: Interfaces.playerInterfa
     if (!target) {
       typedSocket.send('invite', {
         type: 'invite',
-        action: 'reply',
+        action: 'reply' as const,
         response: 'offline',
         targetID
       });
@@ -144,7 +144,7 @@ export async function handleInvite(parsed: any, player: Interfaces.playerInterfa
         if (inviterSocket) {
           createTypedEventSocket(inviterSocket).send('invite', {
             type: 'invite',
-            action: 'reply',
+            action: 'reply' as const,
             response: 'timeout',
             targetID,
           });
@@ -153,7 +153,7 @@ export async function handleInvite(parsed: any, player: Interfaces.playerInterfa
         if (targetSocket) {
           createTypedEventSocket(targetSocket).send('invite', {
             type: 'invite',
-            action: 'reply',
+            action: 'reply' as const,
             response: 'timeout',
             targetID,
           });
@@ -225,6 +225,10 @@ export async function handleReconnect(player: Interfaces.playerInterface) {
 export async function handleDisconnect(player: Interfaces.playerInterface) {
   console.log(`User ${player.userID} disconnected. Waiting 15s for reconnect...`);
   player.hasDisconnected = true;
+  interface PlayerWithTimeout extends Interfaces.playerInterface {
+    disconnectTimeOut?: NodeJS.Timeout;
+  }
+  const playerWithTimeout = player as PlayerWithTimeout;
 
   // Clear any existing timeout to avoid duplicates
   if (player.disconnectTimeOut) {

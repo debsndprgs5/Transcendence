@@ -31,7 +31,6 @@ export async function processInviteSend(player: Interfaces.playerInterface, targ
 
   if (player.state !== 'init') {
     typedSocket.send('invite', {
-      type: 'invite',
       action: 'reply',
       response: 'you are busy',
       targetID: target.userID
@@ -41,7 +40,6 @@ export async function processInviteSend(player: Interfaces.playerInterface, targ
 
   if (target.state !== 'init') {
     typedSocket.send('invite', {
-      type: 'invite',
       action: 'reply',
       response: 'busy',
       targetID: target.userID
@@ -206,9 +204,9 @@ export async function tryStartGameIfReady(gameID: number) {
     if (!playerToKick?.userID) return;
 
     const excluded = getPlayerByUserID(playerToKick.userID);
-    kickFromGameRoom(gameID, excluded.userID, 'an error has occured');
-
-    // Recursive call to re-check after kicking
+    if (!excluded) return;
+    
+    await kickFromGameRoom(gameID, excluded, 'an error has occurred');
     return tryStartGameIfReady(gameID);
   }
 
@@ -236,9 +234,18 @@ export async function tryStartGameIfReady(gameID: number) {
 
 export async function kickFromGameRoom(
   gameID: number,
-  triggeringPlayer?: Interfaces.playerInterface,
+  triggeringPlayer?: Interfaces.playerInterface | number,
   reason?: string
 ) {
+  let player: Interfaces.playerInterface | undefined;
+  
+  if (typeof triggeringPlayer === 'number') {
+    player = getPlayerByUserID(triggeringPlayer);
+  } else {
+    player = triggeringPlayer;
+  }
+
+  if (!player) return;
   // Get all current players in the room from in-memory map
   const players = getAllMembersFromGameID(gameID);
   if (!players || players.length === 0) {

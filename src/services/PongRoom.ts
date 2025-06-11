@@ -24,8 +24,8 @@ export class PongRoom {
   private readonly balls: ballClass[] = []
   private loop?: NodeJS.Timeout
 
-  private readonly WIDTH = 10
-  private readonly HEIGHT = 10
+  private readonly WIDTH;
+  private readonly HEIGHT;
 
   constructor(
     game: G.gameRoomInterface & { ballSpeed: number; paddleSpeed: number },
@@ -104,8 +104,8 @@ export class PongRoom {
   move(userID: number, dir: 'left' | 'right' | 'stop') {
     const paddle = this.paddles.get(userID)
     if (!paddle) return
-    if (dir === 'left')  paddle.move_minus()
-    if (dir === 'right') paddle.move_add()
+    if (dir === 'left')  paddle.move_minus(this.WIDTH, this.HEIGHT)
+    if (dir === 'right') paddle.move_add(this.WIDTH, this.HEIGHT)
   }
 
   /** Stop the loop and remove this room */

@@ -45,10 +45,10 @@ export class PongRenderer{
 		let camPos: BABYLON.Vector3;
 
 		switch (this.playerSide) {
-			case 'left':
+			case 'right':
 				camPos = new BABYLON.Vector3(-distance, height, 0);
 				break;
-			case 'right':
+			case 'left':
 				camPos = new BABYLON.Vector3(distance, height, 0);
 				break;
 			case 'top':
@@ -144,7 +144,7 @@ export class PongRenderer{
 		// Update paddles positions
 		Object.entries(update.paddles).forEach(([key, paddleData]) => {
 			const index = Number(key);
-			const paddleMesh = this.paddles[index];
+			const paddleMesh = this.paddles[index-1];
 			if (!paddleMesh) return;
 
 			// Position depends on the side:
@@ -168,7 +168,7 @@ export class PongRenderer{
 		// Update balls positions
 		Object.entries(update.balls).forEach(([key, ballData]) => {
 			const index = Number(key);
-			const ballMesh = this.balls[index];
+			const ballMesh = this.balls[index-1];
 			if (!ballMesh) return;
 
 			// Map ball x,y to mesh position:

@@ -87,6 +87,8 @@ export async function startMockGameLoop(
 
     // Dummy ball placeholder (just to maintain structure)
     balls[0] = { x: 0, y: 0 };
+   // balls[1] = { x: 1, y: 1 };
+    //balls[2] = { x: 2, y: 2 };
 
     // === Send to all players ===
     for (const p of players) {
@@ -191,7 +193,7 @@ export async function playerMove(
     // Clamp Y-axis
     player.playerPos = Math.max(-MAP_LIMIT + halfPaddle, Math.min(MAP_LIMIT - halfPaddle, player.playerPos));
   }
-  console.log(`[playerMove] gameID=${gameID} userID=${userID} side=${player?.playerSide}`);
+  console.log(`[playerMove] gameID=${gameID} userID=${userID} pos=${player?.playerPos}`);
 
 
   // 'stop' does nothing for now

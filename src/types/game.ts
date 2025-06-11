@@ -130,19 +130,71 @@ import {
   ballSize,
 }     from '../shared/gameTypes'
 
+// export class paddleClass {
+//   constructor(public paddleInterface: paddleInterface) {}
+//   move_add(width:number, length:number) {
+// 	if (this.paddleInterface.type === 'H' && this.paddleInterface.y < width / 2)
+//       this.paddleInterface.x += this.paddleInterface.speed
+//     else (this.paddleInterface.type === 'V' && this.paddleInterface.y < length / 2)
+//       this.paddleInterface.y += this.paddleInterface.speed
+//   }
+//   move_minus(width:number, length:number) {
+//     if (this.paddleInterface.type === 'H' && this.paddleInterface.x > -width / 2)
+//       this.paddleInterface.x -= this.paddleInterface.speed
+//     else if (this.paddleInterface.type === 'V' && this.paddleInterface.y > -length / 2)
+//       this.paddleInterface.y -= this.paddleInterface.speed
+//   }
+// }
+
 export class paddleClass {
   constructor(public paddleInterface: paddleInterface) {}
-  move_add(width:number, length:number) {
-	if (this.paddleInterface.type === 'H' && this.paddleInterface.y < width / 2)
-      this.paddleInterface.x += this.paddleInterface.speed
-    else (this.paddleInterface.type === 'V' && this.paddleInterface.y < length / 2)
-      this.paddleInterface.y += this.paddleInterface.speed
+
+  move_add(width: number, length: number) {
+    const halfPaddle = this.paddleInterface.length / 2;
+    const MAP_LIMIT_X = width / 2;
+    const MAP_LIMIT_Y = length / 2;
+
+    if (this.paddleInterface.type === 'H') {
+      // Move along X-axis
+      this.paddleInterface.x += this.paddleInterface.speed;
+      // Clamp
+      this.paddleInterface.x = Math.max(
+        -MAP_LIMIT_X + halfPaddle,
+        Math.min(MAP_LIMIT_X - halfPaddle, this.paddleInterface.x)
+      );
+    } else {
+      // Move along Y-axis
+      this.paddleInterface.y += this.paddleInterface.speed;
+      // Clamp
+      this.paddleInterface.y = Math.max(
+        -MAP_LIMIT_Y + halfPaddle,
+        Math.min(MAP_LIMIT_Y - halfPaddle, this.paddleInterface.y)
+      );
+    }
   }
-  move_minus(width:number, length:number) {
-    if (this.paddleInterface.type === 'H' && this.paddleInterface.x > -width / 2)
-      this.paddleInterface.x -= this.paddleInterface.speed
-    else if (this.paddleInterface.type === 'V' && this.paddleInterface.y > -length / 2)
-      this.paddleInterface.y -= this.paddleInterface.speed
+
+  move_minus(width: number, length: number) {
+    const halfPaddle = this.paddleInterface.length / 2;
+    const MAP_LIMIT_X = width / 2;
+    const MAP_LIMIT_Y = length / 2;
+
+    if (this.paddleInterface.type === 'H') {
+      // Move along X-axis
+      this.paddleInterface.x -= this.paddleInterface.speed;
+      // Clamp
+      this.paddleInterface.x = Math.max(
+        -MAP_LIMIT_X + halfPaddle,
+        Math.min(MAP_LIMIT_X - halfPaddle, this.paddleInterface.x)
+      );
+    } else {
+      // Move along Y-axis
+      this.paddleInterface.y -= this.paddleInterface.speed;
+      // Clamp
+      this.paddleInterface.y = Math.max(
+        -MAP_LIMIT_Y + halfPaddle,
+        Math.min(MAP_LIMIT_Y - halfPaddle, this.paddleInterface.y)
+      );
+    }
   }
 }
 

@@ -80,8 +80,8 @@ export class PongRenderer{
     	new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), this.scene);
   	}
 	private createWalls() {
-		const width2P = LIMIT.arenaLength2p; // -8 to 8
-		const depth2P = LIMIT.arenaWidth2p; // -5 to 5
+		const width2P = LIMIT.arenaWidth2p; // -8 to 8
+		const depth2P = LIMIT.arenaLength2p; // -5 to 5
 		const width4P = LIMIT.arenaWidth4p; // -6 to 6
 		const depth4P = LIMIT.arenaWidth4p; // -6 to 6
 

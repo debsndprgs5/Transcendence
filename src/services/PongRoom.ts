@@ -132,9 +132,9 @@ export class PongRoom {
   }
 
   private bounceArena(ball: ballClass) {
-    if (ball.x - ball.radius <= -this.WIDTH || ball.x + ball.radius >= this.WIDTH)
+    if (ball.x - ball.radius <= -this.WIDTH/2 || ball.x + ball.radius >= this.WIDTH/2)
       ball.vector[0] *= -1
-    if (ball.y - ball.radius <= -this.HEIGHT || ball.y + ball.radius >= this.HEIGHT)
+    if (ball.y - ball.radius <= -this.HEIGHT/2 || ball.y + ball.radius >= this.HEIGHT/2)
       ball.vector[1] *= -1
   }
 

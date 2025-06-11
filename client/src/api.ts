@@ -1,10 +1,15 @@
 import { handleLogout } from './handlers';
+import * as Interfaces from './shared/gameTypes';
+import { TypedSocket } from './shared/gameTypes';
+//import { WebSocket } from 'ws';
 
 export interface AppState {
 	authToken: string | null;
 	pendingToken: string | null;
 	socket: WebSocket | null;
-	userId: number | null;
+	gameSocket:WebSocket|null;
+	typedSocket:TypedSocket;
+	userId?: number;
 	currentRoom: number;
 	availableRooms: { roomID: number; roomName: string }[];
 	canvasViewState: string;
@@ -12,23 +17,26 @@ export interface AppState {
 	currentPlayers?: string[];
 	friendsStatusList: { friendID: number }[];
 	loadRooms?: () => void;
-	gameSocket:WebSocket | null;
-	playerState: string;
+	playerInterface?:Interfaces.playerInterface,
+	paddleInterface?:Interfaces.paddleInterface,
+	gameInterface?:Interfaces.gameRoomInterface
 }
 
 export const state: AppState = {
 	authToken: null,
 	pendingToken: null,
 	socket: null,
-	userId: null,
+	gameSocket:null,
+	typedSocket:null,
 	currentRoom: 0,
 	availableRooms: [],
 	canvasViewState: 'mainMenu',
 	currentGameName: undefined,
 	currentPlayers: undefined,
 	friendsStatusList: [],
-	playerState: 'online',
-	gameSocket: null,
+	playerInterface: undefined,
+	paddleInterface: undefined,
+	gameInterface: undefined,
 };
 
 // ─── AUTHENTICATION ──────────────────────────────────────────────────────

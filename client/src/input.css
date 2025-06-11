@@ -50,3 +50,17 @@
     width: 28px; height: 13px;
     pointer-events: none;
 }
+
+#pong-canvas, #babylon-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.game-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}

@@ -3,7 +3,9 @@ import * as GameManagement from '../db/gameManagement'
 import * as Helpers from './game.sockHelpers'
 import { TypedSocket } from '../shared/gameTypes';
 import {getPlayerBySocket, getPlayerByUserID, getAllMembersFromGameID, delPlayer} from './game.socket'
-import{stopMockGameLoop, startMockGameLoop, playerMove} from '../services/pong'
+import { playerMove } from '../services/pong'
+
+// import{stopMockGameLoop, startMockGameLoop, playerMove} from '../services/pong'
 
 //Map of pending invite for timeout and duplicates managment
 const PendingInvites = new Map<number, { inviterID: number; timeout: NodeJS.Timeout }>();

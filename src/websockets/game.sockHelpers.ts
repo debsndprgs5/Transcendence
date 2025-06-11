@@ -2,7 +2,8 @@ import * as Interfaces from '../shared/gameTypes'
 import * as GameManagement from '../db/gameManagement'
 import {createTypedEventSocket} from '../shared/gameEventWrapper'
 import {getPlayerBySocket, getPlayerByUserID, getAllMembersFromGameID} from './game.socket'
-import{stopMockGameLoop, startMockGameLoop} from '../services/pong'
+// import{stopMockGameLoop, startMockGameLoop} from '../services/pong'
+import { PongRoom } from '../services/PongRoom'
 
 
 
@@ -159,12 +160,17 @@ export async function beginGame(gameID: number, players: Interfaces.playerInterf
   GameManagement.setStateforGameID(gameID, 'playing');
 
   // Pass players and rules directly to avoid DB hits in loop
-  startMockGameLoop(gameID, shuffled, {
-    winCondtion: winCondition,
+  const gameDesc: Interfaces.gameRoomInterface & { ballSpeed: number; paddleSpeed: number } = {
+    gameID,
+    mode,
+    winCondition,
     limit,
+    settings: '',
+    created_at: new Date().toISOString(),
     ballSpeed,
     paddleSpeed,
-  });
+  }
+  new PongRoom(gameDesc, shuffled)
 }
 
 export async function tryStartGameIfReady(gameID: number) {
@@ -269,7 +275,8 @@ export async function kickFromGameRoom(
 
     // Remove the game room and stop game loop
     await GameManagement.deleteGameRoom(gameID);
-    stopMockGameLoop(gameID);
+    const room = PongRoom.rooms.get(gameID);
+    if (room) room.stop();
     return;
   }
 
@@ -290,6 +297,7 @@ export async function kickFromGameRoom(
   const remainingPlayers = getAllMembersFromGameID(gameID);
   if (!remainingPlayers || remainingPlayers.length === 0) {
     await GameManagement.deleteGameRoom(gameID);
-    stopMockGameLoop(gameID);
+    const room = PongRoom.rooms.get(gameID);
+    if (room) room.stop();
   }
 }

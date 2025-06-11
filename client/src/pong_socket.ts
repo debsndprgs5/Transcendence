@@ -160,7 +160,7 @@ export async function handleStartGame(data: Interfaces.SocketMessageMap['startGa
 	  throw new Error('playerInterface is not defined');
 	}
 
-	pongState.pongRenderer = new PongRenderer(canvas, state.playerInterface.socket, 2, state.playerInterface.playerSide!);
+	pongState.pongRenderer = new PongRenderer(canvas, state.typedSocket, 2, state.playerInterface.playerSide!);
 	state.canvasViewState = 'playingGame';
 	showPongMenu();
   }

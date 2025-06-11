@@ -8,13 +8,95 @@ import {
 
 const MappedGames = new Map<
   number,
-  {
-    game: Interfaces.gameRoomInterface & { parsedSettings?: any };
-    players: Interfaces.playerInterface[];
-    loopTimeout?: NodeJS.Timeout;
-    startTime: number;
-  }
+  PongRoomClass
 >();
+
+class PongRoomClass{
+	players:Interfaces.playerInterface[];
+	balls?:ballClass[];
+	interface:Interfaces.gameRoomInterface;
+	loopTimeout?:NodeJS.Timeout;
+	startTime:number;
+	win_condition:string;
+	limit:number;
+	ballSpeed:number;
+	paddleSpeed:number
+
+	constructor(players:Interfaces.playerInterface[], Gameinterface:Interfaces.gameRoomInterface, rules:string){
+		this.players = players;
+		this.interface = Gameinterface;
+		this.loopTimeout = undefined; // Make sure to set this to undefined initially
+    	this.startTime = Date.now();
+		//set rules 
+		const {win_condtion, limit, ballSpeed, paddleSpeed} = JSON.parse(rules);
+		this.win_condition = win_condtion;
+		this.limit = limit;
+		this.ballSpeed = ballSpeed;
+		this.paddleSpeed = paddleSpeed;
+		//Set player side and pos for init game
+		for(const p of players){
+			//assing pos and side
+		}
+		//Set one ball per 2p at center(0,0)
+	}
+}
+// rules: {
+//     winCondtion: 'score' | 'time';
+//     limit: number;
+//     ballSpeed: number;
+//     paddleSpeed: number;}
+async function startLoop(gameID: number,
+  playersInterface: Interfaces.playerInterface[],
+  rules:string){
+
+	const newGame= new PongRoomClass(playersInterface, gameID, rules);
+	MappedGames.set(gameID, newGame);
+	gameLoop(newGame);
+	
+}
+
+async function gameLoop(currentGame:PongRoomClass){
+
+}
+
+
+async function declareWinner(currentGame:PongRoomClass, winnerSide:string){
+
+}
+
+
+async function stopLoop(currentGame:PongRoomClass){
+
+}
+
+async function playerMove(gameID: number,
+  userID: number,
+  direction: 'right' | 'left' | 'stop'){
+	
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /* GAMELOOP (with some obvious placeholder here and there) */
 
@@ -138,89 +220,6 @@ export function bounce_player(ball:ballClass, paddle:paddleClass){
 */
 
 ////////////////////////////////////////////////////////////////////PLACEHOLDER flag for deletion
-export async function declareWinner(
-	currentGame: Interfaces.gameRoomInterface,
-	players: Interfaces.playerInterface[],
-	winnerSide: 'left' | 'right'
-) {
-	for (const p of players) {
-		const isWinner = p.playerSide === winnerSide;
-
-		const endMessage: Interfaces.SocketMessageMap['endMatch'] = {
-			type: 'endMatch',
-			isWinner: isWinner,
-		};
-
-		p.socket.send(JSON.stringify(endMessage));
-	}
-
-	// Optional: Save match result to DB, if needed
-}
-
-////////////////////////////////////////////////////////////////////PLACEHOLDER flag for deletion
-export async function beginMockGame(gameID: number, players: Interfaces.playerInterface[]) {
-	if (players.length !== 2) {
-		console.error("Only 2-player games are supported for now.");
-		return;
-	}
-
-	// Shuffle and assign sides
-	const shuffled = players.sort(() => Math.random() - 0.5);
-	shuffled[0].playerSide = 'left';
-	shuffled[1].playerSide = 'right';
-
-	// Inform each player
-	for (const p of shuffled) {
-		const statusMsg: Interfaces.SocketMessageMap['statusUpdate'] = {
-			type: 'statusUpdate',
-			userID: p.userID,
-			newState: 'playing',
-		};
-
-		p.socket.send(JSON.stringify(statusMsg));
-	}
-
-	// Randomly pick winner
-	const winnerSide = Math.random() < 0.5 ? 'left' : 'right';
-
-	// Fake currentGame for now (if not fully implemented)
-	const mockGame: Interfaces.gameRoomInterface = {
-		gameID,
-		winCondtion: 'score',
-		limit: 5,
-		mode: 'duo',
-	};
-
-	await declareWinner(mockGame, shuffled, winnerSide);
-}
-
-
-// export async function sendRender(currentGame:Interfaces.pongRoom, players:Interfaces.playerInterface[]){
-// //BroadCast data to all players related to Currentgame
-// }
-
-// export async function handleMove(currentGame:Interfaces.pongRoom){
-// 	//The sockets recive the players moving allready can't socket update game directly ?
-// }
-
-// export async function gameLoop(currentGame:Interfaces.pongRoom, players:Interfaces.playerInterface[]){
-// 	sendRender(currentGame, players);
-// 	handleMove(currentGame)
-// 	if(await checkWin(currentGame)=== true){
-// 		declareWinner(currentGame, players)
-// 		return;
-// 	}
-
-// 	setTimeout(() => {
-// 		gameLoop(currentGame);
-// 	}, 1000 / 60); // 60 FPS game loop (~16.67ms/frame)
-// }
-/*BIG PACEHODLER FOR MATCHES MANAGMENT 
-	SOON -> let the game run for 20sec so I can try paddles
-*/
-
-///////////////////////////////////////////START OF THE "NeedHelpForViewBranch"////////////////////////////////
-
 
 ////////////////////////////////////////////////////////////////////PLACEHOLDER (i think) flag for deletion
 export async function declareWinner(

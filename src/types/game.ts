@@ -23,30 +23,6 @@ export interface userData{
 
 
 
-export class paddleClass{
-	 paddleInterface:paddleInterface;
-
-	constructor(paddleInterface:paddleInterface){
-		this.paddleInterface = paddleInterface;
- 	}
-	move_add(): void{
-		if (this.paddleInterface.type == 'H' && this.paddleInterface.x < MAX_LENGTH){
-			this.paddleInterface.x += this.paddleInterface.speed;
-		}
-		if (this.paddleInterface.type == 'V' && this.paddleInterface.y < MAX_WIDTH){
-			this.paddleInterface.y += this.paddleInterface.speed;
-		}
-	}
-	move_minus(): void{
-		if (this.paddleInterface.type == 'H' && this.paddleInterface.x > 0){
-			this.paddleInterface.x -= this.paddleInterface.speed;
-		}
-		if (this.paddleInterface.type == 'V' && this.paddleInterface.y > 0){
-			this.paddleInterface.y -= this.paddleInterface.speed;
-		}
-	}
-}
-
 
 export class ballClass
 {
@@ -56,7 +32,7 @@ export class ballClass
 	speed:number;
 	vector: [number, number];
 	score:number;
-	last_bounce?: paddleClass;
+	last_bounce?:number;//userID
 
 	constructor(x:number, y:number, radius:number, speed:number)
 	{
@@ -93,27 +69,3 @@ export class ballClass
 //Assuming 500/100 map
 const MAX_WIDTH=100 //y
 const MAX_LENGTH=500 //x
-
-export class playerClass{
-	
-	playerInterface:playerInterface// 'init'|'waiting'| 'playing'| 'tournamentWait' | 'tournamentPlay'
-
-	paddle:paddleClass;
-
-	constructor(playerInterface:playerInterface,
-				paddleInterface:paddleInterface){
-	this.playerInterface = playerInterface;
-	this.paddle = paddleInterface;
-	}
-	setupFirstPos():void{
-		if(this.paddle){
-			if(this.paddle.paddleInterface.type === 'H')
-				this.paddle.paddleInterface.x = MAX_WIDTH/2
-			else if(this.paddle.paddleInterface.type === 'V')
-				this.paddle.paddleInterface.y = MAX_LENGTH/2
-		}
-	}
-	moveUp():void{
-		
-	}
-}

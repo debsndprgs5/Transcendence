@@ -193,12 +193,13 @@ export class PongRenderer{
 	private initInputListeners() {
 		window.addEventListener('keydown', (e) => {
 		// if (e.repeat) return; // ignore repeats
-
+      console.log(state.userId, state.playerInterface?.playerSide, e.key);
 			if (e.key === 'ArrowLeft') this.sendMove('left');
 			else if (e.key === 'ArrowRight') this.sendMove('right');
 		});
 
 		window.addEventListener('keyup', (e) => {
+      console.log(state.userId, state.playerInterface?.playerSide, e.key);
 			if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') this.sendMove('stop');
 		});
 	}

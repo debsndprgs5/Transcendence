@@ -59,9 +59,9 @@ export class PongRenderer{
 			case 'left':
 				camPos = new BABYLON.Vector3(distance, height, 0);
 				break;
-      case 'right':
-        camPos = new BABYLON.Vector3(-distance, height, 0);
-        break;
+			case 'right':
+				camPos = new BABYLON.Vector3(-distance, height, 0);
+       			break;
 			case 'top':
 				camPos = new BABYLON.Vector3(0, height, distance);
 				break;

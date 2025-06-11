@@ -92,3 +92,15 @@ export type EventHandler<SocketType = any> = (
 export type EventHandlerMap<SocketType = any> = {
 	[K in SocketEvent]?: (socket: SocketType, data: SocketMessageMap[K]) => void;
 };
+
+
+export const paddleSize=4;
+export const paddleWidth=2;
+
+export const arenaLength2p=30;
+export const arenaWidth2p=20;
+
+export const arenaWidth4p=30;
+export const arenaLength4p=30;
+
+export const ballSize=0.7;

@@ -24,8 +24,8 @@ export class PongRoom {
   private readonly balls: ballClass[] = []
   private loop?: NodeJS.Timeout
 
-  private readonly WIDTH = 10
-  private readonly HEIGHT = 10
+  private readonly WIDTH:number
+  private readonly HEIGHT:number
 
   constructor(
     game: G.gameRoomInterface & { ballSpeed: number; paddleSpeed: number },

@@ -16,7 +16,7 @@ export class PongRoom {
   private loop?: NodeJS.Timeout
 
   private readonly WIDTH = 10
-  private readonly HEIGHT = 5
+  private readonly HEIGHT = 10
 
   constructor(
     game: G.gameRoomInterface & { ballSpeed: number; paddleSpeed: number },
@@ -34,14 +34,37 @@ export class PongRoom {
         gameID:   game.gameID,
         x:        0,
         y:        0,
-        hitbox:   [0, 0, 0.5, 2],      // [x, y, width, length]
-        width:    0.5,
-        length:   2,
+        width:    2,
+        length:   5,
         speed:    game.paddleSpeed / 100,
         type:     (p.playerSide === 'top' || p.playerSide === 'bottom') ? 'H' : 'V',
       }
       this.paddles.set(p.userID, new paddleClass(pi))
     }
+    let index:number = 0;
+    for (const p of this.paddles) {
+      if (p[1].paddleInterface.type == 'V'){
+        if (index % 2){
+          p[1].paddleInterface.x = -this.WIDTH/2;
+          p[1].paddleInterface.y = this.HEIGHT/2;
+        }
+        else{
+          p[1].paddleInterface.x = this.WIDTH/2;
+          p[1].paddleInterface.y = this.HEIGHT/2;
+        }
+      }
+      if (p[1].paddleInterface.type == 'V'){
+        if (index % 2){
+          p[1].paddleInterface.x = this.WIDTH/2;
+          p[1].paddleInterface.y = this.HEIGHT/2;
+        }
+        else{
+          p[1].paddleInterface.x = this.WIDTH/2;
+          p[1].paddleInterface.y = this.HEIGHT/2;
+        }
+      }
+    }
+    
 
     // create the ball
     this.balls.push(new ballClass(0, 0, 0.25, game.ballSpeed / 100))
@@ -72,6 +95,9 @@ export class PongRoom {
   private frame() {
     // 1. Physics
     for (const b of this.balls) {
+      for (const p of this.paddles){
+        this.bounce_player(b, p[1])
+      }
       this.bounceArena(b)
       this.ballsMove(b)
     }
@@ -89,6 +115,32 @@ export class PongRoom {
   private ballsMove(b: ballClass) {
     b.x += b.vector[0] * b.speed
     b.y += b.vector[1] * b.speed
+  }
+
+  private bounce_player(ball:ballClass, paddle:paddleClass){
+  	let close_x:number = ball.x;
+  	let	close_y:number = ball.y;
+
+  	if (ball.x < paddle.paddleInterface.x)
+  		close_x = paddle.paddleInterface.x;
+  	else if (ball.x > paddle.paddleInterface.x + paddle.paddleInterface.width)
+  		close_x = paddle.paddleInterface.x + paddle.paddleInterface.width;
+  	if (ball.y < paddle.paddleInterface.y)
+  		close_y = paddle.paddleInterface.y;
+  	else if (ball.y > paddle.paddleInterface.y + paddle.paddleInterface.length)
+  		close_y = paddle.paddleInterface.y + paddle.paddleInterface.length;
+
+  	let dist_x:number = close_x - ball.x;
+  	let dist_y:number = close_y - ball.y;
+  	let dist:number = Math.sqrt((dist_x * dist_x) + dist_y * dist_y);
+
+  	if (dist <= ball.radius)
+  	{
+      console.log(`bounce happened by ${paddle.paddleInterface.username}: paddle_coord: ${paddle.paddleInterface.x}, ${paddle.paddleInterface.y} | ball_coord: ${ball.x}, ${ball.y}`);
+  		ball.bounce_x();
+  		ball.bounce_y();
+  		ball.last_bounce = paddle;
+  	}
   }
 
   private broadcast() {

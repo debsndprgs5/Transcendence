@@ -2,6 +2,7 @@ import * as G from '../shared/gameTypes'
 import { paddleClass, ballClass } from '../types/game'
 import { createTypedEventSocket } from '../shared/gameEventWrapper'
 
+
 /**
  * A lightweight container for one running Pong match.
  */
@@ -15,8 +16,8 @@ export class PongRoom {
   private readonly balls: ballClass[] = []
   private loop?: NodeJS.Timeout
 
-  private readonly WIDTH = 10
-  private readonly HEIGHT = 10
+  private readonly WIDTH:number
+  private readonly HEIGHT:number
 
   constructor(
     game: G.gameRoomInterface & { ballSpeed: number; paddleSpeed: number },
@@ -26,12 +27,12 @@ export class PongRoom {
     this.gameID  = game.gameID
     this.players = players
 	if(this.game.mode === 'duo'){
-		this.WIDTH=arenaWidth2p
-		this.HEIGHT=arenaLength2p
+		this.WIDTH=G.arenaWidth2p
+		this.HEIGHT=G.arenaLength2p
 	}
 	else {
-		this.WIDTH=arenaWidth4p
-		this.HEIGHT=arenaLength4p
+		this.WIDTH=G.arenaWidth4p
+		this.HEIGHT=G.arenaLength4p
 	}
     // instantiate a paddleClass for each player, fulfilling paddleInterface
     for (const p of players) {

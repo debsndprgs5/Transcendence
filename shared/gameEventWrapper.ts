@@ -194,7 +194,7 @@ export function createTypedEventSocket<
             }
         } catch (err) {
             console.warn('Invalid message received:', 'data' in event ? event.data : event);
-            //console.error('Parse error:', err);
+            console.error('Parse error:', err);
         }
     };
 

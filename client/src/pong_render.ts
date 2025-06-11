@@ -1,7 +1,8 @@
 import { showNotification } from './notifications';
 import { isAuthenticated, apiFetch, initWebSocket, state } from './api';
-import { TypedSocket, SocketMessageMap } from './shared/gameTypes';
+import { TypedSocket, SocketMessageMap} from './shared/gameTypes';
 import * as BABYLON from 'babylonjs';
+import * as LIMIT from './shared/gameTypes';
 
 export class PongRenderer{
 
@@ -79,10 +80,10 @@ export class PongRenderer{
     	new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), this.scene);
   	}
 	private createWalls() {
-		const width2P = 16; // -8 to 8
-		const depth2P = 10; // -5 to 5
-		const width4P = 12; // -6 to 6
-		const depth4P = 12; // -6 to 6
+		const width2P = LIMIT.arenaLength2p; // -8 to 8
+		const depth2P = LIMIT.arenaWidth2p; // -5 to 5
+		const width4P = LIMIT.arenaWidth4p; // -6 to 6
+		const depth4P = LIMIT.arenaWidth4p; // -6 to 6
 
 		const wallHeight = 0.3;
 		const wallDepth = 0.5;
@@ -119,8 +120,8 @@ export class PongRenderer{
 	}
 
 	private createGameObjects() {
-		const paddleSize2P = { height: 1, width: 0.5, depth: 3 }; // Original paddle size
-		const paddleSize4P = { height: 1, width: 3, depth: 0.5 }; // Rotated for top/bottom
+		const paddleSize2P = { height: 1, width: LIMIT.paddleWidth, depth: LIMIT.paddleSize }; // Original paddle size
+		const paddleSize4P = { height: 1, width: LIMIT.paddleSize, depth: LIMIT.paddleWidth }; // Rotated for top/bottom
 
 		for (let i = 0; i < this.playerCount; i++) {
 			const isVertical = i === 0 || i === 1;
@@ -131,19 +132,19 @@ export class PongRenderer{
 			this.paddles.push(paddle);
 		}
 
-		const ball = BABYLON.MeshBuilder.CreateSphere("ball", { diameter: 0.7 }, this.scene);
+		const ball = BABYLON.MeshBuilder.CreateSphere("ball", { diameter:LIMIT.ballSize }, this.scene);
 		this.balls.push(ball);
 	}
 
 	private setupInitialPositions() {
 		if (this.playerCount === 2) {
-			this.paddles[0].position.set(-8, 0, 0); // left
-			this.paddles[1].position.set(8, 0, 0); // right
+			this.paddles[0].position.set(-(LIMIT.arenaWidth2p/2), 0, 0); // left
+			this.paddles[1].position.set((LIMIT.arenaLength2p/2), 0, 0); // right
 		} else {
-			this.paddles[0].position.set(-6, 0, 0); // left
-			this.paddles[1].position.set(6, 0, 0);  // right
-			this.paddles[2].position.set(0, 0, 6);  // top
-			this.paddles[3].position.set(0, 0, -6); // bottom
+			this.paddles[0].position.set(-(LIMIT.arenaWidth4p/2), 0, 0); // left
+			this.paddles[1].position.set((LIMIT.arenaWidth4p/2), 0, 0);  // right
+			this.paddles[2].position.set(0, 0, (LIMIT.arenaWidth4p/2));  // top
+			this.paddles[3].position.set(0, 0, -(LIMIT.arenaWidth4p/2)); // bottom
 		}
 
 		this.balls[0].position.set(0, 0, 0);

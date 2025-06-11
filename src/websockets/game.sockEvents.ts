@@ -11,34 +11,28 @@ import { playerMove } from '../services/pong'
 const PendingInvites = new Map<number, { inviterID: number; timeout: NodeJS.Timeout }>();
 
 //ADD event here if needed for gameSocket
-export function handleAllEvents(typedSocket:TypedSocket) {
+export function handleAllEvents(typedSocket:TypedSocket, player:Interfaces.playerInterface) {
    typedSocket.on('init', async (socket:WebSocket, data:Interfaces.SocketMessageMap['init']) => {
-     const player = getPlayerBySocket(typedSocket.socket as any);
      handleInit(data, player);
    });
 
   typedSocket.on('joinGame', async (socket:WebSocket, data:Interfaces.SocketMessageMap['joinGame']) => {
-    const player = getPlayerBySocket(typedSocket.socket as any);
     handleJoin(data, player);
   });
 
   typedSocket.on('invite', async (socket:WebSocket, data:Interfaces.SocketMessageMap['invite']) => {
-    const player = getPlayerBySocket(typedSocket.socket as any);
     handleInvite(data, player);
   });
 
   typedSocket.on('leaveGame', async (socket:WebSocket, data:Interfaces.SocketMessageMap['leaveGame']) => {
-    const player = getPlayerBySocket(typedSocket.socket as any);
     handleLeaveGame(data, player);
   });
 
   typedSocket.on('playerMove', async (socket:WebSocket, data:Interfaces.SocketMessageMap['playerMove']) => {
-    const player = getPlayerBySocket(typedSocket.socket as any);
     handlePlayerMove(data, player);
   });
 
   typedSocket.on('reconnected', () => {
-    const player = getPlayerBySocket(typedSocket.socket as any);
     handleDisconnect(player);
   });
 

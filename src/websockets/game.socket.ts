@@ -98,7 +98,7 @@ export async function initGameSocket(ws: WebSocket, request: any) {
     };
     MappedPlayers.set(result.userId, player)
     // Register handlers ONCE
-    handleAllEvents(typedSocket);
+    handleAllEvents(typedSocket, player);
 
     // Send init message
     typedSocket.send('init', {

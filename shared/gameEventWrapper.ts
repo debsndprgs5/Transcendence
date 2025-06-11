@@ -160,7 +160,7 @@ export function createTypedEventSocket<
 ) {
     // Check if we already have a wrapper for this socket
     if (wrappedSockets.has(socket)) {
-        console.log('Reusing existing socket wrapper');
+      //  console.log('Reusing existing socket wrapper');
         return wrappedSockets.get(socket);
     }
 

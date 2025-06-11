@@ -120,22 +120,38 @@
 
 
 import { paddleInterface, ballInterface } from '../shared/gameTypes'
+import {
+  paddleSize,
+  paddleWidth,
+  arenaLength2p,
+  arenaWidth2p,
+  arenaWidth4p,
+  arenaLength4p,
+  ballSize,
+}     from '../shared/gameTypes'
 
 export class paddleClass {
   constructor(public paddleInterface: paddleInterface) {}
-  move_add() {
-    if (this.paddleInterface.type === 'H')
-      this.paddleInterface.x += this.paddleInterface.speed
-    else
-      this.paddleInterface.y += this.paddleInterface.speed
+  move_add(width:number, length:number, nb_player: 2 | 4) {
+    if (nb_player == 2){
+		if (this.paddleInterface.type === 'H' && this.paddleInterface.y < arenaWidth2p)
+    	  this.paddleInterface.x += this.paddleInterface.speed
+    	else (this.paddleInterface.type === 'V' && this.paddleInterface.y < arenaLength2p)
+    	  this.paddleInterface.y += this.paddleInterface.speed
+	}
+	else if (nb_player == 4){
+		if (this.paddleInterface.type === 'H' && this.paddleInterface.y < arenaWidth4p)
+    	  this.paddleInterface.x += this.paddleInterface.speed
+    	else (this.paddleInterface.type === 'V' && this.paddleInterface.y < arenaLength4p)
+    	  this.paddleInterface.y += this.paddleInterface.speed
+	}
   }
-  move_minus() {
-    if (this.paddleInterface.type === 'V')
+  move_minus(width:number, length:number) {
+    if (this.paddleInterface.type === 'H' && this.paddleInterface.x > 0)
       this.paddleInterface.x -= this.paddleInterface.speed
-    else
+    else if (this.paddleInterface.type === 'V' && this.paddleInterface.y > 0)
       this.paddleInterface.y -= this.paddleInterface.speed
   }
-  //clamp pos HOW ?
 }
 
 export class ballClass {

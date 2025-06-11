@@ -1,7 +1,15 @@
 import * as G from '../shared/gameTypes'
 import { paddleClass, ballClass } from '../types/game'
 import { createTypedEventSocket } from '../shared/gameEventWrapper'
-
+import {
+  paddleSize,
+  paddleWidth,
+  arenaLength2p,
+  arenaWidth2p,
+  arenaWidth4p,
+  arenaLength4p,
+  ballSize,
+}     from '../shared/gameTypes'
 
 /**
  * A lightweight container for one running Pong match.
@@ -16,8 +24,8 @@ export class PongRoom {
   private readonly balls: ballClass[] = []
   private loop?: NodeJS.Timeout
 
-  private readonly WIDTH:number
-  private readonly HEIGHT:number
+  private readonly WIDTH = 10
+  private readonly HEIGHT = 10
 
   constructor(
     game: G.gameRoomInterface & { ballSpeed: number; paddleSpeed: number },
@@ -27,12 +35,12 @@ export class PongRoom {
     this.gameID  = game.gameID
     this.players = players
 	if(this.game.mode === 'duo'){
-		this.WIDTH=G.arenaWidth2p
-		this.HEIGHT=G.arenaLength2p
+		this.WIDTH=arenaWidth2p
+		this.HEIGHT=arenaLength2p
 	}
 	else {
-		this.WIDTH=G.arenaWidth4p
-		this.HEIGHT=G.arenaLength4p
+		this.WIDTH=arenaWidth4p
+		this.HEIGHT=arenaLength4p
 	}
     // instantiate a paddleClass for each player, fulfilling paddleInterface
     for (const p of players) {
@@ -55,27 +63,35 @@ export class PongRoom {
         if (index % 2){
           p[1].paddleInterface.x = -this.WIDTH/2;
           p[1].paddleInterface.y = this.HEIGHT/2;
+          p[1].paddleInterface.width = paddleWidth;
+          p[1].paddleInterface.length = paddleSize;
         }
         else{
           p[1].paddleInterface.x = this.WIDTH/2;
           p[1].paddleInterface.y = this.HEIGHT/2;
+          p[1].paddleInterface.width = paddleWidth;
+          p[1].paddleInterface.length = paddleSize;
         }
       }
       if (p[1].paddleInterface.type == 'V'){
         if (index % 2){
           p[1].paddleInterface.x = this.WIDTH/2;
           p[1].paddleInterface.y = this.HEIGHT/2;
+          p[1].paddleInterface.width = paddleSize;
+          p[1].paddleInterface.length = paddleWidth;
         }
         else{
           p[1].paddleInterface.x = this.WIDTH/2;
           p[1].paddleInterface.y = this.HEIGHT/2;
+          p[1].paddleInterface.width = paddleSize;
+          p[1].paddleInterface.length = paddleWidth;
         }
       }
     }
     
 
     // create the ball
-    this.balls.push(new ballClass(0, 0, 0.7, game.ballSpeed / 100))
+    this.balls.push(new ballClass(0, 0, ballSize, game.ballSpeed / 100))
 
     // register & start loop
     PongRoom.rooms.set(this.gameID, this)

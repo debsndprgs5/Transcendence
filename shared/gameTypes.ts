@@ -25,7 +25,6 @@ export interface paddleInterface{
 	gameID:number,
 	x:number,
 	y:number,
-	hitbox: [number, number, number, number],
 	width:number,
 	length:number,
 	type: 'H' | 'V',

@@ -48,7 +48,29 @@ export const getAllPublicGames = () =>
   getAll<{ gameID: number; name: string; mode: string; createdBy: number}>(
     `SELECT gameID, name, mode, createdBy FROM gameRooms WHERE gameType = 'public' AND state = 'waiting'`
   );
+//get mode for gameID
+export const getModePerGameID = (gameID:number) =>
+  get<{mode:string}>(
+    `SELECT mode FROM gameRooms WHERE gameID = ?`, [gameID]);
+export const setStateforGameID = (gameID:number, state:string)=>
+  run(`UPDATE gameRooms SET state = ? where gameID = ?`, [state, gameID])
 
+export async function getModeAndRulesForGameID(gameID: number) {
+  const row = await get<{ mode: string; rules: string }>(
+    `SELECT mode, rules FROM gameRooms WHERE gameID = ?`,
+    [gameID]
+  );
+  if (!row) return null;
+  try {
+    return {
+      mode: row.mode,
+      rules: JSON.parse(row.rules),
+    };
+  } catch (err) {
+    console.error(`[getModeAndRulesForGameID] JSON parse error for gameID ${gameID}:`, err);
+    return null;
+  }
+}
 // ########################
 // #    GAME MEMBERS      #
 // ########################

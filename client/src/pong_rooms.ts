@@ -1,6 +1,10 @@
 import { isAuthenticated, apiFetch, initWebSocket, state } from './api';
 import { drawCreateGameView, drawWaitingGameView, drawJoinGameView } from './pong_views';
 import { showNotification } from './notifications';
+import { pongState } from './pong_socket';
+import { PongRenderer } from './pong_render'
+import { TypedSocket } from './shared/gameTypes';
+
 
 interface PongButton {
 	x: number;
@@ -47,49 +51,97 @@ export async function fetchAvailableRooms(): Promise<{ roomID: number; roomName:
 // =======================
 
 export function showPongMenu(): void {
-	const canvas = document.getElementById('pong-canvas') as HTMLCanvasElement | null;
-	if (!canvas) return;
+	  const canvas       = document.getElementById('pong-canvas')    as HTMLCanvasElement | null;
+	  const babylonCanvas = document.getElementById('babylon-canvas') as HTMLCanvasElement | null;
+	  if (!canvas || !babylonCanvas) return;
 
-	canvas.onclick    = handlePongMenuClick;
-	canvas.onmousedown = handlePongMenuMouseDown;
-	canvas.onmouseup   = handlePongMenuMouseUp;
-	canvas.onmouseleave = handlePongMenuMouseUp;
-	window.addEventListener('mouseup', handlePongMenuMouseUp);
+		// Set up event listeners for menu interactions
+		canvas.onclick = handlePongMenuClick;
+		canvas.onmousedown = handlePongMenuMouseDown;
+		canvas.onmouseup = handlePongMenuMouseUp;
+		canvas.onmouseleave = handlePongMenuMouseUp;
+		window.addEventListener('mouseup', handlePongMenuMouseUp);
 
-	const ctx = canvas.getContext('2d');
-	if (!ctx) return;
+		const ctx = canvas.getContext('2d');
+		if (!ctx) return;
 
-	console.log('state.canvasViewState = ', state.canvasViewState);
+		// Handle canvas visibility based on game state
+	  if (state.canvasViewState === 'playingGame') {
+	    canvas.style.display        = 'none';
+	    babylonCanvas.style.display = 'block';
+	  } else {
+	    babylonCanvas.style.display = 'none';
+	    canvas.style.display        = 'block';
+	  }
 
-	switch (state.canvasViewState) {
-		case 'mainMenu':
-			drawMainMenu(canvas, ctx);
-			break;
+		// Dispose of pongRenderer if exists but not in 'playingGame' state
+		if (state.canvasViewState !== 'playingGame' && pongState.pongRenderer) {
+				pongState.pongRenderer.dispose();
+				pongState.pongRenderer = null;
+		}
+		console.log('state.canvasViewState = ', state.canvasViewState);
 
-		case 'createGame':
-			drawCreateGameView(canvas, ctx);
-			break;
+		// Handle different view states
+		switch (state.canvasViewState) {
+				case 'mainMenu':
+						drawMainMenu(canvas, ctx);
+						break;
 
-		case 'waitingGame':
-			drawWaitingGameView(
-				canvas, ctx,
-				state.currentGameName || 'Unknown Room',
-				state.currentPlayers || []
-			);
-			break;
+				case 'createGame':
+						drawCreateGameView(canvas, ctx);
+						break;
 
-		case 'joinGame':
-			drawJoinGameView(
-				canvas,
-				ctx,
-				state.availableRooms || []
-			);
-			break;
+				case 'waitingGame':
+						drawWaitingGameView(
+								canvas, ctx,
+								state.currentGameName || 'Unknown Room',
+								state.currentPlayers || []
+						);
+						break;
 
-		default:
-			drawMainMenu(canvas, ctx);
-			break;
-	}
+				case 'joinGame':
+						drawJoinGameView(
+								canvas,
+								ctx,
+								state.availableRooms || []
+						);
+						break;
+
+		    case 'playingGame':
+		      if (!pongState.pongRenderer) {
+		        if (!state.playerInterface?.socket) {
+		          console.error('WebSocket not initialized for PongRenderer');
+		          return;
+		        }
+		        const side = state.playerInterface.playerSide ?? 'left';
+		        const playerCount = state.currentPlayers?.length ?? 2;
+
+
+		        const r = babylonCanvas.getBoundingClientRect();
+		        babylonCanvas.width  = Math.floor(r.width);
+		        babylonCanvas.height = Math.floor(r.height);
+
+		        // pongState.pongRenderer = new PongRenderer(
+		        //   babylonCanvas,
+		        //   state.playerInterface.socket,
+		        //   playerCount,
+		        //   side
+		        // );
+
+		        const obs = new ResizeObserver(() => {
+		          const rr = babylonCanvas.getBoundingClientRect();
+		          babylonCanvas.width  = Math.floor(rr.width);
+		          babylonCanvas.height = Math.floor(rr.height);
+		          pongState.pongRenderer?.handleResize();
+		        });
+		        obs.observe(babylonCanvas as unknown as Element);
+		      }
+		      break;
+
+		    default:
+		      drawMainMenu(canvas, ctx);
+		      break;
+		  }
 }
 
 export function drawMainMenu(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D): void {
@@ -240,7 +292,7 @@ async function handlePongMenuClick(e: MouseEvent): Promise<void> {
 				const roomName = roomInfo ? roomInfo.roomName : 'Unknown Room';
 
 				// Verify that socket exists
-				if (!state.gameSocket) {
+				if (!state.playerInterface?.socket) {
 					console.error('No gameSocket available');
 					showNotification({
 						message: 'Cannot join game : Socket unavailable.',
@@ -248,14 +300,12 @@ async function handlePongMenuClick(e: MouseEvent): Promise<void> {
 					});
 					return;
 				}
-
-				// Send ws request to join game
-				state.gameSocket.send(JSON.stringify({
-					type: 'joinGame',
-					userID: state.userId,
-					gameID: roomID
-				}));
-
+				state.typedSocket.send('joinGame',{
+					userID:state.userId,
+					gameID:roomID,
+					gameName:roomName
+				})
+				state.playerInterface.gameID = roomID;
 				// Get players list via API
 				let usernames: string[] = [];
 				try {
@@ -311,9 +361,9 @@ async function handleCreateGameButton(action: string): Promise<void> {
 			state.canvasViewState = 'mainMenu';
 			break;
 		case 'confirmGame':
-			if(state.playerState !== 'init' && state.playerState !== 'online'){
+			if(state.playerInterface?.state !== 'init' && state.playerInterface?.state !== 'online'){
 				showNotification({
-					message:`You can't create a game because you are suposed to be playing ${state.playerState}`,
+					message:`You can't create a game because you are : ${state.playerInterface?.state}`,
 					type:'error'
 				});
 				return;
@@ -331,21 +381,21 @@ async function handleCreateGameButton(action: string): Promise<void> {
 			})
 			});
 			const { gameID, gameName } = reply.room;
-			if(!state.gameSocket){
+			if(!state.playerInterface?.socket){
 				console.log('NO SOCKET FOR GAME');
 				return;
 			}
-			state.gameSocket.send(JSON.stringify({
-				type:'joinGame',
-				gameName,
-				userID:state.userId,
-				gameID
-			}));
+			state.typedSocket.send('joinGame', {
+			userID: state.userId,
+			gameID: gameID,
+			gameName: createGameFormData.roomName!,
+			});
 			showNotification({
 				message: `Creating room: ${createGameFormData.roomName ?? ''}, ball: ${createGameFormData.ballSpeed}, paddle: ${createGameFormData.paddleSpeed}`,
 				type: 'success'
 			});
-			state.playerState = 'waitingGame';
+			state.playerInterface.state = 'waitingGame';
+			state.playerInterface.gameID= gameID;
 			const playerslist = await apiFetch(
 					`/api/pong/${encodeURIComponent(gameID)}/list`,
 					{ headers: { Authorization: `Bearer ${state.authToken}` } }
@@ -400,15 +450,23 @@ function handlePongMenuMouseUp(): void {
 	}
 	lastButtonAction = null;
 }
-
+		
 async function handleLeaveGame(): Promise<void> {
+	
+	const uID= state.userId;
+	const gID = state.playerInterface?.gameID;
+
 	try {
-		state.gameSocket?.send(JSON.stringify({
-			type:'leaveGame',
-			userID:state.userId,
-		}));
+		if (!state.playerInterface?.typedSocket) throw new Error('TYPEDsocket unavailable');
+		state.typedSocket.send('leaveGame', {
+			userID: uID!,
+			gameID: gID!,
+			islegit: false,
+		});
+
+		console.log(`[LEAVE][INFO] User ${uID} sent leaveGame for room ${gID}`);
 	} catch (err) {
-		console.error('Error leaving game:', err);
+		console.error('[LEAVE][ERROR] Failed to send leaveGame:', err);
 		showNotification({ message: 'Error leaving game', type: 'error' });
 		return;
 	}

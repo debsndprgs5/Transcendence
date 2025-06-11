@@ -1,178 +1,284 @@
-
-import { showNotification, showUserActionsBubble } from './notifications.js';
-//export async function gameSystemLog(msg)
-//export async function gameEndsLog(msg)
+import { showNotification, showUserActionsBubble } from './notifications';
 import { isAuthenticated, apiFetch, initWebSocket, state } from './api';
+import { PongRenderer } from './pong_render';
+import * as Interfaces from './shared/gameTypes';
+import {createTypedEventSocket} from './shared/gameEventWrapper';
+import { showPongMenu } from './pong_rooms';
+import { TypedSocket } from './shared/gameTypes';
 
 
-export async function initGameSocket(){
-	console.log('INIT GAME SOCKET CALL ');
-	
-	if(!state.authToken)
-		return;
+export const pongState = {
+  pongRenderer: null as PongRenderer | null,
+};
+
+export async function initGameSocket() {
+	if (!state.authToken) return;
+
 	const wsUrl = `wss://${location.host}/gameSocket/ws?token=${encodeURIComponent(state.authToken)}`;
 	const gameSocket = new WebSocket(wsUrl);
-	state.gameSocket=gameSocket;
+	state.gameSocket = gameSocket;
 
-	await new Promise<void>((resolve, reject) => {
-		gameSocket.onopen = () => {
-			console.log('OPENING GAME SOCKET');
-			if(state.playerState === 'online' || !state.playerState)
-				state.playerState = 'init';
-			resolve(); // Wait ends here
-		};
-		gameSocket.onclose = () =>{
-			//Set time out to 15sec just like in back ? 
-			//Keep OldState from state.playerSte in memory 
-
+	const typedSocket = createTypedEventSocket(state.gameSocket);
+	state.typedSocket = typedSocket;
+	gameSocket.onopen = () => {
+		console.log('[GAME] WebSocket connected');
+		state.playerInterface ={
+			userID:state.userId!,
+			socket:state.gameSocket,
+			typedSocket:typedSocket,
+			state:'online'
 		}
-		gameSocket.onerror = (err) => {
-			console.error('[GAME]WebSocket error:', err);
-			reject(err);
-		};
-	});
-
-	gameSocket.onmessage = (event) =>{
-		console.log('GAMESocket:', event.type, event);
-		try{
-			const data = JSON.parse(event.data);
-			switch (data.type){
-				case 'init':{
-					if(data.success === 'true'){
-						state.gameSocket=gameSocket;
-						state.userId=data.userID;
-						state.playerState= 'init';
-						showNotification({ message: `connection with game established\n${data.state}`, type: 'success' });
-						//User in now register for game socket and is able to start
-					}
-					break;
-				}
-				case 'joinGame':{
-					if(data.success === false)
-						showNotification({ message:`Unable to join game because ${data.reason}` , type: 'error' });
-					else 
-						showNotification({ message:`Game joined with success${data.gameID}` , type: 'success' });
-					break;
-				}
-				case 'invite':{
-					handleInvite(data);
-					break;
-				}
-				case 'startGame':{
-					//What's needed to start babylonJS render ? 
-					//all pongRoom object ?
-					//all players Uname + pos 
-					// all ball pos
-					break;
-				}
-				case 'statusUpdate':{
-					console.log(`[FRONT][GAMESOCKET][oldSTATUS]${state.playerState}||[newSTATUS]${state.playerState}`);
-					if(data.newState){
-						state.playerState = data.newState;
-					}
-					break;
-				}
-				case 'endMatch':{
-					handleEndMatch(data);
-					break;
-				}
-				case 'playerMoove':{
-					//does front should received this on top of render ? 
-					//Update oppononent mouvement 
-					break;
-				}
-				case 'render':{
-					//Receive all data for game render 
-					break;
-				}
-				case'reconnected':{
-					console.log(`[FRONT][GAMESOCKET]user ${state.userId}: just reconneted`);
-					//What logic should we have for reconnected? 
-					state.playerState=data.state;
-					if(data.gameID && (state.playerState === 'waiting' || state.playerState === 'online')){
-						//Returns to renderGame?
-						//PACEHODLER TO EXIT ROOM
-						showNotification({
-						message:'Do you want to leave room ?',
-						type:'confirm',
-						onConfirm: () => {
-							state.gameSocket?.send(JSON.stringify({
-								type:'leaveGame',
-								userID:state.userId,
-								gameID:data.gameID
-							}));
-						}});
-					}
-					break;
-				}
-			}
-		}
-		catch(err){
-			console.error('Failed to handle GameSocket message:', err);
-		}
-	};
-
-	gameSocket.onclose = (event) =>{
-		console.log(`${state.userId} got offline`);
-		state.playerState = 'offline';
-	};
-
-	gameSocket.onerror = (error) => {
-		console.error('[GAME]WebSocket error:', error);
-	};
-}
-
-
-export async function handleEndMatch(data:string){
-	// if(data.action === 'legit'){
-	// //KICK both player from room , removes them and the room from db
-	// //update games stats/ history
-	// }
-	// if(data.action === 'playerGaveUp'){
-	// //give the win to the other, removes other from game and both from db 
-	// //don't update stats 
-	// }
-	// if(data.action == 'oppponentGaveUp'){
-	// //give the win to player, removes him from game both from db 
-	// //don't update stats 
-	// }
-}
-
-export async function handleInvite(data:string){
-	const {action , response, userID} = JSON.parse(data);
-	if(action === 'reply'){
-		if(response !== 'accept')
-			console.log(`The user you tried to invite is ${response}`);
-		else 
-			console.log('The user you invited just joined the GameRoom');
-	}
-	if(action == 'receive'){
-
-		const username = apiFetch(`user/by-index/${userID}`)
-			showNotification({
-						message: `${username} invited you to play, join ?`,
-						type: 'confirm',
-						onConfirm: async () => {
-							const response = 'accept'
-							if(state.gameSocket){
-								state.gameSocket.send(JSON.stringify({
-									type:'invite',
-									action: 'reply',
-									response
-								}));
-							}
-						},
-						onCancel:async() => {
-							const response = 'decline'
-							if(state.gameSocket){
-								state.gameSocket.send(JSON.stringify({
-									type:'invite',
-									action: 'reply',
-									response
-								}));
-							}
-						}
-
+		if (state.playerInterface) {
+			// Send the 'init' message to backend
+			typedSocket.send('init', {
+			userID: state.userId!,
 			});
+		} else {
+			console.warn('[GAME] No playerInterface set up');
+		}
+	};
+
+  gameSocket.onclose = () => {
+    console.warn('[GAME] WebSocket closed');
+  };
+
+  gameSocket.onerror = (err) => {
+    console.error('[GAME] WebSocket error:', err);
+  };
+	handleEvents(typedSocket, gameSocket);
+}
+
+async function handleEvents(
+	typedSocket:TypedSocket, ws:WebSocket){
+
+	typedSocket.on('init' , async(socket:WebSocket, data:Interfaces.SocketMessageMap['init'])=> {
+		await handleInit(data, ws);
+	});
+	typedSocket.on('joinGame', async(socket:WebSocket, data:Interfaces.SocketMessageMap['joinGame'])=>{
+		await handleJoinGame(data);
+	});
+	typedSocket.on('invite', async(socket:WebSocket, data:Interfaces.SocketMessageMap['invite'])=>{
+		await handleInvite(data);
+	});
+	typedSocket.on('startGame',async(socket:WebSocket, data:Interfaces.SocketMessageMap['startGame']) =>{
+		await handleStartGame(data);
+	});
+	typedSocket.on('statusUpdate', async (socket:WebSocket, data:Interfaces.SocketMessageMap['statusUpdate']) => {
+		if (state.playerInterface) {
+			state.playerInterface.state = data.newState;
+		}
+	});
+	typedSocket.on('giveSide', async (socket:WebSocket, data:Interfaces.SocketMessageMap['giveSide']) => {
+		if (state.playerInterface) {
+			state.playerInterface.playerSide = data.side;
+		}
+	});
+	typedSocket.on('renderData',async(socket:WebSocket, data:Interfaces.SocketMessageMap['renderData']) =>{
+		await handleRenderData(data);
+	});
+	typedSocket.on('endMatch', async(socket:WebSocket, data:Interfaces.SocketMessageMap['endMatch'])=>{
+		await handleEndMatch(data);
+	});
+	typedSocket.on('kicked', async(socket:WebSocket, data:Interfaces.SocketMessageMap['kicked'])=>{
+		await handleKicked(data);
+	});
+	typedSocket.on('reconnected', async(socket:WebSocket, data:Interfaces.SocketMessageMap['reconnected'])=>{
+		await handleReconnection(data);
+	});
+	
+}
+
+export async function handleInit(data:Interfaces.SocketMessageMap['init'], gameSocket:WebSocket){
+	
+	const Uname = await apiFetch(`/user/by-index/${data.userID}`);
+	if (data.success) {
+		state.playerInterface = {
+			userID: data.userID,
+  			username: Uname!,
+			socket: gameSocket,
+			typedSocket:state.typedSocket,
+			state: data.state ?? 'init',
+		};
+
+		showNotification({
+			message: `Connected to game socket. State: ${data.state}`,
+			type: 'success',
+		});
 	}
+}
+
+
+export async function handleJoinGame(data:Interfaces.SocketMessageMap['joinGame']){
+		if(data.success === false)
+			showNotification({ message:`Unable to join game because ${data.reason}` , type: 'error' });
+		else 
+			showNotification({ message:`Game joined with success${data.gameID}` , type: 'success' });
+}
+
+export async function handleInvite(
+  data: Interfaces.SocketMessageMap['invite'],
+) {
+  const { action, response, userID } = data;
+
+  if (action === 'reply') {
+    if (response !== 'accept') {
+      console.log(`The user you tried to invite is ${response}`);
+    } else {
+      console.log('The user you invited just joined the GameRoom');
+    }
+  }
+
+  if (action === 'receive') {
+    const username = await apiFetch(`user/by-index/${userID}`); // Add await
+    showNotification({
+      message: `${username} invited you to play. Join?`,
+      type: 'confirm',
+      onConfirm: async () => {
+        state.typedSocket.send('invite', {
+          action: 'reply',
+          response: 'accept',
+        });
+      },
+      onCancel: async () => {
+        state.typedSocket.send('invite', {
+          action: 'reply',
+          response: 'decline',
+        });
+      },
+    });
+  }
+}
+
+export async function handleStartGame(data: Interfaces.SocketMessageMap['startGame']) {
+  if (!pongState.pongRenderer) {
+	const canvas = document.getElementById('babylon-canvas');
+	if (!canvas || !(canvas instanceof HTMLCanvasElement)) {
+	  throw new Error('Canvas element #renderCanvas not found or is not a canvas element');
+	}
+
+	if (!state.playerInterface || !state.playerInterface.socket) {
+	  throw new Error('playerInterface is not defined');
+	}
+
+	pongState.pongRenderer = new PongRenderer(canvas, state.playerInterface.socket, 2, state.playerInterface.playerSide!);
+	state.canvasViewState = 'playingGame';
+	showPongMenu();
+  }
+}
+
+export async function handleRenderData(data: Interfaces.SocketMessageMap['renderData']) {
+	if (!pongState.pongRenderer) {
+		console.warn('PongRenderer not initialized yet.');
+		return;
+	}
+
+	// Validate paddles/balls structure
+	if (!data.paddles || !data.balls) {
+		console.error('[renderData] Invalid structure received:', data);
+		return;
+	}
+
+	// Call the renderer with structured data
+	pongState.pongRenderer.updateScene({
+		paddles: data.paddles,
+		balls: data.balls,
+	});
+}
+
+export async function handleEndMatch(data: Interfaces.SocketMessageMap['endMatch']) {
+	const renderer = pongState.pongRenderer;
+
+	if (renderer) {
+		// Gracefully stop the render loop and dispose the scene
+		console.log('[ENDMATCH] Disposing PongRenderer and cleaning up.');
+		renderer.dispose();
+		pongState.pongRenderer = null;
+	} else {
+		console.warn('[ENDMATCH] No renderer found to dispose.');
+	}
+
+	// === Placeholder: Show end game view (win/lose screen) ===
+	if (data.isWinner) {
+		console.log('🏆 YOU WON!'); // TODO: Show "You Won" view
+	} else {
+		console.log('💀 YOU LOST.'); // TODO: Show "You Lost" view
+	}
+
+	// === Leave the game on the server ===
+	if (state.playerInterface?.socket && state.playerInterface.gameID !== undefined) {
+		state.typedSocket.send('leaveGame', {
+			userID: state.playerInterface!.userID,
+			gameID: state.playerInterface!.gameID!,
+			islegit: true
+		});
+	} else {
+		console.warn('[ENDMATCH] Could not send leaveGame, missing socket or gameID.');
+	}
+
+	// === Optional: Clear game-related state ===
+	// TODO: Reset UI back to main menu or room selection after showing win/lose view
+}
+
+export async function handleKicked(data: Interfaces.SocketMessageMap['kicked']) {
+  // Show a notification with the kick reason
+  showNotification({
+    message: `You were removed from the game: ${data.reason}`,
+    type: 'error',
+  });
+
+  // Dispose of the PongRenderer if it's active
+  pongState.pongRenderer?.dispose();
+  pongState.pongRenderer = null;
+
+  // Reset game-related state
+  if (state.playerInterface) {
+    state.playerInterface.gameID = -1;
+  }
+  // TODO: Update the UI to return the user to the main menu or lobby view
+}
+
+export async function handleReconnection(data: Interfaces.SocketMessageMap['reconnected']) {
+  console.log(`[FRONT][GAMESOCKET] User ${state.userId} reconnected with state: ${data.state}`);
+
+  if (!state.playerInterface) {
+    console.warn('[RECONNECT] No playerInterface found, skipping restore.');
+    return;
+  }
+
+  state.playerInterface.state = data.state;
+
+  if (data.gameID && pongState.pongRenderer !== null) {
+    console.log('[RECONNECT] User was in an active game. Renderer still alive, resume game.');
+    
+    // TODO: Call a method to ensure rendering loop is resumed if needed
+    // e.g., pongState.pongRenderer.resume(); — implement if renderer supports pause/resume
+
+    return;
+  }
+
+  if (data.gameID && pongState.pongRenderer === null) {
+    console.log('[RECONNECT] User was in a game, but renderer is gone. Restore render manually.');
+
+    // TODO: Optionally reload or reconstruct the scene
+    // e.g., re-enter room or show a prompt like:
+    showNotification({
+      message: 'You were reconnected. Do you want to resume the game?',
+      type: 'confirm',
+      onConfirm: () => {
+        // Re-request game data or join room again
+        state.playerInterface?.socket.send(JSON.stringify({
+          type: 'resumeGame',
+          gameID: data.gameID,
+        }));
+      },
+    });
+
+    return;
+  }
+
+  if (!data.gameID) {
+    console.log('[RECONNECT] User is not in a game. Returning to lobby.');
+
+    // TODO: Update view to main menu or idle lobby
+  }
 }

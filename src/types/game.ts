@@ -30,18 +30,18 @@ export class paddleClass{
 		this.paddleInterface = paddleInterface;
  	}
 	move_add(): void{
-		if (this.paddleInterface.type == 'H'){
+		if (this.paddleInterface.type == 'H' && this.paddleInterface.x < MAX_LENGTH){
 			this.paddleInterface.x += this.paddleInterface.speed;
 		}
-		if (this.paddleInterface.type == 'V'){
+		if (this.paddleInterface.type == 'V' && this.paddleInterface.y < MAX_WIDTH){
 			this.paddleInterface.y += this.paddleInterface.speed;
 		}
 	}
 	move_minus(): void{
-		if (this.paddleInterface.type == 'H'){
+		if (this.paddleInterface.type == 'H' && this.paddleInterface.x > 0){
 			this.paddleInterface.x -= this.paddleInterface.speed;
 		}
-		if (this.paddleInterface.type == 'V'){
+		if (this.paddleInterface.type == 'V' && this.paddleInterface.y > 0){
 			this.paddleInterface.y -= this.paddleInterface.speed;
 		}
 	}
@@ -98,11 +98,12 @@ export class playerClass{
 	
 	playerInterface:playerInterface// 'init'|'waiting'| 'playing'| 'tournamentWait' | 'tournamentPlay'
 
-	paddle?:paddleClass;
+	paddle:paddleClass;
 
 	constructor(playerInterface:playerInterface,
 				paddleInterface:paddleInterface){
 	this.playerInterface = playerInterface;
+	this.paddle = paddleInterface;
 	}
 	setupFirstPos():void{
 		if(this.paddle){

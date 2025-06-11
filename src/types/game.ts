@@ -144,6 +144,7 @@ export class ballClass {
   public radius: number
   public speed: number
   public vector: [number, number]
+  public last_bounce?: paddleClass
   constructor(x: number, y: number, radius: number, speed: number) {
     this.x = x
     this.y = y

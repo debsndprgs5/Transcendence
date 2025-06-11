@@ -191,6 +191,8 @@ export async function playerMove(
     // Clamp Y-axis
     player.playerPos = Math.max(-MAP_LIMIT + halfPaddle, Math.min(MAP_LIMIT - halfPaddle, player.playerPos));
   }
+  console.log(`[playerMove] gameID=${gameID} userID=${userID} side=${player?.playerSide}`);
+
 
   // 'stop' does nothing for now
 }

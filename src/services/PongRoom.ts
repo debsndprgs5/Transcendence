@@ -26,12 +26,12 @@ export class PongRoom {
     this.gameID  = game.gameID
     this.players = players
 	if(this.game.mode === 'duo'){
-		this.WIDTH=18
-		this.HEIGHT=10
+		this.WIDTH=arenaWidth2p
+		this.HEIGHT=arenaLength2p
 	}
 	else {
-		this.WIDTH=12
-		this.HEIGHT=12
+		this.WIDTH=arenaWidth4p
+		this.HEIGHT=arenaLength4p
 	}
     // instantiate a paddleClass for each player, fulfilling paddleInterface
     for (const p of players) {

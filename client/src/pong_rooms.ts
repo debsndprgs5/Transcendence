@@ -121,12 +121,12 @@ export function showPongMenu(): void {
 		        babylonCanvas.width  = Math.floor(r.width);
 		        babylonCanvas.height = Math.floor(r.height);
 
-		        pongState.pongRenderer = new PongRenderer(
-		          babylonCanvas,
-		          state.playerInterface.socket,
-		          playerCount,
-		          side
-		        );
+		        // pongState.pongRenderer = new PongRenderer(
+		        //   babylonCanvas,
+		        //   state.playerInterface.socket,
+		        //   playerCount,
+		        //   side
+		        // );
 
 		        const obs = new ResizeObserver(() => {
 		          const rr = babylonCanvas.getBoundingClientRect();

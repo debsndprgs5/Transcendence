@@ -96,7 +96,7 @@ export async function startMockGameLoop(
         balls,
       };
 
-      createTypedEventSocket(p.socket).send('renderData', renderMsg);
+      p.typedSocket.send('renderData', renderMsg);
     }
 
     // === Game end conditions ===
@@ -176,7 +176,7 @@ export async function playerMove(
     } else if (direction === 'left') {
       player.playerPos -= movement;
     }
-
+    console.log(`POSTION UPDATED FOR PLAYER${userID} `);
     // Clamp X-axis
     player.playerPos = Math.max(-MAP_LIMIT + halfPaddle, Math.min(MAP_LIMIT - halfPaddle, player.playerPos));
   }

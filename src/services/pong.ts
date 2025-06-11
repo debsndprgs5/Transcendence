@@ -42,7 +42,7 @@ export async function gameloop(balls:ballClass[], players:playerClass[], type: 2
 			player.paddle.paddleInterface.move_minus();
 		}
 	}
-	createTypedEventSocket()
+	createTypedEventSocket('renderData', {players, balls});
 }
 
 export function test_score(balls:ballClass[], players:[playerClass, playerClass] | [playerClass, playerClass, playerClass, playerClass], type: 2 | 4, width:number, lenght:number){

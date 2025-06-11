@@ -132,24 +132,16 @@ import {
 
 export class paddleClass {
   constructor(public paddleInterface: paddleInterface) {}
-  move_add(width:number, length:number, nb_player: 2 | 4) {
-    if (nb_player == 2){
-		if (this.paddleInterface.type === 'H' && this.paddleInterface.y < arenaWidth2p)
-    	  this.paddleInterface.x += this.paddleInterface.speed
-    	else (this.paddleInterface.type === 'V' && this.paddleInterface.y < arenaLength2p)
-    	  this.paddleInterface.y += this.paddleInterface.speed
-	}
-	else if (nb_player == 4){
-		if (this.paddleInterface.type === 'H' && this.paddleInterface.y < arenaWidth4p)
-    	  this.paddleInterface.x += this.paddleInterface.speed
-    	else (this.paddleInterface.type === 'V' && this.paddleInterface.y < arenaLength4p)
-    	  this.paddleInterface.y += this.paddleInterface.speed
-	}
+  move_add(width:number, length:number) {
+	if (this.paddleInterface.type === 'H' && this.paddleInterface.y < width / 2)
+      this.paddleInterface.x += this.paddleInterface.speed
+    else (this.paddleInterface.type === 'V' && this.paddleInterface.y < length / 2)
+      this.paddleInterface.y += this.paddleInterface.speed
   }
   move_minus(width:number, length:number) {
-    if (this.paddleInterface.type === 'H' && this.paddleInterface.x > 0)
+    if (this.paddleInterface.type === 'H' && this.paddleInterface.x > -width / 2)
       this.paddleInterface.x -= this.paddleInterface.speed
-    else if (this.paddleInterface.type === 'V' && this.paddleInterface.y > 0)
+    else if (this.paddleInterface.type === 'V' && this.paddleInterface.y > -length / 2)
       this.paddleInterface.y -= this.paddleInterface.speed
   }
 }

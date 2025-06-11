@@ -128,7 +128,7 @@ import {
   arenaWidth4p,
   arenaLength4p,
   ballSize,
-}     from '../shared/gameTypes'
+}	 from '../shared/gameTypes'
 
 // export class paddleClass {
 //   constructor(public paddleInterface: paddleInterface) {}
@@ -206,16 +206,16 @@ export class ballClass {
   public vector: [number, number]
   public last_bounce?: paddleClass
   constructor(x: number, y: number, radius: number, speed: number) {
-    this.x = x
-    this.y = y
-    this.radius = radius
-    this.speed = speed
-    this.vector = [1, 0]
+	this.x = x
+	this.y = y
+	this.radius = radius
+	this.speed = speed
+	this.vector = [1, 0]
   }
   bounce_x() { this.vector[0] *= -1 }
   bounce_y() { this.vector[1] *= -1 }
   move() {
-    this.x += this.vector[0] * this.speed
-    this.y += this.vector[1] * this.speed
+	this.x += this.vector[0] * this.speed
+	this.y += this.vector[1] * this.speed
   }
 }

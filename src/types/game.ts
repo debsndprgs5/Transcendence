@@ -128,21 +128,38 @@ import {
   arenaWidth4p,
   arenaLength4p,
   ballSize,
-}     from '../shared/gameTypes'
+}	 from '../shared/gameTypes'
 
 export class paddleClass {
   constructor(public paddleInterface: paddleInterface) {}
   move_add(width:number, length:number) {
-	if (this.paddleInterface.type === 'H' && this.paddleInterface.y < width / 2)
-      this.paddleInterface.x += this.paddleInterface.speed
-    else (this.paddleInterface.type === 'V' && this.paddleInterface.y < length / 2)
-      this.paddleInterface.y += this.paddleInterface.speed
+	if (this.paddleInterface.type === 'H' && this.paddleInterface.y < width / 2){
+		if (this.paddleInterface.x + this.paddleInterface.speed > width / 2)
+			this.paddleInterface.x = width - this.paddleInterface.speed
+		else
+			this.paddleInterface.x += this.paddleInterface.speed
+	}
+	else if (this.paddleInterface.type === 'V' && this.paddleInterface.y < length / 2){
+		if (this.paddleInterface.y + this.paddleInterface.speed > length / 2)
+			this.paddleInterface.y = length - this.paddleInterface.speed
+		else
+			this.paddleInterface.y += this.paddleInterface.speed
+	}
   }
+  
   move_minus(width:number, length:number) {
-    if (this.paddleInterface.type === 'H' && this.paddleInterface.x > -width / 2)
-      this.paddleInterface.x -= this.paddleInterface.speed
-    else if (this.paddleInterface.type === 'V' && this.paddleInterface.y > -length / 2)
-      this.paddleInterface.y -= this.paddleInterface.speed
+	if (this.paddleInterface.type === 'H' && this.paddleInterface.x > -width / 2){
+		if (this.paddleInterface.x - this.paddleInterface.speed < -width / 2)
+			this.paddleInterface.x = -width + this.paddleInterface.speed
+		else
+			this.paddleInterface.x -= this.paddleInterface.speed
+	}
+	else if (this.paddleInterface.type === 'V' && this.paddleInterface.y > -length / 2){
+		if (this.paddleInterface.y - this.paddleInterface.speed < -length / 2)
+			this.paddleInterface.y = -length + this.paddleInterface.speed
+		else
+			this.paddleInterface.y -= this.paddleInterface.speed
+	}
   }
 }
 
@@ -154,16 +171,16 @@ export class ballClass {
   public vector: [number, number]
   public last_bounce?: paddleClass
   constructor(x: number, y: number, radius: number, speed: number) {
-    this.x = x
-    this.y = y
-    this.radius = radius
-    this.speed = speed
-    this.vector = [1, 0]
+	this.x = x
+	this.y = y
+	this.radius = radius
+	this.speed = speed
+	this.vector = [1, 0]
   }
   bounce_x() { this.vector[0] *= -1 }
   bounce_y() { this.vector[1] *= -1 }
   move() {
-    this.x += this.vector[0] * this.speed
-    this.y += this.vector[1] * this.speed
+	this.x += this.vector[0] * this.speed
+	this.y += this.vector[1] * this.speed
   }
 }

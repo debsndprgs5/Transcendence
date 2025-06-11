@@ -1,6 +1,6 @@
 import { showNotification } from './notifications';
 import { isAuthenticated, apiFetch, initWebSocket, state } from './api';
-import { TypedSocket } from './shared/gameTypes';
+import { TypedSocket, SocketMessageMap } from './shared/gameTypes';
 import * as BABYLON from 'babylonjs';
 
 export class PongRenderer{
@@ -9,7 +9,7 @@ export class PongRenderer{
 	private scene!: BABYLON.Scene;
 	private camera!: BABYLON.FreeCamera;
 
-	private socket: WebSocket;
+	private socket: TypedSocket;
 	
 	private paddles: BABYLON.Mesh[] = [];
 	private balls: BABYLON.Mesh[] = [];
@@ -20,8 +20,13 @@ export class PongRenderer{
 	private playerSide: 'left' | 'right' | 'top' | 'bottom';
 	//TO ADD (ARRAY{UName:{side:string, socre:number}/....})
 
-	constructor(canvas: HTMLCanvasElement, socket: WebSocket, playerCount: number, playerSide: 'left' | 'right' | 'top' | 'bottom') {
-		this.socket = socket;
+	constructor(
+	canvas: HTMLCanvasElement,
+	typedSocket: TypedSocket,
+	playerCount: number,
+	playerSide: 'left' | 'right' | 'top' | 'bottom'
+	) {
+		this.socket = typedSocket;
 		this.playerCount = playerCount;
 		this.playerSide = playerSide;
 
@@ -36,8 +41,14 @@ export class PongRenderer{
 		this.initInputListeners();
 		this.startRenderLoop();
 		this.handleResize();
-		
+		this.socket.on(
+		     'renderData',
+		     (update: SocketMessageMap['renderData']) => {
+		       this.updateScene(update);
+		     }
+		   );
 	}
+
 	private setupCamera() {
 		const distance = 18;
 		const height = 15;
@@ -138,44 +149,27 @@ export class PongRenderer{
 		this.balls[0].position.set(0, 0, 0);
 	}
 	public updateScene(update: {
-		paddles: Record<number, { pos: number; side: 'left' | 'right' | 'top' | 'bottom' }>;
-		balls: Record<number, { x: number; y: number }>;
-		}) {
-		// Update paddles positions
-		Object.entries(update.paddles).forEach(([key, paddleData]) => {
-			const index = Number(key);
-			const paddleMesh = this.paddles[index-1];
-			if (!paddleMesh) return;
+	  paddles: Record<number, { pos: number; side: 'left' | 'right' | 'top' | 'bottom' }>;
+	  balls:   Record<number, { x: number; y: number }>;
+	}) {
+	  const sideOrder: ('left'|'right'|'top'|'bottom')[] = ['left','right','top','bottom'];
+	  Object.values(update.paddles).forEach(paddleData => {
+	    const meshIndex = sideOrder.indexOf(paddleData.side);
+	    if (meshIndex < 0 || !this.paddles[meshIndex]) return;
+	    const paddleMesh = this.paddles[meshIndex];
+	    if (paddleData.side === 'left' || paddleData.side === 'right') {
+	      paddleMesh.position.z = paddleData.pos;
+	    } else {
+	      paddleMesh.position.x = paddleData.pos;
+	    }
+	  });
 
-			// Position depends on the side:
-			// For left/right paddles, pos is z axis; for top/bottom paddles, pos is x axis
-			switch (paddleData.side) {
-			case 'left':
-			case 'right':
-				paddleMesh.position.z = paddleData.pos;
-				break;
-			case 'top':
-			case 'bottom':
-				paddleMesh.position.x = paddleData.pos;
-				break;
-			default:
-				// unknown side, ignore or log
-				console.warn(`Unknown paddle side: ${paddleData.side}`);
-				break;
-			}
- 	 });
-
-		// Update balls positions
-		Object.entries(update.balls).forEach(([key, ballData]) => {
-			const index = Number(key);
-			const ballMesh = this.balls[index-1];
-			if (!ballMesh) return;
-
-			// Map ball x,y to mesh position:
-			// Assuming y is vertical axis in 3D space, so:
-			ballMesh.position.x = ballData.x;
-			ballMesh.position.z = ballData.y;
-		});
+	  Object.values(update.balls).forEach(ballData => {
+	    const ballMesh = this.balls[0];
+	    if (!ballMesh) return;
+	    ballMesh.position.x = ballData.x;
+	    ballMesh.position.z = ballData.y;
+	  });
 	}
     private startRenderLoop() {
 		this.engine.runRenderLoop(() => {

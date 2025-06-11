@@ -42,7 +42,7 @@ export interface ballInterface{
 
 export interface gameRoomInterface{
 	gameID:number,
-	winCondtion:string, //'score' || 'time'
+	winCondition:string, //'score' || 'time'
 	limit:number ,//score limit or seconds limit
 	mode:string,//2p 4p ...
 	settings?:string,

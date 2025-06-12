@@ -89,19 +89,19 @@ export class PongRenderer{
 		// Time display
 		this.timeText = new GUI.TextBlock();
 		this.timeText.color = "white";
-		this.timeText.fontSize = 24;
+		this.timeText.fontSize = 8;
 		this.timeText.top = "-40px";
-		this.timeText.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+		this.timeText.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
 		this.timeText.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
 		this.guiTexture.addControl(this.timeText);
 
 		// Score display
 		this.scoreText = new GUI.TextBlock();
 		this.scoreText.color = "white";
-		this.scoreText.fontSize = 24;
+		this.scoreText.fontSize = 12;
 		this.scoreText.top = "10px";
-		this.scoreText.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-		this.scoreText.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
+		this.scoreText.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+		this.scoreText.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
 		this.guiTexture.addControl(this.scoreText);
 	}
 	private setupLighting() {
@@ -264,7 +264,10 @@ export class PongRenderer{
 			bottom: 0,
 		};
 		Object.values(update.paddles).forEach(({ side, score }) => {
-			scores[side] = score;
+			if(this.playerCount === 2 &&(side === 'left' || side === 'right'))
+				scores[side] = score;
+			else if(this.playerCount === 4)
+				scores[side] = score;
 		});
 
 		this.updateHUD(update.elapsed, scores);

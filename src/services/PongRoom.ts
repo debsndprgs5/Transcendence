@@ -139,7 +139,7 @@ export class PongRoom {
 		const halfWidth = this.WIDTH / 2;
 		const halfHeight = this.HEIGHT / 2;
 
-		if (this.game.mode === 'four') {
+		if (this.game.mode === 'quatuor') {
 			// 4p mode: No bouncing on walls, scoring on any wall hit
 
 			// Left wall (x <= -halfWidth)

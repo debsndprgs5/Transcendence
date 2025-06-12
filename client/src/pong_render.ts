@@ -13,9 +13,11 @@ export class PongRenderer{
 	private socket: TypedSocket;
 	
 	private paddles: BABYLON.Mesh[] = [];
+	private paddleMap: Record<'left'|'right'|'top'|'bottom', BABYLON.Mesh | undefined>;
 	private balls: BABYLON.Mesh[] = [];
 	private sideWalls:BABYLON.Mesh[]=[];
 	private frontWalls:BABYLON.Mesh[]=[];
+
 
 	private playerCount: number;
 	private playerSide: 'left' | 'right' | 'top' | 'bottom';
@@ -38,16 +40,16 @@ export class PongRenderer{
 		this.setupLighting();
 		this.createWalls();
 		this.createGameObjects();
+		this.paddleMap = {
+			left:   this.paddles[0],
+			right:  this.paddles[1],
+			top:    this.paddles[2],
+			bottom: this.paddles[3],
+		};
 		this.setupInitialPositions();
 		this.initInputListeners();
 		this.startRenderLoop();
 		this.handleResize();
-		this.socket.on(
-		     'renderData',
-		     (update: SocketMessageMap['renderData']) => {
-		       this.updateScene(update);
-		     }
-		   );
 	}
 
 	private setupCamera() {
@@ -58,11 +60,11 @@ export class PongRenderer{
 
 		switch (this.playerSide) {
 			case 'left':
-				camPos = new BABYLON.Vector3(distance, height, 0);
+				camPos = new BABYLON.Vector3(-distance, height, 0);
 				break;
 			case 'right':
-				camPos = new BABYLON.Vector3(-distance, height, 0);
-       			break;
+				camPos = new BABYLON.Vector3(distance, height, 0);
+						break;
 			case 'top':
 				camPos = new BABYLON.Vector3(0, height, distance);
 				break;
@@ -77,8 +79,8 @@ export class PongRenderer{
 		this.camera.setTarget(new BABYLON.Vector3(0, 0, 0));
 	}
 	private setupLighting() {
-    	new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), this.scene);
-  	}
+			new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), this.scene);
+		}
 	private createWalls() {
 		const width2P = LIMIT.arenaWidth2p; // -8 to 8
 		const depth2P = LIMIT.arenaLength2p; // -5 to 5
@@ -137,66 +139,131 @@ export class PongRenderer{
 	}
 
 	private setupInitialPositions() {
-		if (this.playerCount === 2) {
-			this.paddles[0].position.set(-(LIMIT.arenaWidth2p/2), 0, 0); // left
-			this.paddles[1].position.set((LIMIT.arenaLength2p/2), 0, 0); // right
-		} else {
-			this.paddles[0].position.set(-(LIMIT.arenaWidth4p/2), 0, 0); // left
-			this.paddles[1].position.set((LIMIT.arenaWidth4p/2), 0, 0);  // right
-			this.paddles[2].position.set(0, 0, (LIMIT.arenaWidth4p/2));  // top
-			this.paddles[3].position.set(0, 0, -(LIMIT.arenaWidth4p/2)); // bottom
-		}
+	  // wall thicknesses: along X use wallLength, along Z use wallDepth
+	  const wallLength = 0.25;
+	  const wallDepth  = 0.5;
 
-		this.balls[0].position.set(0, 0, 0);
+	  if (this.playerCount === 2) {
+	    // 2-player mode: paddles on left/right, move along Z
+	    const halfW2    = LIMIT.arenaWidth2p  / 2;    // half arena width
+	    const padHalfX  = LIMIT.paddleWidth    / 2;   // half paddle width
+
+	    // LEFT paddle (index 0)
+	    this.paddles[0].position.set(
+	      - (halfW2 - wallLength - padHalfX), // X just inside left wall
+	       0,                                  // Y
+	       0                                   // Z center
+	    );
+
+	    // RIGHT paddle (index 1)
+	    this.paddles[1].position.set(
+	       (halfW2 - wallLength - padHalfX),   // X just inside right wall
+	       0,
+	       0
+	    );
+	  } else {
+	    // 4-player mode: left/right on X, top/bottom on Z
+	    const halfW4   = LIMIT.arenaWidth4p   / 2;
+	    const halfL4   = LIMIT.arenaLength4p  / 2;
+	    const padHalfX = LIMIT.paddleWidth    / 2;
+	    const padHalfZ = LIMIT.paddleSize     / 2;
+
+	    // LEFT paddle (index 0)
+	    this.paddles[0].position.set(
+	      - (halfW4 - wallLength - padHalfX), 
+	       0,
+	       0
+	    );
+
+	    // RIGHT paddle (index 1)
+	    this.paddles[1].position.set(
+	       (halfW4 - wallLength - padHalfX),
+	       0,
+	       0
+	    );
+
+	    // TOP paddle (index 2)
+	    this.paddles[2].position.set(
+	      0,
+	      0,
+	      (halfL4 - wallDepth - padHalfZ)
+	    );
+
+	    // BOTTOM paddle (index 3)
+	    this.paddles[3].position.set(
+	      0,
+	      0,
+	     - (halfL4 - wallDepth - padHalfZ)
+	    );
+	  }
+
+	  // Ball always starts at center
+	  if (this.balls[0]) {
+	    this.balls[0].position.set(0, 0, 0);
+	  }
 	}
+
 	public updateScene(update: {
-	  paddles: Record<number, { pos: number; side: 'left' | 'right' | 'top' | 'bottom' }>;
-	  balls:   Record<number, { x: number; y: number }>;
+	  paddles: Record<number,{pos:number; side:'left'|'right'|'top'|'bottom'}>;
+	  balls:   Record<number,{x:number; y:number}>;
 	}) {
-	  const sideOrder: ('left'|'right'|'top'|'bottom')[] = ['left','right','top','bottom'];
-	  Object.values(update.paddles).forEach(paddleData => {
-	    const meshIndex = sideOrder.indexOf(paddleData.side);
-	    if (meshIndex < 0 || !this.paddles[meshIndex]) return;
-	    const paddleMesh = this.paddles[meshIndex];
-	    if (paddleData.side === 'left' || paddleData.side === 'right') {
-	      paddleMesh.position.z = paddleData.pos;
+	  // update paddles
+	  Object.values(update.paddles).forEach(({ side, pos }) => {
+	    const mesh = this.paddleMap[side];
+	    if (!mesh) return;
+
+	    if (side === 'left' || side === 'right') {
+	      // ← H-paddles slide on X
+	      mesh.position.z = pos;
 	    } else {
-	      paddleMesh.position.x = paddleData.pos;
+	      // ← V-paddles slide on Z
+	      mesh.position.x = pos;
 	    }
 	  });
 
-	  Object.values(update.balls).forEach(ballData => {
-	    const ballMesh = this.balls[0];
-	    if (!ballMesh) return;
-	    ballMesh.position.x = ballData.x;
-	    ballMesh.position.z = ballData.y;
+	  // update balls (inchangé)
+	  Object.values(update.balls).forEach(({ x, y }) => {
+	    const m = this.balls[0];
+	    if (!m) return;
+	    m.position.x = x;
+	    m.position.z = y;
 	  });
 	}
-    private startRenderLoop() {
-		this.engine.runRenderLoop(() => {
-		this.scene.render();
-		});
-	}
+	private startRenderLoop() {
+	this.engine.runRenderLoop(() => {
+	this.scene.render();
+	});
+}
 
-  	public handleResize() {
-      this.engine.resize();
-		  window.addEventListener('resize', () => {
-		  this.engine.resize();
+		public handleResize() {
+			this.engine.resize();
+			window.addEventListener('resize', () => {
+			this.engine.resize();
 		});
 	}
 
 	private initInputListeners() {
-		window.addEventListener('keydown', (e) => {
-		// if (e.repeat) return; // ignore repeats
-      console.log(state.userId, state.playerInterface?.playerSide, e.key);
-			if (e.key === 'ArrowLeft') this.sendMove('left');
-			else if (e.key === 'ArrowRight') this.sendMove('right');
-		});
+	  window.addEventListener('keydown', (e) => {
+	    // Determine raw direction from key
+	    let dir: 'left' | 'right' | null = null;
+	    if (e.key === 'ArrowLeft')  dir = 'left';
+	    else if (e.key === 'ArrowRight') dir = 'right';
+	    else return;
 
-		window.addEventListener('keyup', (e) => {
-      console.log(state.userId, state.playerInterface?.playerSide, e.key);
-			if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') this.sendMove('stop');
-		});
+	    // Swap for left-side player
+	    if (this.playerSide === 'left') {
+	      dir = dir === 'left' ? 'right' : 'left';
+	    }
+
+	    this.sendMove(dir);
+	  });
+
+	  window.addEventListener('keyup', (e) => {
+	    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+
+	    // “stop” is the same for both
+	    this.sendMove('stop');
+	  });
 	}
 
 	private sendMove(direction:string){
@@ -214,6 +281,6 @@ export class PongRenderer{
 
 
 	public dispose() {
-    	this.engine.dispose();
-  	}
+			this.engine.dispose();
+		}
 }

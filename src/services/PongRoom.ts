@@ -17,15 +17,17 @@ import {
 export class PongRoom {
 	public static rooms = new Map<number, PongRoom>()
 
-	private readonly game: G.gameRoomInterface & { ballSpeed: number; paddleSpeed: number }
-	private readonly gameID: number
-	private readonly players: G.playerInterface[]
-	private readonly paddles = new Map<number, paddleClass>()
-	private readonly balls: ballClass[] = []
-	private loop?: NodeJS.Timeout
+  private readonly game: G.gameRoomInterface & { ballSpeed: number; paddleSpeed: number }
+  private readonly gameID: number
+  private readonly players: G.playerInterface[]
+  private readonly paddles = new Map<number, paddleClass>()
+  private readonly balls: ballClass[] = []
+  private loop?: NodeJS.Timeout
+  private scoreMap = new Map<number, number>() //userID to score ?
+  private readonly WIDTH;
+  private readonly HEIGHT;
+  private readonly clock:number;
 
-	private readonly WIDTH;
-	private readonly HEIGHT;
 
 	constructor(
 		game: G.gameRoomInterface & { ballSpeed: number; paddleSpeed: number },
@@ -43,24 +45,25 @@ export class PongRoom {
 			this.HEIGHT = arenaLength4p;
 		}
 
-		// === Instantiate each paddle ===
-		for (const p of players) {
-			// Determine orientation from playerSide
-			const isH = p.playerSide === 'left' || p.playerSide === 'right';
-			const pi: G.paddleInterface = {
-				userID:   p.userID,
-				username: p.username ?? '',
-				gameID:   game.gameID,
-				x:        0,
-				y:        0,
-				// use gameTypes constants consistently
-				width:  isH ? paddleWidth : paddleSize,
-				length: isH ? paddleSize  : paddleWidth,
-				speed:    game.paddleSpeed / 100,
-				type:     isH ? 'H' : 'V',
-			};
-			this.paddles.set(p.userID, new paddleClass(pi));
-		}
+    // === Instantiate each paddle ===
+    for (const p of players) {
+      // Determine orientation from playerSide
+      const isH = p.playerSide === 'left' || p.playerSide === 'right';
+      const pi: G.paddleInterface = {
+        userID:   p.userID,
+        username: p.username ?? '',
+        gameID:   game.gameID,
+        x:        0,
+        y:        0,
+        // use gameTypes constants consistently
+        width:  isH ? paddleWidth : paddleSize,
+        length: isH ? paddleSize  : paddleWidth,
+        speed:    game.paddleSpeed / 100,
+        type:     isH ? 'H' : 'V',
+		score:0
+      };
+      this.paddles.set(p.userID, new paddleClass(pi));
+    }
 
 		// === Position all paddles just inside the walls ===
 		const wallT = 0.25;
@@ -94,10 +97,15 @@ export class PongRoom {
 		// create the ball
 		this.balls.push(new ballClass(0, 0, ballSize, game.ballSpeed / 100));
 
+   		 // register & start loop
+		PongRoom.rooms.set(this.gameID, this);
+		this.clock = Date.now();
+		this.loop = setInterval(() => this.frame(), 1000 / 60);
+  
 		// register & start loop
 		PongRoom.rooms.set(this.gameID, this);
 		this.loop = setInterval(() => this.frame(), 1000 / 60);
-	}
+}
 
 	/* ---------- Public API ---------- */
 
@@ -117,84 +125,230 @@ export class PongRoom {
 
 	/* ---------- Private ---------- */
 
-	private frame() {
-		// 1. Physics
-		for (const b of this.balls) {
-			for (const p of this.paddles){
-				this.bounce_player(b, p[1])
-			}
-			this.bounceArena(b)
-			this.ballsMove(b)
+  private frame() {
+    // 1. Physics
+    for (const b of this.balls) {
+      for (const p of this.paddles){
+        this.bounce_player(b, p[1])
+      }
+      this.bounceArena(b)
+      this.ballsMove(b)
+    }
+	//2.Detect win
+	this.checkWinCondition();
+    // 3. Broadcast to all players
+    this.broadcast()
+  }
+
+private bounceArena(ball: ballClass) {
+	const halfWidth = this.WIDTH / 2;
+	const halfHeight = this.HEIGHT / 2;
+	const W = this.WIDTH / 2;
+	const H = this.HEIGHT / 2;
+	const R = ball.radius;
+	// angle limits
+	const maxAngle = Math.tan(75 * Math.PI / 180);
+	const minAngle = Math.tan(15 * Math.PI / 180);
+
+	if (this.game.mode === 'quatuor') {
+		// 4p mode: No bouncing on walls, scoring on any wall hit
+
+		// Left wall (x <= -halfWidth)
+		if (ball.x - ball.radius <= -halfWidth) {
+			// Left wall hit → Right player scores
+			this.handleWallScore('left', ball);
+			return; // skip further movement, ball reset inside handleWallScore
 		}
-		// 2. Broadcast to all players
-		this.broadcast()
+		// Right wall (x >= halfWidth)
+		if (ball.x + ball.radius >= halfWidth) {
+			this.handleWallScore('right', ball);
+			return;
+		}
+		// Top wall (y >= halfHeight)
+		if (ball.y + ball.radius >= halfHeight) {
+			this.handleWallScore('top', ball);
+			return;
+		}
+		// Bottom wall (y <= -halfHeight)
+		if (ball.y - ball.radius <= -halfHeight) {
+			this.handleWallScore('bottom', ball);
+			return;
+		}
+
+	} else if (this.game.mode === 'duo') {
+		// 2p mode: bounce top/bottom, score on left/right goals
+
+		// Left wall (goal)
+		if (ball.x - ball.radius <= -halfWidth) {
+			this.handleWallScore('left', ball);
+			return;
+		}
+		// Right wall (goal)
+		if (ball.x + ball.radius >= halfWidth) {
+			this.handleWallScore('right', ball);
+			return;
+		}
+
+		// Top wall bounce
+		if (ball.y + ball.radius >= halfHeight) {
+			// Ball hits the top wall
+			if (ball.x - R <= -W && ball.vector[0] < 0) {
+				// 1) Push out of the wall
+				ball.x = -W + R + 1e-3;
+				// 2) Invert normal component (X velocity)
+				ball.vector[0] *= -1;
+
+				// 3) Clamp tangential ratio vy/vx (adjust Y velocity based on X velocity)
+				let ratio = ball.vector[1] / ball.vector[0];
+				const s = Math.sign(ratio) || 1, a = Math.abs(ratio);
+				ratio = Math.min(maxAngle, Math.max(minAngle, a)) * s;
+				ball.vector[1] = ball.vector[0] * ratio;
+
+				// 4) Normalize the velocity
+				const len = Math.hypot(ball.vector[0], ball.vector[1]);
+				ball.vector[0] /= len;
+				ball.vector[1] /= len;
+			}
+		}
+
+		// Bottom wall bounce
+		if (ball.y - ball.radius <= -halfHeight) {
+			// Ball hits the bottom wall
+			if (ball.x - R <= -W && ball.vector[0] < 0) {
+				// 1) Push out of the wall
+				ball.x = -W + R + 1e-3;
+				// 2) Invert normal component (X velocity)
+				ball.vector[0] *= -1;
+
+				// 3) Clamp tangential ratio vy/vx (adjust Y velocity based on X velocity)
+				let ratio = ball.vector[1] / ball.vector[0];
+				const s = Math.sign(ratio) || 1, a = Math.abs(ratio);
+				ratio = Math.min(maxAngle, Math.max(minAngle, a)) * s;
+				ball.vector[1] = ball.vector[0] * ratio;
+
+				// 4) Normalize the velocity
+				const len = Math.hypot(ball.vector[0], ball.vector[1]);
+				ball.vector[0] /= len;
+				ball.vector[1] /= len;
+			}
+		}
+	}
+}
+
+	private handleWallScore(sideHit: 'left' | 'right' | 'top' | 'bottom', ball: ballClass) {
+		// Check last paddle to touch the ball
+		if (ball.last_bounce) {
+			const lastUserID = ball.last_bounce.paddleInterface.userID;
+			const currentScore = this.scoreMap.get(lastUserID) ?? 0;
+			this.scoreMap.set(lastUserID, currentScore + 1);
+		} else {
+			// No last bounce: the player(s) on the sideHit lose 1 point
+			for (const p of this.players) {
+			if (p.playerSide === sideHit) {
+				const currentScore = this.scoreMap.get(p.userID) ?? 0;
+				this.scoreMap.set(p.userID, currentScore - 1);
+			}
+			}
+		}
+		// Reset ball to center and clear last bounce reference
+		ball.x = 0;
+		ball.y = 0;
+		ball.last_bounce = undefined;
+		ball.speed = this.game.ballSpeed / 100;
 	}
 
-	private bounceArena(ball: ballClass) {
-	  const W = this.WIDTH/2;
-	  const H = this.HEIGHT/2;
-	  const R = ball.radius;
-	  // angle limits
-	  const maxAngle = Math.tan(75 * Math.PI/180);
-	  const minAngle = Math.tan(15 * Math.PI/180);
+  private broadcast() {
+    // Build payload
+    const paddlesPayload: Record<number, { pos: number; side: G.playerInterface['playerSide']; score:number; }> = {}
+    this.players.forEach(p => {
+      const pad = this.paddles.get(p.userID)!
+      const pos = pad.paddleInterface.type === 'H'
+        ? pad.paddleInterface.y
+        : pad.paddleInterface.x;
+      paddlesPayload[p.userID] = { pos, side: p.playerSide, score:pad.paddleInterface.score };
+    })
+    const ballsPayload: Record<number, { x: number; y: number; }> = {}
+    this.balls.forEach((b, i) => (ballsPayload[i] = { x: b.x, y: b.y }))
+	let time = Date.now()-this.clock
+	time = time/1000;
+     // Send renderData
+    for (const p of this.players) {
+      p.typedSocket.send('renderData', {
+        paddles: paddlesPayload,
+        balls: ballsPayload,
+		elapsed:time
+      })
+    }
+  }
+	private checkWinCondition(): boolean {
+	const elapsed = Date.now() - this.clock;
 
-	  // --- left wall ---
-	  if (ball.x - R <= -W && ball.vector[0] < 0) {
-	    // 1) Push out of the wall
-	    ball.x = -W + R + 1e-3;
-	    // 2) Invert normal component
-	    ball.vector[0] *= -1;
+	if (this.game.winCondition === 'time') {
+	if (elapsed > this.game.limit * 1000) {
+		this.setTimeWinner();
+		this.stop();
+		return true;
+	}
+	} else if (this.game.winCondition === 'score') {
+	const winners: number[] = [];
 
-	    // 3) Clamp tangential ratio vy/vx
-	    let ratio = ball.vector[1] / ball.vector[0];
-	    const s = Math.sign(ratio)||1, a = Math.abs(ratio);
-	    ratio = Math.min(maxAngle, Math.max(minAngle, a)) * s;
-	    ball.vector[1] = ball.vector[0] * ratio;
+	for (const [userID, score] of this.scoreMap.entries()) {
+		if (score >= this.game.limit) {
+		winners.push(userID);
+		}
+	}
 
-	    // 4) Normalize
-	    const len = Math.hypot(ball.vector[0], ball.vector[1]);
-	    ball.vector[0] /= len;
-	    ball.vector[1] /= len;
-	  }
+	if (winners.length > 1) {
+		this.handleTie(winners);
+		this.stop();
+		return true;
+	} else if (winners.length === 1) {
+		// One winner
+		this.handleWinner(winners[0]);
+		this.stop();
+		return true;
+	}
+	}
 
-	  // --- right wall ---
-	  if (ball.x + R >= W && ball.vector[0] > 0) {
-	    ball.x = W - R - 1e-3;
-	    ball.vector[0] *= -1;
-	    let ratio = ball.vector[1] / ball.vector[0];
-	    const s = Math.sign(ratio)||1, a = Math.abs(ratio);
-	    ratio = Math.min(maxAngle, Math.max(minAngle, a)) * s;
-	    ball.vector[1] = ball.vector[0] * ratio;
-	    const len = Math.hypot(ball.vector[0], ball.vector[1]);
-	    ball.vector[0] /= len;
-	    ball.vector[1] /= len;
-	  }
+	return false; // no win condition met
+	}
+	
+	private setTimeWinner() {
+		const winners: number[] = [];
+		let maxScore = -Infinity; // start very low to catch all scores
 
-	  // --- bottom wall ---
-	  if (ball.y - R <= -H && ball.vector[1] < 0) {
-	    ball.y = -H + R + 1e-3;
-	    ball.vector[1] *= -1;
-	    let ratio = ball.vector[0] / ball.vector[1];
-	    const s = Math.sign(ratio)||1, a = Math.abs(ratio);
-	    ratio = Math.min(maxAngle, Math.max(minAngle, a)) * s;
-	    ball.vector[0] = ball.vector[1] * ratio;
-	    const len = Math.hypot(ball.vector[0], ball.vector[1]);
-	    ball.vector[0] /= len;
-	    ball.vector[1] /= len;
-	  }
+		for (const [userID, score] of this.scoreMap.entries()) {
+			if (score === maxScore) {
+			winners.push(userID);
+			} else if (score > maxScore) {
+			maxScore = score;
+			winners.length = 0; // clear winners array
+			winners.push(userID);
+			}
+		}
 
-	  // --- top wall ---
-	  if (ball.y + R >= H && ball.vector[1] > 0) {
-	    ball.y = H - R - 1e-3;
-	    ball.vector[1] *= -1;
-	    let ratio = ball.vector[0] / ball.vector[1];
-	    const s = Math.sign(ratio)||1, a = Math.abs(ratio);
-	    ratio = Math.min(maxAngle, Math.max(minAngle, a)) * s;
-	    ball.vector[0] = ball.vector[1] * ratio;
-	    const len = Math.hypot(ball.vector[0], ball.vector[1]);
-	    ball.vector[0] /= len;
-	    ball.vector[1] /= len;
-	  }
+		if (winners.length > 1) {
+			this.handleTie(winners);
+		} else if (winners.length === 1) {
+			this.handleWinner(winners[0]);
+		} else {
+			// No scores? fallback - maybe no winner
+			console.log('No winner found for time limit');
+		}
+	}
+
+	private handleTie(winnersID: number[]) {
+		for (const p of this.players) {
+			const status = winnersID.includes(p.userID) ? 'tie' : 'no';
+			p.typedSocket.send('endMatch', { result: status });
+		}
+	}
+
+	private handleWinner(winnerID: number) {
+		for (const p of this.players) {
+			const status = p.userID === winnerID ? 'yes' : 'no';
+			p.typedSocket.send('endMatch', { result: status });
+		}
 	}
 
 	private ballsMove(b: ballClass) {
@@ -252,26 +406,4 @@ private bounce_player(ball: ballClass, paddle: paddleClass) {
 		ball.last_bounce = paddle;
 	}
 }
-
-	private broadcast() {
-		// Build payload
-		const paddlesPayload: Record<number, { pos: number; side: G.playerInterface['playerSide'] }> = {}
-		this.players.forEach(p => {
-			const pad = this.paddles.get(p.userID)!
-			const pos = pad.paddleInterface.type === 'H'
-				? pad.paddleInterface.y
-				: pad.paddleInterface.x;
-			paddlesPayload[p.userID] = { pos, side: p.playerSide };
-		})
-		const ballsPayload: Record<number, { x: number; y: number }> = {}
-		this.balls.forEach((b, i) => (ballsPayload[i] = { x: b.x, y: b.y }))
-
-		// Send renderData
-		for (const p of this.players) {
-			p.typedSocket.send('renderData', {
-				paddles: paddlesPayload,
-				balls: ballsPayload,
-			})
-		}
-	}
 }

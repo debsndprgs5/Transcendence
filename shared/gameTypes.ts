@@ -67,7 +67,7 @@ export type SocketMessageMap = {
 	paddles: Record<number, { pos: number; side: 'left' | 'right' | 'top' | 'bottom' }>;
 	balls: Record<number, { x: number; y: number }>;
 	};
-	endMatch:{type:'endMatch'; isWinner:boolean};
+	endMatch:{type:'endMatch'; winnerName:string; loserName:string; winnerScore:number; loserScore:number};
 	reconnected:{type:'reconnected'; userID:number; state:string; gameID?:number; tournamentID?:number};
 	leaveGame:{type:'leaveGame'; userID:number; gameID:number; islegit:boolean};
 	giveSide:{type:'giveSide'; userID:number; gameID:number; side:'right'|'left'| 'top'| 'bottom'};

@@ -53,8 +53,8 @@ export class PongRenderer{
 	}
 
 	private setupCamera() {
-		const distance = 40;
-		const height = 30;
+		const distance = 30;
+		const height = 25;
 
 		let camPos: BABYLON.Vector3;
 

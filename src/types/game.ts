@@ -76,7 +76,7 @@ export class ballClass {
 	this.y = y
 	this.radius = radius
 	this.speed = speed
-	this.vector = [1, 0]
+	this.vector = [Math.random() > 0.5 ? 1 : -1, Math.random() * 2 - 1];
   }
   bounce_x() { this.vector[0] *= -1 }
   bounce_y() { this.vector[1] *= -1 }

@@ -11,7 +11,7 @@ export class PongRenderer{
 	private camera!: BABYLON.FreeCamera;
 
 	private socket: TypedSocket;
-	
+
 	private paddles: BABYLON.Mesh[] = [];
 	private paddleMap: Record<'left'|'right'|'top'|'bottom', BABYLON.Mesh | undefined>;
 	private balls: BABYLON.Mesh[] = [];
@@ -202,7 +202,9 @@ export class PongRenderer{
 	    this.balls[0].position.set(0, 0, 0);
 	  }
 	}
-
+	public getScene(): BABYLON.Scene {
+		return this.scene;
+	}
 	public updateScene(update: {
 	  paddles: Record<number,{pos:number; side:'left'|'right'|'top'|'bottom'}>;
 	  balls:   Record<number,{x:number; y:number}>;

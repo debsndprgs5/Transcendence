@@ -31,73 +31,71 @@ export class PongRoom {
     game: G.gameRoomInterface & { ballSpeed: number; paddleSpeed: number },
     players: G.playerInterface[]
   ) {
-    this.game    = game
-    this.gameID  = game.gameID
-    this.players = players
-	if(this.game.mode === 'duo'){
-		this.WIDTH=arenaWidth2p
-		this.HEIGHT=arenaLength2p
-	}
-	else {
-		this.WIDTH=arenaWidth4p
-		this.HEIGHT=arenaLength4p
-	}
-    // instantiate a paddleClass for each player, fulfilling paddleInterface
+    this.game    = game;
+    this.gameID  = game.gameID;
+    this.players = players;
+
+    if (this.game.mode === 'duo') {
+      this.WIDTH  = arenaWidth2p;
+      this.HEIGHT = arenaLength2p;
+    } else {
+      this.WIDTH  = arenaWidth4p;
+      this.HEIGHT = arenaLength4p;
+    }
+
+    // === Instantiate each paddle ===
     for (const p of players) {
+      // Determine orientation from playerSide
+      const isH = p.playerSide === 'left' || p.playerSide === 'right';
       const pi: G.paddleInterface = {
         userID:   p.userID,
         username: p.username ?? '',
         gameID:   game.gameID,
         x:        0,
         y:        0,
-        width:    2,
-        length:   5,
+        // use gameTypes constants consistently
+        width:  isH ? paddleWidth : paddleSize,
+        length: isH ? paddleSize  : paddleWidth,
         speed:    game.paddleSpeed / 100,
-        type: (p.playerSide === 'left' || p.playerSide === 'right') ? 'H'
-			: (p.playerSide === 'top' || p.playerSide === 'bottom') ? 'V'
-			: 'H'  // or any default
-      }
-      this.paddles.set(p.userID, new paddleClass(pi))
+        type:     isH ? 'H' : 'V',
+      };
+      this.paddles.set(p.userID, new paddleClass(pi));
     }
-    let index:number = 0;
-    for (const p of this.paddles) {
-      if (p[1].paddleInterface.type == 'V'){
-        if (index % 2){
-          p[1].paddleInterface.x = -this.WIDTH/2;
-          p[1].paddleInterface.y = this.HEIGHT/2;
-          p[1].paddleInterface.width = paddleWidth;
-          p[1].paddleInterface.length = paddleSize;
-        }
-        else{
-          p[1].paddleInterface.x = this.WIDTH/2;
-          p[1].paddleInterface.y = this.HEIGHT/2;
-          p[1].paddleInterface.width = paddleWidth;
-          p[1].paddleInterface.length = paddleSize;
-        }
-      }
-      if (p[1].paddleInterface.type == 'V'){
-        if (index % 2){
-          p[1].paddleInterface.x = this.WIDTH/2;
-          p[1].paddleInterface.y = this.HEIGHT/2;
-          p[1].paddleInterface.width = paddleSize;
-          p[1].paddleInterface.length = paddleWidth;
-        }
-        else{
-          p[1].paddleInterface.x = this.WIDTH/2;
-          p[1].paddleInterface.y = this.HEIGHT/2;
-          p[1].paddleInterface.width = paddleSize;
-          p[1].paddleInterface.length = paddleWidth;
-        }
+
+    // === Position all paddles just inside the walls ===
+    const wallT = 0.25;
+    for (const player of this.players) {
+      const paddle = this.paddles.get(player.userID)!;
+      const pi     = paddle.paddleInterface;
+      const half   = (pi.type === 'H' ? pi.length : pi.width) / 2;
+
+      switch (player.playerSide) {
+        case 'left':
+          pi.x = 0;
+          pi.y = - (this.HEIGHT/2 - wallT - half);
+          break;
+        case 'right':
+          pi.x = 0;
+          pi.y = + (this.HEIGHT/2 - wallT - half);
+          break;
+        case 'top':
+          // Z → X côté serveur, donc pi.x positif
+          pi.x = + (this.WIDTH/2 - wallT - half);
+          pi.y = 0;
+          break;
+        case 'bottom':
+          pi.x = - (this.WIDTH/2 - wallT - half);
+          pi.y = 0;
+          break;
       }
     }
-    
 
     // create the ball
-    this.balls.push(new ballClass(0, 0, ballSize, game.ballSpeed / 100))
+    this.balls.push(new ballClass(0, 0, ballSize, game.ballSpeed / 100));
 
     // register & start loop
-    PongRoom.rooms.set(this.gameID, this)
-    this.loop = setInterval(() => this.frame(), 1000 / 60)
+    PongRoom.rooms.set(this.gameID, this);
+    this.loop = setInterval(() => this.frame(), 1000 / 60);
   }
 
   /* ---------- Public API ---------- */
@@ -174,8 +172,10 @@ export class PongRoom {
     const paddlesPayload: Record<number, { pos: number; side: G.playerInterface['playerSide'] }> = {}
     this.players.forEach(p => {
       const pad = this.paddles.get(p.userID)!
-      const pos = pad.paddleInterface.type === 'H' ? pad.paddleInterface.x : pad.paddleInterface.y
-      paddlesPayload[p.userID] = { pos, side: p.playerSide }
+      const pos = pad.paddleInterface.type === 'H'
+        ? pad.paddleInterface.y   // ← use Y for H-paddles
+        : pad.paddleInterface.x;  // V-paddles slide on X
+      paddlesPayload[p.userID] = { pos, side: p.playerSide };
     })
     const ballsPayload: Record<number, { x: number; y: number }> = {}
     this.balls.forEach((b, i) => (ballsPayload[i] = { x: b.x, y: b.y }))
@@ -183,7 +183,6 @@ export class PongRoom {
     // Send renderData
     for (const p of this.players) {
       p.typedSocket.send('renderData', {
-        type: 'renderData',
         paddles: paddlesPayload,
         balls: ballsPayload,
       })

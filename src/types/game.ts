@@ -149,50 +149,52 @@ import {
 export class paddleClass {
   constructor(public paddleInterface: paddleInterface) {}
 
-  move_add(width: number, length: number) {
-    const halfPaddle = this.paddleInterface.length / 2;
-    const MAP_LIMIT_X = width / 2;
-    const MAP_LIMIT_Y = length / 2;
+  /** Move paddle “forward” (right or down depending on orientation) */
+  move_add(arenaWidth: number, arenaHeight: number) {
+    const half = this.paddleInterface.length / 2;
+    const limitX = arenaWidth / 2;
+    const limitY = arenaHeight / 2;
 
     if (this.paddleInterface.type === 'H') {
-      // Move along X-axis
-      this.paddleInterface.x += this.paddleInterface.speed;
-      // Clamp
-      this.paddleInterface.x = Math.max(
-        -MAP_LIMIT_X + halfPaddle,
-        Math.min(MAP_LIMIT_X - halfPaddle, this.paddleInterface.x)
+      // Move along Y-axis for left/right paddles
+      this.paddleInterface.y += this.paddleInterface.speed;
+      // Clamp within vertical bounds
+      this.paddleInterface.y = Math.max(
+        -limitY + half,
+        Math.min(limitY - half, this.paddleInterface.y)
       );
     } else {
-      // Move along Y-axis
-      this.paddleInterface.y += this.paddleInterface.speed;
-      // Clamp
-      this.paddleInterface.y = Math.max(
-        -MAP_LIMIT_Y + halfPaddle,
-        Math.min(MAP_LIMIT_Y - halfPaddle, this.paddleInterface.y)
+      // Move along X-axis for top/bottom paddles
+      this.paddleInterface.x += this.paddleInterface.speed;
+      // Clamp within horizontal bounds
+      this.paddleInterface.x = Math.max(
+        -limitX + half,
+        Math.min(limitX - half, this.paddleInterface.x)
       );
     }
   }
 
-  move_minus(width: number, length: number) {
-    const halfPaddle = this.paddleInterface.length / 2;
-    const MAP_LIMIT_X = width / 2;
-    const MAP_LIMIT_Y = length / 2;
+  /** Move paddle “backward” (left or up depending on orientation) */
+  move_minus(arenaWidth: number, arenaHeight: number) {
+    const half = this.paddleInterface.length / 2;
+    const limitX = arenaWidth / 2;
+    const limitY = arenaHeight / 2;
 
     if (this.paddleInterface.type === 'H') {
-      // Move along X-axis
-      this.paddleInterface.x -= this.paddleInterface.speed;
-      // Clamp
-      this.paddleInterface.x = Math.max(
-        -MAP_LIMIT_X + halfPaddle,
-        Math.min(MAP_LIMIT_X - halfPaddle, this.paddleInterface.x)
+      // Move along Y-axis for left/right paddles
+      this.paddleInterface.y -= this.paddleInterface.speed;
+      // Clamp within vertical bounds
+      this.paddleInterface.y = Math.max(
+        -limitY + half,
+        Math.min(limitY - half, this.paddleInterface.y)
       );
     } else {
-      // Move along Y-axis
-      this.paddleInterface.y -= this.paddleInterface.speed;
-      // Clamp
-      this.paddleInterface.y = Math.max(
-        -MAP_LIMIT_Y + halfPaddle,
-        Math.min(MAP_LIMIT_Y - halfPaddle, this.paddleInterface.y)
+      // Move along X-axis for top/bottom paddles
+      this.paddleInterface.x -= this.paddleInterface.speed;
+      // Clamp within horizontal bounds
+      this.paddleInterface.x = Math.max(
+        -limitX + half,
+        Math.min(limitX - half, this.paddleInterface.x)
       );
     }
   }

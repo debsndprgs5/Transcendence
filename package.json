@@ -28,8 +28,8 @@
     "speakeasy": "^2.0.0",
     "sqlite3": "^5.0.0",
     "ws": "^8.18.2",
-    "babylonjs": "^6.0.0",
-	"babylonjs-gui": "^6.0.0"
+    "@babylonjs/core": "^6.0.0",
+    "@babylonjs/gui":  "^6.0.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
@@ -45,6 +45,7 @@
     "tailwindcss": "^3.3.2",
     "ts-node": "^10.9.1",
     "typescript": "^5.0.4",
-    "babylonjs":"^6.0.0"
+    "@babylonjs/core": "^6.0.0",
+    "@babylonjs/gui":  "^6.0.0"
   }
 }

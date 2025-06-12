@@ -1,9 +1,9 @@
 import { showNotification } from './notifications';
 import { isAuthenticated, apiFetch, initWebSocket, state } from './api';
 import { TypedSocket, SocketMessageMap} from './shared/gameTypes';
-import * as BABYLON from 'babylonjs';
+import * as BABYLON from '@babylonjs/core';
 import * as LIMIT from './shared/gameTypes';
-import * as GUI from 'babylonjs-gui';
+import * as GUI from '@babylonjs/gui';
 
 export class PongRenderer{
 

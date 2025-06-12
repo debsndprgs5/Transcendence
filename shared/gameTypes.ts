@@ -29,7 +29,7 @@ export interface paddleInterface{
 	length:number,
 	type: 'H' | 'V',
 	speed: number,
-	score:number
+	score?: number;
 }
 
 export interface ballInterface{

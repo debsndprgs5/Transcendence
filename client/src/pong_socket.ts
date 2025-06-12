@@ -5,16 +5,8 @@ import * as Interfaces from './shared/gameTypes';
 import {createTypedEventSocket} from './shared/gameEventWrapper';
 import { showPongMenu } from './pong_rooms';
 import { TypedSocket } from './shared/gameTypes';
-import {
-	AdvancedDynamicTexture,
-	Rectangle,
-	Grid,
-	StackPanel,
-	Image as GUIImage,
-	TextBlock,
-	Button as GUIButton,
-	Control
-} from "@babylonjs/gui";
+import * as GUI from "@babylonjs/gui";
+import * as BABYLON from "@babylonjs/core";
 
 
 export const pongState = {
@@ -167,20 +159,20 @@ function showEndMatchOverlay(
 	onNext: () => void
 ) {
 	// Create a full‐screen 2D texture for GUI
-	const ui = AdvancedDynamicTexture.CreateFullscreenUI("UI", true, scene);
+	const ui = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI", true, scene);
 
 	// Semi‐transparent background covering most of the screen
-	const overlay = new Rectangle();
+	const overlay = new GUI.Rectangle();
 	overlay.width  = "90%";
 	overlay.height = "90%";
 	overlay.background = "rgba(0,0,0,0.6)";
 	overlay.thickness = 0; // no border
-	overlay.verticalAlignment   = Control.VERTICAL_ALIGNMENT_CENTER;
-	overlay.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+	overlay.verticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+	overlay.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
 	ui.addControl(overlay);
 
 	// Container to hold two halves + center
-	const grid = new Grid();
+	const grid = new GUI.Grid();
 	grid.addColumnDefinition(0.45); // left 45%
 	grid.addColumnDefinition(0.10); // center 10%
 	grid.addColumnDefinition(0.45); // right 45%
@@ -189,42 +181,42 @@ function showEndMatchOverlay(
 	overlay.addControl(grid);
 
 	// Winner panel (left)
-	const winnerRect = new Rectangle("winRect");
+	const winnerRect = new GUI.Rectangle("winRect");
 	winnerRect.background = "green";
 	winnerRect.thickness  = 0;
 	grid.addControl(winnerRect, 0, 0);
 
 	// Loser panel (right)
-	const loserRect = new Rectangle("loseRect");
+	const loserRect = new GUI.Rectangle("loseRect");
 	loserRect.background = "red";
 	loserRect.thickness  = 0;
 	grid.addControl(loserRect, 0, 2);
 
 	// Function to create avatar+label inside a panel
 	// English comments for clarity
-	function addAvatarPanel(parent: Rectangle, data: { username: string; label: string }) {
-	const stack = new StackPanel();
-	stack.verticalAlignment   = Control.VERTICAL_ALIGNMENT_CENTER;
-	stack.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+	function addAvatarPanel(parent: GUI.Rectangle, data: { username: string; label: string }) {
+	const stack = new GUI.StackPanel();
+	stack.verticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+	stack.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
 	stack.height = "80%";
 	parent.addControl(stack);
 
 	// Avatar image
 	const url = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.username)}&background=6d28d9&color=fff&rounded=true`;
-	const avatar = new Image("avatar_" + data.username, url);
+	const avatar = new GUI.Image("avatar_" + data.username, url);
 	avatar.width  = "50%";
 	avatar.height = "50%";
 	avatar.paddingBottom = "10px";
 	stack.addControl(avatar);
 
 	// Label below avatar
-	const label = new TextBlock();
+	const label = new GUI.TextBlock();
 	label.text       = data.label;
 	label.color      = "white";
 	label.fontSize   = 24;
 	label.height     = "20%";
-	label.textVerticalAlignment   = Control.VERTICAL_ALIGNMENT_CENTER;
-	label.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+	label.textVerticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+	label.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
 	stack.addControl(label);
 	}
 
@@ -232,23 +224,23 @@ function showEndMatchOverlay(
 	addAvatarPanel(loserRect,  { username: loser.username,  label: "Lose" });
 
 	// Center stats
-	const stats = new TextBlock("stats");
+	const stats = new GUI.TextBlock("stats");
 	stats.text = `Score\n${winner.username}: ${winner.score}\n${loser.username}: ${loser.score}`;
 	stats.color = "white";
 	stats.fontSize = 20;
-	stats.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
-	stats.textVerticalAlignment   = Control.VERTICAL_ALIGNMENT_CENTER;
+	stats.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+	stats.textVerticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
 	grid.addControl(stats, 0, 1);
 
 	// "Next" button bottom right
-	const nextBtn = Button.CreateSimpleButton("nextBtn", "Next");
+	const nextBtn = GUI.Button.CreateSimpleButton("nextBtn", "Next");
 	nextBtn.width  = "100px";
 	nextBtn.height = "40px";
 	nextBtn.color  = "white";
 	nextBtn.background = "gray";
 	nextBtn.cornerRadius = 5;
-	nextBtn.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_RIGHT;
-	nextBtn.verticalAlignment   = Control.VERTICAL_ALIGNMENT_BOTTOM;
+	nextBtn.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+	nextBtn.verticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
 	nextBtn.top    = "-10px";
 	nextBtn.left   = "-10px";
 	overlay.addControl(nextBtn);
@@ -294,7 +286,7 @@ export async function handleRenderData(data: Interfaces.SocketMessageMap['render
 	pongState.pongRenderer.updateScene({
 		paddles: data.paddles,
 		balls: data.balls,
-		elapsed:data.elapsed
+		elapsed: 0
 	});
 }
 

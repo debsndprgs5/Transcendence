@@ -291,26 +291,24 @@ export async function handleRenderData(data: Interfaces.SocketMessageMap['render
 }
 
 export async function handleEndMatch(data: Interfaces.SocketMessageMap['endMatch']) {
-	  const renderer = pongState.pongRenderer;
-	  if (renderer) {
-	    // stop & dispose
-	    renderer.dispose();
-	    // get scene for UI
-	    const scene = renderer.getScene();
-	    pongState.pongRenderer = null;
+	const renderer = pongState.pongRenderer;
+	if (!renderer) {
+		console.warn('[ENDMATCH] No renderer found');
+		return;
+	}
+	const scene = renderer.getScene();
 
-	    // overlay Babylon.GUI
-	    showEndMatchOverlay(
-	      scene,
-	      { username: data.winnerName, score: data.winnerScore },
-	      { username: data.loserName,  score: data.loserScore  },
-	      () => { state.canvasViewState = 'mainMenu'; }
-	    );
-	    localStorage.setItem('pong_view', 'mainMenu');
-	  } else {
-	    console.warn('[ENDMATCH] No renderer found');
-	  }
-
+	showEndMatchOverlay(
+		scene,
+		{ username: data.winnerName, score: data.winnerScore },
+		{ username: data.loserName,  score: data.loserScore  },
+		() => {
+			renderer.dispose();
+			pongState.pongRenderer = null;
+			state.canvasViewState = 'mainMenu';
+			localStorage.setItem('pong_view', 'mainMenu');
+		}
+	);
 	// === Leave the game on the server ===
 	if (state.playerInterface?.socket && state.playerInterface.gameID !== undefined) {
 		state.typedSocket.send('leaveGame', {
@@ -321,9 +319,6 @@ export async function handleEndMatch(data: Interfaces.SocketMessageMap['endMatch
 	} else {
 		console.warn('[ENDMATCH] Could not send leaveGame, missing socket or gameID.');
 	}
-
-	// === Optional: Clear game-related state ===
-	// TODO: Reset UI back to main menu or room selection after showing win/lose view
 }
 
 export async function handleKicked(data: Interfaces.SocketMessageMap['kicked']) {

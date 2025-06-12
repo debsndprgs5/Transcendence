@@ -28,7 +28,8 @@
     "speakeasy": "^2.0.0",
     "sqlite3": "^5.0.0",
     "ws": "^8.18.2",
-    "babylonjs": "^6.0.0"
+    "babylonjs": "^6.0.0",
+	"babylonjs-gui": "^6.0.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",

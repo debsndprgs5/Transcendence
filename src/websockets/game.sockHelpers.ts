@@ -126,27 +126,6 @@ export async function beginGame(gameID: number, players: Interfaces.playerInterf
     ? ['left', 'right', 'top', 'bottom'] as const
     : ['left', 'right'] as const;
 
-  shuffled.forEach((player, index) => {
-    player.playerSide = sides[index];
-
-    updatePlayerState(player, 'playing');
-    // Send side assignment
-    const sideMsg: Interfaces.SocketMessageMap['giveSide'] = {
-      type:'giveSide',
-      userID: player.userID,
-      gameID,
-      side: player.playerSide!,
-    };
-    player.typedSocket.send('giveSide', sideMsg);
-    // Send start signal
-    const startMsg: Interfaces.SocketMessageMap['startGame'] = {
-      type:'startGame',
-      userID: player.userID,
-      gameID,
-    };
-    player.typedSocket.send('startGame', startMsg);
-  });
-
 // Extract all rules for the game (simulate fetching from DB or config)
   const fullRules = await GameManagement.getModeAndRulesForGameID(gameID);
 
@@ -170,6 +149,29 @@ export async function beginGame(gameID: number, players: Interfaces.playerInterf
     ballSpeed,
     paddleSpeed,
   }
+   shuffled.forEach((player, index) => {
+    player.playerSide = sides[index];
+
+    updatePlayerState(player, 'playing');
+    // Send side assignment
+    const sideMsg: Interfaces.SocketMessageMap['giveSide'] = {
+      type:'giveSide',
+      userID: player.userID,
+      gameID,
+      side: player.playerSide!,
+    };
+    player.typedSocket.send('giveSide', sideMsg);
+    // Send start signal
+    const startMsg: Interfaces.SocketMessageMap['startGame'] = {
+      type:'startGame',
+      userID: player.userID,
+      gameID,
+	  win_condition:gameDesc.winCondition,
+	  limit:gameDesc.limit
+	  
+    };
+    player.typedSocket.send('startGame', startMsg);
+  });
   new PongRoom(gameDesc, shuffled)
 }
 

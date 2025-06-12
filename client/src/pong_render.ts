@@ -3,6 +3,7 @@ import { isAuthenticated, apiFetch, initWebSocket, state } from './api';
 import { TypedSocket, SocketMessageMap} from './shared/gameTypes';
 import * as BABYLON from 'babylonjs';
 import * as LIMIT from './shared/gameTypes';
+import * as GUI from 'babylonjs-gui';
 
 export class PongRenderer{
 
@@ -17,6 +18,10 @@ export class PongRenderer{
 	private balls: BABYLON.Mesh[] = [];
 	private sideWalls:BABYLON.Mesh[]=[];
 	private frontWalls:BABYLON.Mesh[]=[];
+	
+	private guiTexture!: GUI.AdvancedDynamicTexture;
+	private timeText!: GUI.TextBlock;
+	private scoreText!: GUI.TextBlock;
 
 
 	private playerCount: number;
@@ -35,7 +40,7 @@ export class PongRenderer{
 
 		this.engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: false, stencil: true });
 		this.scene = new BABYLON.Scene(this.engine);
-
+		this.setupGUI();
 		this.setupCamera();
 		this.setupLighting();
 		this.createWalls();
@@ -77,6 +82,27 @@ export class PongRenderer{
 
 		this.camera = new BABYLON.FreeCamera("camera", camPos, this.scene);
 		this.camera.setTarget(new BABYLON.Vector3(0, 0, 0));
+	}
+	private setupGUI() {
+		this.guiTexture = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+
+		// Time display
+		this.timeText = new GUI.TextBlock();
+		this.timeText.color = "white";
+		this.timeText.fontSize = 8;
+		this.timeText.top = "-40px";
+		this.timeText.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+		this.timeText.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
+		this.guiTexture.addControl(this.timeText);
+
+		// Score display
+		this.scoreText = new GUI.TextBlock();
+		this.scoreText.color = "white";
+		this.scoreText.fontSize = 12;
+		this.scoreText.top = "10px";
+		this.scoreText.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+		this.scoreText.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+		this.guiTexture.addControl(this.scoreText);
 	}
 	private setupLighting() {
 			new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), this.scene);
@@ -206,8 +232,9 @@ export class PongRenderer{
 		return this.scene;
 	}
 	public updateScene(update: {
-	  paddles: Record<number,{pos:number; side:'left'|'right'|'top'|'bottom'}>;
+	  paddles: Record<number,{pos:number; side:'left'|'right'|'top'|'bottom'; score:number}>;
 	  balls:   Record<number,{x:number; y:number}>;
+	  elapsed:number
 	}) {
 	  // update paddles
 	  Object.values(update.paddles).forEach(({ side, pos }) => {
@@ -230,12 +257,28 @@ export class PongRenderer{
 	    m.position.x = x;
 	    m.position.z = y;
 	  });
+	  //Update UI
+	  // Extract scores by side
+		const scores: Record<'left' | 'right' | 'top' | 'bottom', number> = {
+			left: 0,
+			right: 0,
+			top: 0,
+			bottom: 0,
+		};
+		Object.values(update.paddles).forEach(({ side, score }) => {
+			if(this.playerCount === 2 &&(side === 'left' || side === 'right'))
+				scores[side] = score;
+			else if(this.playerCount === 4)
+				scores[side] = score;
+		});
+
+		this.updateHUD(update.elapsed, scores);
 	}
 	private startRenderLoop() {
-	this.engine.runRenderLoop(() => {
-	this.scene.render();
-	});
-}
+		this.engine.runRenderLoop(() => {
+		this.scene.render();
+		});
+	}
 
 		public handleResize() {
 			this.engine.resize();
@@ -280,7 +323,16 @@ export class PongRenderer{
 			});
 		}
 	}
+	public updateHUD(timeSeconds: number, scores: Record<'left' | 'right' | 'top' | 'bottom', number>) {
+	// Format time as MM:SS
+	const minutes = Math.floor(timeSeconds / 60).toString().padStart(2, '0');
+	const seconds = (timeSeconds % 60).toFixed(0).padStart(2, '0');
+	this.timeText.text = `Time: ${minutes}:${seconds}`;
 
+	// Format score
+	const scoreStrings = Object.entries(scores).map(([side, score]) => `${side.toUpperCase()}: ${score}`);
+	this.scoreText.text = scoreStrings.join("  |  ");
+	}
 
 	public dispose() {
 			this.engine.dispose();

@@ -71,21 +71,22 @@ export class PongRoom {
 
       switch (player.playerSide) {
         case 'left':
-          pi.x = 0;
-          pi.y = - (this.HEIGHT/2 - wallT - half);
+          // X-axis for left/right paddles
+          pi.x = - (this.WIDTH  / 2 - wallT - half);
+          pi.y =   0;
           break;
         case 'right':
-          pi.x = 0;
-          pi.y = + (this.HEIGHT/2 - wallT - half);
+          pi.x =   (this.WIDTH  / 2 - wallT - half);
+          pi.y =   0;
           break;
         case 'top':
-          // Z → X côté serveur, donc pi.x positif
-          pi.x = + (this.WIDTH/2 - wallT - half);
-          pi.y = 0;
+          // Y-axis for top/bottom paddles
+          pi.x =   0;
+          pi.y =   (this.HEIGHT / 2 - wallT - half);
           break;
         case 'bottom':
-          pi.x = - (this.WIDTH/2 - wallT - half);
-          pi.y = 0;
+          pi.x =   0;
+          pi.y = - (this.HEIGHT / 2 - wallT - half);
           break;
       }
     }
@@ -173,8 +174,8 @@ export class PongRoom {
     this.players.forEach(p => {
       const pad = this.paddles.get(p.userID)!
       const pos = pad.paddleInterface.type === 'H'
-        ? pad.paddleInterface.y   // ← use Y for H-paddles
-        : pad.paddleInterface.x;  // V-paddles slide on X
+        ? pad.paddleInterface.y
+        : pad.paddleInterface.x;
       paddlesPayload[p.userID] = { pos, side: p.playerSide };
     })
     const ballsPayload: Record<number, { x: number; y: number }> = {}

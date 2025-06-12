@@ -28,7 +28,8 @@ export interface paddleInterface{
 	width:number,
 	length:number,
 	type: 'H' | 'V',
-	speed: number
+	speed: number,
+	score:number
 }
 
 export interface ballInterface{
@@ -59,15 +60,16 @@ export type SocketMessageMap = {
 		targetID?: number;
 		fromID?: number;
 	};
-	startGame:{type:'startGame'; userID:number; gameID:number};
+	startGame:{type:'startGame'; userID:number; gameID:number; win_condition:string; limit:number};
 	statusUpdate:{type:'statusUpdate'; userID:number; newState:string};
 	playerMove:{type:'playerMove'; gameID:number; userID:number; direction:string};
 	renderData: {
 	type: 'renderData';
-	paddles: Record<number, { pos: number; side: 'left' | 'right' | 'top' | 'bottom' }>;
+	paddles: Record<number, { pos: number; side: 'left' | 'right' | 'top' | 'bottom'; score:number}>;
 	balls: Record<number, { x: number; y: number }>;
+	elapsed:number;
 	};
-	endMatch:{type:'endMatch'; isWinner:boolean};
+	endMatch:{type:'endMatch'; isWinner:'yes'|'no'|'tie'};
 	reconnected:{type:'reconnected'; userID:number; state:string; gameID?:number; tournamentID?:number};
 	leaveGame:{type:'leaveGame'; userID:number; gameID:number; islegit:boolean};
 	giveSide:{type:'giveSide'; userID:number; gameID:number; side:'right'|'left'| 'top'| 'bottom'};

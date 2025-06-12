@@ -182,6 +182,7 @@ export async function handleRenderData(data: Interfaces.SocketMessageMap['render
 	pongState.pongRenderer.updateScene({
 		paddles: data.paddles,
 		balls: data.balls,
+		elapsed:data.elapsed
 	});
 }
 

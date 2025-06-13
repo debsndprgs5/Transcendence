@@ -106,11 +106,7 @@ export async function createQuickGameAndAddPlayers(inviterID: number, inviteeID:
   return quickRoomID;
 }
 
-
-//ALL STUFF THAT HAPPEND JUST BEFORE OR DURING THE GAME
 export async function beginGame(gameID: number, players: Interfaces.playerInterface[]) {
-
-  // Determine mode and required player count
   const modeRow = await GameManagement.getModePerGameID(gameID);
   const mode = modeRow?.mode || 'duo';
   const expectedCount = mode === 'quator' ? 4 : 2;
@@ -120,25 +116,19 @@ export async function beginGame(gameID: number, players: Interfaces.playerInterf
     return;
   }
 
-  // Assign player sides
   const shuffled = [...players].sort(() => Math.random() - 0.5);
   const sides = mode === 'quator'
     ? ['left', 'right', 'top', 'bottom'] as const
     : ['left', 'right'] as const;
 
-// Extract all rules for the game (simulate fetching from DB or config)
   const fullRules = await GameManagement.getModeAndRulesForGameID(gameID);
-
-  // Fallbacks if needed
   const winCondition = fullRules?.rules?.win_condition ?? 'score';
   const limit = fullRules?.rules?.limit ?? 15;
   const ballSpeed = fullRules?.rules?.ball_speed ?? 50;
   const paddleSpeed = fullRules?.rules?.paddle_speed ?? 50;
 
-  // Set state in DB or memory
   GameManagement.setStateforGameID(gameID, 'playing');
 
-  // Pass players and rules directly to avoid DB hits in loop
   const gameDesc: Interfaces.gameRoomInterface & { ballSpeed: number; paddleSpeed: number } = {
     gameID,
     mode,
@@ -149,31 +139,43 @@ export async function beginGame(gameID: number, players: Interfaces.playerInterf
     ballSpeed,
     paddleSpeed,
   }
-   shuffled.forEach((player, index) => {
-    player.playerSide = sides[index];
+
+  // Build side-to-username map here
+  const sideToUsername: Record<'left' | 'right' | 'top' | 'bottom', string> = {} as any;
+
+  shuffled.forEach((player, index) => {
+    const side = sides[index];
+    player.playerSide = side;
+    sideToUsername[side] = player.username!;
 
     updatePlayerState(player, 'playing');
+
     // Send side assignment
     const sideMsg: Interfaces.SocketMessageMap['giveSide'] = {
-      type:'giveSide',
+      type: 'giveSide',
       userID: player.userID,
       gameID,
-      side: player.playerSide!,
+      side,
     };
     player.typedSocket.send('giveSide', sideMsg);
-    // Send start signal
+  });
+
+  // Send startGame message after sideToUsername is fully built
+  shuffled.forEach((player) => {
     const startMsg: Interfaces.SocketMessageMap['startGame'] = {
-      type:'startGame',
+      type: 'startGame',
       userID: player.userID,
       gameID,
-	  win_condition:gameDesc.winCondition,
-	  limit:gameDesc.limit
-	  
+      win_condition: gameDesc.winCondition,
+      limit: gameDesc.limit,
+      usernames: sideToUsername,
     };
     player.typedSocket.send('startGame', startMsg);
   });
-  new PongRoom(gameDesc, shuffled)
+
+  new PongRoom(gameDesc, shuffled);
 }
+
 
 export async function tryStartGameIfReady(gameID: number) {
   // Get mode from DB for this gameID

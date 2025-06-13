@@ -26,17 +26,25 @@ export class PongRenderer{
 
 	private playerCount: number;
 	private playerSide: 'left' | 'right' | 'top' | 'bottom';
-	//TO ADD (ARRAY{UName:{side:string, socre:number}/....})
+	private playersInfo: Record<'left' | 'right' | 'top' | 'bottom', string> = {
+	left: '',
+	right: '',
+	top: '',
+	bottom: ''
+	};
+	private scoreTextBlocks: Partial<Record<'left' | 'right' | 'top' | 'bottom', GUI.TextBlock>> = {};
 
 	constructor(
 	canvas: HTMLCanvasElement,
 	typedSocket: TypedSocket,
 	playerCount: number,
-	playerSide: 'left' | 'right' | 'top' | 'bottom'
+	playerSide: 'left' | 'right' | 'top' | 'bottom',
+	usernames: Record<'left' | 'right' | 'top' | 'bottom', string>
 	) {
 		this.socket = typedSocket;
 		this.playerCount = playerCount;
 		this.playerSide = playerSide;
+		this.playersInfo=usernames;
 
 		this.engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: false, stencil: true });
 		this.scene = new BABYLON.Scene(this.engine);
@@ -86,24 +94,61 @@ export class PongRenderer{
 	private setupGUI() {
 		this.guiTexture = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
 
-		// Time display
+		// Time at top center
 		this.timeText = new GUI.TextBlock();
 		this.timeText.color = "white";
-		this.timeText.fontSize = 8;
-		this.timeText.top = "-40px";
-		this.timeText.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
-		this.timeText.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
+		this.timeText.fontSize = 14;
+		this.timeText.top = "10px";
+		this.timeText.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+		this.timeText.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
 		this.guiTexture.addControl(this.timeText);
 
-		// Score display
-		this.scoreText = new GUI.TextBlock();
-		this.scoreText.color = "white";
-		this.scoreText.fontSize = 12;
-		this.scoreText.top = "10px";
-		this.scoreText.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-		this.scoreText.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
-		this.guiTexture.addControl(this.scoreText);
-	}
+		if (this.playerCount === 2) {
+			// LEFT name
+			const leftName = new GUI.TextBlock();
+			leftName.text = this.playersInfo.left;
+			leftName.color = "white";
+			leftName.fontSize = 12;
+			leftName.top = "10px";
+			leftName.left = "20px";
+			leftName.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+			leftName.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
+			this.guiTexture.addControl(leftName);
+
+			// RIGHT name
+			const rightName = new GUI.TextBlock();
+			rightName.text = this.playersInfo.right;
+			rightName.color = "white";
+			rightName.fontSize = 12;
+			rightName.top = "10px";
+			rightName.left = "-20px";
+			rightName.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+			rightName.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
+			this.guiTexture.addControl(rightName);
+
+			// LEFT score under left name
+			const leftScore = new GUI.TextBlock();
+			leftScore.color = "white";
+			leftScore.fontSize = 14;
+			leftScore.top = "30px";
+			leftScore.left = "20px";
+			leftScore.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+			leftScore.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
+			this.guiTexture.addControl(leftScore);
+			this.scoreTextBlocks.left = leftScore;
+
+			// RIGHT score under right name
+			const rightScore = new GUI.TextBlock();
+			rightScore.color = "white";
+			rightScore.fontSize = 14;
+			rightScore.top = "30px";
+			rightScore.left = "-20px";
+			rightScore.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+			rightScore.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
+			this.guiTexture.addControl(rightScore);
+			this.scoreTextBlocks.right = rightScore;
+		}
+}
 	private setupLighting() {
 			new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), this.scene);
 		}
@@ -323,15 +368,17 @@ export class PongRenderer{
 			});
 		}
 	}
-	public updateHUD(timeSeconds: number, scores: Record<'left' | 'right' | 'top' | 'bottom', number>) {
-	// Format time as MM:SS
-	const minutes = Math.floor(timeSeconds / 60).toString().padStart(2, '0');
-	const seconds = (timeSeconds % 60).toFixed(0).padStart(2, '0');
-	this.timeText.text = `Time: ${minutes}:${seconds}`;
+	private updateHUD(elapsed: number, scores: Record<'left' | 'right' | 'top' | 'bottom', number>) {
+		this.timeText.text = `${state.currentGameName}: ${elapsed.toFixed(1)}s`;
 
-	// Format score
-	const scoreStrings = Object.entries(scores).map(([side, score]) => `${side.toUpperCase()}: ${score}`);
-	this.scoreText.text = scoreStrings.join("  |  ");
+		if (this.playerCount === 2) {
+			if (this.scoreTextBlocks.left) {
+				this.scoreTextBlocks.left.text = `${scores.left}`;
+			}
+			if (this.scoreTextBlocks.right) {
+				this.scoreTextBlocks.right.text = `${scores.right}`;
+			}
+		}
 	}
 
 	public dispose() {

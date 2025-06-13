@@ -60,7 +60,9 @@ export type SocketMessageMap = {
 		targetID?: number;
 		fromID?: number;
 	};
-	startGame:{type:'startGame'; userID:number; gameID:number; win_condition:string; limit:number};
+	startGame:{type:'startGame'; userID:number; gameID:number; win_condition:string; limit:number; 
+		usernames: Record<'left' | 'right' | 'top' | 'bottom', string>; 
+	};
 	statusUpdate:{type:'statusUpdate'; userID:number; newState:string};
 	playerMove:{type:'playerMove'; gameID:number; userID:number; direction:string};
 	renderData: {

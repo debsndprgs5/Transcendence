@@ -113,31 +113,81 @@ export class PongRoom {
     // Broadcast
     this.broadcast()
   }
+private bounceArena(ball: ballClass) {
+  const W = this.WIDTH / 2;
+  const H = this.HEIGHT / 2;
+  const R = ball.radius;
 
-  /** Bounce or score on arena walls, with angle caps */
-  private bounceArena(ball: ballClass) {
-    const W = this.WIDTH/2
-    const H = this.HEIGHT/2
-    const R = ball.radius
-    const maxA = Math.tan(75*Math.PI/180)
-    const minA = Math.tan(15*Math.PI/180)
-
-    if (this.game.mode === 'duo') {
-      // Goals on left/right
-      if (ball.x - R <= -W) { this.handleWallScore('left', ball); return }
-      if (ball.x + R >=  W) { this.handleWallScore('right', ball); return }
-      // Bounce top/bottom
-      if (ball.y + R >=  H || ball.y - R <= -H) {
-        ball.vector[1] *= -1
-      }
-    } else {
-      // 4p: score on all walls
-      if (ball.x - R <= -W) { this.handleWallScore('left', ball); return }
-      if (ball.x + R >=  W) { this.handleWallScore('right', ball); return }
-      if (ball.y - R <= -H) { this.handleWallScore('bottom', ball); return }
-      if (ball.y + R >=  H) { this.handleWallScore('top', ball); return }
+  if (this.game.mode === 'duo') {
+    // Goals on left/right walls
+    if (ball.x - R <= -W) {
+      console.log(`[bounceArena] Ball scored left goal at x=${ball.x.toFixed(2)}`);
+      this.handleWallScore('left', ball);
+      return;
+    }
+    if (ball.x + R >= W) {
+      console.log(`[bounceArena] Ball scored right goal at x=${ball.x.toFixed(2)}`);
+      this.handleWallScore('right', ball);
+      return;
+    }
+    // Bounce on top/bottom walls
+    if (ball.y + R >= H || ball.y - R <= -H) {
+      console.log(`[bounceArena] Ball bounced on horizontal wall at y=${ball.y.toFixed(2)}`);
+      console.log(`  Vector before bounce: [${ball.vector[0].toFixed(3)}, ${ball.vector[1].toFixed(3)}]`);
+      ball.vector[1] *= -1;
+      this.clampBallAngle(ball);
+      console.log(`  Vector after bounce+clamp: [${ball.vector[0].toFixed(3)}, ${ball.vector[1].toFixed(3)}]`);
+    }
+  } else {
+    // 4p mode: goals on all four walls
+    if (ball.x - R <= -W) {
+      console.log(`[bounceArena] Ball scored left goal at x=${ball.x.toFixed(2)}`);
+      this.handleWallScore('left', ball);
+      return;
+    }
+    if (ball.x + R >= W) {
+      console.log(`[bounceArena] Ball scored right goal at x=${ball.x.toFixed(2)}`);
+      this.handleWallScore('right', ball);
+      return;
+    }
+    if (ball.y - R <= -H) {
+      console.log(`[bounceArena] Ball scored bottom goal at y=${ball.y.toFixed(2)}`);
+      this.handleWallScore('bottom', ball);
+      return;
+    }
+    if (ball.y + R >= H) {
+      console.log(`[bounceArena] Ball scored top goal at y=${ball.y.toFixed(2)}`);
+      this.handleWallScore('top', ball);
+      return;
     }
   }
+}
+
+private clampBallAngle(ball: ballClass) {
+  const vx = ball.vector[0];
+  const vy = ball.vector[1];
+
+  if (vx !== 0) {
+    let slope = vy / vx;
+
+    const maxSlope = 2;
+    if (slope > maxSlope) slope = maxSlope;
+    else if (slope < -maxSlope) slope = -maxSlope;
+
+    const speed = Math.sqrt(vx * vx + vy * vy);
+    const signVx = vx > 0 ? 1 : -1;
+    const newVx = signVx * Math.sqrt(speed * speed / (1 + slope * slope));
+    const newVy = slope * newVx;
+
+    console.log(`[clampBallAngle] Before clamp: vx=${vx.toFixed(3)}, vy=${vy.toFixed(3)}, slope=${(vy/vx).toFixed(3)}`);
+    console.log(`               After clamp: vx=${newVx.toFixed(3)}, vy=${newVy.toFixed(3)}, clamped slope=${slope.toFixed(3)}`);
+
+    ball.vector[0] = newVx;
+    ball.vector[1] = newVy;
+  } else {
+    console.log('[clampBallAngle] vx=0, skipping clamp to avoid division by zero');
+  }
+}
 
   /** Move ball */
   private ballsMove(b: ballClass) {
@@ -146,33 +196,77 @@ export class PongRoom {
   }
 
   /** Cap angle and invert on paddle hit */
-  private bounce_player(ball: ballClass, paddle: paddleClass) {
-    const pi = paddle.paddleInterface
-    const R = ball.radius
-    // Find closest point
-    let cx = Math.max(pi.x, Math.min(ball.x, pi.x+pi.width))
-    let cy = Math.max(pi.y, Math.min(ball.y, pi.y+pi.length))
-    const dx = cx - ball.x, dy = cy - ball.y
-    if (dx*dx + dy*dy <= R*R) {
-      const maxT = Math.tan(60*Math.PI/180)
-      if (pi.type === 'H') {
-        ball.vector[0] *= -1
-        let rel = (ball.y - (pi.y+pi.length/2)) / (pi.length/2)
-        rel = Math.max(-maxT, Math.min(maxT, rel))
-        ball.vector[1] = rel
-      } else {
-        ball.vector[1] *= -1
-        let rel = (ball.x - (pi.x+pi.width/2)) / (pi.width/2)
-        rel = Math.max(-maxT, Math.min(maxT, rel))
-        ball.vector[0] = rel
-      }
-      // normalize
-      const L = Math.hypot(ball.vector[0], ball.vector[1])
-      ball.vector[0] /= L; ball.vector[1] /= L
-      ball.last_bounce = paddle
-    }
-  }
+  // private bounce_player(ball: ballClass, paddle: paddleClass) {
+  //   const pi = paddle.paddleInterface
+  //   const R = ball.radius
+  //   // Find closest point
+  //   let cx = Math.max(pi.x, Math.min(ball.x, pi.x+pi.width))
+  //   let cy = Math.max(pi.y, Math.min(ball.y, pi.y+pi.length))
+  //   const dx = cx - ball.x, dy = cy - ball.y
+  //   if (dx*dx + dy*dy <= R*R) {
+  //     const maxT = Math.tan(60*Math.PI/180)
+  //     if (pi.type === 'H') {
+  //       ball.vector[0] *= -1
+  //       let rel = (ball.y - (pi.y+pi.length/2)) / (pi.length/2)
+  //       rel = Math.max(-maxT, Math.min(maxT, rel))
+  //       ball.vector[1] = rel
+  //     } else {
+  //       ball.vector[1] *= -1
+  //       let rel = (ball.x - (pi.x+pi.width/2)) / (pi.width/2)
+  //       rel = Math.max(-maxT, Math.min(maxT, rel))
+  //       ball.vector[0] = rel
+  //     }
+  //     // normalize
+  //     const L = Math.hypot(ball.vector[0], ball.vector[1])
+  //     ball.vector[0] /= L; ball.vector[1] /= L
+  //     ball.last_bounce = paddle
+  //   }
+  // }
+private bounce_player(ball: ballClass, paddle: paddleClass) {
+  const pi = paddle.paddleInterface;
+  const R = ball.radius;
+  // Find closest point on paddle to ball center
+  let cx = Math.max(pi.x, Math.min(ball.x, pi.x + pi.width));
+  let cy = Math.max(pi.y, Math.min(ball.y, pi.y + pi.length));
+  const dx = cx - ball.x, dy = cy - ball.y;
 
+  if (dx * dx + dy * dy <= R * R) {
+    console.log(`[bounce_player] Collision detected with paddle (type=${pi.type})`);
+    console.log(`  Ball pos: (${ball.x.toFixed(2)}, ${ball.y.toFixed(2)}), vector before: [${ball.vector[0].toFixed(3)}, ${ball.vector[1].toFixed(3)}]`);
+
+    const maxT = Math.tan(60 * Math.PI / 180);  // ~1.73 max deflection tangent
+    const minT = Math.tan(20 * Math.PI / 180);  // ~0.36 min deflection tangent
+
+    if (pi.type === 'H') {
+      ball.vector[0] *= -1;
+      let rel = (ball.y - (pi.y + pi.length / 2)) / (pi.length / 2);
+      rel = Math.max(-maxT, Math.min(maxT, rel));
+
+      if (Math.abs(rel) < minT) {
+        rel = rel < 0 ? -minT : minT;
+      }
+      ball.vector[1] = rel;
+    } else {
+      ball.vector[1] *= -1;
+      let rel = (ball.x - (pi.x + pi.width / 2)) / (pi.width / 2);
+      rel = Math.max(-maxT, Math.min(maxT, rel));
+
+      if (Math.abs(rel) < minT) {
+        rel = rel < 0 ? -minT : minT;
+      }
+      ball.vector[0] = rel;
+    }
+
+    // Normalize vector to unit length
+    const L = Math.hypot(ball.vector[0], ball.vector[1]);
+    ball.vector[0] /= L;
+    ball.vector[1] /= L;
+
+    console.log(`  Ball vector after bounce: [${ball.vector[0].toFixed(3)}, ${ball.vector[1].toFixed(3)}]`);
+
+    ball.last_bounce = paddle;
+  }
+}
   /** Award point to last toucher */
   private handleWallScore(sideHit: 'left'|'right'|'top'|'bottom', ball: ballClass) {
     if (ball.last_bounce) {
@@ -198,7 +292,6 @@ export class PongRoom {
     }
     const balls: Record<number,{x:number;y:number}> = {}
     this.balls.forEach((b,i)=> balls[i]={x:b.x,y:b.y})
-
     for (const p of this.players) {
       p.typedSocket.send('renderData',{ paddles, balls, elapsed })
     }

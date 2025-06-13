@@ -250,10 +250,16 @@ private bounce_player(ball: ballClass, paddle: paddleClass) {
 	  ball.x = 0
 	  ball.y = 0
 	  ball.last_bounce = undefined
+	  // Send ball on random angle
+		const maxServeDeg = 45; 
+		const rad = (Math.random() * 2*maxServeDeg - maxServeDeg) * Math.PI/180;
+		const dir = sideHit === 'left' ? +1 : -1; // always serving to opposite player
+		ball.vector = [dir * Math.cos(rad), Math.sin(rad)];
+		// normalise to keep ||v||=1
+		const len = Math.hypot(ball.vector[0], ball.vector[1]);
+		ball.vector[0] /= len;
+		ball.vector[1] /= len;
 
-	  // Send the ball to loser side
-	  if (sideHit === 'left')  ball.vector = [-1, 0]
-	  else                     ball.vector = [ +1, 0]
 	}
 
   /** Send state to clients */

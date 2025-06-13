@@ -57,7 +57,7 @@ export class PongRoom {
         y:        0,
         width:    isH ? paddleWidth : paddleSize,
         length:   isH ? paddleSize  : paddleWidth,
-        speed:    game.paddleSpeed / 100,
+        speed:    game.paddleSpeed /50,
         type:     isH ? 'H' : 'V',
       }
       this.paddles.set(p.userID, new paddleClass(pi))
@@ -78,7 +78,7 @@ export class PongRoom {
     }
 
     // Create ball
-    this.balls.push(new ballClass(0, 0, ballSize, game.ballSpeed / 100))
+    this.balls.push(new ballClass(0, 0, ballSize, game.ballSpeed / 120))
 
     // Start clock & loop
     this.clock = Date.now()
@@ -233,20 +233,9 @@ private bounce_player(ball: ballClass, paddle: paddleClass) {
     ball.last_bounce = paddle;
   }
 }
-  /** Award point to last toucher */
-  private handleWallScore(sideHit: 'left'|'right'|'top'|'bottom', ball: ballClass) {
-    let scorerSide: 'left'|'right'
-	  if (sideHit === 'left')  scorerSide = 'right'
-	  else if (sideHit === 'right') scorerSide = 'left'
-	  else return
-
-	  // Get scorer userID
-	  const scorer = this.players.find(p => p.playerSide === scorerSide)!
-	  this.scoreMap.set(
-	    scorer.userID,
-	    (this.scoreMap.get(scorer.userID) || 0) + 1
-	  )
-
+ 
+  private resetBallPosition(sideHit: 'left'|'right'|'top'|'bottom',ball: ballClass) {
+ 
 	  // Reset ball on center
 	  ball.x = 0
 	  ball.y = 0
@@ -263,9 +252,31 @@ private bounce_player(ball: ballClass, paddle: paddleClass) {
 
 	}
 
+  private  handleWallScore(sideHit: 'left'|'right'|'top'|'bottom', ball: ballClass) {
+
+    if(ball.last_bounce){
+      const scorerID = ball.last_bounce.paddleInterface.userID;
+      const scorer = this.players.find(p=> p.userID === scorerID);
+      if(!scorer)return; //SCORER MAY HAVE LEAVE GAME ? MAYBE STOP GAME HERE
+      if(scorer.playerSide !== sideHit){
+        this.scoreMap.set(
+          scorer.userID,
+          (this.scoreMap.get(scorer.userID) || 0) + 1)
+      }
+      else{
+        //SHOULD NEVER HAPPENDS WITH PROPER BOUNCE
+        console.log(`ERROR ${scorer.username} mark in his cage: ${sideHit}, ballvector:${ball.vector}`);
+      }
+    }
+    this.resetBallPosition(sideHit, ball);
+  }
+
   /** Send state to clients */
   private broadcast() {
-    const elapsed = (Date.now()-this.clock)/1000
+    let elapsed = (Date.now()-this.clock)/1000
+    if (this.game.winCondition === 'time') {
+      elapsed = Math.max(0, this.game.limit - elapsed);
+    }
     const paddles: Record<number,{pos:number;side:G.playerInterface['playerSide'];score:number}> = {}
     for (const p of this.players) {
       const pad = this.paddles.get(p.userID)!.paddleInterface

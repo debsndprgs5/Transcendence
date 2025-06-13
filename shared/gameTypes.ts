@@ -73,6 +73,7 @@ export type SocketMessageMap = {
 	};
 	endMatch:{type:'endMatch'; winnerName:string; loserName:string; winnerScore:number; loserScore:number};
 	reconnected:{type:'reconnected'; userID:number; state:string; gameID?:number; tournamentID?:number};
+	disconnected:{type:'disconnected'};
 	leaveGame:{type:'leaveGame'; userID:number; gameID:number; islegit:boolean};
 	giveSide:{type:'giveSide'; userID:number; gameID:number; side:'right'|'left'| 'top'| 'bottom'};
 	kicked:{type:'kicked'; userID:number; reason:string};

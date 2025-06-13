@@ -33,9 +33,12 @@ export function handleAllEvents(typedSocket:TypedSocket, player:Interfaces.playe
   });
 
   typedSocket.on('reconnected', () => {
-    handleDisconnect(player);
+    handleReconnect(player);
   });
 
+  typedSocket.on('disconnected', ()=>{
+    handleDisconnect(player);
+  });
   // if ('on' in typedSocket.socket) {
   // typedSocket.socket.on('close', () => {
   //   const player = getPlayerBySocket(typedSocket.socket as any);

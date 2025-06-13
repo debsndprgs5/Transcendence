@@ -24,24 +24,32 @@ export async function initGameSocket() {
 	state.typedSocket = typedSocket;
 	gameSocket.onopen = () => {
 		console.log('[GAME] WebSocket connected');
-		state.playerInterface ={
+		if (state.playerInterface) {
+			state.playerInterface!.typedSocket.send('reconnected',{
+				userID:state.userId!,
+				gameID:state.playerInterface!.gameID!,
+				tournamentID:state.playerInterface!.tournamentID!
+				});
+			showNotification({
+			message: `RECONNTED TO GAME SOCKETS. State: ${state.playerInterface.state}`,
+			type: 'success',
+		});
+		} else {
+			state.playerInterface ={
 			userID:state.userId!,
 			socket:state.gameSocket,
 			typedSocket:typedSocket,
 			state:'online'
-		}
-		if (state.playerInterface) {
-			// Send the 'init' message to backend
+			}
 			typedSocket.send('init', {
 			userID: state.userId!,
 			});
-		} else {
-			console.warn('[GAME] No playerInterface set up');
 		}
 	};
 
 	gameSocket.onclose = () => {
-	console.warn('[GAME] WebSocket closed');
+		state.playerInterface!.typedSocket.send('disconnected',{})
+		console.warn('[GAME] WebSocket closed');
 	};
 
 	gameSocket.onerror = (err) => {
@@ -267,6 +275,7 @@ export async function handleStartGame(data: Interfaces.SocketMessageMap['startGa
 	pongState.pongRenderer = new PongRenderer(canvas, state.typedSocket,
 		count, state.playerInterface.playerSide!, data.usernames);
 	state.canvasViewState = 'playingGame';
+	state.playerInterface.gameID = data.gameID;
 	localStorage.setItem('pong_view', 'playingGame');
 	showPongMenu();
 	}
@@ -338,6 +347,10 @@ export async function handleKicked(data: Interfaces.SocketMessageMap['kicked']) 
 	if (state.playerInterface) {
 	state.playerInterface.gameID = -1;
 	}
+	state.canvasViewState = 'mainMenu';
+	localStorage.setItem('pong_view', 'mainMenu');
+	localStorage.setItem('pong_view', 'mainMenu');
+	showPongMenu();
 	// TODO: Update the UI to return the user to the main menu or lobby view
 }
 

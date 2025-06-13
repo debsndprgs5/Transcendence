@@ -78,7 +78,7 @@ export async function createGameRoom(request: FastifyRequest, reply: FastifyRepl
 			ball_speed:body.ball_speed, 
 			paddle_speed:body.paddle_speed,
 			win_condition:'time',
-			limit:30 });
+			limit:60 });
 		if(!body.name)
 			return;
 		const gameID = await gameMgr.createGameRoom(type, state, mode, rules, body.name, body.userID);

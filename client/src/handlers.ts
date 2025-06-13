@@ -39,7 +39,7 @@ export function startTokenValidation(): void {
 				handleLogout();
 			}
 		}
-	}, 60_000); // Check every minute
+	}, 180_000); // Check every minute
 }
 
 // =======================
@@ -300,7 +300,7 @@ export async function createDirectMessageWith(friendUsername: string): Promise<v
 }
 
 // Little helper to resize canvas
-function resizePongCanvas(): void {
+export function resizePongCanvas(): void {
 	const container = document.querySelector('#pong-canvas')?.parentElement;
 	const canvas = document.getElementById('pong-canvas') as HTMLCanvasElement | null;
 	if (!canvas || !container) return;
@@ -338,6 +338,8 @@ export async function setupHomeHandlers(): Promise<void> {
 			state.currentPlayers = [];
 		}
 	}
+	// if (savedView === 'playingGame') {}
+
 	// Logout button
 	const logoutBtn = document.getElementById('logoutBtn');
 	if (logoutBtn) {

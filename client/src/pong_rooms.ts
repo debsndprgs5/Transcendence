@@ -4,7 +4,7 @@ import { showNotification } from './notifications';
 import { pongState } from './pong_socket';
 import { PongRenderer } from './pong_render'
 import { TypedSocket } from './shared/gameTypes';
-
+import { resizePongCanvas } from './handlers';
 
 interface PongButton {
 	x: number;
@@ -62,6 +62,7 @@ export function showPongMenu(): void {
 		canvas.onmouseleave = handlePongMenuMouseUp;
 		window.addEventListener('mouseup', handlePongMenuMouseUp);
 
+		resizePongCanvas();
 		const ctx = canvas.getContext('2d');
 		if (!ctx) return;
 
@@ -107,36 +108,34 @@ export function showPongMenu(): void {
 						);
 						break;
 
-		    case 'playingGame':
-		      if (!pongState.pongRenderer) {
-		        if (!state.playerInterface?.socket) {
-		          console.error('WebSocket not initialized for PongRenderer');
-		          return;
-		        }
-		        const side = state.playerInterface.playerSide ?? 'left';
-		        const playerCount = state.currentPlayers?.length ?? 2;
+				case 'playingGame': 
+				  canvas.style.display        = 'none';
+				  babylonCanvas.style.display = 'block';
 
+				  const r = babylonCanvas.getBoundingClientRect();
+				  babylonCanvas.width  = Math.floor(r.width);
+				  babylonCanvas.height = Math.floor(r.height);
 
-		        const r = babylonCanvas.getBoundingClientRect();
-		        babylonCanvas.width  = Math.floor(r.width);
-		        babylonCanvas.height = Math.floor(r.height);
+				  if (pongState.pongRenderer) {
+				    pongState.pongRenderer.handleResize();
+				  }
 
-		        // pongState.pongRenderer = new PongRenderer(
-		        //   babylonCanvas,
-		        //   state.playerInterface.socket,
-		        //   playerCount,
-		        //   side
-		        // );
+				  else {
+				    if (!state.playerInterface?.socket) {
+				      console.error('No socket for PongRenderer');
+				      return;
+				    }
+				    const side        = state.playerInterface.playerSide ?? 'left';
+				    const playerCount = state.currentPlayers?.length ?? 2;
 
-		        const obs = new ResizeObserver(() => {
-		          const rr = babylonCanvas.getBoundingClientRect();
-		          babylonCanvas.width  = Math.floor(rr.width);
-		          babylonCanvas.height = Math.floor(rr.height);
-		          pongState.pongRenderer?.handleResize();
-		        });
-		        obs.observe(babylonCanvas as unknown as Element);
-		      }
-		      break;
+				    // pongState.pongRenderer = new PongRenderer(
+				    //   babylonCanvas,
+				    //   state.typedSocket,
+				    //   playerCount,
+				    //   side
+				    // );
+				  }
+				  break;
 
 		    default:
 		      drawMainMenu(canvas, ctx);

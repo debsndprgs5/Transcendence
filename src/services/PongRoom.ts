@@ -10,6 +10,7 @@ import {
   arenaLength4p,
   ballSize,
 } from '../shared/gameTypes'
+import { getUnameByIndex } from '../db/userManagement'
 
 /**
  * A lightweight container for one running Pong match.
@@ -306,10 +307,23 @@ private bounce_player(ball: ballClass, paddle: paddleClass) {
     return false
   }
 
-  private endMatch() {
-    clearInterval(this.loop!) ; PongRoom.rooms.delete(this.gameID)
-    for (const p of this.players) {
-      p.typedSocket.send('endMatch',{ isWinner: this.scoreMap.get(p.userID)! >= this.game.limit })
-    }
-  }
+	private async endMatch() {
+	  clearInterval(this.loop!);
+	  PongRoom.rooms.delete(this.gameID);
+
+	  const playermapped = new Map<string, number>();
+	  for (const [userID, score] of this.scoreMap) {
+	    const uname = await getUnameByIndex(userID);
+	    playermapped.set(uname!.username, score);
+	  }
+	  const playerScores = Object.fromEntries(playermapped);
+
+	  for (const p of this.players) {
+	    const isWinner = (this.scoreMap.get(p.userID)! >= this.game.limit);
+	    p.typedSocket.send('endMatch', {
+	      isWinner,
+	      playerScores
+	    });
+	  }
+	}
 }

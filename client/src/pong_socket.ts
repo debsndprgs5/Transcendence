@@ -161,103 +161,114 @@ export async function handleInvite(
 
 
 function showEndMatchOverlay(
-	scene: BABYLON.Scene,
-	winner: { username: string; score: number },
-	loser:  { username: string; score: number },
-	onNext: () => void
+  scene: BABYLON.Scene,
+  winner: { username: string; score: number },
+  loser:  { username: string; score: number },
+  onNext: () => void
 ) {
-	// Create a full‐screen 2D texture for GUI
-	const ui = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI", true, scene);
+  const ui = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI", true, scene);
 
-	// Semi‐transparent background covering most of the screen
-	const overlay = new GUI.Rectangle();
-	overlay.width  = "90%";
-	overlay.height = "90%";
-	overlay.background = "rgba(0,0,0,0.6)";
-	overlay.thickness = 0; // no border
-	overlay.verticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-	overlay.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-	ui.addControl(overlay);
+  // the semi-transparent background
+  const overlay = new GUI.Rectangle();
+  overlay.background          = "rgba(0,0,0,0.6)";
+  overlay.width               = "90%";
+  overlay.height              = "90%";
+  overlay.thickness           = 0;
+  overlay.verticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+  overlay.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+  overlay.isHitTestVisible  = true;    // allow children to be hit
+  overlay.isPointerBlocker   = true;   // block clicks from going into the 3D scene
+  ui.addControl(overlay);
 
-	// Container to hold two halves + center
-	const grid = new GUI.Grid();
-	grid.addColumnDefinition(0.45); // left 45%
-	grid.addColumnDefinition(0.10); // center 10%
-	grid.addColumnDefinition(0.45); // right 45%
-	grid.height = "100%";
-	grid.width  = "100%";
-	overlay.addControl(grid);
+  // same for the grid inside it
+  const grid = new GUI.Grid();
+  grid.addColumnDefinition(0.5);
+  grid.addColumnDefinition(0.5);
+  grid.width  = "100%";
+  grid.height = "100%";
+  grid.isHitTestVisible     = false;   // don’t intercept any pointer events yourself
+  grid.isPointerBlocker      = false;  // same
+  overlay.addControl(grid);
 
-	// Winner panel (left)
-	const winnerRect = new GUI.Rectangle("winRect");
-	winnerRect.background = "green";
-	winnerRect.thickness  = 0;
-	grid.addControl(winnerRect, 0, 0);
+  // your two panels…
+  const winPanel  = new GUI.Rectangle("win");  winPanel.background = "green"; winPanel.thickness = 0;
+  const losePanel = new GUI.Rectangle("lose"); losePanel.background = "red";   losePanel.thickness = 0;
+  winPanel.width = losePanel.width = "100%";
+  winPanel.height = losePanel.height = "100%";
+  grid.addControl(winPanel,  0, 0);
+  grid.addControl(losePanel, 0, 1);
 
-	// Loser panel (right)
-	const loserRect = new GUI.Rectangle("loseRect");
-	loserRect.background = "red";
-	loserRect.thickness  = 0;
-	grid.addControl(loserRect, 0, 2);
+  addAvatarPanel(winPanel,  { username: winner.username, label: "WIN"  });
+  addAvatarPanel(losePanel, { username: loser.username,  label: "LOSE" });
 
-	// Function to create avatar+label inside a panel
-	// English comments for clarity
-	function addAvatarPanel(parent: GUI.Rectangle, data: { username: string; label: string }) {
-	const stack = new GUI.StackPanel();
-	stack.verticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-	stack.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-	stack.height = "80%";
-	parent.addControl(stack);
+  // stats text
+  const stats = new GUI.TextBlock("stats");
+  stats.text                    = `Score\n${winner.username}: ${winner.score}\n${loser.username}: ${loser.score}`;
+  stats.color                   = "white";
+  stats.fontSize                = 18;
+  stats.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+  stats.textVerticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+  stats.zIndex                  = 1;
+  overlay.addControl(stats);
 
-	// Avatar image
-	const url = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.username)}&background=6d28d9&color=fff&rounded=true`;
-	const avatar = new GUI.Image("avatar_" + data.username, url);
-	avatar.width  = "50%";
-	avatar.height = "50%";
-	avatar.paddingBottom = "10px";
-	stack.addControl(avatar);
+  // finally the Next button
+  const nextBtn = GUI.Button.CreateSimpleButton("next", "Next");
+  nextBtn.width               = "80px";
+  nextBtn.height              = "32px";
+  nextBtn.cornerRadius        = 4;
+  nextBtn.color               = "white";
+  nextBtn.background          = "gray";
+  nextBtn.thickness           = 0;
+  // let the button catch hits
+  nextBtn.isHitTestVisible    = true;  // allow the button itself to be hit
+  nextBtn.isPointerBlocker     = true; // stop pointer from accidentally falling back to the 3D scene
+  nextBtn.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+  nextBtn.verticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+  nextBtn.paddingRight        = "20px";
+  nextBtn.paddingBottom       = "20px";
+  nextBtn.zIndex              = 2;
+  ui.addControl(nextBtn);
 
-	// Label below avatar
-	const label = new GUI.TextBlock();
-	label.text       = data.label;
-	label.color      = "white";
-	label.fontSize   = 24;
-	label.height     = "20%";
-	label.textVerticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-	label.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-	stack.addControl(label);
-	}
-
-	addAvatarPanel(winnerRect, { username: winner.username, label: "Win" });
-	addAvatarPanel(loserRect,  { username: loser.username,  label: "Lose" });
-
-	// Center stats
-	const stats = new GUI.TextBlock("stats");
-	stats.text = `Score\n${winner.username}: ${winner.score}\n${loser.username}: ${loser.score}`;
-	stats.color = "white";
-	stats.fontSize = 20;
-	stats.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-	stats.textVerticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-	grid.addControl(stats, 0, 1);
-
-	// "Next" button bottom right
-	const nextBtn = GUI.Button.CreateSimpleButton("nextBtn", "Next");
-	nextBtn.width  = "100px";
-	nextBtn.height = "40px";
-	nextBtn.color  = "white";
-	nextBtn.background = "gray";
-	nextBtn.cornerRadius = 5;
-	nextBtn.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
-	nextBtn.verticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
-	nextBtn.top    = "-10px";
-	nextBtn.left   = "-10px";
-	overlay.addControl(nextBtn);
-
-	nextBtn.onPointerUpObservable.add(() => {
-	ui.dispose();   // remove all GUI controls
-	onNext();       // callback to go back to your menu/view
-	});
+  nextBtn.onPointerUpObservable.add(() => {
+    ui.dispose();
+    onNext();
+  });
 }
+
+// ta fonction async pour charger correctement l’avatar
+async function addAvatarPanel(
+  parent: GUI.Rectangle,
+  data: { username: string; label: string }
+) {
+  const stack = new GUI.StackPanel();
+  stack.verticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+  stack.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+  stack.paddingTop          = "20px";
+  parent.addControl(stack);
+
+  const url = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.username)}&background=6d28d9&color=fff&rounded=true`;
+  try {
+    const res  = await fetch(url);
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const avatar = new GUI.Image("avatar_" + data.username, blobUrl);
+	delete (avatar as any).source?.crossOrigin;  // hack pour virer crossOrigin
+	avatar.source = url;
+    avatar.width  = "60px";
+    avatar.height = "60px";
+    stack.addControl(avatar);
+  } catch (e) {
+    console.error("Impossible de charger l’avatar", e);
+  }
+
+  const label = new GUI.TextBlock();
+  label.text       = data.label;
+  label.color      = "white";
+  label.fontSize   = 20;
+  label.paddingTop = "6px";
+  stack.addControl(label);
+}
+
 
 
 export async function handleStartGame(data: Interfaces.SocketMessageMap['startGame']) {
@@ -301,36 +312,50 @@ export async function handleRenderData(data: Interfaces.SocketMessageMap['render
 	});
 }
 
-export async function handleEndMatch(data: Interfaces.SocketMessageMap['endMatch']) {
-	const renderer = pongState.pongRenderer;
-	if (!renderer) {
-		console.warn('[ENDMATCH] No renderer found');
-		return;
-	}
-	const scene = renderer.getScene();
+export async function handleEndMatch(
+  data: Interfaces.SocketMessageMap['endMatch']
+) {
+  const renderer = pongState.pongRenderer;
+  if (!renderer) {
+    console.warn('[ENDMATCH] No renderer found');
+    return;
+  }
+  const scene = renderer.getScene();
 
-	showEndMatchOverlay(
-		scene,
-		{ username: data.winnerName, score: data.winnerScore },
-		{ username: data.loserName,  score: data.loserScore  },
-		() => {
-			renderer.dispose();
-			pongState.pongRenderer = null;
-			state.canvasViewState = 'mainMenu';
-			localStorage.setItem('pong_view', 'mainMenu');
-		}
-	);
-	// === Leave the game on the server ===
-	if (state.playerInterface?.socket && state.playerInterface.gameID !== undefined) {
-		state.typedSocket.send('leaveGame', {
-			userID: state.playerInterface!.userID,
-			gameID: state.playerInterface!.gameID!,
-			islegit: true
-		});
-	} else {
-		console.warn('[ENDMATCH] Could not send leaveGame, missing socket or gameID.');
-	}
+  const entries = Object.entries(data.playerScores) as [string, number][];
+  if (entries.length < 2) {
+    console.error('[ENDMATCH] Invalid playerScores:', data.playerScores);
+    return;
+  }
+  entries.sort(([, scoreA], [, scoreB]) => scoreB - scoreA);
+
+  const [winnerName, winnerScore] = entries[0];
+  const [loserName,  loserScore ] = entries[1];
+
+  showEndMatchOverlay(
+    scene,
+    { username: winnerName, score: winnerScore },
+    { username: loserName,  score: loserScore  },
+    () => {
+      renderer.dispose();
+      pongState.pongRenderer = null;
+      state.canvasViewState = 'mainMenu';
+      localStorage.setItem('pong_view','mainMenu');
+      showPongMenu();
+    }
+  );
+
+  if (state.playerInterface?.socket && state.playerInterface.gameID !== undefined) {
+    state.typedSocket.send('leaveGame', {
+      userID:  state.playerInterface.userID,
+      gameID:  state.playerInterface.gameID,
+      islegit: true
+    });
+  } else {
+    console.warn('[ENDMATCH] Could not send leaveGame, missing socket or gameID.');
+  }
 }
+
 
 export async function handleKicked(data: Interfaces.SocketMessageMap['kicked']) {
 	// Show a notification with the kick reason

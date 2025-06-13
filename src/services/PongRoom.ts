@@ -115,22 +115,56 @@ export class PongRoom {
   }
 
   /** Bounce or score on arena walls, with angle caps */
-  private bounceArena(ball: ballClass) {
-    const W = this.WIDTH/2
-    const H = this.HEIGHT/2
-    const R = ball.radius
-    const maxA = Math.tan(75*Math.PI/180)
-    const minA = Math.tan(15*Math.PI/180)
+private bounceArena(ball: ballClass) {
+	  const W      = this.WIDTH/2;
+	  const H      = this.HEIGHT/2;
+	  const R      = ball.radius;
+	  const maxA   = Math.tan(75 * Math.PI/180);
+	  const minA   = Math.tan(15 * Math.PI/180);
 
-    if (this.game.mode === 'duo') {
-      // Goals on left/right
-      if (ball.x - R <= -W) { this.handleWallScore('left', ball); return }
-      if (ball.x + R >=  W) { this.handleWallScore('right', ball); return }
-      // Bounce top/bottom
-      if (ball.y + R >=  H || ball.y - R <= -H) {
-        ball.vector[1] *= -1
-      }
-    } else {
+	  if (this.game.mode === 'duo') {
+	    // goals
+	    if (ball.x - R <= -W) { this.handleWallScore('left', ball); return; }
+	    if (ball.x + R >=  W) { this.handleWallScore('right', ball); return; }
+
+	    // bounce on top wall
+	    if (ball.y + R >= H && ball.vector[1] > 0) {
+	      // push ball out the wall
+	      ball.y = H - R - 1e-3;
+	      // invert (Y)
+	      ball.vector[1] *= -1;
+
+	      // angle clamp
+	      //    ratio = vx/vy
+	      let ratio = ball.vector[0] / ball.vector[1];
+	      const sign = Math.sign(ratio) || 1;
+
+	      ratio = Math.min(maxA, Math.max(minA, Math.abs(ratio))) * sign;
+
+	      // recalc vx from vy
+	      ball.vector[0] = ratio * ball.vector[1];
+
+	      // 4) renorm to ||v||=1
+	      const len = Math.hypot(ball.vector[0], ball.vector[1]);
+	      ball.vector[0] /= len;
+	      ball.vector[1] /= len;
+	    }
+
+	    // bounce on bottom wall
+	    if (ball.y - R <= -H && ball.vector[1] < 0) {
+	      ball.y = -H + R + 1e-3;
+	      ball.vector[1] *= -1;
+
+	      let ratio = ball.vector[0] / ball.vector[1];
+	      const sign = Math.sign(ratio) || 1;
+	      ratio = Math.min(maxA, Math.max(minA, Math.abs(ratio))) * sign;
+	      ball.vector[0] = ratio * ball.vector[1];
+	      const len = Math.hypot(ball.vector[0], ball.vector[1]);
+	      ball.vector[0] /= len;
+	      ball.vector[1] /= len;
+	    }
+	  }
+	  else {
       // 4p: score on all walls
       if (ball.x - R <= -W) { this.handleWallScore('left', ball); return }
       if (ball.x + R >=  W) { this.handleWallScore('right', ball); return }
@@ -153,36 +187,73 @@ export class PongRoom {
     let cx = Math.max(pi.x, Math.min(ball.x, pi.x+pi.width))
     let cy = Math.max(pi.y, Math.min(ball.y, pi.y+pi.length))
     const dx = cx - ball.x, dy = cy - ball.y
-    if (dx*dx + dy*dy <= R*R) {
-      const maxT = Math.tan(60*Math.PI/180)
-      if (pi.type === 'H') {
-        ball.vector[0] *= -1
-        let rel = (ball.y - (pi.y+pi.length/2)) / (pi.length/2)
-        rel = Math.max(-maxT, Math.min(maxT, rel))
-        ball.vector[1] = rel
-      } else {
-        ball.vector[1] *= -1
-        let rel = (ball.x - (pi.x+pi.width/2)) / (pi.width/2)
-        rel = Math.max(-maxT, Math.min(maxT, rel))
-        ball.vector[0] = rel
-      }
-      // normalize
-      const L = Math.hypot(ball.vector[0], ball.vector[1])
-      ball.vector[0] /= L; ball.vector[1] /= L
-      ball.last_bounce = paddle
-    }
-  }
+	  if (dx*dx + dy*dy <= R*R) {
+	    const maxT   = Math.tan(60 * Math.PI/180);
+	    const minT   = Math.tan(15 * Math.PI/180);
+
+	    if (pi.type === 'H') {
+	      // inversion horizontale
+	      ball.vector[0] *= -1;
+
+	      // calcul du “rel” d’impact
+	      let rel = (ball.y - (pi.y + pi.length/2)) / (pi.length/2);
+
+	      // → on force |rel| ≥ minT
+	      if (Math.abs(rel) < minT) {
+	        // si rel == 0, on choisit un signe aléatoire
+	        const sign = rel === 0 ? (Math.random() < 0.5 ? 1 : -1) : Math.sign(rel);
+	        rel = minT * sign;
+	      }
+
+	      // on plafonne aussi à maxT si on veut
+	      rel = Math.max(-maxT, Math.min(maxT, rel));
+
+	      ball.vector[1] = rel;
+
+	    } else {
+	      // inversion verticale
+	      ball.vector[1] *= -1;
+
+	      let rel = (ball.x - (pi.x + pi.width/2)) / (pi.width/2);
+	      if (Math.abs(rel) < minT) {
+	        const sign = rel === 0 ? (Math.random() < 0.5 ? 1 : -1) : Math.sign(rel);
+	        rel = minT * sign;
+	      }
+	      rel = Math.max(-maxT, Math.min(maxT, rel));
+	      ball.vector[0] = rel;
+	    }
+
+	    // normalisation finale pour ||v|| == 1
+	    const L = Math.hypot(ball.vector[0], ball.vector[1]);
+	    ball.vector[0] /= L;
+	    ball.vector[1] /= L;
+	    ball.last_bounce = paddle;
+	  }
+	}
 
   /** Award point to last toucher */
   private handleWallScore(sideHit: 'left'|'right'|'top'|'bottom', ball: ballClass) {
-    if (ball.last_bounce) {
-      const uid = ball.last_bounce.paddleInterface.userID
-      this.scoreMap.set(uid, (this.scoreMap.get(uid)||0) + 1)
-    }
-    // reset
-    ball.x = 0; ball.y = 0; ball.last_bounce = undefined
-    ball.vector = [1,0]
-  }
+    let scorerSide: 'left'|'right'
+	  if (sideHit === 'left')  scorerSide = 'right'
+	  else if (sideHit === 'right') scorerSide = 'left'
+	  else return
+
+	  // Get scorer userID
+	  const scorer = this.players.find(p => p.playerSide === scorerSide)!
+	  this.scoreMap.set(
+	    scorer.userID,
+	    (this.scoreMap.get(scorer.userID) || 0) + 1
+	  )
+
+	  // Reset ball on center
+	  ball.x = 0
+	  ball.y = 0
+	  ball.last_bounce = undefined
+
+	  // Send the ball to loser side
+	  if (sideHit === 'left')  ball.vector = [-1, 0]
+	  else                     ball.vector = [ +1, 0]
+	}
 
   /** Send state to clients */
   private broadcast() {

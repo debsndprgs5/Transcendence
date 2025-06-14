@@ -232,7 +232,7 @@ private bounce_player(ball: ballClass, paddle: paddleClass) {
   ball.vector[0] /= n; ball.vector[1] /= n;
 
   // accélère
-  ball.speed = Math.min(ball.speed * 1.2, this.baseSpeed * 3);
+  ball.speed = Math.min(ball.speed * 1.15, this.baseSpeed * 3);
 
   ball.last_bounce = paddle;
 }

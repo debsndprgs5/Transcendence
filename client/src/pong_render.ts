@@ -419,15 +419,15 @@ export class PongRenderer{
       if (e.key === 'ArrowRight') this.inputState.right = false;
       // no preventDefault needed here
     });
-	  // window.addEventListener('keydown', (e)=>{
-		// if(e.key === 'Escape' || e.key === 'Esc'){
-		// 	if(state.playerInterface!.state === 'playing')
-		// 		state.typedSocket.send('leaveGame',{
-		// 			userID:state.userId!,
-		// 			gameID:state.playerInterface!.gameID,
-		// 			isLegit:false});
-		// }
-	  // });
+	  window.addEventListener('keydown', (e)=>{
+		if(e.key === 'Escape' || e.key === 'Esc'){
+			if(state.playerInterface!.state === 'playing')
+				state.typedSocket.send('leaveGame',{
+					userID:state.userId!,
+					gameID:state.playerInterface!.gameID,
+					isLegit:false});
+		}
+	  });
 	}
 
   private sendMove(direction: 'left' | 'right' | 'stop') {

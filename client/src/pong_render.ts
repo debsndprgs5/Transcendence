@@ -9,7 +9,7 @@ export class PongRenderer{
 
 	private engine!: BABYLON.Engine;
 	private scene!: BABYLON.Scene;
-	private camera!: BABYLON.FreeCamera;
+	private camera!: BABYLON.Camera; 
 
 	private socket: TypedSocket;
 
@@ -35,8 +35,6 @@ export class PongRenderer{
 	bottom: ''
 	};
 	private scoreTextBlocks: Partial<Record<'left' | 'right' | 'top' | 'bottom', GUI.TextBlock>> = {};
-  private inputState = { left: false, right: false };
-  private currentDir: 'left' | 'right' | 'stop' = 'stop';
 
 	constructor(
 	canvas: HTMLCanvasElement,
@@ -69,32 +67,41 @@ export class PongRenderer{
 		this.handleResize();
 	}
 
-	private setupCamera() {
-		const distance = 30;
-		const height = 30;
+private setupCamera() {
+  // Center of your map, you can adjust the Y (height) if needed
+  const target = new BABYLON.Vector3(0, -3, 0);
 
-		let camPos: BABYLON.Vector3;
+  // Adjust these values for feel
+  const radius = 40;          //OG 30 distance from target — closer means "closer to game"
+  const beta = Math.PI / 3;   // OG 3vertical angle (60° down from top, adjust for "looking down")
+  const alpha = -Math.PI / 2; //OG 2 horizontal angle (90° to left, tweak per playerSide)
 
-		switch (this.playerSide) {
-			case 'left':
-				camPos = new BABYLON.Vector3(-distance, height, 0);
-				break;
-			case 'right':
-				camPos = new BABYLON.Vector3(distance, height, 0);
-						break;
-			case 'top':
-				camPos = new BABYLON.Vector3(0, height, distance);
-				break;
-			case 'bottom':
-				camPos = new BABYLON.Vector3(0, height, -distance);
-				break;
-			default:
-				camPos = new BABYLON.Vector3(0, height, -distance); // fallback
-		}
+  let alphaAdjusted = alpha;
 
-		this.camera = new BABYLON.FreeCamera("camera", camPos, this.scene);
-		this.camera.setTarget(new BABYLON.Vector3(0, 0, 0));
-	}
+  // Rotate alpha depending on playerSide, so camera faces from different sides
+  switch(this.playerSide) {
+    case 'left':
+      alphaAdjusted = Math.PI;       // looking from left side (180°)
+      break;
+    case 'right':
+      alphaAdjusted = 0;             // from right side (0°)
+      break;
+    case 'top':
+      alphaAdjusted = -Math.PI / 2; // from top (-90°)
+      break;
+    case 'bottom':
+      alphaAdjusted = Math.PI / 2;  // from bottom (90°)
+      break;
+    default:
+      alphaAdjusted = -Math.PI / 2; // fallback to top side
+  }
+
+  this.camera = new BABYLON.ArcRotateCamera("arcCam", alphaAdjusted, beta, radius, target, this.scene);
+
+  // Disable user controls (fixed camera)
+  this.camera.inputs.clear();
+
+}
 	private async setupGUI() {
 		this.guiTexture = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
 
@@ -203,64 +210,199 @@ export class PongRenderer{
 			}
 }
 	private setupLighting() {
-			new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), this.scene);
+			const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), this.scene);
+			light.intensity = 0.05
 		}
-	private createWalls() {
-		const width2P = LIMIT.arenaWidth2p; // -8 to 8
-		const depth2P = LIMIT.arenaLength2p; // -5 to 5
-		const width4P = LIMIT.arenaWidth4p; // -6 to 6
-		const depth4P = LIMIT.arenaWidth4p; // -6 to 6
+	// private createWalls() {
+	// 	const width2P = LIMIT.arenaWidth2p; // -8 to 8
+	// 	const depth2P = LIMIT.arenaLength2p; // -5 to 5
+	// 	const width4P = LIMIT.arenaWidth4p; // -6 to 6
+	// 	const depth4P = LIMIT.arenaWidth4p; // -6 to 6
 
-		const wallHeight = 0.3;
-		const wallDepth = 0.5;
-		const wallLength = 0.25;
+	// 	const wallHeight = 0.3;
+	// 	const wallDepth = 0.5;
+	// 	const wallLength = 0.25;
 
-		const width = this.playerCount === 2 ? width2P : width4P;
-		const depth = this.playerCount === 2 ? depth2P : depth4P;
+	// 	const width = this.playerCount === 2 ? width2P : width4P;
+	// 	const depth = this.playerCount === 2 ? depth2P : depth4P;
 
-		// Front/back walls
-		const topWall = BABYLON.MeshBuilder.CreateBox("topWall", {
-			width,
-			height: wallHeight,
-			depth: wallDepth,
-		}, this.scene);
-		topWall.position.z = depth / 2 + wallDepth / 2;
-		this.frontWalls.push(topWall);
+	// 	// Front/back walls
+	// 	const topWall = BABYLON.MeshBuilder.CreateBox("topWall", {
+	// 		width,
+	// 		height: wallHeight,
+	// 		depth: wallDepth,
+	// 	}, this.scene);
+	// 	topWall.position.z = depth / 2 + wallDepth / 2;
+	// 	this.frontWalls.push(topWall);
 
-		const bottomWall = topWall.clone("bottomWall");
-		bottomWall.position.z = -depth / 2 - wallDepth / 2;
-		this.frontWalls.push(bottomWall);
+	// 	const bottomWall = topWall.clone("bottomWall");
+	// 	bottomWall.position.z = -depth / 2 - wallDepth / 2;
+	// 	this.frontWalls.push(bottomWall);
 
-		// Side walls
-		const sideWall = BABYLON.MeshBuilder.CreateBox("sideWall", {
-			width: wallLength,
-			height: wallHeight,
-			depth,
-		}, this.scene);
-		sideWall.position.x = -width / 2 - wallLength / 2;
-		this.sideWalls.push(sideWall);
+	// 	// Side walls
+	// 	const sideWall = BABYLON.MeshBuilder.CreateBox("sideWall", {
+	// 		width: wallLength,
+	// 		height: wallHeight,
+	// 		depth,
+	// 	}, this.scene);
+	// 	sideWall.position.x = -width / 2 - wallLength / 2;
+	// 	this.sideWalls.push(sideWall);
 
-		const rightWall = sideWall.clone("rightWall");
-		rightWall.position.x = width / 2 + wallLength / 2;
-		this.sideWalls.push(rightWall);
-	}
+	// 	const rightWall = sideWall.clone("rightWall");
+	// 	rightWall.position.x = width / 2 + wallLength / 2;
+	// 	this.sideWalls.push(rightWall);
+	// }
+private createWalls() {
+	const width2P = LIMIT.arenaWidth2p;
+	const depth2P = LIMIT.arenaLength2p;
+	const width4P = LIMIT.arenaWidth4p;
+	const depth4P = LIMIT.arenaWidth4p;
 
+	const wallHeight = 0.5; // increased thickness
+	const wallDepth = 0.6;
+	const wallLength = 0.4;
+
+	const width = this.playerCount === 2 ? width2P : width4P;
+	const depth = this.playerCount === 2 ? depth2P : depth4P;
+
+	const glow = this.scene.getGlowLayerByName("glowPaddlesBalls") ||
+		new BABYLON.GlowLayer("glowPaddlesBalls", this.scene);
+
+	const createTronWall = (
+	name: string,
+	opts: { width?: number; height?: number; depth?: number },
+	pos: BABYLON.Vector3
+	) =>{
+		const wall = BABYLON.MeshBuilder.CreateBox(name, opts, this.scene);
+		wall.position = pos;
+
+		const mat = new BABYLON.StandardMaterial(`${name}Mat`, this.scene);
+		mat.diffuseColor = BABYLON.Color3.Black();
+		mat.emissiveColor = new BABYLON.Color3(0.5, 0.42, 0); // Tron goldish
+		mat.specularColor = BABYLON.Color3.Black(); // No shiny highlight
+		wall.material = mat;
+
+		glow.addIncludedOnlyMesh(wall);
+		return wall;
+	};
+
+	// Front/back walls
+	const topWall = createTronWall("topWall", {
+		width,
+		height: wallHeight,
+		depth: wallDepth
+	}, new BABYLON.Vector3(0, 0, depth / 2 + wallDepth / 2));
+	this.frontWalls.push(topWall);
+
+	// Clone + fix material + glow
+	const bottomWall = topWall.clone("bottomWall");
+	bottomWall.position.z = -depth / 2 - wallDepth / 2;
+	// Apply same material
+	bottomWall.material = topWall.material;
+	// Re-include in glow layer
+	glow.addIncludedOnlyMesh(bottomWall);
+	this.frontWalls.push(bottomWall);
+
+	// Side walls
+	const sideWall = createTronWall("leftWall", {
+		width: wallLength,
+		height: wallHeight,
+		depth,
+	}, new BABYLON.Vector3(-width / 2 - wallLength / 2, 0, 0));
+	this.sideWalls.push(sideWall);
+
+	// Clone + fix material + glow
+	const rightWall = sideWall.clone("rightWall");
+	rightWall.position.x = width / 2 + wallLength / 2;
+	rightWall.material = sideWall.material;
+	glow.addIncludedOnlyMesh(rightWall);
+	this.sideWalls.push(rightWall);
+}
+
+	// private createGameObjects() {
+	// 	const paddleSize2P = { height: 1, width: LIMIT.paddleWidth, depth: LIMIT.paddleSize }; // Original paddle size
+	// 	const paddleSize4P = { height: 1, width: LIMIT.paddleSize, depth: LIMIT.paddleWidth }; // Rotated for top/bottom
+
+	// 	for (let i = 0; i < this.playerCount; i++) {
+	// 		const isVertical = i === 0 || i === 1;
+	// 		const paddle = BABYLON.MeshBuilder.CreateBox(`paddle${i}`, isVertical ? paddleSize2P : paddleSize4P, this.scene);
+	// 		const mat = new BABYLON.StandardMaterial(`mat${i}`, this.scene);
+	// 		mat.diffuseColor = BABYLON.Color3.Random();
+	// 		paddle.material = mat;
+	// 		this.paddles.push(paddle);
+	// 	}
+
+	// 	const ball = BABYLON.MeshBuilder.CreateSphere("ball", { diameter:LIMIT.ballSize }, this.scene);
+	// 	this.balls.push(ball);
+	// }
 	private createGameObjects() {
-		const paddleSize2P = { height: 1, width: LIMIT.paddleWidth, depth: LIMIT.paddleSize }; // Original paddle size
-		const paddleSize4P = { height: 1, width: LIMIT.paddleSize, depth: LIMIT.paddleWidth }; // Rotated for top/bottom
+	const paddleSize2P = { height: 1, width: LIMIT.paddleWidth, depth: LIMIT.paddleSize };
+	const paddleSize4P = { height: 1, width: LIMIT.paddleSize, depth: LIMIT.paddleWidth };
 
-		for (let i = 0; i < this.playerCount; i++) {
-			const isVertical = i === 0 || i === 1;
-			const paddle = BABYLON.MeshBuilder.CreateBox(`paddle${i}`, isVertical ? paddleSize2P : paddleSize4P, this.scene);
-			const mat = new BABYLON.StandardMaterial(`mat${i}`, this.scene);
-			mat.diffuseColor = BABYLON.Color3.Random();
-			paddle.material = mat;
-			this.paddles.push(paddle);
+	const sideOrder: ('left' | 'right' | 'top' | 'bottom')[] =
+		this.playerCount === 2 ? ['left', 'right'] : ['left', 'right', 'top', 'bottom'];
+
+	const glow = this.scene.getGlowLayerByName("glowPaddlesBalls") ||
+		new BABYLON.GlowLayer("glowPaddlesBalls", this.scene);
+
+	for (let i = 0; i < this.playerCount; i++) {
+		const side = sideOrder[i];
+		const isVertical = side === 'left' || side === 'right';
+		const paddle = BABYLON.MeshBuilder.CreateBox(
+			`paddle_${side}`,
+			isVertical ? paddleSize2P : paddleSize4P,
+			this.scene
+		);
+
+		const mat = new BABYLON.StandardMaterial(`paddleMat_${side}`, this.scene);
+		mat.diffuseColor = BABYLON.Color3.Black();
+		mat.specularColor = BABYLON.Color3.Black(); // flat look
+
+		if (side === this.playerSide) {
+			mat.emissiveColor = new BABYLON.Color3(0.0, 0.4, 0.4); // cyan
+		} else {
+			mat.emissiveColor = new BABYLON.Color3(0.6, 0.18, 0.0); // brigth orange
 		}
+		paddle.material = mat;
+		glow.addIncludedOnlyMesh(paddle);
 
-		const ball = BABYLON.MeshBuilder.CreateSphere("ball", { diameter:LIMIT.ballSize }, this.scene);
-		this.balls.push(ball);
+		this.paddles.push(paddle);
 	}
+
+	// Ball with golden glow and trail
+	const ball = BABYLON.MeshBuilder.CreateSphere("ball", { diameter: LIMIT.ballSize }, this.scene);
+	const ballMat = new BABYLON.StandardMaterial("ballMat", this.scene);
+	ballMat.diffuseColor = BABYLON.Color3.Black();
+	ballMat.emissiveColor = new BABYLON.Color3(1.0, 0.0, 0.6); // pink -ish
+	ballMat.specularColor = BABYLON.Color3.Black(); // no gloss
+	ball.material = ballMat;
+	glow.addIncludedOnlyMesh(ball);
+	this.balls.push(ball);
+
+	// ✨ Particle trail
+	const particleSystem = new BABYLON.ParticleSystem("ballTrail", 100, this.scene);
+	particleSystem.particleTexture = new BABYLON.Texture("https://www.babylonjs.com/assets/Flare.png", this.scene);
+	particleSystem.emitter = ball;
+	particleSystem.minEmitBox = new BABYLON.Vector3(0, 0, 0);
+	particleSystem.maxEmitBox = new BABYLON.Vector3(0, 0, 0);
+	particleSystem.color1 = new BABYLON.Color4(1, 0.8, 0, 1.0); // gold
+	particleSystem.color2 = new BABYLON.Color4(1, 0.5, 0, 0.8);
+	particleSystem.minSize = 0.1;
+	particleSystem.maxSize = 0.2;
+	particleSystem.minLifeTime = 0.1;
+	particleSystem.maxLifeTime = 0.3;
+	particleSystem.emitRate = 240;
+	particleSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_ADD;
+	particleSystem.gravity = new BABYLON.Vector3(0, 0, 0);
+	particleSystem.direction1 = new BABYLON.Vector3(-1, 0, -1);
+	particleSystem.direction2 = new BABYLON.Vector3(1, 0, 1);
+	particleSystem.minAngularSpeed = 0;
+	particleSystem.maxAngularSpeed = Math.PI;
+	particleSystem.minEmitPower = 0.5;
+	particleSystem.maxEmitPower = 1.0;
+	particleSystem.updateSpeed = 0.02;
+	particleSystem.start();
+}
 
 	private setupInitialPositions() {
 	  // wall thicknesses: along X use wallLength, along Z use wallDepth
@@ -375,28 +517,7 @@ export class PongRenderer{
 	private startRenderLoop() {
 		this.engine.runRenderLoop(() => {
 		this.scene.render();
-		this.processInput();
 		});
-	}
-
-	private processInput() {
-	  // Determine raw direction
-	  let dir: 'left'|'right'|'stop' = 'stop';
-	  if (this.inputState.left)  dir = 'left';
-	  else if (this.inputState.right) dir = 'right';
-
-	  // Swap for left view
-	  if (this.playerSide === 'left' && dir !== 'stop') {
-	    dir = dir === 'left' ? 'right' : 'left';
-	  }
-
-	  if (dir !== 'stop') {
-	    this.sendMove(dir);
-	  } else if (this.currentDir !== 'stop') {
-	    this.sendMove('stop');
-	  }
-
-	  this.currentDir = dir;
 	}
 
 		public handleResize() {
@@ -407,39 +528,50 @@ export class PongRenderer{
 	}
 
 	private initInputListeners() {
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowLeft')  this.inputState.left  = true;
-      if (e.key === 'ArrowRight') this.inputState.right = true;
-      // Prevent default scroll with arrows
-      if (e.key.startsWith('Arrow')) e.preventDefault();
-    });
+	  window.addEventListener('keydown', (e) => {
+	    // Determine raw direction from key
+	    let dir: 'left' | 'right' | null = null;
+	    if (e.key === 'ArrowLeft')  dir = 'left';
+	    else if (e.key === 'ArrowRight') dir = 'right';
+	    else return;
 
-    window.addEventListener('keyup', (e) => {
-      if (e.key === 'ArrowLeft')  this.inputState.left  = false;
-      if (e.key === 'ArrowRight') this.inputState.right = false;
-      // no preventDefault needed here
-    });
-	  window.addEventListener('keydown', (e)=>{
-		if(e.key === 'Escape' || e.key === 'Esc'){
-			if(state.playerInterface!.state === 'playing')
-				state.typedSocket.send('leaveGame',{
-					userID:state.userId!,
-					gameID:state.playerInterface!.gameID,
-					isLegit:false});
-		}
+	    // Swap for left-side player
+	    if (this.playerSide === 'left') {
+	      dir = dir === 'left' ? 'right' : 'left';
+	    }
+
+	    this.sendMove(dir);
 	  });
+
+	  window.addEventListener('keyup', (e) => {
+	    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+
+	    // “stop” is the same for both
+	    this.sendMove('stop');
+	  });
+	//   window.addEventListener('keydown', (e)=>{
+	// 	if(e.key === 'Escape' || e.key === 'Esc'){
+	// 		if(state.playerInterface!.state === 'playing')
+	// 			state.typedSocket.send('leaveGame',{
+	// 				userID:state.userId!,
+	// 				gameID:state.playerInterface!.gameID,
+	// 				isLegit:false});
+	// 	}
+	//  });
 	}
 
-  private sendMove(direction: 'left' | 'right' | 'stop') {
-    if (state.playerInterface?.gameID !== undefined && state.userId !== undefined) {
-      state.typedSocket.send('playerMove', {
-        gameID: state.playerInterface.gameID,
-        userID: state.userId,
-        direction,
-      });
-    }
-  }
-
+	private sendMove(direction:string){
+		if (
+			state.playerInterface?.gameID !== undefined &&
+			state.userId !== undefined
+		) {
+			state.typedSocket.send('playerMove', {
+			gameID: state.playerInterface.gameID,
+			userID: state.userId,
+			direction,
+			});
+		}
+	}
 	private updateHUD(elapsed: number, scores: Record<'left' | 'right' | 'top' | 'bottom', number>) {
 		this.timeText.text = `${state.currentGameName}: ${elapsed.toFixed(1)}s`;
 

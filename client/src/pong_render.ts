@@ -22,6 +22,8 @@ export class PongRenderer{
 	private guiTexture!: GUI.AdvancedDynamicTexture;
 	private timeText!: GUI.TextBlock;
 	private scoreText!: GUI.TextBlock;
+	private avatarSquares!:GUI.AdvancedDynamicTexture;//Avatar near the name
+	private avatarCirles!:GUI.AdvancedDynamicTexture;//Small avatars links to paddles
 
 
 	private playerCount: number;
@@ -67,7 +69,7 @@ export class PongRenderer{
 
 	private setupCamera() {
 		const distance = 30;
-		const height = 25;
+		const height = 30;
 
 		let camPos: BABYLON.Vector3;
 
@@ -91,7 +93,7 @@ export class PongRenderer{
 		this.camera = new BABYLON.FreeCamera("camera", camPos, this.scene);
 		this.camera.setTarget(new BABYLON.Vector3(0, 0, 0));
 	}
-	private setupGUI() {
+	private async setupGUI() {
 		this.guiTexture = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
 
 		// Time at top center
@@ -109,7 +111,7 @@ export class PongRenderer{
 			leftName.text = this.playersInfo.left;
 			leftName.color = "white";
 			leftName.fontSize = 12;
-			leftName.top = "10px";
+			leftName.top = "5px";
 			leftName.left = "20px";
 			leftName.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
 			leftName.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
@@ -120,7 +122,7 @@ export class PongRenderer{
 			rightName.text = this.playersInfo.right;
 			rightName.color = "white";
 			rightName.fontSize = 12;
-			rightName.top = "10px";
+			rightName.top = "5px";
 			rightName.left = "-20px";
 			rightName.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
 			rightName.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
@@ -130,7 +132,7 @@ export class PongRenderer{
 			const leftScore = new GUI.TextBlock();
 			leftScore.color = "white";
 			leftScore.fontSize = 14;
-			leftScore.top = "30px";
+			leftScore.top = "65px";
 			leftScore.left = "20px";
 			leftScore.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
 			leftScore.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
@@ -141,13 +143,48 @@ export class PongRenderer{
 			const rightScore = new GUI.TextBlock();
 			rightScore.color = "white";
 			rightScore.fontSize = 14;
-			rightScore.top = "30px";
+			rightScore.top = "65px";
 			rightScore.left = "-20px";
 			rightScore.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
 			rightScore.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
 			this.guiTexture.addControl(rightScore);
 			this.scoreTextBlocks.right = rightScore;
-		}
+
+			//LEFT AVATAR
+			const leftUsername = this.playersInfo.left;
+			const leftAvatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(leftUsername)}&background=6d28d9&color=fff&rounded=true`;
+
+			const leftAvatarResponse = await fetch(leftAvatarUrl);
+			const leftBlob = await leftAvatarResponse.blob();
+			const leftBlobUrl = URL.createObjectURL(leftBlob);
+
+			const leftAvatarImage = new GUI.Image("leftAvatar", leftBlobUrl);
+			leftAvatarImage.width = "40px";
+			leftAvatarImage.height = "40px";
+			leftAvatarImage.left = "20px";
+			leftAvatarImage.top = "25px"; // between name (5px) and score (45px)
+			leftAvatarImage.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+			leftAvatarImage.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
+			this.guiTexture.addControl(leftAvatarImage);
+			
+			//RIGTH AVATAR
+			const rightUsername = this.playersInfo.right;
+			const rightAvatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(rightUsername)}&background=6d28d9&color=fff&rounded=true`;
+
+			const rightAvatarResponse = await fetch(rightAvatarUrl);
+			const rightBlob = await rightAvatarResponse.blob();
+			const rightBlobUrl = URL.createObjectURL(rightBlob);
+
+			const rightAvatarImage = new GUI.Image("rightAvatar", rightBlobUrl);
+			rightAvatarImage.width = "40px";
+			rightAvatarImage.height = "40px";
+			rightAvatarImage.left = "-20px";
+			rightAvatarImage.top = "25px";
+			rightAvatarImage.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+			rightAvatarImage.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
+			this.guiTexture.addControl(rightAvatarImage);
+					
+			}
 }
 	private setupLighting() {
 			new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), this.scene);

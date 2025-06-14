@@ -236,7 +236,7 @@ function showEndMatchOverlay(
 }
 
 // ta fonction async pour charger correctement l’avatar
-async function addAvatarPanel(
+export async function addAvatarPanel(
   parent: GUI.Rectangle,
   data: { username: string; label: string }
 ) {

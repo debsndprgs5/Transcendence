@@ -98,8 +98,8 @@ export type EventHandlerMap<SocketType = any> = {
 };
 
 
-export const paddleSize=4;
-export const paddleWidth=2;
+export const paddleSize=4.20;
+export const paddleWidth=1.5;
 
 export const arenaLength2p=18;
 export const arenaWidth2p=32;
@@ -107,4 +107,4 @@ export const arenaWidth2p=32;
 export const arenaWidth4p=30;
 export const arenaLength4p=30;
 
-export const ballSize=0.7;
+export const ballSize=0.8;

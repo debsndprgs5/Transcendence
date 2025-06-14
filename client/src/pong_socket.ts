@@ -160,79 +160,98 @@ export async function handleInvite(
 }
 
 
-function showEndMatchOverlay(
-  scene: BABYLON.Scene,
-  winner: { username: string; score: number },
-  loser:  { username: string; score: number },
-  onNext: () => void
+async function showEndMatchOverlay(
+	scene: BABYLON.Scene,
+	winner: { username: string; score: number },
+	loser:  { username: string; score: number },
+	onNext: () => void
 ) {
-  const ui = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI", true, scene);
+	const ui = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI", true, scene);
 
-  // the semi-transparent background
-  const overlay = new GUI.Rectangle();
-  overlay.background          = "rgba(0,0,0,0.6)";
-  overlay.width               = "90%";
-  overlay.height              = "90%";
-  overlay.thickness           = 0;
-  overlay.verticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-  overlay.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-  overlay.isHitTestVisible  = true;    // allow children to be hit
-  overlay.isPointerBlocker   = true;   // block clicks from going into the 3D scene
-  ui.addControl(overlay);
+	// semi-transparent backdrop
+	const overlay = new GUI.Rectangle();
+	overlay.background          = "rgba(0,0,0,0.6)";
+	overlay.width               = "90%";
+	overlay.height              = "90%";
+	overlay.thickness           = 0;
+	overlay.verticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+	overlay.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+	overlay.isPointerBlocker    = true;
+	ui.addControl(overlay);
 
-  // same for the grid inside it
-  const grid = new GUI.Grid();
-  grid.addColumnDefinition(0.5);
-  grid.addColumnDefinition(0.5);
-  grid.width  = "100%";
-  grid.height = "100%";
-  grid.isHitTestVisible     = false;   // don’t intercept any pointer events yourself
-  grid.isPointerBlocker      = false;  // same
-  overlay.addControl(grid);
+	// 3-column grid
+	const grid = new GUI.Grid();
+	grid.addColumnDefinition(0.35);
+	grid.addColumnDefinition(0.30);
+	grid.addColumnDefinition(0.35);
+	grid.width  = "100%";
+	grid.height = "100%";
+	overlay.addControl(grid);
 
-  // your two panels…
-  const winPanel  = new GUI.Rectangle("win");  winPanel.background = "green"; winPanel.thickness = 0;
-  const losePanel = new GUI.Rectangle("lose"); losePanel.background = "red";   losePanel.thickness = 0;
-  winPanel.width = losePanel.width = "100%";
-  winPanel.height = losePanel.height = "100%";
-  grid.addControl(winPanel,  0, 0);
-  grid.addControl(losePanel, 0, 1);
+	// --- LEFT PANEL (WIN) ---
+	const winPanel = new GUI.Rectangle();
+	winPanel.background = "green";
+	winPanel.thickness  = 0;
+	grid.addControl(winPanel, 0, 0);
 
-  addAvatarPanel(winPanel,  { username: winner.username, label: "WIN"  });
-  addAvatarPanel(losePanel, { username: loser.username,  label: "LOSE" });
+	// Synchronous “WIN” label
+	const winLabel = new GUI.TextBlock();
+	winLabel.text                    = "WIN";
+	winLabel.color                   = "white";
+	winLabel.fontSize                = 24;
+	winLabel.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+	winLabel.textVerticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_TOP;
+	winLabel.paddingTop              = "10px";
+	winPanel.addControl(winLabel);
 
-  // stats text
-  const stats = new GUI.TextBlock("stats");
-  stats.text                    = `Score\n${winner.username}: ${winner.score}\n${loser.username}: ${loser.score}`;
-  stats.color                   = "white";
-  stats.fontSize                = 18;
-  stats.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-  stats.textVerticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-  stats.zIndex                  = 1;
-  overlay.addControl(stats);
+	// Avatar
+	addAvatarPanel(winPanel, { username: winner.username, label: "" });
 
-  // finally the Next button
-  const nextBtn = GUI.Button.CreateSimpleButton("next", "Next");
-  nextBtn.width               = "80px";
-  nextBtn.height              = "32px";
-  nextBtn.cornerRadius        = 4;
-  nextBtn.color               = "white";
-  nextBtn.background          = "gray";
-  nextBtn.thickness           = 0;
-  // let the button catch hits
-  nextBtn.isHitTestVisible    = true;  // allow the button itself to be hit
-  nextBtn.isPointerBlocker     = true; // stop pointer from accidentally falling back to the 3D scene
-  nextBtn.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
-  nextBtn.verticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
-  nextBtn.paddingRight        = "20px";
-  nextBtn.paddingBottom       = "20px";
-  nextBtn.zIndex              = 2;
-  ui.addControl(nextBtn);
+	// --- CENTER STATS ---
+	const stats = new GUI.TextBlock();
+	stats.text                    = `Score\n${winner.username}: ${winner.score}\n${loser.username}: ${loser.score}`;
+	stats.color                   = "white";
+	stats.fontSize                = 20;
+	stats.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+	stats.textVerticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+	grid.addControl(stats, 0, 1);
 
-  nextBtn.onPointerUpObservable.add(() => {
-    ui.dispose();
-    onNext();
-  });
+	// --- RIGHT PANEL (LOSE) ---
+	const losePanel = new GUI.Rectangle();
+	losePanel.background = "red";
+	losePanel.thickness  = 0;
+	grid.addControl(losePanel, 0, 2);
+
+	// Synchronous “LOSE” label
+	const loseLabel = new GUI.TextBlock();
+	loseLabel.text                    = "LOSE";
+	loseLabel.color                   = "white";
+	loseLabel.fontSize                = 24;
+	loseLabel.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+	loseLabel.textVerticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_TOP;
+	loseLabel.paddingTop              = "10px";
+	losePanel.addControl(loseLabel);
+
+	// Avatar
+	addAvatarPanel(losePanel, { username: loser.username, label: "" });
+
+	// --- Next Button ---
+	const nextBtn = GUI.Button.CreateSimpleButton("next", "Next");
+	nextBtn.width               = "80px";
+	nextBtn.height              = "32px";
+	nextBtn.cornerRadius        = 4;
+	nextBtn.color               = "white";
+	nextBtn.background          = "gray";
+	nextBtn.isPointerBlocker    = true;
+	nextBtn.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+	nextBtn.verticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+	nextBtn.paddingRight        = "20px";
+	nextBtn.paddingBottom       = "20px";
+	ui.addControl(nextBtn);
+	nextBtn.onPointerUpObservable.add(() => {
+		ui.dispose();
+		onNext();
+	});
 }
 
 // ta fonction async pour charger correctement l’avatar
@@ -240,33 +259,42 @@ export async function addAvatarPanel(
   parent: GUI.Rectangle,
   data: { username: string; label: string }
 ) {
-  const stack = new GUI.StackPanel();
-  stack.verticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-  stack.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-  stack.paddingTop          = "20px";
-  parent.addControl(stack);
-
-  const url = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.username)}&background=6d28d9&color=fff&rounded=true`;
-  try {
-    const res  = await fetch(url);
-    const blob = await res.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    const avatar = new GUI.Image("avatar_" + data.username, blobUrl);
-	delete (avatar as any).source?.crossOrigin;  // hack pour virer crossOrigin
+	const stack = new GUI.StackPanel();
+	stack.verticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+	stack.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+	stack.paddingTop          = "20px";
+	parent.addControl(stack);
+	let url: string;
+	try {
+		const json = await apiFetch(
+			`/users/${encodeURIComponent(data.username)}/avatar`
+		) as { avatar_url?: string };
+		url = json.avatar_url ?? "";
+	} catch {
+		url = "";
+	}
+	if (!url)
+		url = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.username)}&background=6d28d9&color=fff&rounded=true`;
+	try {
+		const res  = await fetch(url);
+		const blob = await res.blob();
+		const blobUrl = URL.createObjectURL(blob);
+		const avatar = new GUI.Image("avatar_" + data.username, blobUrl);
+	delete (avatar as any).source?.crossOrigin;
 	avatar.source = url;
-    avatar.width  = "60px";
-    avatar.height = "60px";
-    stack.addControl(avatar);
-  } catch (e) {
-    console.error("Impossible de charger l’avatar", e);
-  }
+		avatar.width  = "60px";
+		avatar.height = "60px";
+		stack.addControl(avatar);
+	} catch (e) {
+		console.error("Impossible de charger l’avatar", e);
+	}
 
-  const label = new GUI.TextBlock();
-  label.text       = data.label;
-  label.color      = "white";
-  label.fontSize   = 20;
-  label.paddingTop = "6px";
-  stack.addControl(label);
+	const label = new GUI.TextBlock();
+	label.text       = data.label;
+	label.color      = "white";
+	label.fontSize   = 20;
+	label.paddingTop = "6px";
+	stack.addControl(label);
 }
 
 
@@ -313,47 +341,47 @@ export async function handleRenderData(data: Interfaces.SocketMessageMap['render
 }
 
 export async function handleEndMatch(
-  data: Interfaces.SocketMessageMap['endMatch']
+	data: Interfaces.SocketMessageMap['endMatch']
 ) {
-  const renderer = pongState.pongRenderer;
-  if (!renderer) {
-    console.warn('[ENDMATCH] No renderer found');
-    return;
-  }
-  const scene = renderer.getScene();
+	const renderer = pongState.pongRenderer;
+	if (!renderer) {
+		console.warn('[ENDMATCH] No renderer found');
+		return;
+	}
+	const scene = renderer.getScene();
 
-  const entries = Object.entries(data.playerScores) as [string, number][];
-  if (entries.length < 2) {
-    console.error('[ENDMATCH] Invalid playerScores:', data.playerScores);
-    return;
-  }
-  entries.sort(([, scoreA], [, scoreB]) => scoreB - scoreA);
+	const entries = Object.entries(data.playerScores) as [string, number][];
+	if (entries.length < 2) {
+		console.error('[ENDMATCH] Invalid playerScores:', data.playerScores);
+		return;
+	}
+	entries.sort(([, scoreA], [, scoreB]) => scoreB - scoreA);
 
-  const [winnerName, winnerScore] = entries[0];
-  const [loserName,  loserScore ] = entries[1];
+	const [winnerName, winnerScore] = entries[0];
+	const [loserName,  loserScore ] = entries[1];
 
-  showEndMatchOverlay(
-    scene,
-    { username: winnerName, score: winnerScore },
-    { username: loserName,  score: loserScore  },
-    () => {
-      renderer.dispose();
-      pongState.pongRenderer = null;
-      state.canvasViewState = 'mainMenu';
-      localStorage.setItem('pong_view','mainMenu');
-      showPongMenu();
-    }
-  );
+	showEndMatchOverlay(
+		scene,
+		{ username: winnerName, score: winnerScore },
+		{ username: loserName,  score: loserScore  },
+		() => {
+			renderer.dispose();
+			pongState.pongRenderer = null;
+			state.canvasViewState = 'mainMenu';
+			localStorage.setItem('pong_view','mainMenu');
+			showPongMenu();
+		}
+	);
 
-  if (state.playerInterface?.socket && state.playerInterface.gameID !== undefined) {
-    state.typedSocket.send('leaveGame', {
-      userID:  state.playerInterface.userID,
-      gameID:  state.playerInterface.gameID,
-      islegit: true
-    });
-  } else {
-    console.warn('[ENDMATCH] Could not send leaveGame, missing socket or gameID.');
-  }
+	if (state.playerInterface?.socket && state.playerInterface.gameID !== undefined) {
+		state.typedSocket.send('leaveGame', {
+			userID:  state.playerInterface.userID,
+			gameID:  state.playerInterface.gameID,
+			islegit: true
+		});
+	} else {
+		console.warn('[ENDMATCH] Could not send leaveGame, missing socket or gameID.');
+	}
 }
 
 

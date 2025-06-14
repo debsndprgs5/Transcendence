@@ -119,7 +119,7 @@ private frame() {
 	}
 
 
-	/** Bounce or score on arena walls, with angle caps */
+/** Bounce or score on arena walls, with angle caps */
 private bounceArena(ball: ballClass) {
 		const W      = this.WIDTH/2;
 		const H      = this.HEIGHT/2;
@@ -182,7 +182,7 @@ private bounceArena(ball: ballClass) {
 	/** Move ball */
 private ballsMove(b: ballClass) {
 	  let remaining = b.speed;
-	  const maxStep = b.radius;        // distance max sans rater un paddle
+	  const maxStep = b.radius;
 	  const n = Math.ceil(remaining / maxStep);
 	  const step = remaining / n;
 	  for (let i = 0; i < n; i++) {
@@ -193,89 +193,71 @@ private ballsMove(b: ballClass) {
 
 
 	/** Cap angle and invert on paddle hit */
-	private bounce_player(ball: ballClass, paddle: paddleClass) {
-		const pi = paddle.paddleInterface;
-		const R  = ball.radius;
+private bounce_player(ball: ballClass, paddle: paddleClass) {
+  const pi   = paddle.paddleInterface;
+  const R    = ball.radius;
+  const left = pi.x - pi.width / 2,
+        right  = pi.x + pi.width / 2,
+        top    = pi.y - pi.length / 2,
+        bottom = pi.y + pi.length / 2;
 
-		// Detect cercle/rectangle collisions
-		const left   = pi.x - pi.width / 2;
-		const right  = pi.x + pi.width / 2;
-		const top    = pi.y - pi.length / 2;
-		const bottom = pi.y + pi.length / 2;
-		const cx = Math.max(left,  Math.min(ball.x, right));
-		const cy = Math.max(top,   Math.min(ball.y, bottom));
-		const dx = cx - ball.x, dy = cy - ball.y;
-		if (dx*dx + dy*dy > R*R) return; // no collision
+  const cx = Math.max(left, Math.min(ball.x, right));
+  const cy = Math.max(top,  Math.min(ball.y, bottom));
+  const dx = cx - ball.x, dy = cy - ball.y;
+  if (dx*dx + dy*dy > R*R) return;               // pas de contact
 
-		// 2) Compute maximum bounce angle (in radians)
-		const maxBounceAngle = 75 * Math.PI / 180;
+  const maxAngle = 75 * Math.PI / 180;
 
-		if (pi.type === 'H') {
-			// Vertical paddle (left/right) → bounce horizontal
+  if (pi.type === 'H') {                         // raquette gauche / droite
+    const rel = (ball.y - pi.y) / (pi.length/2); // centre direct
+    const angle = Math.max(-1, Math.min(1, rel)) * maxAngle;
 
-			// Compute relative intersection [-1 .. +1]
-			// English comment: find how far from paddle center the ball hit
-			const paddleCenterY = pi.y + pi.length/2;
-			let rel = (ball.y - paddleCenterY) / (pi.length/2);
-			rel = Math.max(-1, Math.min(1, rel)); // clamp
+    const dirX = (pi.x < 0) ? 1 : -1;            // gauche => +X, droite => -X
+    ball.vector[0] =  dirX * Math.cos(angle);
+    ball.vector[1] =  Math.sin(angle);
+    ball.x += ball.vector[0] * 0.01;             // sortir du paddle
 
-			// English comment: map to angle within [-maxBounceAngle, +maxBounceAngle]
-			const bounceAngle = rel * maxBounceAngle;
+  } else {                                       // raquette haut / bas
+    const rel = (ball.x - pi.x) / (pi.width/2);
+    const angle = Math.max(-1, Math.min(1, rel)) * maxAngle;
 
-			// English comment: incoming direction of X to decide sign flip
-			const dirX = Math.sign(ball.vector[0]) || 1;
+    const dirY = (pi.y < 0) ? 1 : -1;            // bas => +Y, haut => -Y
+    ball.vector[0] =  Math.sin(angle);
+    ball.vector[1] =  dirY * Math.cos(angle);
+    ball.y += ball.vector[1] * 0.01;
+  }
 
-			// English comment: new vector components
-			ball.vector[0] = -dirX * Math.cos(bounceAngle);
-			ball.vector[1] = Math.sin(bounceAngle);
-			ball.x += ball.vector[0] * 0.01;
-			ball.y += ball.vector[1] * 0.01;
+  // normalise
+  const n = Math.hypot(ball.vector[0], ball.vector[1]);
+  ball.vector[0] /= n; ball.vector[1] /= n;
 
-		} else {
-			// Horizontal paddle (top/bottom) → bounce vertical
+  // accélère
+  ball.speed = Math.min(ball.speed * 1.1, this.baseSpeed * 3);
 
-			const paddleCenterX = pi.x + pi.width/2;
-			let rel = (ball.x - paddleCenterX) / (pi.width/2);
-			rel = Math.max(-1, Math.min(1, rel));
-
-			const bounceAngle = rel * maxBounceAngle;
-			const dirY = Math.sign(ball.vector[1]) || 1;
-
-			ball.vector[0] = Math.sin(bounceAngle);
-			ball.vector[1] = -dirY * Math.cos(bounceAngle);
-			ball.x += ball.vector[0] * 0.01;
-			ball.y += ball.vector[1] * 0.01;
-		}
-		ball.speed = Math.min(ball.speed * 1.05, this.baseSpeed * 2.5); // x2.5 max
-
-		// 3) Normalize to unit length
-		const norm = Math.hypot(ball.vector[0], ball.vector[1]);
-		ball.vector[0] /= norm;
-		ball.vector[1] /= norm;
-
-		// 4) Save last bounce for le scoring
-		ball.last_bounce = paddle;
-	}
+  ball.last_bounce = paddle;
+}
  
-	private resetBallPosition(sideHit: 'left'|'right'|'top'|'bottom',ball: ballClass) {
-		// Reset ball on center
-		ball.x = 0
-		ball.y = 0
-		ball.last_bounce = undefined
-		// Send ball on random angle
-		const maxServeDeg = 45; 
-		const rad = (Math.random() * 2*maxServeDeg - maxServeDeg) * Math.PI/180;
-		const dir = sideHit === 'left' ? +1 : -1; // always serving to opposite player
-		ball.vector = [dir * Math.cos(rad), Math.sin(rad)];
-		// normalise to keep ||v||=1
-		const len = Math.hypot(ball.vector[0], ball.vector[1]);
-		ball.vector[0] /= len; ball.vector[1] /= len;
-		ball.speed = this.game.ballSpeed / 60;
+private resetBallPosition(sideHit: 'left'|'right'|'top'|'bottom', ball: ballClass) {
+  ball.x = ball.y = 0;
+  ball.last_bounce = undefined;
 
-	}
+  const maxServeDeg = 45;
+  const rad = (Math.random() * 2 * maxServeDeg - maxServeDeg) * Math.PI / 180;
 
-	private  handleWallScore(sideHit: 'left'|'right'|'top'|'bottom', ball: ballClass) {
+  switch (sideHit) {
+    case 'left':   ball.vector = [  Math.cos(rad),  Math.sin(rad)]; break; // vers +X
+    case 'right':  ball.vector = [ -Math.cos(rad),  Math.sin(rad)]; break;
+    case 'top':    ball.vector = [  Math.sin(rad), -Math.cos(rad)]; break;
+    case 'bottom': ball.vector = [  Math.sin(rad),  Math.cos(rad)]; break;
+  }
 
+  const l = Math.hypot(ball.vector[0], ball.vector[1]);
+  ball.vector[0] /= l; ball.vector[1] /= l;
+
+  ball.speed = this.baseSpeed;
+}
+
+private  handleWallScore(sideHit: 'left'|'right'|'top'|'bottom', ball: ballClass) {
 		if(ball.last_bounce){
 			const scorerID = ball.last_bounce.paddleInterface.userID;
 			const scorer = this.players.find(p=> p.userID === scorerID);

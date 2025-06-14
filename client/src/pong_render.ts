@@ -35,6 +35,8 @@ export class PongRenderer{
 	bottom: ''
 	};
 	private scoreTextBlocks: Partial<Record<'left' | 'right' | 'top' | 'bottom', GUI.TextBlock>> = {};
+  private inputState = { left: false, right: false };
+  private currentDir: 'left' | 'right' | 'stop' = 'stop';
 
 	constructor(
 	canvas: HTMLCanvasElement,
@@ -373,7 +375,28 @@ export class PongRenderer{
 	private startRenderLoop() {
 		this.engine.runRenderLoop(() => {
 		this.scene.render();
+		this.processInput();
 		});
+	}
+
+	private processInput() {
+	  // Determine raw direction
+	  let dir: 'left'|'right'|'stop' = 'stop';
+	  if (this.inputState.left)  dir = 'left';
+	  else if (this.inputState.right) dir = 'right';
+
+	  // Swap for left view
+	  if (this.playerSide === 'left' && dir !== 'stop') {
+	    dir = dir === 'left' ? 'right' : 'left';
+	  }
+
+	  if (dir !== 'stop') {
+	    this.sendMove(dir);
+	  } else if (this.currentDir !== 'stop') {
+	    this.sendMove('stop');
+	  }
+
+	  this.currentDir = dir;
 	}
 
 		public handleResize() {
@@ -384,27 +407,18 @@ export class PongRenderer{
 	}
 
 	private initInputListeners() {
-	  window.addEventListener('keydown', (e) => {
-	    // Determine raw direction from key
-	    let dir: 'left' | 'right' | null = null;
-	    if (e.key === 'ArrowLeft')  dir = 'left';
-	    else if (e.key === 'ArrowRight') dir = 'right';
-	    else return;
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft')  this.inputState.left  = true;
+      if (e.key === 'ArrowRight') this.inputState.right = true;
+      // Prevent default scroll with arrows
+      if (e.key.startsWith('Arrow')) e.preventDefault();
+    });
 
-	    // Swap for left-side player
-	    if (this.playerSide === 'left') {
-	      dir = dir === 'left' ? 'right' : 'left';
-	    }
-
-	    this.sendMove(dir);
-	  });
-
-	  window.addEventListener('keyup', (e) => {
-	    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-
-	    // “stop” is the same for both
-	    this.sendMove('stop');
-	  });
+    window.addEventListener('keyup', (e) => {
+      if (e.key === 'ArrowLeft')  this.inputState.left  = false;
+      if (e.key === 'ArrowRight') this.inputState.right = false;
+      // no preventDefault needed here
+    });
 	  window.addEventListener('keydown', (e)=>{
 		if(e.key === 'Escape' || e.key === 'Esc'){
 			if(state.playerInterface!.state === 'playing')
@@ -416,18 +430,16 @@ export class PongRenderer{
 	  });
 	}
 
-	private sendMove(direction:string){
-		if (
-			state.playerInterface?.gameID !== undefined &&
-			state.userId !== undefined
-		) {
-			state.typedSocket.send('playerMove', {
-			gameID: state.playerInterface.gameID,
-			userID: state.userId,
-			direction,
-			});
-		}
-	}
+  private sendMove(direction: 'left' | 'right' | 'stop') {
+    if (state.playerInterface?.gameID !== undefined && state.userId !== undefined) {
+      state.typedSocket.send('playerMove', {
+        gameID: state.playerInterface.gameID,
+        userID: state.userId,
+        direction,
+      });
+    }
+  }
+
 	private updateHUD(elapsed: number, scores: Record<'left' | 'right' | 'top' | 'bottom', number>) {
 		this.timeText.text = `${state.currentGameName}: ${elapsed.toFixed(1)}s`;
 

@@ -197,7 +197,6 @@ export async function handleLeaveGame(parsed: any, player: Interfaces.playerInte
 
 export async function handlePlayerMove(parsed: any, player: Interfaces.playerInterface) {
     const { direction, gameID } = parsed;
-    console.log(`${player.username} send direction in ${gameID}`);
     playerMove(gameID, player.userID, direction)
 }
 

@@ -78,7 +78,7 @@ export class PongRoom {
     }
 
     // Create ball
-    this.balls.push(new ballClass(0, 0, ballSize, game.ballSpeed / 120))
+    this.balls.push(new ballClass(0, 0, ballSize, game.ballSpeed / 125))
 
     // Start clock & loop
     this.clock = Date.now()

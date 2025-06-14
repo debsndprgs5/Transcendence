@@ -391,15 +391,15 @@ export class PongRenderer{
 	    // “stop” is the same for both
 	    this.sendMove('stop');
 	  });
-	  window.addEventListener('keydown', (e)=>{
-		if(e.key === 'Escape' || e.key === 'Esc'){
-			if(state.playerInterface!.state === 'playing')
-				state.typedSocket.send('leaveGame',{
-					userID:state.userId!,
-					gameID:state.playerInterface!.gameID,
-					isLegit:false});
-		}
-	  });
+	  // window.addEventListener('keydown', (e)=>{
+		// if(e.key === 'Escape' || e.key === 'Esc'){
+		// 	if(state.playerInterface!.state === 'playing')
+		// 		state.typedSocket.send('leaveGame',{
+		// 			userID:state.userId!,
+		// 			gameID:state.playerInterface!.gameID,
+		// 			isLegit:false});
+		// }
+	  // });
 	}
 
 	private sendMove(direction:string){

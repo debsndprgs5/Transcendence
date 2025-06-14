@@ -46,7 +46,7 @@ export class PongRoom {
 			this.WIDTH  = arenaWidth4p
 			this.HEIGHT = arenaLength4p
 		}
-		this.baseSpeed = game.ballSpeed / 120;
+		this.baseSpeed = game.ballSpeed / 240;
 
 		// Instantiate paddles & scores
 		for (const p of players) {
@@ -59,7 +59,7 @@ export class PongRoom {
 				y:        0,
 				width:    isH ? paddleWidth : paddleSize,
 				length:   isH ? paddleSize  : paddleWidth,
-				speed:    game.paddleSpeed /50,
+				speed:    game.paddleSpeed / 100,
 				type:     isH ? 'H' : 'V',
 			}
 			this.paddles.set(p.userID, new paddleClass(pi))
@@ -232,7 +232,7 @@ private bounce_player(ball: ballClass, paddle: paddleClass) {
   ball.vector[0] /= n; ball.vector[1] /= n;
 
   // accélère
-  ball.speed = Math.min(ball.speed * 1.1, this.baseSpeed * 3);
+  ball.speed = Math.min(ball.speed * 1.2, this.baseSpeed * 3);
 
   ball.last_bounce = paddle;
 }

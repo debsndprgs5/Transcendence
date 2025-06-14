@@ -276,10 +276,11 @@ export async function kickFromGameRoom(
       updatePlayerState(player, 'init');
       player.gameID = -1;
     }
-    const room = PongRoom.rooms.get(gameID);
-    if (room) room.stop();
+
     // Remove the game room and stop game loop
     await GameManagement.deleteGameRoom(gameID);
+    const room = PongRoom.rooms.get(gameID);
+    if (room) room.stop();
     return;
   }
 

@@ -192,7 +192,7 @@ export async function handleLeaveGame(parsed: any, player: Interfaces.playerInte
 	else
   		await Helpers.kickFromGameRoom(gameID, player, `${player.username} left`);
 
-  console.log(`Game room ${gameID} deleted after player ${player.userID} left.`);
+  // console.log(`Game room ${gameID} deleted after player ${player.userID} left.`);
 }
 
 export async function handlePlayerMove(parsed: any, player: Interfaces.playerInterface) {

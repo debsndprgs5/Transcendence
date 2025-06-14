@@ -27,6 +27,7 @@ export class PongRoom {
 	private readonly WIDTH: number
 	private readonly HEIGHT: number
 	private readonly clock: number
+	private readonly baseSpeed: number
 	private loop?: NodeJS.Timeout
 
 	constructor(
@@ -45,6 +46,7 @@ export class PongRoom {
 			this.WIDTH  = arenaWidth4p
 			this.HEIGHT = arenaLength4p
 		}
+		this.baseSpeed = game.ballSpeed / 120;
 
 		// Instantiate paddles & scores
 		for (const p of players) {
@@ -65,23 +67,27 @@ export class PongRoom {
 		}
 
 		// Position paddles just inside walls
-		const halfW = pad.width  / 2;
-		const halfL = pad.length / 2;
-		switch (p.playerSide) {
-		  case 'left':   pad.x = -this.WIDTH/2 + wallTh + halfW; pad.y = 0; break;
-		  case 'right':  pad.x =  this.WIDTH/2 - wallTh - halfW; pad.y = 0; break;
-		  case 'top':    pad.x = 0; pad.y =  this.HEIGHT/2 - wallTh - halfL; break;
-		  case 'bottom': pad.x = 0; pad.y = -this.HEIGHT/2 + wallTh + halfL; break;
-		}
+    const wallTh = 0.25;
+    for (const p of players) {
+      const pad = this.paddles.get(p.userID)!.paddleInterface;
+      const halfW = pad.width  / 2;
+      const halfL = pad.length / 2;
+      switch (p.playerSide) {
+        case 'left':   pad.x = -this.WIDTH/2 + wallTh + halfW; pad.y = 0; break;
+        case 'right':  pad.x =  this.WIDTH/2 - wallTh - halfW; pad.y = 0; break;
+        case 'top':    pad.x = 0; pad.y =  this.HEIGHT/2 - wallTh - halfL; break;
+        case 'bottom': pad.x = 0; pad.y = -this.HEIGHT/2 + wallTh + halfL; break;
+      }
+    }
 
 
 		// Create ball
-		this.balls.push(new ballClass(0, 0, ballSize, game.ballSpeed / 120))
+		this.balls.push(new ballClass(0, 0, ballSize, this.baseSpeed));
 
 		// Start clock & loop
-		this.clock = Date.now()
-		PongRoom.rooms.set(this.gameID, this)
-		this.loop = setInterval(() => this.frame(), 1000/60)
+		this.clock = Date.now();
+		PongRoom.rooms.set(this.gameID, this);
+		this.loop = setInterval(() => this.frame(), 1000/60);
 	}
 
 	/** Handle paddle movement input */
@@ -174,10 +180,17 @@ private bounceArena(ball: ballClass) {
 
 
 	/** Move ball */
-	private ballsMove(b: ballClass) {
-		b.x += b.vector[0] * b.speed
-		b.y += b.vector[1] * b.speed
-	}
+private ballsMove(b: ballClass) {
+	  let remaining = b.speed;
+	  const maxStep = b.radius;        // distance max sans rater un paddle
+	  const n = Math.ceil(remaining / maxStep);
+	  const step = remaining / n;
+	  for (let i = 0; i < n; i++) {
+	    b.x += b.vector[0] * step;
+	    b.y += b.vector[1] * step;
+	  }
+}
+
 
 	/** Cap angle and invert on paddle hit */
 	private bounce_player(ball: ballClass, paddle: paddleClass) {
@@ -215,6 +228,8 @@ private bounceArena(ball: ballClass) {
 			// English comment: new vector components
 			ball.vector[0] = -dirX * Math.cos(bounceAngle);
 			ball.vector[1] = Math.sin(bounceAngle);
+			ball.x += ball.vector[0] * 0.01;
+			ball.y += ball.vector[1] * 0.01;
 
 		} else {
 			// Horizontal paddle (top/bottom) → bounce vertical
@@ -228,7 +243,10 @@ private bounceArena(ball: ballClass) {
 
 			ball.vector[0] = Math.sin(bounceAngle);
 			ball.vector[1] = -dirY * Math.cos(bounceAngle);
+			ball.x += ball.vector[0] * 0.01;
+			ball.y += ball.vector[1] * 0.01;
 		}
+		ball.speed = Math.min(ball.speed * 1.05, this.baseSpeed * 2.5); // x2.5 max
 
 		// 3) Normalize to unit length
 		const norm = Math.hypot(ball.vector[0], ball.vector[1]);

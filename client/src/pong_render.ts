@@ -152,9 +152,16 @@ export class PongRenderer{
 
 			//LEFT AVATAR
 			const leftUsername = this.playersInfo.left;
-			const leftAvatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(leftUsername)}&background=6d28d9&color=fff&rounded=true`;
-
-			const leftAvatarResponse = await fetch(leftAvatarUrl);
+			let leftAvatarurl: string;
+			try {
+				const json = await apiFetch(
+					`/users/${encodeURIComponent(leftUsername)}/avatar`
+				) as { avatar_url?: string };
+				leftAvatarurl = json.avatar_url ?? "";
+			} catch {
+				leftAvatarurl = `https://ui-avatars.com/api/?name=${encodeURIComponent(leftUsername)}&background=6d28d9&color=fff&rounded=true`;
+			}
+			const leftAvatarResponse = await fetch(leftAvatarurl);
 			const leftBlob = await leftAvatarResponse.blob();
 			const leftBlobUrl = URL.createObjectURL(leftBlob);
 
@@ -169,9 +176,16 @@ export class PongRenderer{
 			
 			//RIGTH AVATAR
 			const rightUsername = this.playersInfo.right;
-			const rightAvatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(rightUsername)}&background=6d28d9&color=fff&rounded=true`;
-
-			const rightAvatarResponse = await fetch(rightAvatarUrl);
+			let rightAvatarurl: string;
+			try {
+				const json = await apiFetch(
+					`/users/${encodeURIComponent(rightUsername)}/avatar`
+				) as { avatar_url?: string };
+				rightAvatarurl = json.avatar_url ?? "";
+			} catch {
+				rightAvatarurl = `https://ui-avatars.com/api/?name=${encodeURIComponent(rightUsername)}&background=6d28d9&color=fff&rounded=true`;
+			}
+			const rightAvatarResponse = await fetch(rightAvatarurl);
 			const rightBlob = await rightAvatarResponse.blob();
 			const rightBlobUrl = URL.createObjectURL(rightBlob);
 
@@ -391,15 +405,15 @@ export class PongRenderer{
 	    // “stop” is the same for both
 	    this.sendMove('stop');
 	  });
-	  // window.addEventListener('keydown', (e)=>{
-		// if(e.key === 'Escape' || e.key === 'Esc'){
-		// 	if(state.playerInterface!.state === 'playing')
-		// 		state.typedSocket.send('leaveGame',{
-		// 			userID:state.userId!,
-		// 			gameID:state.playerInterface!.gameID,
-		// 			isLegit:false});
-		// }
-	  // });
+	  window.addEventListener('keydown', (e)=>{
+		if(e.key === 'Escape' || e.key === 'Esc'){
+			if(state.playerInterface!.state === 'playing')
+				state.typedSocket.send('leaveGame',{
+					userID:state.userId!,
+					gameID:state.playerInterface!.gameID,
+					isLegit:false});
+		}
+	  });
 	}
 
 	private sendMove(direction:string){

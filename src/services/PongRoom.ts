@@ -305,7 +305,7 @@ private  handleWallScore(sideHit: 'left'|'right'|'top'|'bottom', ball: ballClass
 		}
 		if (this.game.winCondition==='score') {
 			for (const sc of this.scoreMap.values()) {
-				console.log(`WINCOND: ${sc}`);
+				//console.log(`WINCOND: ${sc}`);
 				if (sc >= this.game.limit) { this.endMatch(); return true }
 			}
 		}

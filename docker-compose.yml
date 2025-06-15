@@ -23,13 +23,31 @@ services:
   waf:
     build:
       context: ./src/WAF
-      args:
-        - APP_TARGET_PORT_BUILD_ARG=${PORT}
     ports:
       - "443:443"
       - "80:80"
     depends_on:
       - app
+    environment:
+      - APP_TARGET_PORT=${PORT}
+    networks:
+      - transcendence_net
+
+  vault:
+    image: hashicorp/vault:latest
+    container_name: vault
+    ports:
+      - "8200:8200"
+    restart: always
+    volumes:
+      - ./src/WAF/vault/data:/vault/file
+      - ./src/WAF/vault/config:/vault/config
+     # - ./src/WAF/tls:/vault/config/tls
+      - ./src/WAF/vault/policies:/vault/policies
+    cap_add:
+      - IPC_LOCK
+    entrypoint: vault
+    command: server -config=/vault/config/vault.hcl
     networks:
       - transcendence_net
 

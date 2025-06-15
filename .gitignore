@@ -1,3 +1,7 @@
 ./src/db/ourdatabse.db
 Makefile
 en.subject.pdf
+
+# Vault data (sensitive)
+src/WAF/vault/data/
+**/vault/data/

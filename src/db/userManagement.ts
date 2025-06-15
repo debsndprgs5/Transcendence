@@ -81,6 +81,8 @@ export const getUserByName = (username: string): Promise<user | null> =>
   get<user>('SELECT * FROM users WHERE username = ?', [username])
     .then(row => row ?? null);
 
+export const getAvatarUrl = (username: string) =>
+  get<user>('SELECT avatar_url FROM users WHERE username = ?', [username])
 
 export const getUserByRand = (username: string): Promise<user | null> =>
   get<user>('SELECT * FROM users WHERE rand_id = ?', [username])

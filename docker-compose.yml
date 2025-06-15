@@ -12,6 +12,7 @@ services:
       - transcendence_volume:/app/runtime
       - db_volume:/app/db
       - avatars_volume:/app/client/avatars
+      - shared_volume:/app/client/shared
     restart: always
     env_file:
       - .env
@@ -44,4 +45,11 @@ volumes:
       type: none
       device: ./client/avatars
       o: bind
+  shared_volume:
+   name: shared_volume
+   driver: local
+   driver_opts:
+    type: none
+    device: ./shared
+    o: bind
 

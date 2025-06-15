@@ -134,7 +134,8 @@ async function bootstrap() {
       port, 
       host: '0.0.0.0'
     });
-    console.log(`🚀 Server listening on https://0.0.0.0:${port}`);
+
+    console.log('🚀 Server listening on https://0.0.0.0');
   } catch (err) {
     console.error('Error starting server:', err);
     process.exit(1);

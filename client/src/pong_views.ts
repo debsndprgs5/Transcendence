@@ -193,7 +193,7 @@ export function drawJoinGameView(
 	// Clear the entire canvas
 	ctx.clearRect(0, 0, width, height);
 
-	// Background gradient (left → right: #2C5364 → #203A43 → #0F2027)
+	// Background gradient (left → right)
 	const grad = ctx.createLinearGradient(0, 0, width, 0);
 	grad.addColorStop(0.0, '#2C5364');
 	grad.addColorStop(0.5, '#203A43');
@@ -201,7 +201,7 @@ export function drawJoinGameView(
 	ctx.fillStyle = grad;
 	ctx.fillRect(0, 0, width, height);
 
-	// Title: "Join Game"
+	// Title
 	ctx.fillStyle   = 'white';
 	ctx.font        = `${Math.floor(height / 15)}px Orbitron`;
 	ctx.textAlign   = 'center';
@@ -217,54 +217,43 @@ export function drawJoinGameView(
 
 	ctx.fillText('Available Rooms:', listX, currentY);
 
-	// Prepare an array to store clickable areas for each room
-	const joinButtons: { x: number; y: number; w: number; h: number; action: string }[] = [];
+	// Prepare clickable areas
+	const joinButtons: PongButton[] = [];
 
-	// Draw each room as a bullet + text, and register a button area
+	// Draw room entries
 	rooms.forEach((room, index) => {
 		const textY = currentY + lineHeight * (index + 1);
-		// draw the room name with a bullet
 		ctx.fillText(`• ${room.roomName}`, listX, textY);
 
-		// define a clickable area around the text
-		// We'll assume each line occupies roughly (width * 0.8) in width and lineHeight in height
 		const btnX = listX;
-		const btnY = textY - lineHeight * 0.75; // adjust so that vertical click is centered on the text
+		const btnY = textY - lineHeight * 0.75;
 		const btnW = width * 0.8;
 		const btnH = lineHeight;
-		joinButtons.push({
-			x: btnX,
-			y: btnY,
-			w: btnW,
-			h: btnH,
-			action: `join:${room.roomID}`
-		});
+		joinButtons.push({ x: btnX, y: btnY, w: btnW, h: btnH, action: `join:${room.roomID}` });
 	});
 
-	// Draw a "Back to Menu" button at the bottom
-	const btnW = width  * 0.3;
-	const btnH = height * 0.08;
-	const btnX = width  / 2 - btnW / 2;
-	const btnY = height * 0.85;
-	ctx.fillStyle = '#f87171';
-	ctx.fillRect(btnX, btnY, btnW, btnH);
+	// Draw "Join Random" button on the right
+	const btnW = 180;
+	const btnH = 50;
+	const btnX = width - btnW - 40;
+	const btnY = height - btnH - 40;
 
-	ctx.fillStyle  = 'white';
-	ctx.font       = `${Math.floor(height / 22)}px Orbitron`;
-	ctx.textAlign  = 'center';
-	ctx.fillText('Back to Menu', width / 2, btnY + btnH * 0.65);
+	const btnGrad = ctx.createLinearGradient(btnX, btnY, btnX + btnW, btnY + btnH);
+	btnGrad.addColorStop(0, '#f97316');
+	btnGrad.addColorStop(1, '#fb923c');
+	ctx.fillStyle = btnGrad;
+	(ctx as any).roundRect(btnX, btnY, btnW, btnH, 8);
+	ctx.fill();
 
-	// Register the "Back" button
-	joinButtons.push({
-		x: btnX,
-		y: btnY,
-		w: btnW,
-		h: btnH,
-		action: 'back'
-	});
+	ctx.fillStyle = 'white';
+	ctx.textAlign = 'center';
+	ctx.textBaseline = 'middle';
+	ctx.font = `${Math.floor(btnH * 0.5)}px Orbitron`;
+	ctx.fillText('Join Random', btnX + btnW / 2, btnY + btnH / 2);
+	joinButtons.push({ x: btnX, y: btnY, w: btnW, h: btnH, action: 'joinRandom' });
 
-	// Store the buttons on the canvas for click handling
-	(canvas as any)._joinGameButtons = joinButtons;
+	// Attach to canvas for click handling
+	canvas._joinGameButtons = joinButtons;
 }
 
 

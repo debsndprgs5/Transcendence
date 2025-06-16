@@ -254,7 +254,6 @@ async function showEndMatchOverlay(
 	});
 }
 
-// ta fonction async pour charger correctement l’avatar
 export async function addAvatarPanel(
   parent: GUI.Rectangle,
   data: { username: string; label: string }
@@ -264,30 +263,23 @@ export async function addAvatarPanel(
 	stack.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
 	stack.paddingTop          = "20px";
 	parent.addControl(stack);
+
 	let url: string;
 	try {
-		const json = await apiFetch(
-			`/users/${encodeURIComponent(data.username)}/avatar`
-		) as { avatar_url?: string };
+		const json = await apiFetch(`/users/${encodeURIComponent(data.username)}/avatar`) as { avatar_url?: string };
 		url = json.avatar_url ?? "";
 	} catch {
 		url = "";
 	}
-	if (!url)
+
+	if (!url) {
 		url = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.username)}&background=6d28d9&color=fff&rounded=true`;
-	try {
-		const res  = await fetch(url);
-		const blob = await res.blob();
-		const blobUrl = URL.createObjectURL(blob);
-		const avatar = new GUI.Image("avatar_" + data.username, blobUrl);
-	delete (avatar as any).source?.crossOrigin;
-	avatar.source = url;
-		avatar.width  = "60px";
-		avatar.height = "60px";
-		stack.addControl(avatar);
-	} catch (e) {
-		console.error("Impossible de charger l’avatar", e);
 	}
+
+	const avatar = new GUI.Image("avatar_" + data.username, url);
+	avatar.width  = "60px";
+	avatar.height = "60px";
+	stack.addControl(avatar);
 
 	const label = new GUI.TextBlock();
 	label.text       = data.label;
@@ -296,7 +288,6 @@ export async function addAvatarPanel(
 	label.paddingTop = "6px";
 	stack.addControl(label);
 }
-
 
 
 export async function handleStartGame(data: Interfaces.SocketMessageMap['startGame']) {

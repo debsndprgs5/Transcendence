@@ -232,7 +232,7 @@ export async function handleDisconnect(player: Interfaces.playerInterface) {
     clearTimeout(player.disconnectTimeOut);
   }
 
-  // Set a new timeout to kick player after 15s
+  // Set a new timeout to kick player after 15s 
   player.disconnectTimeOut = setTimeout(async () => {
     const stillPlayer = getPlayerByUserID(player.userID);
     if (stillPlayer && stillPlayer.hasDisconnected) {

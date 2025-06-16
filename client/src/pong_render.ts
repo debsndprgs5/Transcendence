@@ -50,7 +50,7 @@ export class PongRenderer{
 		this.playerSide = playerSide;
 		this.playersInfo=usernames;
 
-		this.engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: false, stencil: true });
+		this.engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
 		this.scene = new BABYLON.Scene(this.engine);
 		this.setupGUI();
 		this.setupCamera();

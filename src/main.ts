@@ -19,6 +19,12 @@ dotenv.config({
   path: path.resolve(process.cwd(), '.env'),
 });
 
+function extractHostFromSessionManager(session: string | undefined): string | null {
+  if (!session) return null;
+  const match = session.match(/(c\d+r\d+p\d+)/);
+  return match ? `${match[1]}` : null;
+}
+
 async function bootstrap() {
   const keyPath = process.env.CERT_KEY_PATH || '/app/cert/key.pem';
   const certPath = process.env.CERT_CERT_PATH || '/app/cert/cert.pem';
@@ -135,7 +141,8 @@ async function bootstrap() {
       host: '0.0.0.0'
     });
 
-    console.log('🚀 Server listening on https://0.0.0.0');
+    const dynamicHost = extractHostFromSessionManager(process.env.SESSION_MANAGER) || '0.0.0.0';
+    console.log(`🚀 Server listening on https://${dynamicHost}`);
   } catch (err) {
     console.error('Error starting server:', err);
     process.exit(1);

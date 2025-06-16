@@ -25,6 +25,6 @@ COPY conf/app_proxy.conf.template /etc/nginx/conf.d/app_proxy.conf.template
 RUN sed "s|\${APP_TARGET_PORT}|${APP_TARGET_PORT_BUILD_ARG}|g" /etc/nginx/conf.d/app_proxy.conf.template > /etc/nginx/conf.d/default.conf
 # RUN rm /etc/nginx/conf.d/app_proxy.conf.template
 
-EXPOSE 443 80
+EXPOSE 1400 80
 
 CMD ["nginx", "-g", "daemon off;"]

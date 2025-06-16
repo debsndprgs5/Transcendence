@@ -161,8 +161,10 @@ export class PongRenderer{
 				) as { avatar_url?: string };
 				leftAvatarurl = json.avatar_url ?? "";
 			} catch {
-				leftAvatarurl = `https://ui-avatars.com/api/?name=${encodeURIComponent(leftUsername)}&background=6d28d9&color=fff&rounded=true`;
+				leftAvatarurl = "";
 			}
+			if (!leftAvatarurl)
+				leftAvatarurl = `https://ui-avatars.com/api/?name=${encodeURIComponent(leftUsername)}&background=6d28d9&color=fff&rounded=true`;
 			const leftAvatarResponse = await fetch(leftAvatarurl);
 			const leftBlob = await leftAvatarResponse.blob();
 			const leftBlobUrl = URL.createObjectURL(leftBlob);
@@ -185,8 +187,10 @@ export class PongRenderer{
 				) as { avatar_url?: string };
 				rightAvatarurl = json.avatar_url ?? "";
 			} catch {
-				rightAvatarurl = `https://ui-avatars.com/api/?name=${encodeURIComponent(rightUsername)}&background=6d28d9&color=fff&rounded=true`;
+				rightAvatarurl = "";
 			}
+			if (!rightAvatarurl)
+				rightAvatarurl = `https://ui-avatars.com/api/?name=${encodeURIComponent(rightUsername)}&background=6d28d9&color=fff&rounded=true`;
 			const rightAvatarResponse = await fetch(rightAvatarurl);
 			const rightBlob = await rightAvatarResponse.blob();
 			const rightBlobUrl = URL.createObjectURL(rightBlob);

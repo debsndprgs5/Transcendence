@@ -73,6 +73,7 @@ COPY --from=builder-back /app/client ./client
 COPY src/db ./db
 COPY shared ./src/shared
 
-# EXPOSE ${PORT}      #a decommenter si vous voulez tester sans le WAF
+# a  decommenter si vous voulez tester sans le WAF
+#EXPOSE ${PORT}      
 
 CMD ["node", "dist/main.js"]

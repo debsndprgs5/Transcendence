@@ -16,35 +16,45 @@ export function render(html: string): void {
  * Returns the HTML for the home view, depending on authentication.
  */
 export function HomeView(): string {
-  if (!isAuthenticated()) {
-    return `
-      <section class="bg-white rounded-lg shadow-lg overflow-hidden md:flex">
-        <div class="p-8 md:w-1/2">
-          <h1 class="text-4xl font-bold text-indigo-600 mb-4">
-            Welcome in Transcendence
-          </h1>
-          <p class="text-gray-700 mb-6">
-            Play pong with your friends, chat with them and have fun !
-          </p>
-          <div class="space-x-4">
-            <a href="/register" data-link
-               class="inline-block px-6 py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition">
-              Register now
-            </a>
-            <a href="/login" data-link
-               class="inline-block px-6 py-3 border border-indigo-600 text-indigo-600 font-medium rounded-lg hover:bg-indigo-50 transition">
-              Login
-            </a>
-          </div>
-        </div>
-        <div class="md:w-1/2 bg-indigo-50 flex items-center justify-center">
-          <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExMGxybmhtZmdwNTU0YjVqOThnMXdmaGlic3QxdXFod2N0aDZnNTRpNCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o72FkiKGMGauydfyg/giphy.gif"
-               alt="not implemented yet"
-               class="w-3/4 h-auto">
-        </div>
-      </section>
-    `;
-  }
+    if (!isAuthenticated()) {
+      return `
+        <main class="min-h-screen flex items-center justify-center px-4 py-8" style="background: linear-gradient(
+          90deg,
+          rgba(164,116,81,1)   0%,
+          rgba(156,152,129,1) 16.667%,
+          rgba(115,160,157,1) 33.333%,
+          rgba(59,137,154,1)  50.000%,
+          rgba(9,91,121,1)    66.667%,
+          rgba(0,40,71,1)     83.333%,
+          rgba(0,1,22,1)     100.000%
+        );">
+          <section class="w-full max-w-6xl h-[80vh] mt-[-5vh] bg-white/5 rounded-2xl shadow-xl overflow-hidden md:flex backdrop-blur-md border border-white/10">
+            <div class="p-10 md:w-1/2 text-white flex flex-col justify-center">
+              <h1 class="text-4xl font-bold mb-4 text-indigo-100">Welcome to Transcendence</h1>
+              <p class="text-lg text-indigo-200 mb-8 leading-relaxed">
+                Play Pong with your friends, chat live, climb the leaderboard, and become a legend.
+              </p>
+              <div class="flex gap-4">
+                <a href="/register" data-link
+                  class="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition shadow">
+                  Register now
+                </a>
+                <a href="/login" data-link
+                  class="px-6 py-3 border border-indigo-400 text-indigo-200 font-semibold rounded-lg hover:bg-indigo-100 hover:text-indigo-900 transition shadow">
+                  Login
+                </a>
+              </div>
+            </div>
+            <div class="md:w-1/2 flex items-center justify-center bg-white/10">
+              <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExMGxybmhtZmdwNTU0YjVqOThnMXdmaGlic3QxdXFod2N0aDZnNTRpNCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o72FkiKGMGauydfyg/giphy.gif"
+                   alt="pong animation"
+                   class="w-4/5 h-auto rounded-lg shadow-xl max-h-[65vh] object-contain">
+            </div>
+          </section>
+        </main>
+      `;
+    }
+
 
   const userName = localStorage.getItem('username') || '';
   return `

@@ -300,11 +300,10 @@ export async function handleStartGame(data: Interfaces.SocketMessageMap['startGa
 	if (!state.playerInterface || !state.playerInterface.socket) {
 		throw new Error('playerInterface is not defined');
 	}
-
+	state.canvasViewState = 'playingGame';
 	const count = Object.keys(data.usernames).length
 	pongState.pongRenderer = new PongRenderer(canvas, state.typedSocket,
 		count, state.playerInterface.playerSide!, data.usernames);
-	state.canvasViewState = 'playingGame';
 	state.playerInterface.gameID = data.gameID;
 	localStorage.setItem('pong_view', 'playingGame');
 	showPongMenu();
@@ -395,7 +394,6 @@ export async function handleKicked(data: Interfaces.SocketMessageMap['kicked']) 
 	localStorage.setItem('pong_view', 'mainMenu');
 	localStorage.setItem('pong_view', 'mainMenu');
 	showPongMenu();
-	// TODO: Update the UI to return the user to the main menu or lobby view
 }
 
 export async function handleReconnection(data: Interfaces.SocketMessageMap['reconnected']) {
@@ -413,7 +411,8 @@ export async function handleReconnection(data: Interfaces.SocketMessageMap['reco
 	
 	// TODO: Call a method to ensure rendering loop is resumed if needed
 	// e.g., pongState.pongRenderer.resume(); — implement if renderer supports pause/resume
-
+	const scene = pongState.pongRenderer.getScene();
+	scene.render();
 	return;
 	}
 
@@ -427,10 +426,9 @@ export async function handleReconnection(data: Interfaces.SocketMessageMap['reco
 		type: 'confirm',
 		onConfirm: () => {
 		// Re-request game data or join room again
-		state.playerInterface?.socket.send(JSON.stringify({
-			type: 'resumeGame',
+		state.playerInterface?.typedSocket.send('resumeGame',{
 			gameID: data.gameID,
-		}));
+		});
 		},
 	});
 

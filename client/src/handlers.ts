@@ -527,15 +527,6 @@ export async function setupHomeHandlers(): Promise<void> {
 
 	state.loadRooms = loadRooms;
 
-	// Call loadRooms immediately and set up WebSocket
-	if (state.authToken) {
-		loadRooms();
-		if (!state.socket || state.socket.readyState === WebSocket.CLOSED)
-			initWebSocket();
-		if (!state.playerInterface?.socket || state.playerInterface.socket.readyState === WebSocket.CLOSED)
-			await initGameSocket();
-	}
-
 	// General chat button
 	const generalChatBtn = document.getElementById('generalChatBtn');
 	if (generalChatBtn) {
@@ -1159,10 +1150,6 @@ export async function router(): Promise<void> {
 					const user = await apiFetch('/api/users/me', { headers: { Authorization: `Bearer ${state.authToken}` } });
 					const friends = await apiFetch('/api/friends', { headers: { Authorization: `Bearer ${state.authToken}` } });
 					render(AccountView(user, friends));
-					if (!state.socket || state.socket.readyState === WebSocket.CLOSED)
-						initWebSocket();
-					if (!state.playerInterface?.socket || state.playerInterface?.socket.readyState === WebSocket.CLOSED)
-						await initGameSocket();
 					setupAccountHandlers(user, friends);
 				} catch (e: any) {
 					showNotification({ message: 'Error during account loading: ' + e.message, type: 'error', duration: 5000 });

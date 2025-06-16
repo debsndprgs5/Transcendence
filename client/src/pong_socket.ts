@@ -47,9 +47,9 @@ export async function initGameSocket() {
 		}
 	};
 
-	gameSocket.onclose = () => {
+	gameSocket.onclose = (ev) => {
 		state.playerInterface!.typedSocket.send('disconnected',{})
-		console.warn('[GAME] WebSocket closed');
+		console.warn('[GAME] WebSocket closed : ', ev.code, ev.reason);
 	};
 
 	gameSocket.onerror = (err) => {

@@ -27,8 +27,8 @@ services:
       args:
         - APP_TARGET_PORT_BUILD_ARG=${PORT}
     ports:
-      - "443:443"
-      - "80:80"
+      - "1443:1443"
+      - "1880:1880"
     depends_on:
       - app
     networks:

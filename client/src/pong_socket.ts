@@ -1,5 +1,5 @@
 import { showNotification, showUserActionsBubble } from './notifications';
-import { isAuthenticated, apiFetch, initWebSocket, state } from './api';
+import { isAuthenticated, apiFetch, state } from './api';
 import { PongRenderer } from './pong_render';
 import * as Interfaces from './shared/gameTypes';
 import {createTypedEventSocket} from './shared/gameEventWrapper';

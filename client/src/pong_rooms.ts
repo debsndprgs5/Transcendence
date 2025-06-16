@@ -1,4 +1,4 @@
-import { isAuthenticated, apiFetch, initWebSocket, state } from './api';
+import { isAuthenticated, apiFetch, state } from './api';
 import { drawCreateGameView, 
 		drawWaitingGameView,
 		drawJoinGameView,

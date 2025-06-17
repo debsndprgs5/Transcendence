@@ -339,7 +339,11 @@ export async function setupHomeHandlers(): Promise<void> {
 		}
 	}
 	if (savedView === 'playingGame') {
-		state.canvasViewState = 'playingGame';
+		console.log(`RESTORING VIEWS for ${state.playerInterface!.username} in game ${state.playerInterface!.gameID}`)
+		if(state.playerInterface!.gameID)
+			state.canvasViewState = 'playingGame';
+		else
+			state.canvasViewState = 'mainMenu';
 	}
 	const savedTView = localStorage.getItem('tournament_view');
 	if (savedTView === 'waitingTournament') {

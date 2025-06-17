@@ -110,6 +110,7 @@ export class PongRoom {
 	}
 	/* Pause the loop */
 	pause(userID:number){
+		console.log(`PAUSE INITIALIAZED`)
 		//Game is pause so just add new paused players
 		if(this.pauseState.isPaused){
 			this.pauseState.pausedPlayers.add(userID);
@@ -124,6 +125,7 @@ export class PongRoom {
 	}
 	/*Resume the loop*/ 
 	resume(userID:number){
+		console.log(`RESUME CALLED YA KHALED `);
 		this.pauseState.pausedPlayers.delete(userID);
 		if(this.pauseState.pausedPlayers.size === 0){
 			this.pauseState.isPaused = false;
@@ -133,7 +135,10 @@ export class PongRoom {
 //PRIVATE METHODS 
 
 private frame() {
-	if (this.pauseState.isPaused) return; // Skip frame if paused
+	if (this.pauseState.isPaused) {
+		this.broadcast()
+		return; // Skip frame if paused
+	}
 	for (const ball of this.balls) {
 			this.ballsMove(ball);
 			for (const [, pad] of this.paddles) {

@@ -34,7 +34,7 @@ export class PongRenderer{
 		bottom: ''
 	};
 
-	private isPaused: boolean = false;
+	private isPaused: boolean;
 	private pauseUI!: {
 		container: GUI.Rectangle;
 		icon: GUI.TextBlock;
@@ -55,6 +55,7 @@ export class PongRenderer{
 		this.playerCount = playerCount;
 		this.playerSide = playerSide;
 		this.playersInfo=usernames;
+		this.isPaused = false;
 
 		this.engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: false, stencil: true });
 		this.scene = new BABYLON.Scene(this.engine);

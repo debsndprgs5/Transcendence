@@ -183,77 +183,101 @@ export function drawWaitingGameView(
 }
 
 export function drawJoinGameView(
-	canvas: HTMLCanvasElement,
-	ctx: CanvasRenderingContext2D,
-	rooms: { roomID: number; roomName: string }[]
+  canvas: HTMLCanvasElement,
+  ctx: CanvasRenderingContext2D,
+  rooms: { roomID: number; roomName: string }[]
 ): void {
-	const width  = canvas.width;
-	const height = canvas.height;
+  const width  = canvas.width;
+  const height = canvas.height;
 
-	// Clear the entire canvas
-	ctx.clearRect(0, 0, width, height);
+  // Clear
+  ctx.clearRect(0, 0, width, height);
 
-	// Background gradient (left → right)
-	const grad = ctx.createLinearGradient(0, 0, width, 0);
-	grad.addColorStop(0.0, '#2C5364');
-	grad.addColorStop(0.5, '#203A43');
-	grad.addColorStop(1.0, '#0F2027');
-	ctx.fillStyle = grad;
-	ctx.fillRect(0, 0, width, height);
+  // Background gradient
+  const grad = ctx.createLinearGradient(0, 0, width, 0);
+  grad.addColorStop(0.0, '#2C5364');
+  grad.addColorStop(0.5, '#203A43');
+  grad.addColorStop(1.0, '#0F2027');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, width, height);
 
-	// Title
-	ctx.fillStyle   = 'white';
-	ctx.font        = `${Math.floor(height / 15)}px Orbitron`;
-	ctx.textAlign   = 'center';
-	ctx.fillText('Join Game', width / 2, height * 0.12);
+  // Title
+  ctx.fillStyle   = 'white';
+  ctx.font        = `${Math.floor(height / 15)}px Orbitron`;
+  ctx.textAlign   = 'center';
+  ctx.fillText('Join Game', width / 2, height * 0.12);
 
-	// Label for rooms list
-	ctx.fillStyle   = 'white';
-	ctx.font        = `${Math.floor(height / 28)}px Orbitron`;
-	ctx.textAlign   = 'left';
-	const listX     = width * 0.1;
-	let currentY    = height * 0.25;
-	const lineHeight = height * 0.06;
+  // Label rooms
+  ctx.fillStyle   = 'white';
+  ctx.font        = `${Math.floor(height / 28)}px Orbitron`;
+  ctx.textAlign   = 'left';
+  const listX     = width * 0.1;
+  let currentY    = height * 0.25;
+  const lineHeight = height * 0.06;
 
-	ctx.fillText('Available Rooms:', listX, currentY);
+  ctx.fillText('Available Rooms:', listX, currentY);
 
-	// Prepare clickable areas
-	const joinButtons: PongButton[] = [];
+  // Prepare clickable areas
+  const joinButtons: PongButton[] = [];
 
-	// Draw room entries
-	rooms.forEach((room, index) => {
-		const textY = currentY + lineHeight * (index + 1);
-		ctx.fillText(`• ${room.roomName}`, listX, textY);
+  // Draw each room
+  rooms.forEach((room, index) => {
+    const textY = currentY + lineHeight * (index + 1);
+    ctx.fillText(`• ${room.roomName}`, listX, textY);
 
-		const btnX = listX;
-		const btnY = textY - lineHeight * 0.75;
-		const btnW = width * 0.8;
-		const btnH = lineHeight;
-		joinButtons.push({ x: btnX, y: btnY, w: btnW, h: btnH, action: `join:${room.roomID}` });
-	});
+    const btnX = listX;
+    const btnY = textY - lineHeight * 0.75;
+    const btnW = width * 0.8;
+    const btnH = lineHeight;
+    joinButtons.push({ x: btnX, y: btnY, w: btnW, h: btnH, action: `join:${room.roomID}` });
+  });
 
-	// Draw "Join Random" button on the right
-	const btnW = 180;
-	const btnH = 50;
-	const btnX = width - btnW - 40;
-	const btnY = height - btnH - 40;
+  // Join Random
+  const randW = 140;
+  const randH = 40;
+  const randX = width - randW - 40;
+  const randY = height * 0.15;
 
-	const btnGrad = ctx.createLinearGradient(btnX, btnY, btnX + btnW, btnY + btnH);
-	btnGrad.addColorStop(0, '#f97316');
-	btnGrad.addColorStop(1, '#fb923c');
-	ctx.fillStyle = btnGrad;
-	(ctx as any).roundRect(btnX, btnY, btnW, btnH, 8);
-	ctx.fill();
+  // Random join gradient
+  const randGrad = ctx.createLinearGradient(randX, randY, randX + randW, randY + randH);
+  randGrad.addColorStop(0, '#f97316');
+  randGrad.addColorStop(1, '#fb923c');
 
-	ctx.fillStyle = 'white';
-	ctx.textAlign = 'center';
-	ctx.textBaseline = 'middle';
-	ctx.font = `${Math.floor(btnH * 0.5)}px Orbitron`;
-	ctx.fillText('Join Random', btnX + btnW / 2, btnY + btnH / 2);
-	joinButtons.push({ x: btnX, y: btnY, w: btnW, h: btnH, action: 'joinRandom' });
+  ctx.beginPath();
+  (ctx as any).roundRect(randX, randY, randW, randH, 6);
+  ctx.fillStyle = randGrad;
+  ctx.fill();
 
-	// Attach to canvas for click handling
-	canvas._joinGameButtons = joinButtons;
+  // Centered white text
+  ctx.fillStyle    = 'white';
+  ctx.font         = `${Math.floor(randH * 0.5)}px Orbitron`;
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('Join Random', randX + randW / 2, randY + randH / 2);
+
+  joinButtons.push({ x: randX, y: randY, w: randW, h: randH, action: 'joinRandom' });
+
+  // Leave button
+  const leaveW = 100;
+  const leaveH = 35;
+  const leaveX = width - leaveW - 40;
+  const leaveY = height - leaveH - 40;
+
+  ctx.beginPath();
+  (ctx as any).roundRect(leaveX, leaveY, leaveW, leaveH, 6);
+  ctx.fillStyle = '#ef4444';
+  ctx.fill();
+
+  ctx.fillStyle    = 'white';
+  ctx.font         = `${Math.floor(leaveH * 0.5)}px Orbitron`;
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('Leave', leaveX + leaveW / 2, leaveY + leaveH / 2);
+
+  joinButtons.push({ x: leaveX, y: leaveY, w: leaveW, h: leaveH, action: 'back' });
+
+  // Store for click handler
+  canvas._joinGameButtons = joinButtons;
 }
 
 

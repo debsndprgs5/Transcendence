@@ -23,11 +23,17 @@ export function handleAllEvents(typedSocket:TypedSocket, player:Interfaces.playe
   typedSocket.on('invite', async (socket:WebSocket, data:Interfaces.SocketMessageMap['invite']) => {
     handleInvite(data, player);
   });
+  
+  typedSocket.on('gameRequest',async (socket:WebSocket, data:Interfaces.SocketMessageMap['gameRequest']) => {
+    const players = getAllMembersFromGameID(player.userID);
+    console.log(`GAME REQUEST FOR USER ${player.userID}| game : ${player.gameID}`);
+    if(players)
+      await Helpers.beginGame(player.gameID!, players);
 
+  } );
   typedSocket.on('leaveGame', async (socket:WebSocket, data:Interfaces.SocketMessageMap['leaveGame']) => {
     handleLeaveGame(data, player);
   });
-
   typedSocket.on('playerMove', async (socket:WebSocket, data:Interfaces.SocketMessageMap['playerMove']) => {
     handlePlayerMove(data, player);
   });
@@ -35,7 +41,6 @@ export function handleAllEvents(typedSocket:TypedSocket, player:Interfaces.playe
   typedSocket.on('reconnected', () => {
     handleReconnect(player);
   });
-
   typedSocket.on('disconnected', ()=>{
     handleDisconnect(player);
   });

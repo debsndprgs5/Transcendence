@@ -334,7 +334,8 @@ export async function handleRenderData(data: Interfaces.SocketMessageMap['render
 	pongState.pongRenderer.updateScene({
 		paddles: data.paddles,
 		balls: data.balls,
-		elapsed: data.elapsed
+		elapsed: data.elapsed,
+		isPaused:data.isPaused
 	});
 }
 
@@ -408,45 +409,48 @@ export async function handleReconnection(data: Interfaces.SocketMessageMap['reco
 	console.log(`[FRONT][GAMESOCKET] User ${state.userId} reconnected with state: ${data.state}`);
 
 	if (!state.playerInterface) {
-	console.warn('[RECONNECT] No playerInterface found, skipping restore.');
-	return;
+		console.warn('[RECONNECT] No playerInterface found, skipping restore.');
+		return;
 	}
 
+	// Sync server-sent player state
 	state.playerInterface.state = data.state;
 
+	// CASE 1: Game is active & Renderer exists → Resume it
 	if (data.gameID && pongState.pongRenderer !== null) {
-	console.log('[RECONNECT] User was in an active game. Renderer still alive, resume game.');
-	
-	// TODO: Call a method to ensure rendering loop is resumed if needed
-	// e.g., pongState.pongRenderer.resume(); — implement if renderer supports pause/resume
-	// const scene = pongState.pongRenderer.getScene();
-	// scene.render();
-	return;
+		if (pongState.pongRenderer.getScene()?.isDisposed) {
+			console.warn('[RECONNECT] Renderer scene is disposed. Clearing renderer.');
+			pongState.pongRenderer = null;
+		} else {
+			console.log('[RECONNECT] Resuming existing renderer.');
+			pongState.pongRenderer.resumeRenderLoop?.();
+			return;
+		}
 	}
 
+	// CASE 2: Game is active & Renderer is missing → Offer to restore it
 	if (data.gameID && pongState.pongRenderer === null) {
-	console.log('[RECONNECT] User was in a game, but renderer is gone. Restore render manually.');
+		console.log('[RECONNECT] Renderer missing. Prompting resume.');
 
-	// TODO: Optionally reload or reconstruct the scene
-	// e.g., re-enter room or show a prompt like:
-	showNotification({
-		message: 'You were reconnected. Do you want to resume the game?',
-		type: 'confirm',
-		onConfirm: () => {
-		// Re-request game data or join room again
-		state.playerInterface?.typedSocket.send('resumeGame',{
-			gameID: data.gameID,
+		showNotification({
+			message: 'You were reconnected. Do you want to resume the game?',
+			type: 'confirm',
+			onConfirm: () => {
+				console.log('[RECONNECT] User accepted resume. Sending resumeGame.');
+				state.playerInterface?.typedSocket.send('resumeGame', {
+					gameID: data.gameID,
+				});
+			},
 		});
-		},
-	});
-
-	return;
+		return;
 	}
 
+	// CASE 3: User is not in a game → Return to lobby
 	if (!data.gameID) {
-	console.log('[RECONNECT] User is not in a game. Returning to lobby.');
-
-	// TODO: Update view to main menu or idle lobby
+		console.log('[RECONNECT] User is not in a game. Returning to lobby.');
+		// TODO: implement lobby return here
 	}
 }
+
+
 

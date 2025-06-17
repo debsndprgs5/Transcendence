@@ -66,10 +66,11 @@ export type SocketMessageMap = {
 	statusUpdate:{type:'statusUpdate'; userID:number; newState:string};
 	playerMove:{type:'playerMove'; gameID:number; userID:number; direction:string};
 	renderData: {
-	type: 'renderData';
-	paddles: Record<number, { pos: number; side: 'left' | 'right' | 'top' | 'bottom'; score:number}>;
-	balls: Record<number, { x: number; y: number }>;
-	elapsed:number;
+		type: 'renderData';
+		paddles: Record<number, { pos: number; side: 'left' | 'right' | 'top' | 'bottom'; score:number}>;
+		balls: Record<number, { x: number; y: number }>;
+		elapsed:number;
+		isPaused:boolean;
 	};
 	gameRequest:{type:'gameRequest'; userID:number};
 	endMatch:{type:'endMatch'; iswinner: boolean, playerScores: Record<string, number> };

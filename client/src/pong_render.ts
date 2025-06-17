@@ -16,27 +16,33 @@ export class PongRenderer{
 	private paddles: BABYLON.Mesh[] = [];
 	private paddleMap: Record<'left'|'right'|'top'|'bottom', BABYLON.Mesh | undefined>;
 	private balls: BABYLON.Mesh[] = [];
-	private sideWalls:BABYLON.Mesh[]=[];
-	private frontWalls:BABYLON.Mesh[]=[];
-	
+	private sideWalls: BABYLON.Mesh[] = [];
+	private frontWalls: BABYLON.Mesh[] = [];
+
 	private guiTexture!: GUI.AdvancedDynamicTexture;
 	private timeText!: GUI.TextBlock;
 	private scoreText!: GUI.TextBlock;
-	private avatarSquares!:GUI.AdvancedDynamicTexture;//Avatar near the name
-	private avatarCirles!:GUI.AdvancedDynamicTexture;//Small avatars links to paddles
-
+	private avatarSquares!: GUI.AdvancedDynamicTexture; // Avatar near the name
+	private avatarCirles!: GUI.AdvancedDynamicTexture;  // Small avatars linked to paddles
 
 	private playerCount: number;
 	private playerSide: 'left' | 'right' | 'top' | 'bottom';
 	private playersInfo: Record<'left' | 'right' | 'top' | 'bottom', string> = {
-	left: '',
-	right: '',
-	top: '',
-	bottom: ''
+		left: '',
+		right: '',
+		top: '',
+		bottom: ''
+	};
+
+	private isPaused: boolean = false;
+	private pauseUI!: {
+		container: GUI.Rectangle;
+		icon: GUI.TextBlock;
+		message: GUI.TextBlock;
 	};
 	private scoreTextBlocks: Partial<Record<'left' | 'right' | 'top' | 'bottom', GUI.TextBlock>> = {};
-  private inputState = { left: false, right: false };
-  private currentDir: 'left' | 'right' | 'stop' = 'stop';
+	private inputState = { left: false, right: false };
+	private currentDir: 'left' | 'right' | 'stop' = 'stop';
 
 	constructor(
 	canvas: HTMLCanvasElement,
@@ -53,6 +59,7 @@ export class PongRenderer{
 		this.engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: false, stencil: true });
 		this.scene = new BABYLON.Scene(this.engine);
 		this.setupGUI();
+		this.setupPauseUI();
 		this.setupCamera();
 		this.setupLighting();
 		this.createWalls();
@@ -205,10 +212,46 @@ export class PongRenderer{
 			this.guiTexture.addControl(rightAvatarImage);
 					
 			}
-}
+	}
+	private setupPauseUI() {
+		this.pauseUI = {
+			container: new GUI.Rectangle(),
+			icon: new GUI.TextBlock(),
+			message: new GUI.TextBlock()
+		};
+
+		const { container, icon, message } = this.pauseUI;
+
+		// Container: semi-transparent overlay covering full screen
+		container.width = "100%";
+		container.height = "100%";
+		container.background = "rgba(0, 0, 0, 0.5)";
+		container.thickness = 0;
+		container.isVisible = false;
+
+		// Icon: large pause symbol "||"
+		icon.text = "||";
+		icon.color = "white";
+		icon.fontSize = "160px";
+		icon.fontWeight = "bold";
+		icon.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+		icon.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+
+		// Message: small text under the pause icon
+		message.text = "Waiting for connection...";
+		message.color = "white";
+		message.fontSize = "24px";
+		message.top = "100px"; // below the pause icon
+		message.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+		message.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+
+		container.addControl(icon);
+		container.addControl(message);
+		this.guiTexture.addControl(container);
+	}
 	private setupLighting() {
 			new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), this.scene);
-		}
+	}
 	private createWalls() {
 		const width2P = LIMIT.arenaWidth2p; // -8 to 8
 		const depth2P = LIMIT.arenaLength2p; // -5 to 5
@@ -333,10 +376,27 @@ export class PongRenderer{
 	public getScene(): BABYLON.Scene {
 		return this.scene;
 	}
+	public resumeRenderLoop() {
+		if (this.engine && this.scene && !this.scene.isDisposed) {
+			this.engine.runRenderLoop(() => {
+				if (this.scene && !this.scene.isDisposed) {
+					this.scene.render();
+				}
+			});
+			this.isPaused = false;
+			if (this.pauseUI?.container) {
+				this.pauseUI.container.isVisible = false;
+			}
+			console.log('[RENDERER] Resumed render loop.');
+		} else {
+			console.warn('[RENDERER] Cannot resume — scene or engine missing/disposed.');
+		}
+	}	
 	public updateScene(update: {
 	  paddles: Record<number,{pos:number; side:'left'|'right'|'top'|'bottom'; score:number}>;
 	  balls:   Record<number,{x:number; y:number}>;
-	  elapsed:number
+	  elapsed:number;
+	  isPaused:boolean
 	}) {
 	  // update paddles
 	  Object.values(update.paddles).forEach(({ side, pos }) => {
@@ -373,12 +433,13 @@ export class PongRenderer{
 			else if(this.playerCount === 4)
 				scores[side] = score;
 		});
-
+		this.isPaused = update.isPaused
 		this.updateHUD(update.elapsed, scores);
 	}
 	private startRenderLoop() {
 		this.engine.runRenderLoop(() => {
 		this.scene.render();
+		this.pauseUI.container.isVisible = this.isPaused;
 		this.processInput();
 		});
 	}

@@ -4,6 +4,7 @@ import * as Helpers from './game.sockHelpers'
 import { TypedSocket } from '../shared/gameTypes';
 import {getPlayerBySocket, getPlayerByUserID, getAllMembersFromGameID, delPlayer} from './game.socket'
 import { playerMove } from '../services/pong'
+import { PongRoom } from '../services/PongRoom';
 
 // import{stopMockGameLoop, startMockGameLoop, playerMove} from '../services/pong'
 
@@ -216,37 +217,34 @@ export async function handleReconnect(player: Interfaces.playerInterface) {
 
 	player.hasDisconnected = false;
 
-	if ((player as any).disconnectTimeout) {
-		clearTimeout((player as any).disconnectTimeout);
-		delete (player as any).disconnectTimeout;
-	}
-
+	if (player.disconnectTimeOut) {
+    	clearTimeout(player.disconnectTimeOut);
+    	player.disconnectTimeOut = undefined;
+  	}
+	const room = PongRoom.rooms.get(player.gameID!)
+	if (room) room.resume(player.userID);
 	// Optional: notify UI/game state
 }
 
 export async function handleDisconnect(player: Interfaces.playerInterface) {
-  console.log(`User ${player.userID} disconnected. Waiting 15s for reconnect...`);
-  player.hasDisconnected = true;
-  interface PlayerWithTimeout extends Interfaces.playerInterface {
-    disconnectTimeOut?: NodeJS.Timeout;
-  }
-  const playerWithTimeout = player as PlayerWithTimeout;
+	if (!player || player.hasDisconnected) return;
 
-  // Clear any existing timeout to avoid duplicates
-  if (player.disconnectTimeOut) {
-    clearTimeout(player.disconnectTimeOut);
-  }
+	console.log(`[DISCONNECT] Player ${player.userID}`);
 
-  // Set a new timeout to kick player after 15s 
-  player.disconnectTimeOut = setTimeout(async () => {
-    const stillPlayer = getPlayerByUserID(player.userID);
-    if (stillPlayer && stillPlayer.hasDisconnected) {
-      console.log(`User ${player.userID} timed out. Removing from game.`);
-      
-      if (player.gameID && player.gameID !== -1) {
-        await Helpers.kickFromGameRoom(player.gameID, player, `${player.username ?? 'User'} timed out`);
-      }
-      delPlayer(stillPlayer.userID);
-    }
+	player.hasDisconnected = true;
+
+	if (!player.gameID) return; // Not in a game? Do nothing
+
+  // Pause the game
+	const room = PongRoom.rooms.get(player.gameID)
+	if (room) room.pause(player.userID)
+
+  // Start 15s timeout
+  player.disconnectTimeOut = setTimeout(() => {
+    console.log(`[TIMEOUT] Ending game due to disconnect of ${player.userID}`);
+    const room = PongRoom.rooms.get(player.gameID!)
+	if(room) room.stop()
+	Helpers.kickFromGameRoom(player.gameID!, player, `${player.username} timed out`);
+	delPlayer(player.userID);
   }, 15000);
 }

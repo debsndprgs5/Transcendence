@@ -28,6 +28,10 @@ export class PongRoom {
 	private readonly HEIGHT: number
 	private readonly clock: number
 	private readonly baseSpeed: number
+	private pauseState = {
+        isPaused: false,
+        pausedPlayers: new Set<number>(),        // Track all paused players
+    };
 	private loop?: NodeJS.Timeout
 
 	constructor(
@@ -89,6 +93,7 @@ export class PongRoom {
 		PongRoom.rooms.set(this.gameID, this);
 		this.loop = setInterval(() => this.frame(), 1000/60);
 	}
+//PUBLIC METHODS 
 
 	/** Handle paddle movement input */
 	move(userID: number, dir: 'left'|'right'|'stop') {
@@ -103,20 +108,44 @@ export class PongRoom {
 		if (this.loop) clearInterval(this.loop)
 		PongRoom.rooms.delete(this.gameID)
 	}
+	/* Pause the loop */
+	pause(userID:number){
+		//Game is pause so just add new paused players
+		if(this.pauseState.isPaused){
+			this.pauseState.pausedPlayers.add(userID);
+			return;
+		}
+		this.pauseState = {
+			isPaused:true,
+			pausedPlayers:new Set([userID]),
+		}
+		if (this.loop) clearInterval(this.loop);
+		console.log(`Game paused due to disconnect: ${userID}`);
+	}
+	/*Resume the loop*/ 
+	resume(userID:number){
+		this.pauseState.pausedPlayers.delete(userID);
+		if(this.pauseState.pausedPlayers.size === 0){
+			this.pauseState.isPaused = false;
+			this.loop = setInterval(() => this.frame(), 1000/60);
+		}
+	}
+//PRIVATE METHODS 
 
 private frame() {
-		for (const ball of this.balls) {
+	if (this.pauseState.isPaused) return; // Skip frame if paused
+	for (const ball of this.balls) {
 			this.ballsMove(ball);
 			for (const [, pad] of this.paddles) {
 				this.bounce_player(ball, pad);
 			}
 			this.bounceArena(ball);
 		}
-		// Win check
-		this.checkWinCondition()
-		// Broadcast
-		this.broadcast()
-	}
+	// Win check
+	this.checkWinCondition()
+	// Broadcast
+	this.broadcast()
+}
 
 
 /** Bounce or score on arena walls, with angle caps */
@@ -268,7 +297,7 @@ private  handleWallScore(sideHit: 'left'|'right'|'top'|'bottom', ball: ballClass
 					(this.scoreMap.get(scorer.userID) || 0) + 1)
 			}
 			else{
-				//SHOULD NEVER HAPPENDS WITH PROPER BOUNCE
+				//SHOULD NEVER HAPPENDS WITH PROPER BOUNCE ?
 				console.log(`ERROR ${scorer.username} mark in his cage: ${sideHit}, ballvector:${ball.vector}`);
 			}
 		}
@@ -290,10 +319,11 @@ private  handleWallScore(sideHit: 'left'|'right'|'top'|'bottom', ball: ballClass
 				score: this.scoreMap.get(p.userID)!,
 			}
 		}
+		const isPaused = this.pauseState.isPaused;
 		const balls: Record<number,{x:number;y:number}> = {}
 		this.balls.forEach((b,i)=> balls[i]={x:b.x,y:b.y})
 		for (const p of this.players) {
-			p.typedSocket.send('renderData',{ paddles, balls, elapsed })
+			p.typedSocket.send('renderData',{ paddles, balls, elapsed, isPaused })
 		}
 	}
 
@@ -301,17 +331,17 @@ private  handleWallScore(sideHit: 'left'|'right'|'top'|'bottom', ball: ballClass
 	private checkWinCondition(): boolean {
 		const elapsedMs = Date.now()-this.clock
 		if (this.game.winCondition==='time' && elapsedMs >= this.game.limit*1000) {
-			this.endMatch(); return true
+			this.endCleanMatch(); return true
 		}
 		if (this.game.winCondition==='score') {
 			for (const sc of this.scoreMap.values()) {
-				if (sc >= this.game.limit) { this.endMatch(); return true }
+				if (sc >= this.game.limit) { this.endCleanMatch(); return true }
 			}
 		}
 		return false
 	}
 
-	private async endMatch() {
+	private async endCleanMatch() {
 		clearInterval(this.loop!);
 		PongRoom.rooms.delete(this.gameID);
 

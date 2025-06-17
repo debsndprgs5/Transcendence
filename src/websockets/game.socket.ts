@@ -11,7 +11,7 @@ import * as Interfaces from '../shared/gameTypes'
 import {createTypedEventSocket} from '../shared/gameEventWrapper'
 import { playerMove } from '../services/pong'
 import { TypedSocket } from '../shared/gameTypes';
-import {handleAllEvents} from './game.sockEvents'
+import {handleAllEvents, handleDisconnect} from './game.sockEvents'
 
 
 
@@ -99,7 +99,9 @@ export async function initGameSocket(ws: WebSocket, request: any) {
     MappedPlayers.set(result.userId, player)
     // Register handlers ONCE
     handleAllEvents(typedSocket, player);
-
+	ws.on(('close'), () => {
+		handleDisconnect(player)
+	});
     // Send init message
     typedSocket.send('init', {
         userID: result.userId,

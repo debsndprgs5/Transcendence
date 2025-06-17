@@ -115,3 +115,36 @@ CREATE TABLE IF NOT EXISTS tournamentMatches (
   FOREIGN KEY(playerB) REFERENCES users(our_index) ON DELETE CASCADE
 );
 
+--  Normal Matches results 2 players
+CREATE TABLE IF NOT EXISTS gameResultTwo (
+  matchID		INTEGER PRIMARY KEY AUTOINCREMENT,
+  winner		INTEGER NOT NULL,
+  playerA		INTEGER NOT NULL,
+  playerB		INTEGER NOT NULL,
+  scoreA		INTEGER NOT NULL,
+  scoreB		INTEGER NOT NULL,
+  played_at		DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(winner) REFERENCES users(our_index) ON DELETE CASCADE,
+  FOREIGN KEY(playerA) REFERENCES users(our_index) ON DELETE CASCADE,
+  FOREIGN KEY(playerB) REFERENCES users(our_index) ON DELETE CASCADE
+);
+
+--  Normal Matches results 4 players
+CREATE TABLE IF NOT EXISTS gameResultFour (
+  matchID		INTEGER PRIMARY KEY AUTOINCREMENT,
+  winner		INTEGER NOT NULL,
+  playerA		INTEGER NOT NULL,
+  playerB		INTEGER NOT NULL,
+  playerC		INTEGER NOT NULL,
+  playerD		INTEGER NOT NULL,
+  scoreA		INTEGER NOT NULL,
+  scoreB		INTEGER NOT NULL,
+  scoreC		INTEGER NOT NULL,
+  scoreD		INTEGER NOT NULL,
+  played_at		DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(winner) REFERENCES users(our_index) ON DELETE CASCADE,
+  FOREIGN KEY(playerA) REFERENCES users(our_index) ON DELETE CASCADE,
+  FOREIGN KEY(playerB) REFERENCES users(our_index) ON DELETE CASCADE,
+  FOREIGN KEY(playerC) REFERENCES users(our_index) ON DELETE CASCADE,
+  FOREIGN KEY(playerD) REFERENCES users(our_index) ON DELETE CASCADE
+);

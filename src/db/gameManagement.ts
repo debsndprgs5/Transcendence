@@ -217,3 +217,19 @@ export const getAllDataFromGameId = (gameID: number) =>
 		`SELECT * FROM userStat WHERE gameID = ?`,
 		[gameID]
 	);
+
+// ############################
+// #       Match Result       #
+// ############################
+
+export const sendGameResultTwo = (gameID: number, userID: [number, number], winner: number, score: [number, number], start: string) =>
+	run(
+		`INSERT INTO gameResultTwo (gameID, winner, playerA, playerB, scoreA, scoreB, started_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		[gameID, winner, userID[0], userID[1], score[0], score[1], start]
+	);
+
+export const sendGameResultFour = (gameID: number, userID: [number, number, number, number], winner: number, score: [number, number, number, number], start: string) =>
+	run(
+		`INSERT INTO gameResultFour (gameID, winner, playerA, playerB, playerC, playerD, scoreA, scoreB, scoreC, scoreD, started_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		[gameID, winner, userID[0], userID[1], userID[2], userID[3], score[0], score[1], score[2], score[3], start]
+	);

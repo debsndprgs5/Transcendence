@@ -71,6 +71,7 @@ export type SocketMessageMap = {
 	balls: Record<number, { x: number; y: number }>;
 	elapsed:number;
 	};
+	gameRequest:{type:'gameRequest'; userID:number};
 	endMatch:{type:'endMatch'; iswinner: boolean, playerScores: Record<string, number> };
 	reconnected:{type:'reconnected'; userID:number; state:string; gameID?:number; tournamentID?:number};
 	disconnected:{type:'disconnected'};

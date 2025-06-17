@@ -160,19 +160,11 @@ export function showPongMenu(): void {
 
 				  else {
 					console.log(`HELLO NOOB IF YOU"RE HERE YOU'RE COOKED`)
-				    if (!state.playerInterface?.socket) {
+				    if (!state.playerInterface?.typedSocket) {
 				      console.error('No socket for PongRenderer');
 				      return;
 				    }
-				    const side        = state.playerInterface.playerSide ?? 'left';
-				    const playerCount = state.currentPlayers?.length ?? 2;
-
-				    // pongState.pongRenderer = new PongRenderer(
-				    //   babylonCanvas,
-				    //   state.typedSocket,
-				    //   playerCount,
-				    //   side
-				    // );
+					state.typedSocket.send('gameRequest', state.playerInterface.userID);
 				  }
 				  break;
 
@@ -248,7 +240,8 @@ async function handlePongMenuClick(e: MouseEvent): Promise<void> {
 	const rect   = canvas.getBoundingClientRect();
 	const x      = (e.clientX - rect.left) * (canvas.width  / rect.width);
 	const y      = (e.clientY - rect.top ) * (canvas.height / rect.height);
-
+	if (state.canvasViewState === 'playingGame')
+		return;
 	switch (state.canvasViewState) {
 		case 'mainMenu': {
 			// handle main menu buttons
@@ -377,7 +370,8 @@ async function handlePongMenuClick(e: MouseEvent): Promise<void> {
 				// store in localstorage / state like if u created the room
 				state.currentGameName   = roomName;
 				state.currentPlayers    = usernames;
-				state.canvasViewState   = 'waitingGame';
+				//state.canvasViewState   = 'waitingGame';
+				console.warn("---------------------------------------------- test 1")
 
 				localStorage.setItem('pong_view', 'waitingGame');
 				localStorage.setItem('pong_room', roomName);
@@ -657,6 +651,7 @@ async function handleCreateGameButton(action: string): Promise<void> {
 			state.currentGameName   = gameName;
 			state.currentPlayers    = usernames;
 			state.canvasViewState   = 'waitingGame';
+			console.warn("---------------------------------------------- test 2");
 
 			// persist in local storage to survive refresh
 			localStorage.setItem('pong_view', 'waitingGame');

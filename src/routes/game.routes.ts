@@ -54,8 +54,8 @@ export async function createGameRoom(request: FastifyRequest, reply: FastifyRepl
 		const rules = JSON.stringify({
 			ball_speed:body.ball_speed, 
 			paddle_speed:body.paddle_speed,
-			win_condition:'score',
-			limit:10 });
+			win_condition:'time',
+			limit:5 });
 		if(!body.name)
 			return;
 		const gameID = await gameMgr.createGameRoom(type, state, mode, rules, body.name, body.userID);

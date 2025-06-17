@@ -314,7 +314,7 @@ export async function handleStartGame(data: Interfaces.SocketMessageMap['startGa
 		count, state.playerInterface.playerSide!, data.usernames);
 	state.playerInterface.gameID = data.gameID;
 	localStorage.setItem('pong_view', 'playingGame');
-	//showPongMenu();
+	showPongMenu();
 	}
 }
 

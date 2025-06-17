@@ -97,10 +97,10 @@ export function showPongMenu(): void {
 	  }
 
 		// Dispose of pongRenderer if exists but not in 'playingGame' state
-		if (state.canvasViewState !== 'playingGame' && pongState.pongRenderer) {
-				pongState.pongRenderer.dispose();
-				pongState.pongRenderer = null;
-		}
+		// if (state.canvasViewState !== 'playingGame' && pongState.pongRenderer) {
+		// 		pongState.pongRenderer.dispose();
+		// 		pongState.pongRenderer = null;
+		// }
 		console.log('state.canvasViewState = ', state.canvasViewState);
 
 		// Handle different view states

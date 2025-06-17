@@ -458,6 +458,7 @@ export class PongRenderer{
 	}
 
 	public dispose() {
+		console.warn(`DISPOSING RENDER`)
 			this.engine.dispose();
 		}
 }

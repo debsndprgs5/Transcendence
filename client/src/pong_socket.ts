@@ -22,9 +22,10 @@ export async function initGameSocket() {
 
 	const typedSocket = createTypedEventSocket(state.gameSocket);
 	state.typedSocket = typedSocket;
-	gameSocket.onopen = () => {
+	gameSocket.onopen = (ev) => {
 		console.log('[GAME] WebSocket connected');
 		if (state.playerInterface) {
+			console.log('[GAME] WebSocket connected — state.playerInterface =', state.playerInterface);
 			state.playerInterface!.typedSocket.send('reconnected',{
 				userID:state.userId!,
 				gameID:state.playerInterface!.gameID!,
@@ -48,7 +49,13 @@ export async function initGameSocket() {
 	};
 
 	gameSocket.onclose = (ev) => {
-		state.playerInterface!.typedSocket.send('disconnected',{})
+		try {
+			 console.warn(`[GAME] WebSocket closed — code=${ev.code}, reason="${ev.reason}"`);
+			if (state.gameSocket?.readyState === WebSocket.OPEN)
+				state.typedSocket?.send('disconnected', {});
+		} catch (err) {
+			console.warn('Cannot send disconnected message: ', err);
+		}
 		console.warn('[GAME] WebSocket closed : ', ev.code, ev.reason);
 	};
 
@@ -301,12 +308,13 @@ export async function handleStartGame(data: Interfaces.SocketMessageMap['startGa
 		throw new Error('playerInterface is not defined');
 	}
 	state.canvasViewState = 'playingGame';
+	console.log(`USERSTATE:${state.playerInterface.state}| Uname: ${state.playerInterface.username}`)
 	const count = Object.keys(data.usernames).length
 	pongState.pongRenderer = new PongRenderer(canvas, state.typedSocket,
 		count, state.playerInterface.playerSide!, data.usernames);
 	state.playerInterface.gameID = data.gameID;
 	localStorage.setItem('pong_view', 'playingGame');
-	showPongMenu();
+	//showPongMenu();
 	}
 }
 
@@ -411,8 +419,8 @@ export async function handleReconnection(data: Interfaces.SocketMessageMap['reco
 	
 	// TODO: Call a method to ensure rendering loop is resumed if needed
 	// e.g., pongState.pongRenderer.resume(); — implement if renderer supports pause/resume
-	const scene = pongState.pongRenderer.getScene();
-	scene.render();
+	// const scene = pongState.pongRenderer.getScene();
+	// scene.render();
 	return;
 	}
 

@@ -50,7 +50,7 @@ export class PongRenderer{
 		this.playerSide = playerSide;
 		this.playersInfo=usernames;
 
-		this.engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
+		this.engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: false, stencil: true });
 		this.scene = new BABYLON.Scene(this.engine);
 		this.setupGUI();
 		this.setupCamera();
@@ -96,7 +96,7 @@ export class PongRenderer{
 		this.camera.setTarget(new BABYLON.Vector3(0, 0, 0));
 	}
 	private async setupGUI() {
-		this.guiTexture = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+		this.guiTexture = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI", true, this.scene);
 
 		// Time at top center
 		this.timeText = new GUI.TextBlock();

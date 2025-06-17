@@ -159,6 +159,7 @@ export function showPongMenu(): void {
 				  }
 
 				  else {
+					console.log(`HELLO NOOB IF YOU"RE HERE YOU'RE COOKED`)
 				    if (!state.playerInterface?.socket) {
 				      console.error('No socket for PongRenderer');
 				      return;

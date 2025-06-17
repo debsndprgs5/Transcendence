@@ -308,12 +308,12 @@ export async function handleStartGame(data: Interfaces.SocketMessageMap['startGa
 		throw new Error('playerInterface is not defined');
 	}
 	state.canvasViewState = 'playingGame';
+	localStorage.setItem('pong_view', 'playingGame');
 	console.log(`USERSTATE:${state.playerInterface.state}| Uname: ${state.playerInterface.username}`)
 	const count = Object.keys(data.usernames).length
 	pongState.pongRenderer = new PongRenderer(canvas, state.typedSocket,
 		count, state.playerInterface.playerSide!, data.usernames);
 	state.playerInterface.gameID = data.gameID;
-	localStorage.setItem('pong_view', 'playingGame');
 	showPongMenu();
 	}
 }

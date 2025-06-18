@@ -25,13 +25,6 @@ export function handleAllEvents(typedSocket:TypedSocket, player:Interfaces.playe
     handleInvite(data, player);
   });
   
-  typedSocket.on('gameRequest',async (socket:WebSocket, data:Interfaces.SocketMessageMap['gameRequest']) => {
-    const players = getAllMembersFromGameID(player.userID);
-    console.log(`GAME REQUEST FOR USER ${player.userID}| game : ${player.gameID}`);
-    if(players)
-      await Helpers.beginGame(player.gameID!, players);
-
-  } );
   typedSocket.on('leaveGame', async (socket:WebSocket, data:Interfaces.SocketMessageMap['leaveGame']) => {
     handleLeaveGame(data, player);
   });
@@ -39,8 +32,8 @@ export function handleAllEvents(typedSocket:TypedSocket, player:Interfaces.playe
     handlePlayerMove(data, player);
   });
 
-  typedSocket.on('reconnected', () => {
-    handleReconnect(player);
+  typedSocket.on('reconnected', async (socket:WebSocket, data:Interfaces.SocketMessageMap['reconnected']) => {
+    handleReconnect(data, player);
   });
   typedSocket.on('disconnected', ()=>{
     handleDisconnect(player);
@@ -207,23 +200,49 @@ export async function handlePlayerMove(parsed: any, player: Interfaces.playerInt
 }
 
 //WE NEED TO CHECK WHAT TO DO IN THAT CASE MORE CLEARLY
-export async function handleReconnect(player: Interfaces.playerInterface) {
-	if (!player.hasDisconnected) {
-		console.log(`[GAME] Reconnect failed or not needed for user ${player.userID}`);
+export async function handleReconnect(parsed:any ,player: Interfaces.playerInterface) {
+// CASE 1: Mismatched user — recreate the player interface
+	if (parsed.userID !== player.userID) {
+		console.warn(`[RECONNECT] Mismatch: received ${parsed.userID}, expected ${player.userID}. Reinitializing...`);
+
+		player.typedSocket.send('init', {
+			userID: player.userID,
+			username: player.username,
+			state: 'init',
+			success: true,
+		});
 		return;
 	}
+  // CASE 2: Matched user — restore interface and possibly game
+  console.log(`[RECONNECT] Valid reconnect for user ${player.userID}`);
 
-	console.log(`[GAME] Reconnected: user ${player.userID}`);
+  player.hasDisconnected = false;
 
-	player.hasDisconnected = false;
-
-	if (player.disconnectTimeOut) {
-    	clearTimeout(player.disconnectTimeOut);
-    	player.disconnectTimeOut = undefined;
-  	}
-	const room = PongRoom.rooms.get(player.gameID!)
-	if (room) room.resume(player.userID);
-	// Optional: notify UI/game state
+  if (player.disconnectTimeOut) {
+    console.log(`[RECONNECT] Clearing disconnect timeout for user ${player.userID}`);
+    clearTimeout(player.disconnectTimeOut);
+    player.disconnectTimeOut = undefined;
+  }
+  console.log(`TRYING TO FIND GAMEID:${player.gameID} FOR PLAYER ${player.username}`)
+	let resumed = false;
+	if (player.gameID) {
+		const room = PongRoom.rooms.get(player.gameID);
+		if (room) {
+			room.resume(player.userID);
+			resumed = true;
+		}
+	}
+  if(resumed)
+    console.log(`FOUNDED GAME TO RESUME ${player.gameID} BUT player state is : ${player.state}`);
+	// Always send back current player + state info
+	player.typedSocket.send('reconnected', {
+		userID: player.userID,
+		username: player.username,
+		state: player.state,
+		gameID: player.gameID ?? null,
+		tournamentID: player.tournamentID ?? null,
+		message: resumed ? 'Game resumed' : 'No game to resume',
+	});
 }
 
 export async function handleDisconnect(player: Interfaces.playerInterface) {

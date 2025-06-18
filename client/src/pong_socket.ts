@@ -16,52 +16,81 @@ export const pongState = {
 export async function initGameSocket() {
 	if (!state.authToken) return;
 
+	// CLEANUP before reinitializing
+	if (state.typedSocket) {
+		console.log('[GAME] Cleaning up previous typed socket...');
+		state.typedSocket.cleanup?.();
+		state.typedSocket.removeAllListeners?.();
+	}
 	const wsUrl = `wss://${location.host}/gameSocket/ws?token=${encodeURIComponent(state.authToken)}`;
 	const gameSocket = new WebSocket(wsUrl);
 	state.gameSocket = gameSocket;
 
 	const typedSocket = createTypedEventSocket(state.gameSocket);
 	state.typedSocket = typedSocket;
-	gameSocket.onopen = (ev) => {
-		console.log('[GAME] WebSocket connected');
-		if (state.playerInterface) {
-			console.log('[GAME] WebSocket connected — state.playerInterface =', state.playerInterface);
-			state.playerInterface!.typedSocket.send('reconnected',{
-				userID:state.userId!,
-				gameID:state.playerInterface!.gameID!,
-				tournamentID:state.playerInterface!.tournamentID!
-				});
-			showNotification({
-			message: `RECONNTED TO GAME SOCKETS. State: ${state.playerInterface.state}`,
+	gameSocket.onopen = async () => {
+	console.log('[GAME] WebSocket connected');
+
+	while (!state.userId) {
+		console.warn('[GAME] Waiting for userId to be available...');
+		await new Promise(res => setTimeout(res, 50));
+	}
+
+	const oldID = localStorage.getItem('userID');
+	const userID = Number(oldID ?? state.userId);
+
+	state.playerInterface = {
+	userID,
+	socket: gameSocket,
+	typedSocket: typedSocket,
+	state: 'online',
+	};
+
+
+	// Send reconnect or init based on local storage
+	if (oldID) {
+		console.log('[GAME] WebSocket connected — attempting reconnected as', userID);
+		typedSocket.send('reconnected', { userID });
+
+		showNotification({
+			message: `Reconnected to game socket.`,
 			type: 'success',
 		});
-		} else {
-			state.playerInterface ={
-			userID:state.userId!,
-			socket:state.gameSocket,
-			typedSocket:typedSocket,
-			state:'online'
-			}
-			typedSocket.send('init', {
-			userID: state.userId!,
-			});
-		}
-	};
+	} else {
+		console.log('[GAME] WebSocket connected — sending init for new user', userID);
+		typedSocket.send('init', { userID });
+		localStorage.setItem('userID', userID.toString());
+	}
+};
+
 
 	gameSocket.onclose = (ev) => {
-		try {
-			 console.warn(`[GAME] WebSocket closed — code=${ev.code}, reason="${ev.reason}"`);
-			if (state.gameSocket?.readyState === WebSocket.OPEN)
-				state.typedSocket?.send('disconnected', {});
-		} catch (err) {
-			console.warn('Cannot send disconnected message: ', err);
-		}
-		console.warn('[GAME] WebSocket closed : ', ev.code, ev.reason);
-	};
+	try {
+		console.warn(`[GAME] WebSocket closed — code=${ev.code}, reason="${ev.reason}"`);
+		if (state.gameSocket?.readyState === WebSocket.OPEN)
+			state.typedSocket?.send('disconnected', {});
+	} catch (err) {
+		console.warn('Cannot send disconnected message: ', err);
+	}
+	
+	// CLEANUP here too
+	state.typedSocket?.cleanup?.();
+	state.typedSocket = undefined;
+	state.gameSocket = null;
+	state.playerInterface = undefined;
 
-	gameSocket.onerror = (err) => {
+	console.warn('[GAME] WebSocket closed : ', ev.code, ev.reason);
+};
+
+gameSocket.onerror = (err) => {
 	console.error('[GAME] WebSocket error:', err);
-	};
+
+	// CLEANUP here too
+	state.typedSocket?.cleanup?.();
+	state.typedSocket = undefined;
+	state.gameSocket = null;
+	state.playerInterface = undefined;
+};
 	handleEvents(typedSocket, gameSocket);
 }
 
@@ -100,7 +129,7 @@ async function handleEvents(
 		await handleKicked(data);
 	});
 	typedSocket.on('reconnected', async(socket:WebSocket, data:Interfaces.SocketMessageMap['reconnected'])=>{
-		await handleReconnection(data);
+		await handleReconnection(socket, typedSocket, data);
 	});
 	
 }
@@ -405,16 +434,23 @@ export async function handleKicked(data: Interfaces.SocketMessageMap['kicked']) 
 	showPongMenu();
 }
 
-export async function handleReconnection(data: Interfaces.SocketMessageMap['reconnected']) {
-	console.log(`[FRONT][GAMESOCKET] User ${state.userId} reconnected with state: ${data.state}`);
+export async function handleReconnection(socket:WebSocket, typedSocket:TypedSocket, data: Interfaces.SocketMessageMap['reconnected']) {
+	console.log(`[FRONT][GAMESOCKET] Reconnected as user ${data.userID} with state: ${data.state}`);
 
-	if (!state.playerInterface) {
-		console.warn('[RECONNECT] No playerInterface found, skipping restore.');
-		return;
-	}
+	// Always recreate playerInterface from server data
+	state.gameSocket = socket;
+	state.typedSocket = typedSocket;
+	state.playerInterface = {
+		userID: data.userID,
+		username: data.username,
+		socket: state.gameSocket!,
+		typedSocket: state.typedSocket!,
+		state: data.state!,
+		gameID: data.gameID ?? undefined,
+		tournamentID: data.tournamentID ?? undefined,
+	};
 
-	// Sync server-sent player state
-	state.playerInterface.state = data.state;
+	localStorage.setItem('userID', data.userID.toString());
 
 	// CASE 1: Game is active & Renderer exists → Resume it
 	if (data.gameID && pongState.pongRenderer !== null) {
@@ -424,33 +460,57 @@ export async function handleReconnection(data: Interfaces.SocketMessageMap['reco
 		} else {
 			console.log('[RECONNECT] Resuming existing renderer.');
 			pongState.pongRenderer.resumeRenderLoop?.();
+			state.canvasViewState = 'playingGame';
 			return;
 		}
 	}
 
 	// CASE 2: Game is active & Renderer is missing → Offer to restore it
 	if (data.gameID && pongState.pongRenderer === null) {
-		console.log('[RECONNECT] Renderer missing. Prompting resume.');
+		console.log('[RECONNECT] User accepted resume. Sending resumeGame.');
+
+		const playerCount = Number(localStorage.getItem('playerCount'));
+		const side = localStorage.getItem('playerSide') as 'left' | 'right' | 'top' | 'bottom';
+
+		let usernamesRaw = localStorage.getItem('usernames');
+		let usernames: Record<'left' | 'right' | 'top' | 'bottom', string> = {
+			left: '', right: '', top: '', bottom: ''
+		};
+		try {
+			if (usernamesRaw) {
+				usernames = JSON.parse(usernamesRaw);
+			}
+		} catch (e) {
+			console.error('[RECONNECT] Failed to parse usernames from localStorage', e);
+		}
+
+		const canvas = document.getElementById('babylon-canvas');
+		if (!canvas || !(canvas instanceof HTMLCanvasElement)) {
+			console.error('Canvas element not found or not a valid canvas.');
+			return;
+		}
+
+		pongState.pongRenderer = new PongRenderer(canvas, state.typedSocket, playerCount, side, usernames);
+		state.canvasViewState = 'playingGame';
+		pongState.pongRenderer.resumeRenderLoop();
+		showPongMenu();
+
+	return;
+	}
+
+
+	// CASE 3: User is not in a game → Return to main menu or lobby
+	if (!data.gameID) {
+		console.log('[RECONNECT] No active game. Returning to main menu.');
+		state.canvasViewState = 'mainMenu';
 
 		showNotification({
-			message: 'You were reconnected. Do you want to resume the game?',
-			type: 'confirm',
-			onConfirm: () => {
-				console.log('[RECONNECT] User accepted resume. Sending resumeGame.');
-				state.playerInterface?.typedSocket.send('resumeGame', {
-					gameID: data.gameID,
-				});
-			},
+			message: data.message ?? 'Reconnected successfully.',
+			type: 'info',
 		});
-		return;
-	}
-
-	// CASE 3: User is not in a game → Return to lobby
-	if (!data.gameID) {
-		console.log('[RECONNECT] User is not in a game. Returning to lobby.');
-		// TODO: implement lobby return here
 	}
 }
+
 
 
 

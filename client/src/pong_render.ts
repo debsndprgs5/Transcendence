@@ -34,7 +34,7 @@ export class PongRenderer{
 		bottom: ''
 	};
 
-	private isPaused: boolean = false;
+	private isPaused: boolean;
 	private pauseUI!: {
 		container: GUI.Rectangle;
 		icon: GUI.TextBlock;
@@ -55,6 +55,12 @@ export class PongRenderer{
 		this.playerCount = playerCount;
 		this.playerSide = playerSide;
 		this.playersInfo=usernames;
+		this.isPaused = false;
+
+		localStorage.setItem('playerCount', playerCount.toString());
+		localStorage.setItem('playerSide', playerSide);
+		localStorage.setItem('usernames', JSON.stringify(usernames));
+		localStorage.setItem('gameName', state.currentGameName!);
 
 		this.engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: false, stencil: true });
 		this.scene = new BABYLON.Scene(this.engine);
@@ -439,6 +445,8 @@ export class PongRenderer{
 	private startRenderLoop() {
 		this.engine.runRenderLoop(() => {
 		this.scene.render();
+		if(this.isPaused === true)
+			console.warn(`BOUUOBUOBUOBUBOBUOBUOBUBOBUBOBUOBUBOBUOBUBOUBOBUBOUBBOU`)
 		this.pauseUI.container.isVisible = this.isPaused;
 		this.processInput();
 		});
@@ -506,7 +514,8 @@ export class PongRenderer{
   }
 
 	private updateHUD(elapsed: number, scores: Record<'left' | 'right' | 'top' | 'bottom', number>) {
-		this.timeText.text = `${state.currentGameName}: ${elapsed.toFixed(1)}s`;
+		const gameName = localStorage.getItem('gameName');
+		this.timeText.text = `${gameName}: ${elapsed.toFixed(1)}s`;
 
 		if (this.playerCount === 2) {
 			if (this.scoreTextBlocks.left) {

@@ -338,13 +338,26 @@ export async function setupHomeHandlers(): Promise<void> {
 			state.currentPlayers = [];
 		}
 	}
-	if (savedView === 'playingGame') {
-		console.log(`RESTORING VIEWS for ${state.playerInterface!.username} in game ${state.playerInterface!.gameID}`)
-		if(state.playerInterface!.gameID)
-			state.canvasViewState = 'playingGame';
-		else
-			state.canvasViewState = 'mainMenu';
-	}
+	// if (savedView === 'playingGame') {
+	// console.log(`RESTORING VIEWS in game for USERid: ${state.userId}`);
+
+	// if (
+	// 	state.playerInterface &&
+	// 	state.playerInterface.typedSocket &&
+	// 	state.playerInterface.gameID
+	// ) {
+	// 	state.playerInterface.typedSocket.send('reconnected', {
+	// 		userID: state.userId!,
+	// 		gameID: state.playerInterface.gameID,
+	// 		tournamentID: state.playerInterface.tournamentID,
+	// 	});
+	// 	state.canvasViewState = 'playingGame';
+	// } else {
+	// 	console.warn('[RESTORE] Missing playerInterface or gameID, returning to main menu.');
+	// 	state.canvasViewState = 'mainMenu';
+	// }
+//}
+
 	const savedTView = localStorage.getItem('tournament_view');
 	if (savedTView === 'waitingTournament') {
 		const name = localStorage.getItem('tournament_name');
@@ -1182,11 +1195,11 @@ export async function router(): Promise<void> {
 		default:
 			render(HomeView());
 			if (isAuthenticated()) {
-				setupHomeHandlers();
 				if (!state.socket || state.socket.readyState === WebSocket.CLOSED)
 					 initWebSocket();
 				if (!state.playerInterface?.socket || state.playerInterface?.socket.readyState === WebSocket.CLOSED)
 					initGameSocket();
+				setupHomeHandlers();
 				startTokenValidation();
 				
 			}

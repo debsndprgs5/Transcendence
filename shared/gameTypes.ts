@@ -74,7 +74,14 @@ export type SocketMessageMap = {
 	};
 	gameRequest:{type:'gameRequest'; userID:number};
 	endMatch:{type:'endMatch'; iswinner: boolean, playerScores: Record<string, number> };
-	reconnected:{type:'reconnected'; userID:number; state:string; gameID?:number; tournamentID?:number};
+	reconnected:{
+		type:'reconnected';
+		userID:number;
+		username?:string;
+		state?:string;
+		gameID?:number;
+		tournamentID?:number;
+		message?:string};
 	disconnected:{type:'disconnected'};
 	leaveGame:{type:'leaveGame'; userID:number; gameID:number; islegit:boolean};
 	giveSide:{type:'giveSide'; userID:number; gameID:number; side:'right'|'left'| 'top'| 'bottom'};

@@ -12,6 +12,7 @@ import {createTypedEventSocket} from '../shared/gameEventWrapper'
 import { playerMove } from '../services/pong'
 import { TypedSocket } from '../shared/gameTypes';
 import {handleAllEvents, handleDisconnect} from './game.sockEvents'
+import { PongRoom } from '../services/PongRoom';
 
 
 
@@ -91,6 +92,8 @@ export async function initGameSocket(ws: WebSocket, request: any) {
 	const typedSocket = createTypedEventSocket(ws);
 
 	if (oldPlayer) {
+    oldPlayer.typedSocket?.cleanup?.(); // <- this should remove all old listeners
+    oldPlayer.socket?.removeAllListeners?.(); 
 		//  Reuse existing player object on reconnect
 		console.log(`[RECONNECT INIT] Reusing existing player ${userID}`);
 		oldPlayer.socket = ws;
@@ -117,6 +120,12 @@ export async function initGameSocket(ws: WebSocket, request: any) {
 			tournamentID: oldPlayer.tournamentID ?? null,
 			message: oldPlayer.gameID ? 'Reconnected' : 'No game to resume',
 		});
+    if (oldPlayer.gameID) {
+      const room = PongRoom.rooms.get(oldPlayer.gameID);
+        if (room) {
+          room.resume(oldPlayer.userID);
+        }
+    }
 	} else {
 		//  First-time connection — create new player
 		const user = await UserManagement.getUnameByIndex(userID);

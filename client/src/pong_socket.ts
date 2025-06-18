@@ -16,6 +16,12 @@ export const pongState = {
 export async function initGameSocket() {
 	if (!state.authToken) return;
 
+	// CLEANUP before reinitializing
+	if (state.typedSocket) {
+		console.log('[GAME] Cleaning up previous typed socket...');
+		state.typedSocket.cleanup?.();
+		state.typedSocket.removeAllListeners?.();
+	}
 	const wsUrl = `wss://${location.host}/gameSocket/ws?token=${encodeURIComponent(state.authToken)}`;
 	const gameSocket = new WebSocket(wsUrl);
 	state.gameSocket = gameSocket;
@@ -59,19 +65,32 @@ export async function initGameSocket() {
 
 
 	gameSocket.onclose = (ev) => {
-		try {
-			 console.warn(`[GAME] WebSocket closed — code=${ev.code}, reason="${ev.reason}"`);
-			if (state.gameSocket?.readyState === WebSocket.OPEN)
-				state.typedSocket?.send('disconnected', {});
-		} catch (err) {
-			console.warn('Cannot send disconnected message: ', err);
-		}
-		console.warn('[GAME] WebSocket closed : ', ev.code, ev.reason);
-	};
+	try {
+		console.warn(`[GAME] WebSocket closed — code=${ev.code}, reason="${ev.reason}"`);
+		if (state.gameSocket?.readyState === WebSocket.OPEN)
+			state.typedSocket?.send('disconnected', {});
+	} catch (err) {
+		console.warn('Cannot send disconnected message: ', err);
+	}
+	
+	// CLEANUP here too
+	state.typedSocket?.cleanup?.();
+	state.typedSocket = undefined;
+	state.gameSocket = null;
+	state.playerInterface = undefined;
 
-	gameSocket.onerror = (err) => {
+	console.warn('[GAME] WebSocket closed : ', ev.code, ev.reason);
+};
+
+gameSocket.onerror = (err) => {
 	console.error('[GAME] WebSocket error:', err);
-	};
+
+	// CLEANUP here too
+	state.typedSocket?.cleanup?.();
+	state.typedSocket = undefined;
+	state.gameSocket = null;
+	state.playerInterface = undefined;
+};
 	handleEvents(typedSocket, gameSocket);
 }
 
@@ -448,42 +467,36 @@ export async function handleReconnection(socket:WebSocket, typedSocket:TypedSock
 
 	// CASE 2: Game is active & Renderer is missing → Offer to restore it
 	if (data.gameID && pongState.pongRenderer === null) {
-	console.log('[RECONNECT] Renderer missing. Prompting resume.');
+		console.log('[RECONNECT] User accepted resume. Sending resumeGame.');
 
-	showNotification({
-		message: 'You were reconnected. Do you want to resume the game?',
-		type: 'confirm',
-		onConfirm: () => {
-			console.log('[RECONNECT] User accepted resume. Sending resumeGame.');
+		const playerCount = Number(localStorage.getItem('playerCount'));
+		const side = localStorage.getItem('playerSide') as 'left' | 'right' | 'top' | 'bottom';
 
-			const playerCount = Number(localStorage.getItem('playerCount'));
-			const side = localStorage.getItem('playerSide') as 'left' | 'right' | 'top' | 'bottom';
-
-			let usernamesRaw = localStorage.getItem('usernames');
-			let usernames: Record<'left' | 'right' | 'top' | 'bottom', string> = {
-				left: '', right: '', top: '', bottom: ''
-			};
-			try {
-				if (usernamesRaw) {
-					usernames = JSON.parse(usernamesRaw);
-				}
-			} catch (e) {
-				console.error('[RECONNECT] Failed to parse usernames from localStorage', e);
+		let usernamesRaw = localStorage.getItem('usernames');
+		let usernames: Record<'left' | 'right' | 'top' | 'bottom', string> = {
+			left: '', right: '', top: '', bottom: ''
+		};
+		try {
+			if (usernamesRaw) {
+				usernames = JSON.parse(usernamesRaw);
 			}
-
-			const canvas = document.getElementById('babylon-canvas');
-			if (!canvas || !(canvas instanceof HTMLCanvasElement)) {
-				console.error('Canvas element not found or not a valid canvas.');
-				return;
-			}
-
-			pongState.pongRenderer = new PongRenderer(canvas, state.typedSocket, playerCount, side, usernames);
-			state.canvasViewState = 'playingGame';
-			showPongMenu();
+		} catch (e) {
+			console.error('[RECONNECT] Failed to parse usernames from localStorage', e);
 		}
-	});
+
+		const canvas = document.getElementById('babylon-canvas');
+		if (!canvas || !(canvas instanceof HTMLCanvasElement)) {
+			console.error('Canvas element not found or not a valid canvas.');
+			return;
+		}
+
+		pongState.pongRenderer = new PongRenderer(canvas, state.typedSocket, playerCount, side, usernames);
+		state.canvasViewState = 'playingGame';
+		pongState.pongRenderer.resumeRenderLoop();
+		showPongMenu();
+
 	return;
-}
+	}
 
 
 	// CASE 3: User is not in a game → Return to main menu or lobby

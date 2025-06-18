@@ -265,5 +265,5 @@ export async function handleDisconnect(player: Interfaces.playerInterface) {
 	if(room) room.stop()
 	Helpers.kickFromGameRoom(player.gameID!, player, `${player.username} timed out`);
 	delPlayer(player.userID);
-  }, 25000);
+  }, 15000);
 }

@@ -45,37 +45,48 @@ export async function gameRoutes(fastify: FastifyInstance) {
 
 
 export async function createGameRoom(request: FastifyRequest, reply: FastifyReply) {
-	try {
-		const body = request.body as { userID: number; name?: string, ball_speed:number, paddle_speed:number }; // adjust if more fields needed
+  try {
+    const body = request.body as {
+      userID: number;
+      name?: string;
+      ball_speed: number;
+      paddle_speed: number;
+      mode: 'duo' | 'quatuor';
+      win_condition: 'time' | 'score';
+      limit: number;
+    };
 
-		const mode = 'duo';
-		const type = 'public';
-		const state = 'waiting';
-		const rules = JSON.stringify({
-			ball_speed:body.ball_speed, 
-			paddle_speed:body.paddle_speed,
-			win_condition:'time',
-			limit:5 });
-		if(!body.name)
-			return;
-		const gameID = await gameMgr.createGameRoom(type, state, mode, rules, body.name, body.userID);
+    if (!body.name) return reply.status(400).send({ success: false, message: 'Name required' });
 
-		if (gameID) {
-			reply.send({
-				success: true,
-				room: {
-					gameID,
-					gameName: body.name,
-					createdBy: body.userID
-				}
-			});
-		} else {
-			reply.status(500).send({ success: false, message: 'Failed to create game room' });
-		}
-	} catch (error) {
-		console.error('Error in createGameRoom:', error);
-		reply.status(500).send({ success: false, message: 'Server error' });
-	}
+    const type = 'public';
+    const stateStr = 'waiting';
+    // build rules JSON with selections
+    const rules = JSON.stringify({
+      ball_speed:    body.ball_speed,
+      paddle_speed:  body.paddle_speed,
+      mode:          body.mode,
+      win_condition: body.win_condition,
+      limit:         body.limit,
+    });
+
+    const gameID = await gameMgr.createGameRoom(type, stateStr, body.mode, rules, body.name, body.userID);
+
+    if (!gameID) {
+      return reply.status(500).send({ success: false, message: 'Failed to create game room' });
+    }
+
+    reply.send({
+      success: true,
+      room: {
+        gameID,
+        gameName: body.name,
+        createdBy: body.userID
+      }
+    });
+  } catch (error) {
+    console.error('Error in createGameRoom:', error);
+    reply.status(500).send({ success: false, message: 'Server error' });
+  }
 }
 
 

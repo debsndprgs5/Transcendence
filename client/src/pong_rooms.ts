@@ -176,7 +176,7 @@ export function showPongMenu(): void {
 							console.error('No socket for PongRenderer');
 							return;
 						}
-					state.typedSocket.send('gameRequest', state.playerInterface.userID);
+
 					}
 					break;
 
@@ -346,6 +346,8 @@ async function handlePongMenuClick(e: MouseEvent): Promise<void> {
 			}
 			if (clickedBtn.action === 'back') {
 				state.canvasViewState = 'mainMenu';
+				if(state.playerInterface && state.playerInterface.state !== 'init')
+					state.playerInterface.state = 'init';
 				showPongMenu();
 			} else if (clickedBtn.action.startsWith('join:')) {
 				// Extract roomID from action string
@@ -369,7 +371,7 @@ async function handlePongMenuClick(e: MouseEvent): Promise<void> {
 					userID:state.userId,
 					gameID:roomID,
 					gameName:roomName
-				})
+				});
 				state.playerInterface.gameID = roomID;
 				// Get players list via API
 				let usernames: string[] = [];

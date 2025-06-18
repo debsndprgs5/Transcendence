@@ -60,6 +60,7 @@ export class PongRenderer{
 		localStorage.setItem('playerCount', playerCount.toString());
 		localStorage.setItem('playerSide', playerSide);
 		localStorage.setItem('usernames', JSON.stringify(usernames));
+		localStorage.setItem('gameName', state.currentGameName!);
 
 		this.engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: false, stencil: true });
 		this.scene = new BABYLON.Scene(this.engine);
@@ -513,7 +514,8 @@ export class PongRenderer{
   }
 
 	private updateHUD(elapsed: number, scores: Record<'left' | 'right' | 'top' | 'bottom', number>) {
-		this.timeText.text = `${state.currentGameName}: ${elapsed.toFixed(1)}s`;
+		const gameName = localStorage.getItem('gameName');
+		this.timeText.text = `${gameName}: ${elapsed.toFixed(1)}s`;
 
 		if (this.playerCount === 2) {
 			if (this.scoreTextBlocks.left) {

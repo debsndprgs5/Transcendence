@@ -38,10 +38,22 @@ let incrementInterval: number | null = null;
 let incrementTimeout: number | null = null;
 let lastButtonAction: string | null = null;
 
-export const createGameFormData = {
-	roomName: null as string | null,
-	ballSpeed: 50,
-	paddleSpeed: 50
+export interface CreateGameFormData {
+  roomName:      string | null;
+  ballSpeed:     number;
+  paddleSpeed:   number;
+  mode:          'duo' | 'quatuor';
+  winCondition:  'time' | 'score';
+  limit:         number;
+}
+
+export const createGameFormData: CreateGameFormData = {
+  roomName:     null,
+  ballSpeed:    50,
+  paddleSpeed:  50,
+  mode:         'duo',      // default selection
+  winCondition: 'time',     // default selection
+  limit:        60          // default: 60 seconds
 };
 
 export async function fetchAvailableRooms(): Promise<{ roomID: number; roomName: string }[]> {
@@ -164,7 +176,7 @@ export function showPongMenu(): void {
 							console.error('No socket for PongRenderer');
 							return;
 						}
-					state.typedSocket.send('gameRequest', state.playerInterface.userID);
+
 					}
 					break;
 
@@ -281,10 +293,18 @@ async function handlePongMenuClick(e: MouseEvent): Promise<void> {
 			if (btnCreate) {
 				await handleCreateGameButton(btnCreate.action);
 				showPongMenu();
-			} else if (
-				y > canvas.height * 0.22 && y < canvas.height * 0.28 &&
-				x > canvas.width  * 0.2  && x < canvas.width  * 0.9
-			) {
+			} else {
+				// compute the exact bounds of the "Room name" row
+				const h = canvas.height;
+				const w = canvas.width;
+				const rowY0 = h * 0.18;            // same as drawCreateGameView rowY(0)
+				const fontH = h * 0.03;            // approx. la taille du texte
+				const leftX = w * 0.15;            // labelX
+				const rightX = w * 0.85;           // on laisse une marge droite
+				if (
+				  y >= rowY0 - fontH && y <= rowY0 + fontH/2 &&
+				  x >= leftX     && x <= rightX
+				) {
 				showNotification({
 					message: 'Type a name for your room:',
 					type: 'prompt',
@@ -294,6 +314,7 @@ async function handlePongMenuClick(e: MouseEvent): Promise<void> {
 						showPongMenu();
 					}
 				});
+				}
 			}
 			break;
 		}
@@ -591,6 +612,47 @@ async function handlePongMenuClick(e: MouseEvent): Promise<void> {
 
 async function handleCreateGameButton(action: string): Promise<void> {
 	switch (action) {
+		// — Mode toggles —
+		case 'toggleModeDuo':
+			createGameFormData.mode = 'duo';
+			break;
+		case 'toggleModeQuatuor':
+			createGameFormData.mode = 'quatuor';
+			break;
+
+		// — Win condition toggles —
+		case 'toggleWinTime':
+			createGameFormData.winCondition = 'time';
+			// clamp limit between 5 et 600
+			createGameFormData.limit = Math.min(600, Math.max(5, createGameFormData.limit));
+			break;
+		case 'toggleWinScore':
+			createGameFormData.winCondition = 'score';
+			// clamp limit entre 1 et 20
+			createGameFormData.limit = Math.min(20, Math.max(1, createGameFormData.limit));
+			break;
+
+		// — Edit limit via prompt —
+		case 'editLimit':
+			showNotification({
+				message: 'Enter limit:',
+				type: 'prompt',
+				placeholder: `${createGameFormData.limit}`,
+				onConfirm: val => {
+					let num = parseInt(val ?? '', 10);
+					if (isNaN(num)) { num = createGameFormData.limit; }
+					if (createGameFormData.winCondition === 'time') {
+						num = Math.min(600, Math.max(5, num));
+					} else {
+						num = Math.min(20, Math.max(1, num));
+					}
+					createGameFormData.limit = num;
+					showPongMenu();
+				}
+			});
+			return; // on va redraw en callback
+
+		// — Ball / paddle speed as avant —
 		case 'ballSpeedUp':
 			createGameFormData.ballSpeed = Math.min(100, createGameFormData.ballSpeed + 1);
 			break;
@@ -603,28 +665,25 @@ async function handleCreateGameButton(action: string): Promise<void> {
 		case 'paddleSpeedDown':
 			createGameFormData.paddleSpeed = Math.max(1, createGameFormData.paddleSpeed - 1);
 			break;
+
 		case 'backToMenu':
 			state.canvasViewState = 'mainMenu';
 			break;
+
 		case 'confirmGame':
-			if(state.playerInterface?.state !== 'init' && state.playerInterface?.state !== 'online'){
-				showNotification({
-					message:`You can't create a game because you are : ${state.playerInterface?.state}`,
-					type:'error'
-				});
-				return;
-			}
+			// validation possible ici…
 			const reply = await apiFetch(`/api/pong/${state.userId}`, {
-			method:'POST',
-			headers:{
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify({
-				userID: state.userId,
-				name: createGameFormData.roomName ? createGameFormData.roomName : 'New Room',
-				ball_speed: createGameFormData.ballSpeed,
-				paddle_speed: createGameFormData.paddleSpeed,
-			})
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					userID: state.userId,
+					name: createGameFormData.roomName || 'New Room',
+					ball_speed: createGameFormData.ballSpeed,
+					paddle_speed: createGameFormData.paddleSpeed,
+					mode: createGameFormData.mode,
+					win_condition: createGameFormData.winCondition,
+					limit: createGameFormData.limit,
+				})
 			});
 			const { gameID, gameName } = reply.room;
 			if(!state.playerInterface?.socket){
@@ -697,7 +756,7 @@ async function handleJoinRandom(): Promise<void> {
 	showPongMenu();
 }
 
-function handlePongMenuMouseDown(e: MouseEvent): void {
+async function handlePongMenuMouseDown(e: MouseEvent): Promise<void> {
 	const canvas = e.currentTarget as HTMLCanvasElement;
 	const rect = canvas.getBoundingClientRect();
 	const x = (e.clientX - rect.left) * (canvas.width / rect.width);
@@ -710,11 +769,18 @@ function handlePongMenuMouseDown(e: MouseEvent): void {
 	);
 	if (btn && ['ballSpeedUp','ballSpeedDown','paddleSpeedUp','paddleSpeedDown'].includes(btn.action)) {
 		lastButtonAction = btn.action;
-		incrementTimeout = window.setTimeout(() => {
-			incrementInterval = window.setInterval(() => {
-				handleCreateGameButton(btn.action);
-			}, 50);
-		}, 350);
+	    // redraw immediately
+	    showPongMenu();
+	    incrementTimeout = window.setTimeout(() => {
+	      incrementInterval = window.setInterval(
+	        // mark this arrow async so we can await inside
+	        async () => {
+	          await handleCreateGameButton(btn.action);
+	          showPongMenu();
+	        },
+	        50
+	      );
+	    }, 350);
 	}
 }
 

@@ -1184,7 +1184,6 @@ export async function router(): Promise<void> {
 				if (!state.playerInterface?.socket || state.playerInterface?.socket.readyState === WebSocket.CLOSED)
 					initGameSocket();
 				startTokenValidation();
-				
 			}
 			break;
 	}

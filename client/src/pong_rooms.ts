@@ -72,9 +72,9 @@ export async function fetchOpenTournaments(): Promise<{ tournamentID: number; na
 // =======================
 
 export function showPongMenu(): void {
-	  const canvas       = document.getElementById('pong-canvas')    as HTMLCanvasElement | null;
-	  const babylonCanvas = document.getElementById('babylon-canvas') as HTMLCanvasElement | null;
-	  if (!canvas || !babylonCanvas) return;
+		const canvas       = document.getElementById('pong-canvas')    as HTMLCanvasElement | null;
+		const babylonCanvas = document.getElementById('babylon-canvas') as HTMLCanvasElement | null;
+		if (!canvas || !babylonCanvas) return;
 
 		// Set up event listeners for menu interactions
 		canvas.onclick = handlePongMenuClick;
@@ -88,13 +88,13 @@ export function showPongMenu(): void {
 		if (!ctx) return;
 
 		// Handle canvas visibility based on game state
-	  if (state.canvasViewState === 'playingGame') {
-	    canvas.style.display        = 'none';
-	    babylonCanvas.style.display = 'block';
-	  } else {
-	    babylonCanvas.style.display = 'none';
-	    canvas.style.display        = 'block';
-	  }
+		if (state.canvasViewState === 'playingGame') {
+			canvas.style.display        = 'none';
+			babylonCanvas.style.display = 'block';
+		} else {
+			babylonCanvas.style.display = 'none';
+			canvas.style.display        = 'block';
+		}
 
 		// Dispose of pongRenderer if exists but not in 'playingGame' state
 		// if (state.canvasViewState !== 'playingGame' && pongState.pongRenderer) {
@@ -147,31 +147,31 @@ export function showPongMenu(): void {
 						break;
 
 				case 'playingGame': 
-				  canvas.style.display        = 'none';
-				  babylonCanvas.style.display = 'block';
+					canvas.style.display        = 'none';
+					babylonCanvas.style.display = 'block';
 
-				  const r = babylonCanvas.getBoundingClientRect();
-				  babylonCanvas.width  = Math.floor(r.width);
-				  babylonCanvas.height = Math.floor(r.height);
+					const r = babylonCanvas.getBoundingClientRect();
+					babylonCanvas.width  = Math.floor(r.width);
+					babylonCanvas.height = Math.floor(r.height);
 
-				  if (pongState.pongRenderer) {
-				    pongState.pongRenderer.handleResize();
-				  }
+					if (pongState.pongRenderer) {
+						pongState.pongRenderer.handleResize();
+					}
 
-				  else {
+					else {
 					console.log(`HELLO NOOB IF YOU"RE HERE YOU'RE COOKED`)
-				    if (!state.playerInterface?.typedSocket) {
-				      console.error('No socket for PongRenderer');
-				      return;
-				    }
+						if (!state.playerInterface?.typedSocket) {
+							console.error('No socket for PongRenderer');
+							return;
+						}
 					state.typedSocket.send('gameRequest', state.playerInterface.userID);
-				  }
-				  break;
+					}
+					break;
 
-		    default:
-		      drawMainMenu(canvas, ctx);
-		      break;
-		  }
+				default:
+					drawMainMenu(canvas, ctx);
+					break;
+			}
 }
 
 export function drawMainMenu(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D): void {
@@ -325,6 +325,8 @@ async function handlePongMenuClick(e: MouseEvent): Promise<void> {
 			}
 			if (clickedBtn.action === 'back') {
 				state.canvasViewState = 'mainMenu';
+				if(state.playerInterface && state.playerInterface.state !== 'init')
+					state.playerInterface.state = 'init';
 				showPongMenu();
 			} else if (clickedBtn.action.startsWith('join:')) {
 				// Extract roomID from action string
@@ -348,7 +350,7 @@ async function handlePongMenuClick(e: MouseEvent): Promise<void> {
 					userID:state.userId,
 					gameID:roomID,
 					gameName:roomName
-				})
+				});
 				state.playerInterface.gameID = roomID;
 				// Get players list via API
 				let usernames: string[] = [];
@@ -373,7 +375,7 @@ async function handlePongMenuClick(e: MouseEvent): Promise<void> {
 				//state.canvasViewState   = 'waitingGame';
 				console.warn("---------------------------------------------- test 1")
 
-				localStorage.setItem('pong_view', 'waitingGame');
+				// localStorage.setItem('pong_view', 'waitingGame');
 				localStorage.setItem('pong_room', roomName);
 				localStorage.setItem('pong_players', JSON.stringify(usernames));
 
@@ -514,7 +516,7 @@ async function handlePongMenuClick(e: MouseEvent): Promise<void> {
 					} else {
 						try {
 							const userResp = await apiFetch(`/api/user/by-index/${m.userID}`, {
-							  headers: { Authorization: `Bearer ${state.authToken}` }
+								headers: { Authorization: `Bearer ${state.authToken}` }
 							});
 							usernames.push(userResp.username.username);
 						} catch {
@@ -664,39 +666,35 @@ async function handleCreateGameButton(action: string): Promise<void> {
 }
 
 async function handleJoinRandom(): Promise<void> {
-  // Get back state.availableRooms
-  const rooms = state.availableRooms && state.availableRooms.length
-    ? state.availableRooms
-    : await fetchAvailableRooms();
+	// fetch available rooms
+	let rooms = await fetchAvailableRooms();
 
-  if (rooms.length > 0) {
-    // Chose the oldest room (lowest ID)
-    const oldest = rooms.reduce((a, b) => a.roomID < b.roomID ? a : b);
-    // join game socket
-    state.typedSocket.send('joinGame', {
-      userID: state.userId,
-      gameID: oldest.roomID,
-      gameName: oldest.roomName
-    });
-    // update waiting game view
-    state.currentGameName = oldest.roomName;
-    // get the players list 
-    const list = await apiFetch(`/api/pong/${oldest.roomID}/list`, {
-      headers: { Authorization: `Bearer ${state.authToken}` }
-    });
-    state.currentPlayers = (list as any[]).map(u => u.username);
-    state.canvasViewState = 'waitingGame';
-    localStorage.setItem('pong_view', 'waitingGame');
-    localStorage.setItem('pong_room', oldest.roomName);
-    localStorage.setItem('pong_players', JSON.stringify(state.currentPlayers));
-    showPongMenu();
-  } else {
-    // No available room → create “Random Queue”
-    createGameFormData.roomName = 'Random Queue';
-    state.canvasViewState = 'createGame';
-    showPongMenu();
-    await handleCreateGameButton('confirmGame');
-  }
+	if (rooms.length === 0) {
+		// No available room → create “Random Queue”
+		createGameFormData.roomName = 'Random Queue';
+		await handleCreateGameButton('confirmGame');
+		rooms = await fetchAvailableRooms();
+	} else {
+		const oldest = rooms.reduce((a, b) => a.roomID < b.roomID ? a : b);
+
+		// join
+		state.typedSocket.send('joinGame', {
+			userID: state.userId,
+			gameID: oldest.roomID,
+			gameName: oldest.roomName
+		});
+
+		// update waitingGame
+		state.currentGameName  = oldest.roomName;
+		const list = await apiFetch(`/api/pong/${oldest.roomID}/list`, {
+			headers: { Authorization: `Bearer ${state.authToken}` }
+		});
+		state.currentPlayers   = (list as any[]).map(u => u.username);
+		localStorage.setItem('pong_room',     oldest.roomName);
+		localStorage.setItem('pong_players',  JSON.stringify(state.currentPlayers));
+	}
+
+	showPongMenu();
 }
 
 function handlePongMenuMouseDown(e: MouseEvent): void {

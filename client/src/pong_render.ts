@@ -57,6 +57,10 @@ export class PongRenderer{
 		this.playersInfo=usernames;
 		this.isPaused = false;
 
+		localStorage.setItem('playerCount', playerCount.toString());
+		localStorage.setItem('playerSide', playerSide);
+		localStorage.setItem('usernames', JSON.stringify(usernames));
+
 		this.engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: false, stencil: true });
 		this.scene = new BABYLON.Scene(this.engine);
 		this.setupGUI();
@@ -440,6 +444,8 @@ export class PongRenderer{
 	private startRenderLoop() {
 		this.engine.runRenderLoop(() => {
 		this.scene.render();
+		if(this.isPaused === true)
+			console.warn(`BOUUOBUOBUOBUBOBUOBUOBUBOBUBOBUOBUBOBUOBUBOUBOBUBOUBBOU`)
 		this.pauseUI.container.isVisible = this.isPaused;
 		this.processInput();
 		});

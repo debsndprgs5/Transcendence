@@ -78,37 +78,70 @@ if (!jwtSecret) {
 //   typedSocket.send('init', { userID: player.userID, state: player.state, success: true });
 // }
 export async function initGameSocket(ws: WebSocket, request: any) {
-    const result = await verifyAndExtractUser(ws, request).catch(e => {
-        console.error('[verifyAndExtractUser ERROR]', e);
-        return null;
-    });
-    if (!result) return;
-    
-    // Create wrapper ONCE and store it
-    const typedSocket = createTypedEventSocket(ws);
-    const user = await UserManagement.getUnameByIndex(result.userId)
-    // Store the wrapper with the player
-    const player: Interfaces.playerInterface<WebSocket> = {
-        socket: ws,
-        typedSocket,
-        userID: result.userId,
-        state: 'init',
-        username: user!.username,
-        hasDisconnected: false,
-    };
-    MappedPlayers.set(result.userId, player)
-    // Register handlers ONCE
-    handleAllEvents(typedSocket, player);
-	ws.on(('close'), () => {
-		handleDisconnect(player)
+	const result = await verifyAndExtractUser(ws, request).catch(e => {
+		console.error('[verifyAndExtractUser ERROR]', e);
+		return null;
 	});
-    // Send init message
-    typedSocket.send('init', {
-        userID: result.userId,
-        state: 'init',
-        success: true
-    });
+	if (!result) return;
+
+	const userID = result.userId;
+	const oldPlayer = MappedPlayers.get(userID);
+
+	// Always create a fresh typed socket for the new WebSocket instance
+	const typedSocket = createTypedEventSocket(ws);
+
+	if (oldPlayer) {
+		//  Reuse existing player object on reconnect
+		console.log(`[RECONNECT INIT] Reusing existing player ${userID}`);
+		oldPlayer.socket = ws;
+		oldPlayer.typedSocket = typedSocket;
+		oldPlayer.hasDisconnected = false;
+
+		// Clear disconnect timeout if still active
+		if (oldPlayer.disconnectTimeOut) {
+			clearTimeout(oldPlayer.disconnectTimeOut);
+			oldPlayer.disconnectTimeOut = undefined;
+			console.log(`[RECONNECT INIT] Cleared disconnect timeout for player ${userID}`);
+		}
+
+		// Register event handlers again on the new socket
+		handleAllEvents(typedSocket, oldPlayer);
+		ws.on('close', () => handleDisconnect(oldPlayer));
+
+		// Notify client of reconnection
+    oldPlayer.typedSocket.send('reconnected', {
+			userID: oldPlayer.userID,
+			username: oldPlayer.username,
+			state: oldPlayer.state,
+			gameID: oldPlayer.gameID ?? null,
+			tournamentID: oldPlayer.tournamentID ?? null,
+			message: oldPlayer.gameID ? 'Reconnected' : 'No game to resume',
+		});
+	} else {
+		//  First-time connection — create new player
+		const user = await UserManagement.getUnameByIndex(userID);
+
+		const player = {
+			socket: ws,
+			typedSocket,
+			userID,
+			state: 'init',
+			username: user!.username,
+			hasDisconnected: false,
+		};
+
+		MappedPlayers.set(userID, player);
+		handleAllEvents(typedSocket, player);
+		ws.on('close', () => handleDisconnect(player));
+
+		typedSocket.send('init', {
+			userID,
+			state: 'init',
+			success: true
+		});
+	}
 }
+
 
 
 export default fp(async (fastify) => {

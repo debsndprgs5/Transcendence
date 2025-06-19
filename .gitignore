@@ -1,3 +1,5 @@
-./src/db/ourdatabse.db
+*.sqlite3
+*.db
+src/db/*.db
 Makefile
 en.subject.pdf

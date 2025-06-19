@@ -129,7 +129,12 @@ async function handleEvents(
 		await handleKicked(data);
 	});
 	typedSocket.on('reconnected', async(socket:WebSocket, data:Interfaces.SocketMessageMap['reconnected'])=>{
-		await handleReconnection(socket, typedSocket, data);
+	  // If it's not you, ignore it
+	  if (data.userID !== state.userId) {
+	    console.log(`[GAMESOCKET] Ignoring reconnection of user ${data.userID}`);
+	    return;
+	  }
+	  await handleReconnection(socket, typedSocket, data);
 	});
 	
 }
@@ -492,7 +497,6 @@ export async function handleReconnection(socket:WebSocket, typedSocket:TypedSock
 
 		pongState.pongRenderer = new PongRenderer(canvas, state.typedSocket, playerCount, side, usernames);
 		state.canvasViewState = 'playingGame';
-		pongState.pongRenderer.resumeRenderLoop();
 		showPongMenu();
 
 	return;

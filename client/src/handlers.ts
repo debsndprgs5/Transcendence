@@ -1201,7 +1201,6 @@ export async function router(): Promise<void> {
 					initGameSocket();
 				setupHomeHandlers();
 				startTokenValidation();
-				
 			}
 			break;
 	}

@@ -383,22 +383,22 @@ export class PongRenderer{
 	public getScene(): BABYLON.Scene {
 		return this.scene;
 	}
+
 	public resumeRenderLoop() {
-		if (this.engine && this.scene && !this.scene.isDisposed) {
-			this.engine.runRenderLoop(() => {
-				if (this.scene && !this.scene.isDisposed) {
-					this.scene.render();
-				}
-			});
-			this.isPaused = false;
-			if (this.pauseUI?.container) {
-				this.pauseUI.container.isVisible = false;
-			}
-			console.log('[RENDERER] Resumed render loop.');
-		} else {
-			console.warn('[RENDERER] Cannot resume — scene or engine missing/disposed.');
-		}
-	}	
+    // Stop any existing loop before resuming
+    this.engine.stopRenderLoop();         // <-- stop the previous render loop
+    this.engine.runRenderLoop(() => {     // <-- start a single, fresh loop
+        if (this.scene && !this.scene.isDisposed) {
+            this.scene.render();
+        }
+    });
+    this.isPaused = false;
+    if (this.pauseUI?.container) {
+        this.pauseUI.container.isVisible = false;
+    }
+    console.log('[RENDERER] Resumed render loop.');
+}
+
 	public updateScene(update: {
 	  paddles: Record<number,{pos:number; side:'left'|'right'|'top'|'bottom'; score:number}>;
 	  balls:   Record<number,{x:number; y:number}>;
@@ -530,6 +530,7 @@ export class PongRenderer{
 
 	public dispose() {
 		console.warn(`DISPOSING RENDER`)
+			this.engine.stopRenderLoop();
 			this.engine.dispose();
 		}
 }

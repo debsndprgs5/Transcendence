@@ -122,9 +122,9 @@ export async function initGameSocket(ws: WebSocket, request: any) {
 		});
     if (oldPlayer.gameID) {
       const room = PongRoom.rooms.get(oldPlayer.gameID);
-        if (room) {
-          room.resume(oldPlayer.userID);
-        }
+        // if (room) {
+        //   room.resume(oldPlayer.userID);
+        // }
     }
 	} else {
 		//  First-time connection — create new player

@@ -9,8 +9,9 @@ import { pongState } from './pong_socket';
 import { PongRenderer } from './pong_render'
 import { TypedSocket } from './shared/gameTypes';
 import { resizePongCanvas } from './handlers';
+import { handleTournamentClick, handleWaitingTournamentClick, handleCreateTournament, handleJoinTournament, handleLeaveTournament, fetchOpenTournaments } from './tournament_rooms';
 
-interface PongButton {
+export interface PongButton {
 	x: number;
 	y: number;
 	w: number;
@@ -28,11 +29,6 @@ declare global {
 	}
 }
 
-export const createTournamentFormData = {
-	tournamentName: null as string | null,
-	ballSpeed: 50,
-	paddleSpeed: 50
-};
 
 let incrementInterval: number | null = null;
 let incrementTimeout: number | null = null;
@@ -70,14 +66,6 @@ export async function fetchAvailableRooms(): Promise<{ roomID: number; roomName:
 		roomName: r.name
 	}));
 }
-
-export async function fetchOpenTournaments(): Promise<{ tournamentID: number; name: string }[]> {
-	const resp = await apiFetch('/api/tournament/list', {
-		headers: { Authorization: `Bearer ${state.authToken}` }
-	});
-	return resp.tournaments;
-}
-
 
 // =======================
 // PONG MENU
@@ -246,369 +234,180 @@ export function drawMainMenu(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
 }
 
 
-
 async function handlePongMenuClick(e: MouseEvent): Promise<void> {
 	const canvas = e.currentTarget as HTMLCanvasElement;
 	const rect   = canvas.getBoundingClientRect();
 	const x      = (e.clientX - rect.left) * (canvas.width  / rect.width);
 	const y      = (e.clientY - rect.top ) * (canvas.height / rect.height);
-	if (state.canvasViewState === 'playingGame')
-		return;
+	if (state.canvasViewState === 'playingGame') return;
+
 	switch (state.canvasViewState) {
-		case 'mainMenu': {
-			// handle main menu buttons
-			const btnMain = canvas._pongMenuBtns?.find((b: PongButton) =>
-				x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h
-			);
-			if (!btnMain) return;
-			switch (btnMain.action) {
-				case 'Create Game' :
-					state.canvasViewState = 'createGame';
-					showPongMenu();
-					break;
-
-				case 'Join Game' :
-					state.availableRooms = await fetchAvailableRooms();
-					state.canvasViewState = 'joinGame';
-					showPongMenu();
-					break;
-
-				case 'Tournament' :
-					state.availableTournaments = await fetchOpenTournaments();
-					state.canvasViewState = 'tournament';
-					showPongMenu();
-					break;
-
-				default :
-					alert(`Clicked: ${btnMain.action}`);
-			}
+		case 'mainMenu':
+			await handleMainMenuClick(canvas, x, y);
 			break;
-		}
 
-		case 'createGame': {
-			// handle create game buttons
-			const btnCreate = canvas._createGameButtons?.find((b: PongButton) =>
-				x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h
-			);
-			if (btnCreate) {
-				await handleCreateGameButton(btnCreate.action);
-				showPongMenu();
-			} else {
-				// compute the exact bounds of the "Room name" row
-				const h = canvas.height;
-				const w = canvas.width;
-				const rowY0 = h * 0.18;            // same as drawCreateGameView rowY(0)
-				const fontH = h * 0.03;            // approx. la taille du texte
-				const leftX = w * 0.15;            // labelX
-				const rightX = w * 0.85;           // on laisse une marge droite
-				if (
-				  y >= rowY0 - fontH && y <= rowY0 + fontH/2 &&
-				  x >= leftX     && x <= rightX
-				) {
-				showNotification({
-					message: 'Type a name for your room:',
-					type: 'prompt',
-					placeholder: 'Room Name',
-					onConfirm: val => {
-						createGameFormData.roomName = val ?? null;
-						showPongMenu();
-					}
-				});
-				}
-			}
+		case 'createGame':
+			await handleCreateGameClick(canvas, x, y);
 			break;
-		}
 
-		case 'waitingGame': {
-			// handle the leave room button
-			const btnWaiting = (canvas as any)._waitingGameButtons?.find((b: PongButton) =>
-				x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h
-			);
-			if (!btnWaiting) return;
-			if (btnWaiting.action === 'leaveRoom') {
-				await handleLeaveGame();
-				showPongMenu();
-			}
+		case 'waitingGame':
+			await handleWaitingGameClick(canvas, x, y);
 			break;
-		}
 
-		case 'joinGame': {
-			// handle clicks on "Join Game" view
-			const btns = (canvas as any)._joinGameButtons as PongButton[] | undefined;
-			if (!btns) return;
-
-			const clickedBtn = btns.find((b: PongButton) =>
-				x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h
-			);
-			if (!clickedBtn) return;
-			if (clickedBtn.action === 'joinRandom') {
-				return handleJoinRandom();
-			}
-			if (clickedBtn.action === 'back') {
-				state.canvasViewState = 'mainMenu';
-				if(state.playerInterface && state.playerInterface.state !== 'init')
-					state.playerInterface.state = 'init';
-				showPongMenu();
-			} else if (clickedBtn.action.startsWith('join:')) {
-				// Extract roomID from action string
-				const [, roomIDStr] = clickedBtn.action.split(':');
-				const roomID = Number(roomIDStr);
-
-				// get corresponding roomName in state.availableRooms
-				const roomInfo = state.availableRooms?.find(r => r.roomID === roomID);
-				const roomName = roomInfo ? roomInfo.roomName : 'Unknown Room';
-
-				// Verify that socket exists
-				if (!state.playerInterface?.socket) {
-					console.error('No gameSocket available');
-					showNotification({
-						message: 'Cannot join game : Socket unavailable.',
-						type: 'error'
-					});
-					return;
-				}
-				state.typedSocket.send('joinGame',{
-					userID:state.userId,
-					gameID:roomID,
-					gameName:roomName
-				});
-				state.playerInterface.gameID = roomID;
-				// Get players list via API
-				let usernames: string[] = [];
-				try {
-					const playerslist = await apiFetch(
-						`/api/pong/${encodeURIComponent(roomID)}/list`,
-						{ headers: { Authorization: `Bearer ${state.authToken}` } }
-					);
-					// playerslist should be an array of username: string
-					usernames = (playerslist as { username: string }[]).map(u => u.username);
-				} catch (err) {
-					console.error('Error getting players list:', err);
-					showNotification({
-						message: 'Error getting players list',
-						type: 'error'
-					});
-				}
-
-				// store in localstorage / state like if u created the room
-				state.currentGameName   = roomName;
-				state.currentPlayers    = usernames;
-				//state.canvasViewState   = 'waitingGame';
-				console.warn("---------------------------------------------- test 1")
-
-				// localStorage.setItem('pong_view', 'waitingGame');
-				localStorage.setItem('pong_room', roomName);
-				localStorage.setItem('pong_players', JSON.stringify(usernames));
-
-				showPongMenu();
-			}
+		case 'joinGame':
+			await handleJoinGameClick(canvas, x, y);
 			break;
-		}
-		case 'tournament': {
-			const btns = (canvas as any)._tournamentButtons as PongButton[] | undefined;
-			if (!btns) return;
 
-			const clickedBtn = btns.find(b =>
-				x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h
-			);
-			if (!clickedBtn) return;
-
-			if (clickedBtn.action === 'editTournamentName') {
-				showNotification({
-					message: 'Enter tournament name:',
-					type: 'prompt',
-					placeholder: 'Tournament Name',
-					onConfirm: val => {
-						createTournamentFormData.tournamentName = val ?? null;
-						showPongMenu();
-					}
-				});
-			}
-			else if (clickedBtn.action === 'ballSpeedUp') {
-				createTournamentFormData.ballSpeed = Math.min(100, createTournamentFormData.ballSpeed + 1);
-				showPongMenu();
-			}
-			else if (clickedBtn.action === 'ballSpeedDown') {
-				createTournamentFormData.ballSpeed = Math.max(1, createTournamentFormData.ballSpeed - 1);
-				showPongMenu();
-			}
-			else if (clickedBtn.action === 'paddleSpeedUp') {
-				createTournamentFormData.paddleSpeed = Math.min(100, createTournamentFormData.paddleSpeed + 1);
-				showPongMenu();
-			}
-			else if (clickedBtn.action === 'paddleSpeedDown') {
-				createTournamentFormData.paddleSpeed = Math.max(1, createTournamentFormData.paddleSpeed - 1);
-				showPongMenu();
-			}
-			else if (clickedBtn.action === 'backToMenu') {
-				state.canvasViewState = 'mainMenu';
-				showPongMenu();
-				break;
-			}
-			else if (clickedBtn.action === 'createTournament') {
-				const name = createTournamentFormData.tournamentName;
-				if (!name) {
-					showNotification({ message: 'Please enter a name first', type: 'error' });
-					return;
-				}
-
-				apiFetch(`/api/tournament/${state.userId}`, {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-						Authorization: `Bearer ${state.authToken}`
-					},
-					body: JSON.stringify({
-						name,
-						maxPlayers: 16,
-						status: 'open'
-					})
-				})
-					.then(async resp => {
-						showNotification({ message: `Tournament "${name}" created`, type: 'success' });
-						let ownerName = `User${state.userId}`;
-						try {
-							const userResp = await apiFetch(`/api/user/by-index/${state.userId}`, {
-								headers: { Authorization: `Bearer ${state.authToken}` }
-							});
-							ownerName = userResp.username.username;
-						} catch {
-							// if api breaks we keep userID
-						}
-						const list = await fetchOpenTournaments();
-						state.availableTournaments = list;
-						state.currentTournamentPlayers = [ ownerName ];
-						const createdEntry = list.find(t => t.name === name)!;
-						state.currentTournamentID      = createdEntry.tournamentID;
-						state.currentTournamentName    = name;
-						state.canvasViewState          = 'waitingTournament';
-
-						localStorage.setItem('tournament_view', 'waitingTournament');
-						localStorage.setItem('tournament_name', name);
-						localStorage.setItem('tournament_id', String(state.currentTournamentID));
-						localStorage.setItem('tournament_players', JSON.stringify([ownerName]));
-
-						showPongMenu();
-					})
-					.catch(err => {
-						console.error('Error creating tournament:', err);
-						showNotification({ message: 'Failed to create', type: 'error' });
-					});
-
-				return;
-			}
-			else if (clickedBtn.action.startsWith('join:')) {
-				const [, tourIDstr] = clickedBtn.action.split(':');
-				const tourID = Number(tourIDstr);
-
-				try {
-					// Send POST /join to register to tournament
-					await apiFetch(`/api/tournament/${tourID}/join/${state.userId}`, {
-						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json',
-							Authorization: `Bearer ${state.authToken}`
-						},
-						body: JSON.stringify({})
-					});
-				} catch (err) {
-					console.error('Error joining tournament:', err);
-					showNotification({ message: 'Failed to join tournament', type: 'error' });
-					return;
-				}
-
-				// If succes, get members list by GET /members
-				let members: { userID: number; alias: string }[] = [];
-				try {
-					const resp = await apiFetch(`/api/tournament/${tourID}/members`, {
-						headers: { Authorization: `Bearer ${state.authToken}` }
-					});
-					members = resp.members;
-				} catch (err) {
-					console.error('Error fetching tournament members:', err);
-					showNotification({ message: 'Cannot fetch tournament members', type: 'error' });
-					return;
-				}
-
-				const usernames: string[] = [];
-				for (const m of members) {
-					if (m.alias && m.alias.trim() !== '') {
-						usernames.push(m.alias);
-					} else {
-						try {
-							const userResp = await apiFetch(`/api/user/by-index/${m.userID}`, {
-								headers: { Authorization: `Bearer ${state.authToken}` }
-							});
-							usernames.push(userResp.username.username);
-						} catch {
-							usernames.push(`User${m.userID}`);
-						}
-					}
-				}
-				state.currentTournamentPlayers = usernames;
-				// Update global state
-				state.currentTournamentID      = tourID;
-				state.currentTournamentName    = state.availableTournaments
-					?.find(t => t.tournamentID === tourID)?.name || 'Unknown Tournament';
-				state.canvasViewState          = 'waitingTournament';
-
-				// stock in localstorage to persist after refresh
-				localStorage.setItem('tournament_view', 'waitingTournament');
-				localStorage.setItem('tournament_id', String(tourID));
-				localStorage.setItem('tournament_name', state.currentTournamentName);
-				localStorage.setItem('tournament_players', JSON.stringify(usernames));
-
-				showPongMenu();
-				break;
-			}}
-		case 'waitingTournament': {
-			const btns = (canvas as any)._waitingTournamentButtons as PongButton[] | undefined;
-			if (!btns) return;
-
-			const clickedBtn = btns.find((b: PongButton) =>
-				x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h
-			);
-			if (!clickedBtn) return;
-
-			if (clickedBtn.action === 'leaveTournament') {
-				// Call API to leave tournament
-				const tournamentID = state.currentTournamentID;
-				try {
-					await apiFetch(`/api/tournament/${tournamentID}/leave/${state.userId}`, {
-						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json',
-							Authorization: `Bearer ${state.authToken}`
-						},
-						body: JSON.stringify({})
-					});
-				} catch (err) {
-					console.error('Error leaving tournament:', err);
-					showNotification({ message: 'Error leaving tournament', type: 'error' });
-					return;
-				}
-
-				// Clean state & localStorage
-				state.currentTournamentName    = undefined;
-				state.currentTournamentPlayers = undefined;
-				state.currentTournamentID      = undefined;
-				delete state.currentTournamentID;
-
-				localStorage.removeItem('tournament_view');
-				localStorage.removeItem('tournament_name');
-				localStorage.removeItem('tournament_players');
-				localStorage.removeItem('tournament_id');
-
-				state.canvasViewState = 'mainMenu';
-				showPongMenu();
-			}
+		case 'tournament':
+			await handleTournamentClick(canvas, x, y);
 			break;
-		}
+
+		case 'waitingTournament':
+			await handleWaitingTournamentClick(canvas, x, y);
+			break;
+
 		default:
 			break;
 	}
 }
 
+// Handle clicks in the Main Menu view
+async function handleMainMenuClick(canvas: HTMLCanvasElement, x: number, y: number): Promise<void> {
+	const btnMain = canvas._pongMenuBtns?.find((b: PongButton) =>
+		x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h
+	);
+	if (!btnMain) return;
+
+	switch (btnMain.action) {
+		case 'Create Game':
+			state.canvasViewState = 'createGame';
+			showPongMenu();
+			break;
+
+		case 'Join Game':
+			state.availableRooms = await fetchAvailableRooms();
+			state.canvasViewState = 'joinGame';
+			showPongMenu();
+			break;
+
+		case 'Tournament':
+			state.availableTournaments = await fetchOpenTournaments();
+			state.canvasViewState = 'tournament';
+			showPongMenu();
+			break;
+
+		default:
+			alert(`Clicked: ${btnMain.action}`);
+	}
+}
+
+// Handle clicks in the Create Game view
+async function handleCreateGameClick(canvas: HTMLCanvasElement, x: number, y: number): Promise<void> {
+	const btnCreate = canvas._createGameButtons?.find((b: PongButton) =>
+		x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h
+	);
+	if (btnCreate) {
+		await handleCreateGameButton(btnCreate.action);
+		showPongMenu();
+		return;
+	}
+
+	// compute the exact bounds of the "Room name" row
+	const h = canvas.height;
+	const w = canvas.width;
+	const rowY0 = h * 0.18;            // same as drawCreateGameView rowY(0)
+	const fontH = h * 0.03;            // approx. text height
+	const leftX = w * 0.15;            // labelX
+	const rightX = w * 0.85;           // right margin
+
+	if (
+		y >= rowY0 - fontH && y <= rowY0 + fontH/2 &&
+		x >= leftX     && x <= rightX
+	) {
+		showNotification({
+			message: 'Type a name for your room:',
+			type: 'prompt',
+			placeholder: 'Room Name',
+			onConfirm: val => {
+				createGameFormData.roomName = val ?? null;
+				showPongMenu();
+			}
+		});
+	}
+}
+
+// Handle clicks in the Waiting Game view
+async function handleWaitingGameClick(canvas: HTMLCanvasElement, x: number, y: number): Promise<void> {
+	const btnWaiting = (canvas as any)._waitingGameButtons?.find((b: PongButton) =>
+		x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h
+	);
+	if (!btnWaiting) return;
+
+	if (btnWaiting.action === 'leaveRoom') {
+		await handleLeaveGame();
+		showPongMenu();
+	}
+}
+
+// Handle clicks in the Join Game view
+async function handleJoinGameClick(canvas: HTMLCanvasElement, x: number, y: number): Promise<void> {
+	const btns = (canvas as any)._joinGameButtons as PongButton[] | undefined;
+	if (!btns) return;
+
+	const clickedBtn = btns.find((b: PongButton) =>
+		x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h
+	);
+	if (!clickedBtn) return;
+
+	if (clickedBtn.action === 'joinRandom') {
+		return handleJoinRandom();
+	}
+
+	if (clickedBtn.action === 'back') {
+		state.canvasViewState = 'mainMenu';
+		if (state.playerInterface && state.playerInterface.state !== 'init')
+			state.playerInterface.state = 'init';
+		showPongMenu();
+		return;
+	}
+
+	if (clickedBtn.action.startsWith('join:')) {
+		// Extract roomID from action string
+		const [, roomIDStr] = clickedBtn.action.split(':');
+		const roomID = Number(roomIDStr);
+
+		// get roomName
+		const roomInfo = state.availableRooms?.find(r => r.roomID === roomID);
+		const roomName = roomInfo ? roomInfo.roomName : 'Unknown Room';
+
+		// Verify socket
+		if (!state.playerInterface?.socket) {
+			console.error('No gameSocket available');
+			showNotification({ message: 'Cannot join game : Socket unavailable.', type: 'error' });
+			return;
+		}
+
+		state.typedSocket.send('joinGame',{ userID: state.userId, gameID: roomID, gameName: roomName });
+		state.playerInterface.gameID = roomID;
+
+		// fetch players list
+		let usernames: string[] = [];
+		try {
+			const playerslist = await apiFetch(`/api/pong/${encodeURIComponent(roomID)}/list`, { headers: { Authorization: `Bearer ${state.authToken}` } });
+			usernames = (playerslist as { username: string }[]).map(u => u.username);
+		} catch (err) {
+			console.error('Error getting players list:', err);
+			showNotification({ message: 'Error getting players list', type: 'error' });
+		}
+
+		state.currentGameName = roomName;
+		state.currentPlayers = usernames;
+		localStorage.setItem('pong_room', roomName);
+		localStorage.setItem('pong_players', JSON.stringify(usernames));
+
+		showPongMenu();
+	}
+}
 
 async function handleCreateGameButton(action: string): Promise<void> {
 	switch (action) {

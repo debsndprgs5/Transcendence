@@ -338,25 +338,6 @@ export async function setupHomeHandlers(): Promise<void> {
 			state.currentPlayers = [];
 		}
 	}
-	// if (savedView === 'playingGame') {
-	// console.log(`RESTORING VIEWS in game for USERid: ${state.userId}`);
-
-	// if (
-	// 	state.playerInterface &&
-	// 	state.playerInterface.typedSocket &&
-	// 	state.playerInterface.gameID
-	// ) {
-	// 	state.playerInterface.typedSocket.send('reconnected', {
-	// 		userID: state.userId!,
-	// 		gameID: state.playerInterface.gameID,
-	// 		tournamentID: state.playerInterface.tournamentID,
-	// 	});
-	// 	state.canvasViewState = 'playingGame';
-	// } else {
-	// 	console.warn('[RESTORE] Missing playerInterface or gameID, returning to main menu.');
-	// 	state.canvasViewState = 'mainMenu';
-	// }
-//}
 
 	const savedTView = localStorage.getItem('tournament_view');
 	if (savedTView === 'waitingTournament') {
@@ -371,15 +352,15 @@ export async function setupHomeHandlers(): Promise<void> {
 		}
 	}
 	// Logout button
-	const logoutBtn = document.getElementById('logoutBtn');
+	const logoutBtn = document.getElementById('logoutNavBtn');
 	if (logoutBtn) {
 		logoutBtn.addEventListener('click', () => {
 			localStorage.removeItem('token');
 			localStorage.removeItem('username');
 			history.pushState(null, '', '/');
-			
-			router();
 			handleLogout();
+			router();
+			
 		});
 	}
 
@@ -1076,31 +1057,31 @@ export function handleLogout(): void {
 	
 
 	// Notify server about game leave (only if socket is open)
-	if (state.playerInterface?.gameID && state.playerInterface?.socket?.readyState === WebSocket.OPEN) {
-		state.playerInterface.typedSocket.send('leaveGame', {
-			userID: state.playerInterface.userID,
-			gameID: state.playerInterface.gameID,
-			islegit: false,
+	//if (state.playerInterface?.gameID && state.playerInterface?.socket?.readyState === WebSocket.OPEN) {
+		state.playerInterface!.typedSocket.send('leaveGame', {
+			userID: state.playerInterface!.userID,
+			gameID: state.playerInterface!.gameID,
+			islegit: false
 		});
-	}
+//	}
 
 	// Send offline status via friend socket (if open)
-	if (state.socket?.readyState === WebSocket.OPEN) {
+//	if (state.socket?.readyState === WebSocket.OPEN) {
 		console.warn(`CLOSING CHAT socket`)
-		state.socket.send(JSON.stringify({
+		state.socket?.send(JSON.stringify({
 			type: 'friendStatus',
 			action: 'update',
 			state: 'offline',
 			userID: state.userId,
 		}));
-		state.socket.close();
-	}
+		state.socket?.close();
+//	}
 
 	// Close game socket
-	if (state.playerInterface?.socket?.readyState === WebSocket.OPEN) {
+	//if (state.playerInterface?.socket?.readyState === WebSocket.OPEN) {
 		console.warn(`[GAMESOCKET] Closing for ${state.userId}`);
-		state.playerInterface.socket.close();
-	}
+		state.playerInterface!.socket?.close();
+//	}
 
 	// Clear runtime 
 	resetState();

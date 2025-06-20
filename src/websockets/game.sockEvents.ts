@@ -54,7 +54,6 @@ export async function handleInit(
   data: { userID: number },
   player: Interfaces.playerInterface,
 ) {
-  console.log(`HANDLE INIT CALLED : ${data.userID}`);
 
   const success = data.userID === player.userID;
 
@@ -83,7 +82,6 @@ export async function handleJoin(
 
   try {
     await GameManagement.addMemberToGameRoom(gameID, userID);
-    console.log(`ADDING [USERID]${userID} in gameRoom : ${gameID}`);
 
     // Update player state using centralized helper that sends statusUpdate
     Helpers.updatePlayerState(player, 'waiting');
@@ -196,7 +194,6 @@ export async function handleLeaveGame(parsed: any, player: Interfaces.playerInte
 
 export async function handlePlayerMove(parsed: any, player: Interfaces.playerInterface) {
     const { direction, gameID } = parsed;
-    console.log(`[GAME]${gameID} [MOVE] direction:${direction} [PLAYER name]${player.username} `)
     playerMove(gameID, player.userID, direction)
 }
 
@@ -216,16 +213,12 @@ export async function handleReconnect(parsed:any ,player: Interfaces.playerInter
 		return;
 	}
   // CASE 2: Matched user — restore interface and possibly game
-  console.log(`[RECONNECT] Valid reconnect for user ${player.userID}`);
-
   player.hasDisconnected = false;
 
   if (player.disconnectTimeOut) {
-    console.log(`[RECONNECT] Clearing disconnect timeout for user ${player.userID}`);
     clearTimeout(player.disconnectTimeOut);
     player.disconnectTimeOut = undefined;
   }
-  console.log(`TRYING TO FIND GAMEID:${player.gameID} FOR PLAYER ${player.username}`)
 	let resumed = false;
 	if (player.gameID) {
 		const room = PongRoom.rooms.get(player.gameID);
@@ -235,7 +228,6 @@ export async function handleReconnect(parsed:any ,player: Interfaces.playerInter
 		}
 	}
   if(resumed)
-    console.log(`FOUNDED GAME TO RESUME ${player.gameID} BUT player state is : ${player.state}`);
 	// Always send back current player + state info
 	player.typedSocket.send('reconnected', {
 		userID: player.userID,
@@ -250,8 +242,6 @@ export async function handleReconnect(parsed:any ,player: Interfaces.playerInter
 export async function handleDisconnect(player: Interfaces.playerInterface) {
 	if (!player || player.hasDisconnected) return;
 
-	console.log(`[DISCONNECT] Player ${player.userID}`);
-
 	player.hasDisconnected = true;
 
 	if (!player.gameID) return; // Not in a game? Do nothing
@@ -262,10 +252,9 @@ export async function handleDisconnect(player: Interfaces.playerInterface) {
 
   // Start 15s timeout
   player.disconnectTimeOut = setTimeout(() => {
-    console.log(`[TIMEOUT] Ending game due to disconnect of ${player.userID}`);
     const room = PongRoom.rooms.get(player.gameID!)
 	if(room) room.stop()
 	Helpers.kickFromGameRoom(player.gameID!, player, `${player.username} timed out`);
-	delPlayer(player.userID);
+	  delPlayer(player.userID);
   }, 15000);
 }

@@ -221,8 +221,6 @@ export async function tryStartGameIfReady(gameID: number) {
       .map(p => getPlayerByUserID(p.userID))//same HERE
       .filter((p): p is Interfaces.playerInterface => !!p);
 
-    console.log(`starting game in process for user count: ${playerObjs.length}`);
-
     if (playerObjs.length === maxPlayers) {
       playerObjs.forEach(p => {
         updatePlayerState(p, 'playing');  // Event-driven status update
@@ -261,7 +259,6 @@ export async function kickFromGameRoom(
 
   // If reason is provided, kick **all** players with reason
   if (reason) {
-    console.log(`[kickFromGameRoom] Kicking all players from room ${gameID}. Reason: ${reason}`);
 
     for (const p of players) {
       const player = getPlayerByUserID(p.userID);

@@ -712,7 +712,6 @@ async function handleCreateGameButton(action: string): Promise<void> {
 			state.currentGameName   = gameName;
 			state.currentPlayers    = usernames;
 			state.canvasViewState   = 'waitingGame';
-			console.warn("---------------------------------------------- test 2");
 
 			// persist in local storage to survive refresh
 			localStorage.setItem('pong_view', 'waitingGame');

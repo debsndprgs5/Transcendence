@@ -2,7 +2,7 @@ import { WebSocket, WebSocketServer } from 'ws';
 import fp from 'fastify-plugin';
 import { user } from '../types/user';
 import * as UserManagement from '../db/userManagement';
-
+import { updatePlayerState } from './game.sockHelpers';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import * as dotenv from 'dotenv';
 import path from 'path';
@@ -118,13 +118,14 @@ export async function initGameSocket(ws: WebSocket, request: any) {
 			state: oldPlayer.state,
 			gameID: oldPlayer.gameID ?? null,
 			tournamentID: oldPlayer.tournamentID ?? null,
-			message: oldPlayer.gameID ? 'Reconnected' : 'No game to resume',
+			message: oldPlayer.state === 'playing' ? 'Reconnected' : 'No game to resume',
 		});
+    updatePlayerState(oldPlayer, oldPlayer.state);
     if (oldPlayer.gameID) {
       const room = PongRoom.rooms.get(oldPlayer.gameID);
-        // if (room) {
-        //   room.resume(oldPlayer.userID);
-        // }
+        if (room) {
+          room.resume(oldPlayer.userID);
+        }
     }
 	} else {
 		//  First-time connection — create new player
@@ -148,6 +149,9 @@ export async function initGameSocket(ws: WebSocket, request: any) {
 			state: 'init',
 			success: true
 		});
+    console.log(`STATUS UPADTED try to send after init`);
+    updatePlayerState(player, player.state);
+    
 	}
 }
 
@@ -213,6 +217,17 @@ export function getPlayerBySocket(ws: WebSocket): Interfaces.playerInterface<Web
 
 export function getPlayerByUserID(userID: number): Interfaces.playerInterface | undefined {
   return MappedPlayers.get(userID);
+}
+
+export function getPlayerState(userID:number): string | undefined{
+  const player = getPlayerByUserID(userID);
+  if(!player || player.state === 'offline')
+    return('offline')
+  if(player.state !== 'init')
+    return('in-game')
+  if(player.state === 'init')
+    return ('online')
+  return ('error')
 }
 
 export function getAllMembersFromGameID(gameID:number): Interfaces.playerInterface[]|undefined{

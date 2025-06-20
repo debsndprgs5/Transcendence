@@ -47,6 +47,29 @@ export const state: AppState = {
 	gameInterface: undefined,
 };
 
+export function resetState(){
+	Object.assign(state, {
+		authToken: null,
+		pendingToken: null,
+		socket: null,
+		gameSocket:null,
+		typedSocket:null,
+		currentRoom: 0,
+		availableRooms: [],
+		availableTournaments: [],
+		currentTournamentName: undefined,
+		currentTournamentPlayers: undefined,
+		currentTournamentID: undefined,
+		canvasViewState: 'mainMenu',
+		currentGameName: undefined,
+		currentPlayers: undefined,
+		friendsStatusList: [],
+		playerInterface: undefined,
+		paddleInterface: undefined,
+		gameInterface: undefined,
+	});
+}
+
 // ─── AUTHENTICATION ──────────────────────────────────────────────────────
 
 /**
@@ -148,6 +171,7 @@ export async function initWebSocket(): Promise<void> {
 		console.warn("WebSocket: no auth token");
 		return;
 	}
+
 	try {
 		const resp = await fetch('/api/auth/me', {
 			headers: {
@@ -175,56 +199,58 @@ export async function initWebSocket(): Promise<void> {
 
 		state.socket = new WebSocket(wsUrl);
 
-		state.socket.onopen = () => {
-			setTimeout(() => {
-				if (state.socket!.readyState === WebSocket.OPEN) {
+		return new Promise<void>((resolve, reject) => {
+			state.socket!.onopen = () => {
+				console.log('[CHAT] WebSocket connected');
+				state.socket!.send(
+					JSON.stringify({
+						type: 'chatHistory',
+						roomID: state.currentRoom,
+						userID: state.userId,
+						limit: 50,
+					})
+				);
+
+				if (
+					window.location.pathname === '/account' &&
+					state.friendsStatusList?.length
+				) {
 					state.socket!.send(
 						JSON.stringify({
-							type: 'chatHistory',
-							roomID: state.currentRoom,
-							userID: state.userId,
-							limit: 50,
+							type: 'friendStatus',
+							action: 'request',
+							friendList: state.friendsStatusList,
 						})
 					);
-
-					if (
-						window.location.pathname === '/account' &&
-						state.friendsStatusList?.length
-					) {
-						state.socket!.send(
-							JSON.stringify({
-								type: 'friendStatus',
-								action: 'request',
-								friendList: state.friendsStatusList,
-							})
-						);
-					}
 				}
-			}, 100);
-		};
+				resolve(); // Resolve when ready to use
+			};
 
-		state.socket.onmessage = (event: MessageEvent) => {
-			console.log('Raw msg from websocket : ', event.data);
-			try {
-				const parsed = JSON.parse(event.data);
-				console.log('Parsed WS message:', parsed);
-				handleWebSocketMessage(parsed);
-			} catch (e) {
-				console.error('WebSocket message parsing error:', e);
-			}
-		};
+			state.socket!.onmessage = (event: MessageEvent) => {
+				console.log('Raw msg from websocket : ', event.data);
+				try {
+					const parsed = JSON.parse(event.data);
+					console.log('Parsed WS message:', parsed);
+					handleWebSocketMessage(parsed);
+				} catch (e) {
+					console.error('WebSocket message parsing error:', e);
+				}
+			};
 
-		state.socket.onclose = (event: CloseEvent) => {
-			console.log('WebSocket disconnected:', event.code, event.reason);
-		};
+			state.socket!.onclose = (event: CloseEvent) => {
+				console.log('WebSocket disconnected:', event.code, event.reason);
+			};
 
-		state.socket.onerror = (error: Event) => {
-			console.error('WebSocket Error:', error);
-		};
+			state.socket!.onerror = (error: Event) => {
+				console.error('WebSocket Error:', error);
+				reject(error); // Reject if connection fails
+			};
+		});
 	} catch (error) {
 		console.error('Error during WebSocket init:', error);
 	}
 }
+
 
 // ─── MESSAGE HANDLING ──────────────────────────────────────────────────────
 
@@ -334,7 +360,7 @@ export function handleWebSocketMessage(msg: WebSocketMsg): void {
 		}
 
 		case 'friendStatus': {
-			console.log('[FRONT] WebSocket friendStatus received:', msg);
+			console.log('[FRIEND] WebSocket friendStatus received:', msg);
 			if (msg.action === 'response' && Array.isArray(msg.list)) {
 				msg.list.forEach(({ friendID, status }: any) => {
 					const statusSpan = document.querySelector<HTMLElement>(
@@ -358,16 +384,16 @@ export function handleWebSocketMessage(msg: WebSocketMsg): void {
 					dot.style.marginRight = '0.3em';
 					dot.style.verticalAlign = 'middle';
 
-					if (status === 'online') {
+					if (status === 'online' || status === 'init') {
 						dot.style.background = '#22c55e';
-					} else if (status === 'in-game') {
+					} else if (status === 'in-game' || status === 'playing') {
 						dot.style.background = '#facc15';
 					} else {
 						dot.style.background = '#9ca3af';
 					}
 
 					const text = document.createElement('span');
-					text.textContent = status === 'in-game' ? 'in game' : status;
+					text.textContent = status;
 					text.style.fontWeight = 'bold';
 					text.style.textTransform = 'capitalize';
 
@@ -375,13 +401,58 @@ export function handleWebSocketMessage(msg: WebSocketMsg): void {
 					statusSpan.appendChild(text);
 				});
 			}
-			break;
-		}
+				if(msg.action === 'updateStatus'){
+					if(msg.targetID !== state.playerInterface!.userID){
+						console.warn(`[FRIEND UPDATE] userID mismatch target->${msg.targetID} user->${state.playerInterface!.userID}`);
+						//SHOULD NOT HAPPEND UNLESS GLITCH
+					}
+					else{
+						const statusSpan = document.querySelector<HTMLElement>(
+						`.friend-status[data-userid="${msg.friendID}"]`
+					);
+					if (!statusSpan) {
+						console.warn(
+							'[FRONT] Could not find .friend-status for friendID:',
+							msg.friendID
+						);
+						return;
+					}
 
+					statusSpan.innerHTML = '';
+
+					const dot = document.createElement('span');
+					dot.style.display = 'inline-block';
+					dot.style.width = '0.75em';
+					dot.style.height = '0.75em';
+					dot.style.borderRadius = '50%';
+					dot.style.marginRight = '0.3em';
+					dot.style.verticalAlign = 'middle';
+
+					if (msg.status === 'online') {
+						dot.style.background = '#22c55e';
+					} else if (msg.status === 'in-game') {
+						dot.style.background = '#facc15';
+					} else {
+						dot.style.background = '#9ca3af';
+					}
+
+					const text = document.createElement('span');
+					text.textContent = msg.status;
+					text.style.fontWeight = 'bold';
+					text.style.textTransform = 'capitalize';
+
+					statusSpan.appendChild(dot);
+					statusSpan.appendChild(text);
+					}
+
+				}
+				break;
+			}
 		default:
 			console.warn('Unrecognized WebSocket message type:', msg);
-	}
+		}
 }
+
 
 // ─── APPEND MESSAGE ─────────────────────────────────────────────────────────
 

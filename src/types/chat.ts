@@ -17,7 +17,7 @@ export interface messages{
 
 export interface user_relationships{
     id:             number;
-    userID:         number;
+    user_id:         number;
     related_userID: number;
     type:           string;
     created_at:     string; 

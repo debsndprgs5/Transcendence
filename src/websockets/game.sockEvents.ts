@@ -196,6 +196,7 @@ export async function handleLeaveGame(parsed: any, player: Interfaces.playerInte
 
 export async function handlePlayerMove(parsed: any, player: Interfaces.playerInterface) {
     const { direction, gameID } = parsed;
+    console.log(`[GAME]${gameID} [MOVE] direction:${direction} [PLAYER name]${player.username} `)
     playerMove(gameID, player.userID, direction)
 }
 
@@ -211,6 +212,7 @@ export async function handleReconnect(parsed:any ,player: Interfaces.playerInter
 			state: 'init',
 			success: true,
 		});
+    Helpers.updatePlayerState(player, 'init');
 		return;
 	}
   // CASE 2: Matched user — restore interface and possibly game

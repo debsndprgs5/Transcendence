@@ -125,8 +125,12 @@ export class PongRoom {
 	}
 	/*Resume the loop*/ 
 	resume(userID:number){
-		console.log(`RESUME CALLED YA KHALED `);
 		this.pauseState.pausedPlayers.delete(userID);
+		if(this.pauseState.isPaused === false){
+			console.log(`RESUME CALLED ON A RUNNING GAME`);
+			return;
+		}
+		console.log(`RESUME CALLED !`);
 		if(this.pauseState.pausedPlayers.size === 0){
 			this.pauseState.isPaused = false;
 			this.loop = setInterval(() => this.frame(), 1000/60);

@@ -8,7 +8,7 @@ import {
 	ProfileView,
 	render
 } from './views';
-import { isAuthenticated, apiFetch, initWebSocket, state } from './api';
+import { isAuthenticated, apiFetch, initWebSocket, state, resetState } from './api';
 import { showNotification, showUserActionsBubble } from './notifications';
 import { showPongMenu } from './pong_rooms';
 import { initGameSocket } from './pong_socket';
@@ -1073,36 +1073,42 @@ window.addEventListener('storage', (event: StorageEvent) => {
  * Clears all auth state, closes socket and renders Home.
  */
 export function handleLogout(): void {
-	localStorage.removeItem('token');
-	localStorage.removeItem('username');
-	localStorage.removeItem('currentRoom');
-
 	
-	if (!state.playerInterface?.socket)
-		console.log(`[GAMESOCKET]NOT FOUND for ${state.userId}`);
-	if (state.playerInterface?.socket) {
-		console.log(`[GAMESOCKET]closing for ${state.userId}`);
-		state.playerInterface?.socket.close();
+
+	// Notify server about game leave (only if socket is open)
+	if (state.playerInterface?.gameID && state.playerInterface?.socket?.readyState === WebSocket.OPEN) {
+		state.playerInterface.typedSocket.send('leaveGame', {
+			userID: state.playerInterface.userID,
+			gameID: state.playerInterface.gameID,
+			islegit: false,
+		});
 	}
-	if(state.playerInterface)
-		state.playerInterface.state = 'offline';
-	state.socket?.send(JSON.stringify({
-		type: 'friendStatus',
-		action: 'update',
-		state: 'offline',
-		userID: state.userId,
-	}));
-	state.canvasViewState = 'mainMenu';
+
+	// Send offline status via friend socket (if open)
 	if (state.socket?.readyState === WebSocket.OPEN) {
+		console.warn(`CLOSING CHAT socket`)
+		state.socket.send(JSON.stringify({
+			type: 'friendStatus',
+			action: 'update',
+			state: 'offline',
+			userID: state.userId,
+		}));
 		state.socket.close();
 	}
-	state.authToken = null;
-	state.userId    = -1;
-	state.currentRoom = 0;
+
+	// Close game socket
+	if (state.playerInterface?.socket?.readyState === WebSocket.OPEN) {
+		console.warn(`[GAMESOCKET] Closing for ${state.userId}`);
+		state.playerInterface.socket.close();
+	}
+
+	// Clear runtime 
+	resetState();
+	localStorage.clear();
+
 	updateNav();
 	render(HomeView());
 }
-
 /**
  * Sets up the back button on profile view.
  */
@@ -1179,10 +1185,10 @@ export async function router(): Promise<void> {
 					const user = await apiFetch('/api/users/me', { headers: { Authorization: `Bearer ${state.authToken}` } });
 					const friends = await apiFetch('/api/friends', { headers: { Authorization: `Bearer ${state.authToken}` } });
 					render(AccountView(user, friends));
-					// if (!state.socket || state.socket.readyState === WebSocket.CLOSED)
-					// 	initWebSocket();
-					// if (!state.playerInterface?.socket || state.playerInterface?.socket.readyState === WebSocket.CLOSED)
-					// 	initGameSocket();
+					if (!state.socket || state.socket.readyState === WebSocket.CLOSED)
+						initWebSocket();
+					if (!state.playerInterface?.socket || state.playerInterface?.socket.readyState === WebSocket.CLOSED)
+						initGameSocket();
 					setupAccountHandlers(user, friends);
 				} catch (e: any) {
 					showNotification({ message: 'Error during account loading: ' + e.message, type: 'error', duration: 5000 });
@@ -1196,9 +1202,9 @@ export async function router(): Promise<void> {
 			render(HomeView());
 			if (isAuthenticated()) {
 				if (!state.socket || state.socket.readyState === WebSocket.CLOSED)
-					 initWebSocket();
+					 await initWebSocket();
 				if (!state.playerInterface?.socket || state.playerInterface?.socket.readyState === WebSocket.CLOSED)
-					initGameSocket();
+					await initGameSocket();
 				setupHomeHandlers();
 				startTokenValidation();
 			}

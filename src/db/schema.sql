@@ -103,13 +103,14 @@ CREATE TABLE IF NOT EXISTS tournamentMembers (
 
 --  Matches results
 CREATE TABLE IF NOT EXISTS tournamentMatches (
-  matchID        INTEGER PRIMARY KEY AUTOINCREMENT,
+  matchID        INTEGER NOT NULL,
   tournamentID   INTEGER NOT NULL,
   playerA        INTEGER NOT NULL,
   playerB        INTEGER NOT NULL,
   scoreA         INTEGER NOT NULL,
   scoreB         INTEGER NOT NULL,
   played_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (matchID) REFERENCES gameRooms(gameID) ON DELETE CASCADE,
   FOREIGN KEY(tournamentID) REFERENCES tournaments(tournamentID) ON DELETE CASCADE,
   FOREIGN KEY(playerA) REFERENCES users(our_index) ON DELETE CASCADE,
   FOREIGN KEY(playerB) REFERENCES users(our_index) ON DELETE CASCADE
@@ -117,13 +118,14 @@ CREATE TABLE IF NOT EXISTS tournamentMatches (
 
 --  Normal Matches results 2 players
 CREATE TABLE IF NOT EXISTS gameResultTwo (
-  matchID		INTEGER PRIMARY KEY AUTOINCREMENT,
+  matchID		INTEGER NOT NULL,
   winner		INTEGER NOT NULL,
   playerA		INTEGER NOT NULL,
   playerB		INTEGER NOT NULL,
   scoreA		INTEGER NOT NULL,
   scoreB		INTEGER NOT NULL,
   played_at		DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (matchID) REFERENCES gameRooms(gameID) ON DELETE CASCADE,
   FOREIGN KEY(winner) REFERENCES users(our_index) ON DELETE CASCADE,
   FOREIGN KEY(playerA) REFERENCES users(our_index) ON DELETE CASCADE,
   FOREIGN KEY(playerB) REFERENCES users(our_index) ON DELETE CASCADE
@@ -131,7 +133,7 @@ CREATE TABLE IF NOT EXISTS gameResultTwo (
 
 --  Normal Matches results 4 players
 CREATE TABLE IF NOT EXISTS gameResultFour (
-  matchID		INTEGER PRIMARY KEY AUTOINCREMENT,
+  matchID		INTEGER NOT NULL,
   winner		INTEGER NOT NULL,
   playerA		INTEGER NOT NULL,
   playerB		INTEGER NOT NULL,

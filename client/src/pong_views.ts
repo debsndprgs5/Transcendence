@@ -1,4 +1,5 @@
-import { createGameFormData, createTournamentFormData } from './pong_rooms';
+import { createGameFormData } from './pong_rooms';
+import { createTournamentFormData } from './tournament_rooms';
 import { state } from './api';
 
 interface PongButton {

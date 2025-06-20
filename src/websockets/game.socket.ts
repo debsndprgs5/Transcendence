@@ -95,7 +95,6 @@ export async function initGameSocket(ws: WebSocket, request: any) {
     oldPlayer.typedSocket?.cleanup?.(); // <- this should remove all old listeners
     oldPlayer.socket?.removeAllListeners?.(); 
 		//  Reuse existing player object on reconnect
-		console.log(`[RECONNECT INIT] Reusing existing player ${userID}`);
 		oldPlayer.socket = ws;
 		oldPlayer.typedSocket = typedSocket;
 		oldPlayer.hasDisconnected = false;
@@ -104,7 +103,6 @@ export async function initGameSocket(ws: WebSocket, request: any) {
 		if (oldPlayer.disconnectTimeOut) {
 			clearTimeout(oldPlayer.disconnectTimeOut);
 			oldPlayer.disconnectTimeOut = undefined;
-			console.log(`[RECONNECT INIT] Cleared disconnect timeout for player ${userID}`);
 		}
 
 		// Register event handlers again on the new socket
@@ -149,9 +147,7 @@ export async function initGameSocket(ws: WebSocket, request: any) {
 			state: 'init',
 			success: true
 		});
-    console.log(`STATUS UPADTED try to send after init`);
     updatePlayerState(player, player.state);
-    
 	}
 }
 
@@ -245,11 +241,9 @@ export function getAllMembersFromGameID(gameID:number): Interfaces.playerInterfa
 export function delPlayer(userID: number) {
   const player = MappedPlayers.get(userID);
   if (!player) return;
-
   // Close socket if still open
   if (player.socket && player.socket.readyState === WebSocket.OPEN) {
     player.socket.close();
   }
-
   MappedPlayers.delete(userID);
 }

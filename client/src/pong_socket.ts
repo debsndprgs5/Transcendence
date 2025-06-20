@@ -419,8 +419,8 @@ export async function handleEndMatch(
 
 	if (state.playerInterface?.socket && state.playerInterface.gameID !== undefined) {
 		state.typedSocket.send('leaveGame', {
-			userID:  state.playerInterface.userID,
-			gameID:  state.playerInterface.gameID,
+			userID: state.playerInterface.userID,
+			gameID: state.playerInterface.gameID,
 			islegit: true
 		});
 	} else {

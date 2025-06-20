@@ -194,29 +194,7 @@ export const getAllMatches = (tournamentID: number) =>
 		[tournamentID]
 	);
 
-// ########################
-// #      USERSTAT        #
-// ########################
 
-export const createData = (gameID: number, userID: number, mode: string, result: string, score: string, duration: number, datas: string) =>
-	run(
-		`INSERT INTO userStat (gameID, userID, mode, result, score, gameDuration, datas) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		[gameID, userID, mode, result, score, duration, datas]
-	);
-
-export const addData = createData; // Alias
-
-export const getAllDataFromId = (userID: number) =>
-	getAll<{ gameID: number; mode: string; result: string; score: string; gameDuration: number; datas: string }>(
-		`SELECT * FROM userStat WHERE userID = ?`,
-		[userID]
-	);
-
-export const getAllDataFromGameId = (gameID: number) =>
-	getAll<{ userID: number; result: string; score: string }>(
-		`SELECT * FROM userStat WHERE gameID = ?`,
-		[gameID]
-	);
 
 // ############################
 // #       Match Result       #

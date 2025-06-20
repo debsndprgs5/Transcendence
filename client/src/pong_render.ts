@@ -166,50 +166,44 @@ export class PongRenderer{
 			this.guiTexture.addControl(rightScore);
 			this.scoreTextBlocks.right = rightScore;
 
-			//LEFT AVATAR
+			// LEFT AVATAR
 			const leftUsername = this.playersInfo.left;
 			let leftAvatarurl: string;
 			try {
-				const json = await apiFetch(
-					`/users/${encodeURIComponent(leftUsername)}/avatar`
-				) as { avatar_url?: string };
+				const json = await apiFetch(`/users/${encodeURIComponent(leftUsername)}/avatar`) as { avatar_url?: string };
 				leftAvatarurl = json.avatar_url ?? "";
 			} catch {
 				leftAvatarurl = "";
 			}
-			if (!leftAvatarurl)
-				leftAvatarurl = `https://ui-avatars.com/api/?name=${encodeURIComponent(leftUsername)}&background=6d28d9&color=fff&rounded=true`;
-			const leftAvatarResponse = await fetch(leftAvatarurl);
-			const leftBlob = await leftAvatarResponse.blob();
-			const leftBlobUrl = URL.createObjectURL(leftBlob);
 
-			const leftAvatarImage = new GUI.Image("leftAvatar", leftBlobUrl);
+			if (!leftAvatarurl) {
+				leftAvatarurl = `https://ui-avatars.com/api/?name=${encodeURIComponent(leftUsername)}&background=6d28d9&color=fff&rounded=true`;
+			}
+
+			const leftAvatarImage = new GUI.Image("leftAvatar", leftAvatarurl);
 			leftAvatarImage.width = "40px";
 			leftAvatarImage.height = "40px";
 			leftAvatarImage.left = "20px";
-			leftAvatarImage.top = "25px"; // between name (5px) and score (45px)
+			leftAvatarImage.top = "25px";
 			leftAvatarImage.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
 			leftAvatarImage.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
 			this.guiTexture.addControl(leftAvatarImage);
-			
-			//RIGTH AVATAR
+
+			// RIGHT AVATAR
 			const rightUsername = this.playersInfo.right;
 			let rightAvatarurl: string;
 			try {
-				const json = await apiFetch(
-					`/users/${encodeURIComponent(rightUsername)}/avatar`
-				) as { avatar_url?: string };
+				const json = await apiFetch(`/users/${encodeURIComponent(rightUsername)}/avatar`) as { avatar_url?: string };
 				rightAvatarurl = json.avatar_url ?? "";
 			} catch {
 				rightAvatarurl = "";
 			}
-			if (!rightAvatarurl)
-				rightAvatarurl = `https://ui-avatars.com/api/?name=${encodeURIComponent(rightUsername)}&background=6d28d9&color=fff&rounded=true`;
-			const rightAvatarResponse = await fetch(rightAvatarurl);
-			const rightBlob = await rightAvatarResponse.blob();
-			const rightBlobUrl = URL.createObjectURL(rightBlob);
 
-			const rightAvatarImage = new GUI.Image("rightAvatar", rightBlobUrl);
+			if (!rightAvatarurl) {
+				rightAvatarurl = `https://ui-avatars.com/api/?name=${encodeURIComponent(rightUsername)}&background=6d28d9&color=fff&rounded=true`;
+			}
+
+			const rightAvatarImage = new GUI.Image("rightAvatar", rightAvatarurl);
 			rightAvatarImage.width = "40px";
 			rightAvatarImage.height = "40px";
 			rightAvatarImage.left = "-20px";
@@ -217,9 +211,9 @@ export class PongRenderer{
 			rightAvatarImage.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
 			rightAvatarImage.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
 			this.guiTexture.addControl(rightAvatarImage);
-					
 			}
-	}
+}
+
 	private setupPauseUI() {
 		this.pauseUI = {
 			container: new GUI.Rectangle(),
@@ -385,19 +379,17 @@ export class PongRenderer{
 	}
 
 	public resumeRenderLoop() {
-    // Stop any existing loop before resuming
-    this.engine.stopRenderLoop();         // <-- stop the previous render loop
-    this.engine.runRenderLoop(() => {     // <-- start a single, fresh loop
-        if (this.scene && !this.scene.isDisposed) {
-            this.scene.render();
-        }
-    });
-    this.isPaused = false;
-    if (this.pauseUI?.container) {
-        this.pauseUI.container.isVisible = false;
-    }
-    console.log('[RENDERER] Resumed render loop.');
-}
+		console.log('[RESUME] Stopping render loop...');
+		this.engine.stopRenderLoop();
+		console.log('[RESUME] Starting render loop...');
+		this.startRenderLoop(); // Reuse full original loop logic
+
+		this.isPaused = false;
+		if (this.pauseUI?.container) {
+			this.pauseUI.container.isVisible = false;
+		}
+		console.log('[RENDERER] Resumed render loop.');
+	}
 
 	public updateScene(update: {
 	  paddles: Record<number,{pos:number; side:'left'|'right'|'top'|'bottom'; score:number}>;
@@ -446,8 +438,6 @@ export class PongRenderer{
 	private startRenderLoop() {
 		this.engine.runRenderLoop(() => {
 		this.scene.render();
-		if(this.isPaused === true)
-			console.warn(`BOUUOBUOBUOBUBOBUOBUOBUBOBUBOBUOBUBOBUOBUBOUBOBUBOUBBOU`)
 		this.pauseUI.container.isVisible = this.isPaused;
 		this.processInput();
 		});
@@ -486,6 +476,13 @@ export class PongRenderer{
       if (e.key === 'ArrowRight') this.inputState.right = true;
       // Prevent default scroll with arrows
       if (e.key.startsWith('Arrow')) e.preventDefault();
+	  if(e.key === 'Escape' || e.key === 'Esc'){
+			if(state.playerInterface!.state === 'playing')
+				state.typedSocket.send('leaveGame',{
+					userID:state.userId!,
+					gameID:state.playerInterface!.gameID,
+					isLegit:false});
+				}
     });
 
     window.addEventListener('keyup', (e) => {
@@ -493,15 +490,6 @@ export class PongRenderer{
       if (e.key === 'ArrowRight') this.inputState.right = false;
       // no preventDefault needed here
     });
-	  window.addEventListener('keydown', (e)=>{
-		if(e.key === 'Escape' || e.key === 'Esc'){
-			if(state.playerInterface!.state === 'playing')
-				state.typedSocket.send('leaveGame',{
-					userID:state.userId!,
-					gameID:state.playerInterface!.gameID,
-					isLegit:false});
-		}
-	  });
 	}
 
   private sendMove(direction: 'left' | 'right' | 'stop') {

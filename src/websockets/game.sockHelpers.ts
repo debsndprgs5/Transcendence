@@ -15,11 +15,14 @@ export function updatePlayerState(
   player.state = newState;
 
   if (player.typedSocket) {
+    console.log(`UPDATED STATUS SENT`)
     player.typedSocket.send('statusUpdate', {
       userID: player.userID,
       newState
     });
   }
+  else 
+    console.warn(`CANNOT SEND STATUS UPDATE no typed socket found`)
 }
 
 

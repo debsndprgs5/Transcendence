@@ -72,7 +72,7 @@ export type SocketMessageMap = {
 		elapsed:number;
 		isPaused:boolean;
 	};
-	gameRequest:{type:'gameRequest'; userID:number};
+	//gameRequest:{type:'gameRequest'; userID:number};
 	endMatch:{type:'endMatch'; iswinner: boolean, playerScores: Record<string, number> };
 	reconnected:{
 		type:'reconnected';
@@ -82,12 +82,12 @@ export type SocketMessageMap = {
 		gameID?:number;
 		tournamentID?:number;
 		message?:string};
-	disconnected:{type:'disconnected'};
+	//disconnected:{type:'disconnected'};
 	leaveGame:{type:'leaveGame'; userID:number; gameID:number; islegit:boolean};
 	giveSide:{type:'giveSide'; userID:number; gameID:number; side:'right'|'left'| 'top'| 'bottom'};
 	kicked:{type:'kicked'; userID:number; reason:string};
-	close:{type:'close'};
-	removeEventListener:{type:'removeEventListener'};
+	//close:{type:'close'};
+//	removeEventListener:{type:'removeEventListener'};
 };
 
 export type SocketMessage = SocketMessageMap[keyof SocketMessageMap];

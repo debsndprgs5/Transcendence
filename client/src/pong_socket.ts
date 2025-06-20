@@ -13,7 +13,7 @@ export const pongState = {
 	pongRenderer: null as PongRenderer | null,
 };
 
-export async function initGameSocket() {
+export async function initGameSocket(): Promise<void> {
 	if (!state.authToken) return;
 
 	// CLEANUP before reinitializing
@@ -22,77 +22,81 @@ export async function initGameSocket() {
 		state.typedSocket.cleanup?.();
 		state.typedSocket.removeAllListeners?.();
 	}
+
 	const wsUrl = `wss://${location.host}/gameSocket/ws?token=${encodeURIComponent(state.authToken)}`;
 	const gameSocket = new WebSocket(wsUrl);
 	state.gameSocket = gameSocket;
 
-	const typedSocket = createTypedEventSocket(state.gameSocket);
-	state.typedSocket = typedSocket;
-	gameSocket.onopen = async () => {
-	console.log('[GAME] WebSocket connected');
+	return new Promise<void>((resolve, reject) => {
+		gameSocket.onopen = async () => {
+			console.log('[GAME] WebSocket connected');
 
-	while (!state.userId) {
-		console.warn('[GAME] Waiting for userId to be available...');
-		await new Promise(res => setTimeout(res, 50));
-	}
+			const typedSocket = createTypedEventSocket(gameSocket);
+			state.typedSocket = typedSocket;
 
-	const oldID = localStorage.getItem('userID');
-	const userID = Number(oldID ?? state.userId);
+			// Wait for userId to be set (may be async elsewhere)
+			while (!state.userId) {
+				console.warn('[GAME] Waiting for userId to be available...');
+				await new Promise(res => setTimeout(res, 50));
+			}
 
-	state.playerInterface = {
-	userID,
-	socket: gameSocket,
-	typedSocket: typedSocket,
-	state: 'online',
-	};
+			const oldID = localStorage.getItem('userID');
+			const userID = Number(oldID ?? state.userId);
 
+			state.playerInterface = {
+				userID,
+				socket: gameSocket,
+				typedSocket: typedSocket,
+				state: 'online',
+			};
 
-	// Send reconnect or init based on local storage
-	if (oldID) {
-		console.log('[GAME] WebSocket connected — attempting reconnected as', userID);
-		typedSocket.send('reconnected', { userID });
+			// Send reconnect or init
+			if (oldID) {
+				console.log('[GAME] WebSocket connected — attempting reconnected as', userID);
+				typedSocket.send('reconnected', { userID });
 
-		showNotification({
-			message: `Reconnected to game socket.`,
-			type: 'success',
-		});
-	} else {
-		console.log('[GAME] WebSocket connected — sending init for new user', userID);
-		typedSocket.send('init', { userID });
-		localStorage.setItem('userID', userID.toString());
-	}
-};
+				showNotification({
+					message: `Reconnected to game socket.`,
+					type: 'success',
+				});
+			} else {
+				console.log('[GAME] WebSocket connected — sending init for new user', userID);
+				typedSocket.send('init', { userID });
+				localStorage.setItem('userID', userID.toString());
+			}
 
+			handleEvents(typedSocket, gameSocket);
+			resolve(); // RESOLVE once connected and initialized
+		};
 
-	gameSocket.onclose = (ev) => {
-	try {
-		console.warn(`[GAME] WebSocket closed — code=${ev.code}, reason="${ev.reason}"`);
-		if (state.gameSocket?.readyState === WebSocket.OPEN)
-			state.typedSocket?.send('disconnected', {});
-	} catch (err) {
-		console.warn('Cannot send disconnected message: ', err);
-	}
-	
-	// CLEANUP here too
-	state.typedSocket?.cleanup?.();
-	state.typedSocket = undefined;
-	state.gameSocket = null;
-	state.playerInterface = undefined;
+		gameSocket.onerror = (err) => {
+			console.error('[GAME] WebSocket error:', err);
+			state.typedSocket?.cleanup?.();
+			state.typedSocket = undefined;
+			state.gameSocket = null;
+			state.playerInterface = undefined;
+			reject(err); // reject if connection fails
+		};
 
-	console.warn('[GAME] WebSocket closed : ', ev.code, ev.reason);
-};
+		gameSocket.onclose = (ev) => {
+			try {
+				console.warn(`[GAME] WebSocket closed — code=${ev.code}, reason="${ev.reason}"`);
+				if (state.gameSocket?.readyState === WebSocket.OPEN)
+					state.typedSocket?.send('disconnected', {});
+			} catch (err) {
+				console.warn('Cannot send disconnected message: ', err);
+			}
 
-gameSocket.onerror = (err) => {
-	console.error('[GAME] WebSocket error:', err);
+			state.typedSocket?.cleanup?.();
+			state.typedSocket = undefined;
+			state.gameSocket = null;
+			state.playerInterface = undefined;
 
-	// CLEANUP here too
-	state.typedSocket?.cleanup?.();
-	state.typedSocket = undefined;
-	state.gameSocket = null;
-	state.playerInterface = undefined;
-};
-	handleEvents(typedSocket, gameSocket);
+			console.warn('[GAME] WebSocket closed : ', ev.code, ev.reason);
+		};
+	});
 }
+
 
 async function handleEvents(
 	typedSocket:TypedSocket, ws:WebSocket){
@@ -113,6 +117,13 @@ async function handleEvents(
 		if (state.playerInterface) {
 			state.playerInterface.state = data.newState;
 		}
+		console.log(`DATA STATE on update : ${data.newState}`);
+		state.socket?.send(JSON.stringify({
+				type: 'friendStatus',
+				action: 'update',
+				state: data.newState,
+				userID: state.userId,
+			}));
 	});
 	typedSocket.on('giveSide', async (socket:WebSocket, data:Interfaces.SocketMessageMap['giveSide']) => {
 		if (state.playerInterface) {
@@ -458,7 +469,7 @@ export async function handleReconnection(socket:WebSocket, typedSocket:TypedSock
 	localStorage.setItem('userID', data.userID.toString());
 
 	// CASE 1: Game is active & Renderer exists → Resume it
-	if (data.gameID && pongState.pongRenderer !== null) {
+	if (data.gameID && data.state === 'playing' && pongState.pongRenderer !== null) {
 		if (pongState.pongRenderer.getScene()?.isDisposed) {
 			console.warn('[RECONNECT] Renderer scene is disposed. Clearing renderer.');
 			pongState.pongRenderer = null;
@@ -471,7 +482,7 @@ export async function handleReconnection(socket:WebSocket, typedSocket:TypedSock
 	}
 
 	// CASE 2: Game is active & Renderer is missing → Offer to restore it
-	if (data.gameID && pongState.pongRenderer === null) {
+	if (data.gameID && data.state === 'playing' && pongState.pongRenderer === null) {
 		console.log('[RECONNECT] User accepted resume. Sending resumeGame.');
 
 		const playerCount = Number(localStorage.getItem('playerCount'));
@@ -504,7 +515,7 @@ export async function handleReconnection(socket:WebSocket, typedSocket:TypedSock
 
 
 	// CASE 3: User is not in a game → Return to main menu or lobby
-	if (!data.gameID) {
+	if (!data.gameID || data.state !== 'playing') {
 		console.log('[RECONNECT] No active game. Returning to main menu.');
 		state.canvasViewState = 'mainMenu';
 

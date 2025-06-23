@@ -3,6 +3,15 @@ import { createTypedEventSocket } from './gameEventWrapper';
 // Single source of truth for TypedSocket type
 export type TypedSocket = ReturnType<typeof createTypedEventSocket>;
 
+export interface tournamentInterface{
+	tourID:number,
+	maxPlayers:number,
+	currentRound:number,
+	maxRound:number,
+	//score:string{pos:1{username: , userID: , score: } pos:2{}....}
+}
+
+
 
 export interface playerInterface<SocketType= any>{
 	userID:number,
@@ -50,44 +59,89 @@ export interface gameRoomInterface{
 }
 
 export type SocketMessageMap = {
-	init: { type: 'init'; success?: boolean; userID: number; state?: string };
-	joinGame: { type: 'joinGame'; success?: boolean; reason?: string; gameID?: number , gameName?:string, userID?:number};
-	invite: { 
-		type: 'invite'; 
-		action: 'reply' | 'receive'; 
-		response?: string; 
-		userID?: number;
-		targetID?: number;
-		fromID?: number;
-	};
-	startGame:{type:'startGame'; userID:number; gameID:number; win_condition:string; limit:number; 
-		usernames: Record<'left' | 'right' | 'top' | 'bottom', string>; 
-	};
-	statusUpdate:{type:'statusUpdate'; userID:number; newState:string};
-	playerMove:{type:'playerMove'; gameID:number; userID:number; direction:string};
-	renderData: {
-		type: 'renderData';
-		paddles: Record<number, { pos: number; side: 'left' | 'right' | 'top' | 'bottom'; score:number}>;
-		balls: Record<number, { x: number; y: number }>;
-		elapsed:number;
-		isPaused:boolean;
-	};
-	//gameRequest:{type:'gameRequest'; userID:number};
-	endMatch:{type:'endMatch'; iswinner: boolean, playerScores: Record<string, number> };
-	reconnected:{
-		type:'reconnected';
-		userID:number;
-		username?:string;
-		state?:string;
-		gameID?:number;
-		tournamentID?:number;
-		message?:string};
-	//disconnected:{type:'disconnected'};
-	leaveGame:{type:'leaveGame'; userID:number; gameID:number; islegit:boolean};
-	giveSide:{type:'giveSide'; userID:number; gameID:number; side:'right'|'left'| 'top'| 'bottom'};
-	kicked:{type:'kicked'; userID:number; reason:string};
-	joinTournament:{type:'joinTournament'; userID:number; tournamentID:number; success:boolean};
-	leaveTournament:{type:'leaveTournament'; userID:number; tournamentID:number; islegit:boolean};
+	init: {	type: 'init';
+			success?: boolean;
+			userID: number;
+			state?: string
+		};
+	joinGame: { type: 'joinGame';
+				success?: boolean;
+				reason?: string;
+				gameID?: number;
+				gameName?:string;
+				userID?:number
+		};
+	invite: {	type: 'invite'; 
+				action: 'reply' | 'receive'; 
+				response?: string; 
+				userID?: number;
+				targetID?: number;
+				fromID?: number;
+		};
+	startGame:{	type:'startGame';
+				userID:number;
+				gameID:number;
+				win_condition:string;
+				limit:number; 
+				usernames: Record<'left' | 'right' | 'top' | 'bottom', string>; 
+		};
+	statusUpdate:{	type:'statusUpdate';
+					userID:number;
+					newState:string
+			};
+	playerMove:{ type:'playerMove';
+				 gameID:number;
+				 userID:number;
+				 direction:string
+			};
+	renderData: {	type: 'renderData';
+					paddles: Record<number, { pos: number; side: 'left' | 'right' | 'top' | 'bottom'; score:number}>;
+					balls: Record<number, { x: number; y: number }>;
+					elapsed:number;
+					isPaused:boolean;
+			};
+	endMatch:{	type:'endMatch';
+				iswinner: boolean;
+				playerScores: Record<string, number>;
+			};
+	reconnected:{	type:'reconnected';
+					userID:number;
+					username?:string;
+					state?:string;
+					gameID?:number;
+					tournamentID?:number;
+					message?:string
+			};
+	leaveGame:{	type:'leaveGame';
+				userID:number;
+				gameID:number;
+				islegit:boolean
+			};
+	giveSide:{	type:'giveSide';
+				userID:number;
+				gameID:number;
+				side:'right'|'left'| 'top'| 'bottom'
+			};
+	kicked:{	type:'kicked';
+				userID:number;
+				reason:string;
+		};
+	joinTournament:{	type:'joinTournament';
+						userID:number;
+						username?:string;
+						tournamentID:number;
+						tourName:string;
+						success:boolean;
+			};
+	updateTourList:{	type:'updateTourList';
+						tournamentID:number;
+						members: { userID: number; username: string }[];
+				};
+	leaveTournament:{	type:'leaveTournament';
+						userID:number;
+						tournamentID:number;
+						islegit:boolean
+					};
 	
 };
 

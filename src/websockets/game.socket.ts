@@ -27,57 +27,6 @@ if (!jwtSecret) {
 	throw new Error("JWT_SECRET environment variable is not defined");
 }
 
-// export async function initGameSocket(ws: WebSocket, request: any) {
-//   const result = await verifyAndExtractUser(ws, request).catch(e => {
-//     console.error('[verifyAndExtractUser ERROR]', e);
-//     return null;
-//   });
-//   if (!result) return;
-
-//   const { userId } = result;
-//   const existingPlayer = MappedPlayers.get(userId);
-
-//   if (existingPlayer?.hasDisconnected && existingPlayer?.socket) {
-//     // reconnect logic
-//     existingPlayer.hasDisconnected = false;
-//     existingPlayer.socket = ws;
-//     if ((existingPlayer as any).disconnectTimeout)
-//       clearTimeout((existingPlayer as any).disconnectTimeout);
-
-//     const typedSocket = createTypedEventSocket(ws);
-//     typedSocket.send('reconnected', { userID: userId, state: existingPlayer.state, gameID: existingPlayer.gameID });
-
-//     // Register all event handlers at once
-//     handleAllEvents(typedSocket);
-
-//     return;
-//   }
-
-//   if (existingPlayer?.socket) {
-//     try {
-//       existingPlayer.socket.close(1000, '[GAME]: New connection established');
-//     } catch {}
-//   }
-
-//   const user = await UserManagement.getUnameByIndex(userId);
-//   const player: Interfaces.playerInterface<WebSocket> = {
-//     socket: ws,
-//     userID: userId,
-//     state: 'init',
-//     username: user!.username,
-//     hasDisconnected: false,
-//   };
-
-//   MappedPlayers.set(userId, player);
-
-//   const typedSocket = createTypedEventSocket(ws);
-
-//   // Register all event handlers in one call
-//   handleAllEvents(typedSocket);
-
-//   // Send initial init confirmation
-//   typedSocket.send('init', { userID: player.userID, state: player.state, success: true });
-// }
 export async function initGameSocket(ws: WebSocket, request: any) {
 	const result = await verifyAndExtractUser(ws, request).catch(e => {
 		console.error('[verifyAndExtractUser ERROR]', e);
@@ -246,4 +195,13 @@ export function delPlayer(userID: number) {
     player.socket.close();
   }
   MappedPlayers.delete(userID);
+}
+
+export async function getMembersByTourID(tourID:number):Promise<Interfaces.playerInterface[]|undefined>{
+	const members:Interfaces.playerInterface[] = [];
+	for(const p of MappedPlayers.values()){
+		if(p.tournamentID === tourID)
+			members.push(p);
+	}
+	return members;
 }

@@ -7,6 +7,7 @@ import { showPongMenu } from './pong_rooms';
 import { TypedSocket } from './shared/gameTypes';
 import * as GUI from "@babylonjs/gui";
 import * as BABYLON from "@babylonjs/core";
+import * as Tournament from './tournament_socket'
 
 
 export const pongState = {
@@ -106,6 +107,12 @@ async function handleEvents(
 	});
 	typedSocket.on('joinGame', async(socket:WebSocket, data:Interfaces.SocketMessageMap['joinGame'])=>{
 		await handleJoinGame(data);
+	});
+	typedSocket.on('joinTournament', async(socket:WebSocket, data:Interfaces.SocketMessageMap['joinTournament'])=>{
+		 Tournament.handleJoinTournament(data);
+	});
+	typedSocket.on('updateTourList',async(socket:WebSocket, data:Interfaces.SocketMessageMap['updateTourList'])=>{
+		Tournament.handleUpdateTournamentList(data);
 	});
 	typedSocket.on('invite', async(socket:WebSocket, data:Interfaces.SocketMessageMap['invite'])=>{
 		await handleInvite(data);

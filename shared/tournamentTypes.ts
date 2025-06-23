@@ -1,4 +1,3 @@
-// import * as Interfaces from './gameTypes'
 
 // export interface tournamentInterface{
 

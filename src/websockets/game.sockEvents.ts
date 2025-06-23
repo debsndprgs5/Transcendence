@@ -1,6 +1,7 @@
 import * as Interfaces from '../shared/gameTypes'
 import * as GameManagement from '../db/gameManagement'
 import * as Helpers from './game.sockHelpers'
+import * as Tournament from './tournament.socket'
 import { TypedSocket } from '../shared/gameTypes';
 import {getPlayerBySocket, getPlayerByUserID, getAllMembersFromGameID, delPlayer} from './game.socket'
 import { playerMove } from '../services/pong'
@@ -20,7 +21,12 @@ export function handleAllEvents(typedSocket:TypedSocket, player:Interfaces.playe
   typedSocket.on('joinGame', async (socket:WebSocket, data:Interfaces.SocketMessageMap['joinGame']) => {
     handleJoin(data, player);
   });
-
+  typedSocket.on('joinTournament', async (socket:WebSocket, data:Interfaces.SocketMessageMap['joinTournament']) => {
+    Tournament.handleJoinTournament(player, data);
+  });
+  typedSocket.on('leaveTournament', async (socket:WebSocket, data:Interfaces.SocketMessageMap['leaveTournament']) => {
+    Tournament.handleLeaveTournament(player, data);
+  });
   typedSocket.on('invite', async (socket:WebSocket, data:Interfaces.SocketMessageMap['invite']) => {
     handleInvite(data, player);
   });

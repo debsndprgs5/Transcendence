@@ -29,9 +29,6 @@ export async function tournamentRoutes(fastify: FastifyInstance) {
 			);
 			const newTournamentID = (result as any).lastID as number;
 
-			// Add creator in `tournamentMembers`, logic is elseWhere on sockets
-			//await gameMgr.addMemberToTournament(newTournamentID, userID);
-
 			return reply.status(201).send({
 				success: true,
 				tournament: {

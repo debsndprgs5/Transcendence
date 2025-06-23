@@ -15,7 +15,6 @@ export function updatePlayerState(
   player.state = newState;
 
   if (player.typedSocket) {
-    console.log(`UPDATED STATUS SENT`)
     player.typedSocket.send('statusUpdate', {
       userID: player.userID,
       newState

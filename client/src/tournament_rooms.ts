@@ -99,6 +99,10 @@ export async function handleWaitingTournamentClick(canvas: HTMLCanvasElement, x:
 
 export async function handleCreateTournament(): Promise<void> {
   const name = createTournamentFormData.tournamentName;
+  if(state.playerInterface!.state !== 'init'){
+	showNotification({message:`You can't create tournament because you are ${state.playerInterface!.state}`, type:'error'})
+	return;
+  }
   if (!name) {
     showNotification({ message: 'Please enter a name first', type: 'error' });
     return;
@@ -106,7 +110,7 @@ export async function handleCreateTournament(): Promise<void> {
 
   try {
     // POST to create tournament
-    await apiFetch(`/api/tournament/${state.userId}`, {
+   const reply =  await apiFetch(`/api/tournament/${state.userId}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -119,30 +123,34 @@ export async function handleCreateTournament(): Promise<void> {
       })
     });
     showNotification({ message: `Tournament "${name}" created`, type: 'success' });
+	
+	//send joinTournament request to backend 
+	state.playerInterface!.typedSocket.send('joinTournament', {userID:state.userId, tournamentID:reply.tournament.tournamentID});
+    
+	//ALL BELOW NEEDS TO MOVE TO UPDATELIST SOCKET 
+	// fetch owner username
+    // let ownerName = `User${state.userId}`;
+    // try {
+    //   const userResp = await apiFetch(`/api/user/by-index/${state.userId}`, {
+    //     headers: { Authorization: `Bearer ${state.authToken}` }
+    //   });
+    //   ownerName = userResp.username.username;
+    // } catch { /* keep numeric ID if fetch fails */ }
 
-    // fetch owner username
-    let ownerName = `User${state.userId}`;
-    try {
-      const userResp = await apiFetch(`/api/user/by-index/${state.userId}`, {
-        headers: { Authorization: `Bearer ${state.authToken}` }
-      });
-      ownerName = userResp.username.username;
-    } catch { /* keep numeric ID if fetch fails */ }
+    // // refresh list and update state
+    // state.availableTournaments = await fetchOpenTournaments();
+    // state.currentTournamentPlayers = [ownerName];
+    // const created = state.availableTournaments.find(t => t.name === name)!;
+    // state.currentTournamentID   = created.tournamentID;
+    // state.currentTournamentName = name;
+    // state.canvasViewState       = 'waitingTournament';
 
-    // refresh list and update state
-    state.availableTournaments = await fetchOpenTournaments();
-    state.currentTournamentPlayers = [ownerName];
-    const created = state.availableTournaments.find(t => t.name === name)!;
-    state.currentTournamentID   = created.tournamentID;
-    state.currentTournamentName = name;
-    state.canvasViewState       = 'waitingTournament';
-
-    // persist to localStorage
-    localStorage.setItem('tournament_view', 'waitingTournament');
-    localStorage.setItem('tournament_name', name);
-    localStorage.setItem('tournament_id', String(state.currentTournamentID));
-    localStorage.setItem('tournament_players', JSON.stringify([ownerName]));
-    showPongMenu();
+    // // persist to localStorage
+    // localStorage.setItem('tournament_view', 'waitingTournament');
+    // localStorage.setItem('tournament_name', name);
+    // localStorage.setItem('tournament_id', String(state.currentTournamentID));
+    // localStorage.setItem('tournament_players', JSON.stringify([ownerName]));
+    // showPongMenu();
 
   } catch (err) {
     console.error('Error creating tournament:', err);
@@ -152,84 +160,68 @@ export async function handleCreateTournament(): Promise<void> {
 
 // Handles the "Join Tournament" button action
 export async function handleJoinTournament(tourID: number): Promise<void> {
-  try {
-    // POST to join
-    await apiFetch(`/api/tournament/${tourID}/join/${state.userId}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${state.authToken}`
-      },
-      body: JSON.stringify({})
-    });
-  } catch (err) {
-    console.error('Error joining tournament:', err);
-    showNotification({ message: 'Failed to join tournament', type: 'error' });
-    return;
-  }
+    
+	if(state.playerInterface!.state !== 'init'){
+		showNotification({message:`You can't join tournament because you are ${state.playerInterface!.state}`, type:'error'})
+		return;
+	}
+	state.playerInterface!.typedSocket.send('joinTournament',  {userID:state.userId, tournamentID:tourID})
 
+
+	//ALL BELOW NEEDS TO MOVE TO UPDATELIST SOCKET
   // fetch members list
-  let members: { userID: number; alias: string }[] = [];
-  try {
-    const resp = await apiFetch(`/api/tournament/${tourID}/members`, {
-      headers: { Authorization: `Bearer ${state.authToken}` }
-    });
-    members = resp.members;
-  } catch (err) {
-    console.error('Error fetching tournament members:', err);
-    showNotification({ message: 'Cannot fetch tournament members', type: 'error' });
-    return;
-  }
+//   let members: { userID: number; alias: string }[] = [];
+//   try {
+//     const resp = await apiFetch(`/api/tournament/${tourID}/members`, {
+//       headers: { Authorization: `Bearer ${state.authToken}` }
+//     });
+//     members = resp.members;
+//   } catch (err) {
+//     console.error('Error fetching tournament members:', err);
+//     showNotification({ message: 'Cannot fetch tournament members', type: 'error' });
+//     return;
+//   }
 
-  // resolve usernames
-  const usernames: string[] = [];
-  for (const m of members) {
-    if (m.alias?.trim()) {
-      usernames.push(m.alias);
-    } else {
-      try {
-        const userResp = await apiFetch(`/api/user/by-index/${m.userID}`, {
-          headers: { Authorization: `Bearer ${state.authToken}` }
-        });
-        usernames.push(userResp.username.username);
-      } catch {
-        usernames.push(`User${m.userID}`);
-      }
-    }
-  }
+//   // resolve usernames
+//   const usernames: string[] = [];
+//   for (const m of members) {
+//     if (m.alias?.trim()) {
+//       usernames.push(m.alias);
+//     } else {
+//       try {
+//         const userResp = await apiFetch(`/api/user/by-index/${m.userID}`, {
+//           headers: { Authorization: `Bearer ${state.authToken}` }
+//         });
+//         usernames.push(userResp.username.username);
+//       } catch {
+//         usernames.push(`User${m.userID}`);
+//       }
+//     }
+//   }
 
-  // update state and persist
-  state.currentTournamentPlayers = usernames;
-  state.currentTournamentID      = tourID;
-  state.currentTournamentName    =
-    state.availableTournaments?.find(t => t.tournamentID === tourID)?.name
-    ?? 'Unknown Tournament';
-  state.canvasViewState          = 'waitingTournament';
+//   // update state and persist
+//   state.currentTournamentPlayers = usernames;
+//   state.currentTournamentID      = tourID;
+//   state.currentTournamentName    =
+//     state.availableTournaments?.find(t => t.tournamentID === tourID)?.name
+//     ?? 'Unknown Tournament';
+//   state.canvasViewState          = 'waitingTournament';
 
-  localStorage.setItem('tournament_view', 'waitingTournament');
-  localStorage.setItem('tournament_id', String(tourID));
-  localStorage.setItem('tournament_name', state.currentTournamentName);
-  localStorage.setItem('tournament_players', JSON.stringify(usernames));
-  showPongMenu();
+//   localStorage.setItem('tournament_view', 'waitingTournament');
+//   localStorage.setItem('tournament_id', String(tourID));
+//   localStorage.setItem('tournament_name', state.currentTournamentName);
+//   localStorage.setItem('tournament_players', JSON.stringify(usernames));
+  //showPongMenu();
 }
 
 // Handles the "Leave Tournament" button action
 export async function handleLeaveTournament(): Promise<void> {
   const tourID = state.currentTournamentID!;
-  try {
-    await apiFetch(`/api/tournament/${tourID}/leave/${state.userId}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${state.authToken}`
-      },
-      body: JSON.stringify({})
-    });
-  } catch (err) {
-    console.error('Error leaving tournament:', err);
-    showNotification({ message: 'Error leaving tournament', type: 'error' });
-    return;
-  }
+  state.playerInterface!.typedSocket.send('leaveTournament', {
+	userID:state.playerInterface!.userID,
+	tournamentID:tourID,
+	islegit:false
+  });
 
   // clean up state & storage
   state.currentTournamentName    = undefined;

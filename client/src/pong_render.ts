@@ -177,7 +177,16 @@ export class PongRenderer{
 			}
 
 			if (!leftAvatarurl) {
-				leftAvatarurl = `https://ui-avatars.com/api/?name=${encodeURIComponent(leftUsername)}&background=6d28d9&color=fff&rounded=true`;
+				const lstyle = /^\d+$/.test(leftUsername)
+				? 'bottts'
+				: 'initials';
+
+				leftAvatarurl = `https://api.dicebear.com/9.x/${lstyle}/svg`
+								    + `?seed=${encodeURIComponent(leftUsername)}`
+									+ `&backgroundType=gradientLinear`
+  									+ `&backgroundColor=919bff,133a94`  
+  								    + `&size=64`
+								    + `&radius=50`
 			}
 
 			const leftAvatarImage = new GUI.Image("leftAvatar", leftAvatarurl);
@@ -200,7 +209,16 @@ export class PongRenderer{
 			}
 
 			if (!rightAvatarurl) {
-				rightAvatarurl = `https://ui-avatars.com/api/?name=${encodeURIComponent(rightUsername)}&background=6d28d9&color=fff&rounded=true`;
+				const rstyle = /^\d+$/.test(rightUsername)
+				? 'bottts'
+				: 'initials';
+
+				rightAvatarurl = `https://api.dicebear.com/9.x/${rstyle}/svg`
+								    + `?seed=${encodeURIComponent(rightUsername)}`
+									+ `&backgroundType=gradientLinear`
+  									+ `&backgroundColor=919bff,133a94`  
+  								    + `&size=64`
+								    + `&radius=50`
 			}
 
 			const rightAvatarImage = new GUI.Image("rightAvatar", rightAvatarurl);

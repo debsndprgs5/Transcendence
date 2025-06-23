@@ -335,7 +335,15 @@ export async function addAvatarPanel(
 	}
 
 	if (!url) {
-		url = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.username)}&background=6d28d9&color=fff&rounded=true`;
+		const style = /^\d+$/.test(data.username)
+		? 'bottts'
+		: 'initials';
+		url = `https://api.dicebear.com/9.x/${style}/svg`
+								    + `?seed=${encodeURIComponent(data.username)}`
+									+ `&backgroundType=gradientLinear`
+  									+ `&backgroundColor=919bff,133a94`  
+  								    + `&size=64`
+								    + `&radius=50`
 	}
 
 	const avatar = new GUI.Image("avatar_" + data.username, url);

@@ -40,11 +40,11 @@ async function bootstrap() {
   });
 
 
-  // Config CORS
   await app.register(require('@fastify/cors'), {
-    origin: true,
-    credentials: true
-  });
+  origin: true,
+  credentials: true,
+  prefix: '/api'
+})
 
   // Cookie plugin
   await app.register(cookie, {

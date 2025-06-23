@@ -183,7 +183,7 @@ export function HomeView(): string {
  */
 export function LoginView(): string {
 	return `
-		<div class="min-h-screen flex items-start justify-center pt-10 bg-gradient-to-r from-indigo-500 to-blue-500 p-4">
+		<div class="min-h-screen flex items-start justify-center pt-10 p-4">
 			<div class="bg-white rounded-xl shadow-xl overflow-hidden w-full max-w-md transform -translate-y-4">
 				<div class="px-8 py-6 bg-indigo-600 text-white text-center">
 					<h2 class="text-3xl font-bold">Log in</h2>
@@ -214,7 +214,7 @@ export function LoginView(): string {
  */
 export function RegisterView(): string {
 	return `
-		<div class="min-h-screen flex items-start justify-center pt-10 bg-gradient-to-r from-purple-500 to-purple-700 p-4">
+		<div class="min-h-screen flex items-start justify-center pt-10 p-4">
 			<div class="bg-white rounded-xl shadow-xl overflow-hidden w-full max-w-md transform -translate-y-4">
 				<div class="px-8 py-6 bg-indigo-600 text-white text-center">
 					<h2 class="text-3xl font-bold">Register</h2>
@@ -293,10 +293,18 @@ export function Verify2FAView(): string {
  */
 export function AccountView(user: any, friends: any[] = []): string {
 	const username = user.username || '';
-	const avatar = user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=6d28d9&color=fff&rounded=true`;
+	const style = /^\d+$/.test(username)
+    ? 'bottts'
+    : 'initials';
+	const avatar = user.avatarUrl || `https://api.dicebear.com/9.x/${style}/svg`
+								    + `?seed=${encodeURIComponent(username)}`
+									+ `&backgroundType=gradientLinear`
+  									+ `&backgroundColor=919bff,133a94`  
+  								    + `&size=64`
+								    + `&radius=50`
 
 	return `
-		<div class="min-h-screen flex items-center justify-center bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 py-10">
+		<div class="min-h-screen flex items-center justify-center py-10">
 			<<div class="bg-white rounded-xl shadow-xl max-w-lg w-full">
 				<div class="px-8 py-8 flex flex-col items-center bg-indigo-50 rounded-t-xl">
 					<img src="${avatar}" id="account-avatar" alt="Avatar" class="w-24 h-24 rounded-full shadow-lg border-4 border-indigo-200 mb-4 cursor-pointer">
@@ -344,10 +352,18 @@ export function AccountView(user: any, friends: any[] = []): string {
  */
 export function ProfileView(profileUser: any): string {
 	const username = profileUser.username || '';
-	const avatar = profileUser.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=6d28d9&color=fff&rounded=true`;
+	const style = /^\d+$/.test(username)
+    ? 'bottts'
+    : 'initials';
+	const avatar = profileUser.avatarUrl || `https://api.dicebear.com/9.x/${style}/svg`
+								    + `?seed=${encodeURIComponent(username)}`
+									+ `&backgroundType=gradientLinear`
+  									+ `&backgroundColor=919bff,133a94`  
+  								    + `&size=64`
+								    + `&radius=50`
 
 	return `
-		<div class="min-h-screen flex items-center justify-center bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 py-10">
+		<div class="min-h-screen flex items-center justify-center py-10">
 			<div class="bg-white rounded-xl shadow-xl max-w-lg w-full">
 				<div class="px-8 py-8 flex flex-col items-center bg-indigo-50 rounded-t-xl">
 					<img src="${avatar}" alt="${username}" class="w-24 h-24 rounded-full shadow-lg border-4 border-indigo-200 mb-4">

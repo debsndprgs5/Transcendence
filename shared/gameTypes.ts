@@ -133,7 +133,7 @@ export type SocketMessageMap = {
 						tourName:string;
 						success:boolean;
 			};
-	updateTourList:{	type:'updateTourList';
+	updateTourPlayerList:{	type:'updateTourPlayerList';
 						tournamentID:number;
 						members: { userID: number; username: string }[];
 				};
@@ -142,7 +142,14 @@ export type SocketMessageMap = {
 						tournamentID:number;
 						islegit:boolean
 					};
-	
+	updateTourList:{	type:'updateTourList';
+						list:{	tourID:number,
+								name:string,
+								createdBy:number,
+								maxPlayers:number,
+								status:string}[];
+
+	};
 };
 
 export type SocketMessage = SocketMessageMap[keyof SocketMessageMap];

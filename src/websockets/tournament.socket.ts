@@ -2,7 +2,7 @@ import * as Interfaces from '../shared/gameTypes'
 import * as GameManagement from '../db/gameManagement'
 import * as Helpers from './game.sockHelpers'
 import { TypedSocket } from '../shared/gameTypes';
-import {getPlayerBySocket, getPlayerByUserID, getAllMembersFromGameID, delPlayer, getMembersByTourID} from './game.socket'
+import {getPlayerBySocket, getPlayerByUserID, getAllMembersFromGameID, delPlayer, getMembersByTourID, getAllInitPlayers} from './game.socket'
 import { playerMove } from '../services/pong'
 import { PongRoom } from '../services/PongRoom';
 import { tournamentRoutes } from '../routes/tournament.routes';
@@ -27,7 +27,7 @@ export async function handleJoinTournament(player:Interfaces.playerInterface, da
         });
         player.tournamentID = data.tournamentID
 		console.log(`${player.username} just joined tournament ID : ${data.tournamentID}`);
-		updateTourList(player, data.tournamentID, false)
+		updateTourPlayerList(player, data.tournamentID, false)
 		Helpers.updatePlayerState(player, 'waitingTournament');
         //tryStartTournament()
     }
@@ -38,10 +38,14 @@ export async function handleJoinTournament(player:Interfaces.playerInterface, da
             success:false
         });
     }
+	const member = await getMembersByTourID(data.tournamentID);
+	if(member!.length < 2){
+		await broadcastTourList();
+	}
 }
 
 
-export async function updateTourList(joiner: Interfaces.playerInterface, tourID: number, hasLeft: boolean) {
+export async function updateTourPlayerList(joiner: Interfaces.playerInterface, tourID: number, hasLeft: boolean) {
 	const members = await getMembersByTourID(tourID);
 	if (!members) return;
 
@@ -52,7 +56,7 @@ export async function updateTourList(joiner: Interfaces.playerInterface, tourID:
 	}));
 
 	for (const m of members) {
-		m.typedSocket.send('updateTourList', {
+		m.typedSocket.send('updateTourPlayerList', {
 			tournamentID: tourID,
 			members: memberData
 		});
@@ -91,19 +95,37 @@ export async function handleLeaveTournament(player: Interfaces.playerInterface, 
 	if (members!.length <= 1) {
 		console.log(`[TOUR][LEFT]{No members left deleting room}`)
 		GameManagement.delTournament(leftTourID!);
+		await broadcastTourList();
 		// Optional: tournament is now empty, auto-cancel?
 		//GameManagement.delTournament(leftTourID)
 	}
 
 	// 6. Update all others
 	for (const m of members!) {
-		m.typedSocket.send('updateTourList', {
+		m.typedSocket.send('updateTourPlayerList', {
 			tournamentID: leftTourID,
 			members: members!.map(p => ({ userID: p.userID, username: p.username }))
 		});
 	}
 
 	console.log(`${player.username} left tournament ID: ${leftTourID}`);
+}
+
+
+export async function broadcastTourList() {
+	const tourList = await GameManagement.getAllTournaments();
+	const publicList = tourList.map(t => ({
+		tourID: t.tournamentID,
+		name: t.name,
+		createdBy: t.createdBy,
+		maxPlayers: t.maxPlayers,
+		status: t.status
+	}));
+
+	const allPlayers = await  getAllInitPlayers(); // assuming this returns all connected players
+	for (const p of allPlayers!) {
+		p.typedSocket.send('updateTourList', { list: publicList });
+	}
 }
 
 

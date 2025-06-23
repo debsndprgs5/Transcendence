@@ -111,6 +111,9 @@ async function handleEvents(
 	typedSocket.on('joinTournament', async(socket:WebSocket, data:Interfaces.SocketMessageMap['joinTournament'])=>{
 		 Tournament.handleJoinTournament(data);
 	});
+	typedSocket.on('updateTourPlayerList',async(socket:WebSocket, data:Interfaces.SocketMessageMap['updateTourPlayerList'])=>{
+		Tournament.handleUpdateTournamentPlayerList(data);
+	});
 	typedSocket.on('updateTourList',async(socket:WebSocket, data:Interfaces.SocketMessageMap['updateTourList'])=>{
 		Tournament.handleUpdateTournamentList(data);
 	});

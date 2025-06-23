@@ -205,3 +205,12 @@ export async function getMembersByTourID(tourID:number):Promise<Interfaces.playe
 	}
 	return members;
 }
+
+export async function getAllInitPlayers():Promise<Interfaces.playerInterface[]|undefined>{
+	const players:Interfaces.playerInterface[] = [];
+	for(const p of MappedPlayers.values()){
+		if(p.state === 'init' || p.state === 'online')
+			players.push(p);
+	}
+	return players;
+}

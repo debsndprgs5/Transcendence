@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt' // Blowfish encrypting
 import jwt from 'jsonwebtoken' // Json web token -> one-time token
 import speakeasy from 'speakeasy' // lib that supports 2fa using time based one-time pass (TOTP) and HOTP
 import * as UserManagement from '../db/userManagement';
+import * as GameManagement from '../db/gameManagement'
 import * as dotenv from 'dotenv';
 import path from 'path';
 
@@ -42,7 +43,8 @@ export async function authRoutes(fastify: FastifyInstance) {
 			//Create simple ID (with timestamp + random)
 				const id = `${Date.now()}-${Math.floor(Math.random()*1000)}`
 			//Create the user in the database
-				await UserManagement.createUser(id, username, passwordHash)
+				const userID  = await UserManagement.createUser(id, username, passwordHash);
+				await  GameManagement.createDefaultPref(userID);
 
 			//Success feedback
 		return reply.code(201).send({ message: 'Registered successfully', userId: id })

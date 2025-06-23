@@ -112,9 +112,11 @@ export const getTotpPendingByIndex = (index: number) =>
   get<user>('SELECT totp_pending FROM users WHERE our_index = ?', [index]);
 
 // Create User
-export const createUser = (rand_id: string, username: string, password_hashed: string, totp_secret: string | null = null) =>
-  run(
+export const createUser = (rand_id: string, username: string, password_hashed: string, totp_secret: string | null = null) =>{
+   const result = run(
     `INSERT INTO users (rand_id, username, password_hashed, totp_secret)
      VALUES (?, ?, ?, ?)`,
     [rand_id, username, password_hashed, totp_secret]
   );
+  return result.lastID;
+}

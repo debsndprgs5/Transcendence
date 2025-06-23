@@ -33,7 +33,7 @@ export function handleJoinTournament(data: Interfaces.SocketMessageMap['joinTour
 }
 
 
-export function handleUpdateTournamentList(data: Interfaces.SocketMessageMap['updateTourList']) {
+export function handleUpdateTournamentPlayerList(data: Interfaces.SocketMessageMap['updateTourPlayerList']) {
 	if (!state.currentTournamentID || data.tournamentID !== state.currentTournamentID)
 		return;
 
@@ -43,3 +43,15 @@ export function handleUpdateTournamentList(data: Interfaces.SocketMessageMap['up
 	showPongMenu();
 }
 
+export function handleUpdateTournamentList(data: Interfaces.SocketMessageMap['updateTourList']) {
+	
+	const parsedList = data.list.map(t => ({
+		tournamentID: t.tourID,
+		name: t.name
+	}));
+
+	state.availableTournaments = parsedList;
+
+	localStorage.setItem('tournament_list', JSON.stringify(parsedList));
+	showPongMenu();
+}

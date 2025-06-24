@@ -91,8 +91,8 @@ export async function handleLeaveTournament(player: Interfaces.playerInterface, 
 	// 4. Get remaining members
 	const members = await getMembersByTourID(leftTourID!);
 
-	// 5. If only 1 player remains (or none), optional cleanup here
-	if (members!.length <= 1) {
+	// 5. If no player remains, clean
+	if (members!.length < 1) {
 		console.log(`[TOUR][LEFT]{No members left deleting room}`)
 		GameManagement.delTournament(leftTourID!);
 		await broadcastTourList();

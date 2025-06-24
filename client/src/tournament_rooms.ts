@@ -82,19 +82,28 @@ export async function handleTournamentClick(canvas: HTMLCanvasElement, x: number
 }
 
 // Handle clicks in the Waiting Tournament view
-export async function handleWaitingTournamentClick(canvas: HTMLCanvasElement, x: number, y: number): Promise<void> {
-	const btns = (canvas as any)._waitingTournamentButtons as PongButton[] | undefined;
-	if (!btns) return;
+export async function handleWaitingTournamentClick(
+  canvas: HTMLCanvasElement,
+  x: number,
+  y: number
+): Promise<void> {
+  const btns = (canvas as any)._waitingTournamentButtons as PongButton[] | undefined;
+  if (!btns) return;
 
-	const clickedBtn = btns.find((b: PongButton) =>
-		x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h
-	);
-	if (!clickedBtn) return;
+  const clickedBtn = btns.find((b: PongButton) =>
+    x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h
+  );
+  if (!clickedBtn) return;
 
-	if (clickedBtn.action === 'leaveTournament') {
-		await handleLeaveTournament();
-		showPongMenu();
-	}
+  if (clickedBtn.action === 'leaveTournament') {
+    await handleLeaveTournament();
+    showPongMenu();
+  }
+  // Start tournament when creator clicks the button
+  else if (clickedBtn.action === 'startTournament') {
+    // await startTournament();
+    showNotification({message:`Tournament Starting now !`, type:'success'});
+  }
 }
 
 export async function handleCreateTournament(): Promise<void> {
@@ -126,7 +135,10 @@ export async function handleCreateTournament(): Promise<void> {
 	
 	//send joinTournament request to backend 
 	state.playerInterface!.typedSocket.send('joinTournament', {userID:state.userId, tournamentID:reply.tournament.tournamentID});
-    
+  
+  // notify that this user is the tournament's creator
+  state.isTournamentCreator = true;
+
 	//ALL BELOW NEEDS TO MOVE TO UPDATELIST SOCKET 
 	// fetch owner username
     // let ownerName = `User${state.userId}`;
@@ -167,7 +179,7 @@ export async function handleJoinTournament(tourID: number): Promise<void> {
 	}
 	state.playerInterface!.typedSocket.send('joinTournament',  {userID:state.userId, tournamentID:tourID})
 
-
+  state.isTournamentCreator = false;
 	//ALL BELOW NEEDS TO MOVE TO UPDATELIST SOCKET
   // fetch members list
 //   let members: { userID: number; alias: string }[] = [];
@@ -226,6 +238,7 @@ export async function handleLeaveTournament(): Promise<void> {
   // clean up state & storage
   state.currentTournamentName    = undefined;
   state.currentTournamentPlayers = undefined;
+  state.isTournamentCreator = false;
   delete state.currentTournamentID;
 
   localStorage.removeItem('tournament_view');

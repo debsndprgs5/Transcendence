@@ -16,6 +16,7 @@ export interface AppState {
 	currentTournamentName?: string;
 	currentTournamentPlayers?: string[];
 	currentTournamentID?: number;
+	isTournamentCreator?: boolean;
 	canvasViewState: string;
 	currentGameName?: string;
 	currentPlayers?: string[];
@@ -38,6 +39,7 @@ export const state: AppState = {
 	currentTournamentName: undefined,
 	currentTournamentPlayers: undefined,
 	currentTournamentID: undefined,
+	isTournamentCreator: false,
 	canvasViewState: 'mainMenu',
 	currentGameName: undefined,
 	currentPlayers: undefined,
@@ -60,6 +62,7 @@ export function resetState(){
 		currentTournamentName: undefined,
 		currentTournamentPlayers: undefined,
 		currentTournamentID: undefined,
+		isTournamentCreator: false,
 		canvasViewState: 'mainMenu',
 		currentGameName: undefined,
 		currentPlayers: undefined,

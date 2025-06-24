@@ -499,66 +499,85 @@ export function drawTournamentView(
 	];
 }
 
-
 export function drawWaitingTournamentView(
-	canvas: HTMLCanvasElement,
-	ctx: CanvasRenderingContext2D,
-	tournamentName: string,
-	players: string[]
+  canvas: HTMLCanvasElement,
+  ctx: CanvasRenderingContext2D,
+  tournamentName: string,
+  players: string[],
 ): void {
-	const width  = canvas.width;
-	const height = canvas.height;
+  const width  = canvas.width;
+  const height = canvas.height;
 
-	// Clear entire canvas
-	ctx.clearRect(0, 0, width, height);
+  // Clear entire canvas
+  ctx.clearRect(0, 0, width, height);
 
-	// Background gradient (left → right: #2C5364 → #203A43 → #0F2027)
-	const grad = ctx.createLinearGradient(0, 0, width, 0);
-	grad.addColorStop(0.0, '#2C5364');
-	grad.addColorStop(0.5, '#203A43');
-	grad.addColorStop(1.0, '#0F2027');
-	ctx.fillStyle = grad;
-	ctx.fillRect(0, 0, width, height);
+  // Background gradient (left → right: #2C5364 → #203A43 → #0F2027)
+  const grad = ctx.createLinearGradient(0, 0, width, 0);
+  grad.addColorStop(0.0, '#2C5364');
+  grad.addColorStop(0.5, '#203A43');
+  grad.addColorStop(1.0, '#0F2027');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, width, height);
 
-	// Tournament title
-	ctx.fillStyle = 'white';
-	ctx.font      = `${Math.floor(height / 15)}px Orbitron`;
-	ctx.textAlign = 'center';
-	ctx.fillText(tournamentName, width / 2, height * 0.12);
+  // Tournament title
+  ctx.fillStyle = 'white';
+  ctx.font      = `${Math.floor(height / 15)}px Orbitron`;
+  ctx.textAlign = 'center';
+  ctx.fillText(tournamentName, width / 2, height * 0.12);
 
-	// Player list label
-	ctx.fillStyle = 'white';
-	ctx.font      = `${Math.floor(height / 28)}px Orbitron`;
-	ctx.textAlign = 'left';
-	const listX = width * 0.18;
-	let currentY = height * 0.25;
-	const lineHeight = height * 0.06;
-	ctx.fillText('Participants:', listX, currentY);
+  // Player list label
+  ctx.fillStyle = 'white';
+  ctx.font      = `${Math.floor(height / 28)}px Orbitron`;
+  ctx.textAlign = 'left';
+  const listX = width * 0.18;
+  let currentY = height * 0.25;
+  const lineHeight = height * 0.06;
+  ctx.fillText('Participants:', listX, currentY);
 
-	// List of players
-	players.forEach((player, index) => {
-		ctx.fillText(
-			`• ${player}`,
-			listX,
-			currentY + lineHeight * (index + 1)
-		);
-	});
+  // List of players
+  players.forEach((player, index) => {
+    ctx.fillText(
+      `• ${player}`,
+      listX,
+      currentY + lineHeight * (index + 1)
+    );
+  });
 
-	// Leave Tournament button
-	const btnW = width  * 0.25;
-	const btnH = height * 0.08;
-	const btnX = width  / 2 - btnW / 2;
-	const btnY = height * 0.8;
-	ctx.fillStyle = '#f87171';
-	ctx.fillRect(btnX, btnY, btnW, btnH);
+  // Leave Tournament button
+  const btnW = width  * 0.25;
+  const btnH = height * 0.08;
+  const btnX = width  / 2 - btnW / 2;
+  const btnY = height * 0.8;
+  ctx.fillStyle = '#f87171';
+  ctx.fillRect(btnX, btnY, btnW, btnH);
 
-	ctx.fillStyle = 'white';
-	ctx.font      = `${Math.floor(height / 22)}px Orbitron`;
-	ctx.textAlign = 'center';
-	ctx.fillText('Leave Tournament', width / 2, btnY + btnH * 0.65);
+  ctx.fillStyle = 'white';
+  ctx.font      = `${Math.floor(height / 22)}px Orbitron`;
+  ctx.textAlign = 'center';
+  ctx.fillText('Leave Tournament', width / 2, btnY + btnH * 0.65);
 
-	// store the leave button for click handling
-	(canvas as any)._waitingTournamentButtons = [
-		{ x: btnX, y: btnY, w: btnW, h: btnH, action: 'leaveTournament' }
-	];
+  // Start Tournament button (only for creator)
+  let startBtn: PongButton | null = null;
+  if (state.isTournamentCreator === true) {
+    const startW = width  * 0.25;
+    const startH = height * 0.08;
+    const startX = width  / 2 - startW / 2;
+    const startY = btnY - startH - height * 0.02;
+    ctx.fillStyle = '#22c55e';
+    ctx.fillRect(startX, startY, startW, startH);
+
+    ctx.fillStyle = 'white';
+    ctx.font      = `${Math.floor(height / 22)}px Orbitron`;
+    ctx.textAlign = 'center';
+    ctx.fillText('Start Tournament', width / 2, startY + startH * 0.65);
+
+    startBtn = { x: startX, y: startY, w: startW, h: startH, action: 'startTournament' };
+  }
+
+  // store the buttons for click handling
+  const buttons = [
+    { x: btnX, y: btnY, w: btnW, h: btnH, action: 'leaveTournament' },
+    ...(startBtn ? [startBtn] : [])
+  ];
+  (canvas as any)._waitingTournamentButtons = buttons;
 }

@@ -27,6 +27,9 @@ export function handleAllEvents(typedSocket:TypedSocket, player:Interfaces.playe
   typedSocket.on('leaveTournament', async (socket:WebSocket, data:Interfaces.SocketMessageMap['leaveTournament']) => {
     Tournament.handleLeaveTournament(player, data);
   });
+  typedSocket.on('startTournament', async (socket:WebSocket, data:Interfaces.SocketMessageMap['startTournament']) => {
+    Tournament.handleStartTournament(data);
+  });
   typedSocket.on('invite', async (socket:WebSocket, data:Interfaces.SocketMessageMap['invite']) => {
     handleInvite(data, player);
   });

@@ -117,6 +117,15 @@ async function handleEvents(
 	typedSocket.on('updateTourList',async(socket:WebSocket, data:Interfaces.SocketMessageMap['updateTourList'])=>{
 		Tournament.handleUpdateTournamentList(data);
 	});
+	typedSocket.on('updateTourScore', async(socket:WebSocket, data:Interfaces.SocketMessageMap['updateTourScore'])=>{
+		 Tournament.handleUpdateTourScore(data);
+	});
+	typedSocket.on('endTournament', async(socket:WebSocket, data:Interfaces.SocketMessageMap['endTournament'])=>{
+		 Tournament.handleEndTournament(data);
+	});
+	typedSocket.on('startNextRound', async(socket:WebSocket, data:Interfaces.SocketMessageMap['startNextRound'])=>{
+		 Tournament.handleStartNextRound(data);
+	});
 	typedSocket.on('invite', async(socket:WebSocket, data:Interfaces.SocketMessageMap['invite'])=>{
 		await handleInvite(data);
 	});

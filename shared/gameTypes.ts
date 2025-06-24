@@ -150,6 +150,22 @@ export type SocketMessageMap = {
 								status:string}[];
 
 	};
+	//IF MORE STUFF NEEDED ADD HERE
+	startTournament:{	type:'startTournament';
+						userID:number;
+						tournamentID:number;
+	};
+	endTournament:{		type:'endTournament';
+						score:string;//JSON{username{score, pos}, user{}...}
+						isWinner:boolean;// or 'yes'|'no'|'tie'?
+	};
+	startNextRound:{	type:'startNextRound';
+						currentRound:number;
+						score:string;//To update positons before new match?
+	};
+	updateTourScore:{	type:'updateTourScore';
+						score:string;
+	};
 };
 
 export type SocketMessage = SocketMessageMap[keyof SocketMessageMap];

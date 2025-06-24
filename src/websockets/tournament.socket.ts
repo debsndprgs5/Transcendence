@@ -129,27 +129,44 @@ export async function broadcastTourList() {
 }
 
 
-// export async function startFirstRound(players:Interfaces.players[], tournamentID:number){
+//START TOURNAMENT
+/* SERVER RECEVIED START FROM OWNER
+	send back start to members?
+	start tournament loop
+	data{
+		userID:
+		tournamentID: } */
+export async function handleStartTournament(data:any) {
+	const tour = await GameManagement.getTournamentById(data.touranmentID);
+	if(tour!.createdBy !== data.userID){
+		console.log(`USER ID mismatch for ${tour!.name}`);
+		//Kick all players from tour and delete ?
+		return; 
+	}
+	
+	//IF FRONT NEEDS STUFF BEFORE TOURNAMENT START(like update views with some shit)
+	const members= await getMembersByTourID(data.tourID);
+	for(const m of members!){
+		//Sending here depends of front workflow
+		m.typedSocket.send('startTournament',{
+			userID:data.userID,
+			tournamentID:tour?.tournamentID
+		});
+		//A savoir si on rajoute des etats en front faut les gerer pour le statut aussi
+		Helpers.updatePlayerState(m, 'startTournament')//|'playing'?
+	}
+	//GameManagement.setStateByTourId(data.tourID, 'playing') -> on a pas ca
+	//Tournament logic start here
+}
 
-//     const tournamentData = await GameManagement.getTournamentById(tournamentID)
 
-//     if(!tournamentData){
-//         //kick players
-//         return;
-//     }
-//     const tournament:Tournament.tournamentInterface = {
-//         tournamentID: tournamentData.tournamentID,
-//         name: tournamentData.name,
-//         maxPlayers: tournamentData.maxPlayers,
-//         maxRounds: tournamentData.maxRounds,
-//         currentRound:0
-//     }
-
-// }
+//END TOURNAMENT -> BACK ONLY send tournamentLogic or if only on player is left on tournament after leaves 
+//START NEXT ROUND -> BACK ONLY send in tournamentLogic
 
 
-// export async function startNextRound(players:Interfaces.players[]){
-
-
-// }
-
+/*En gros , on aura une map <tourID, tourClass>
+	dans tourClass y'a players[], que tu chopes: 
+		const members= await getMembersByTourID(data.tourID);
+	quand tu balances des sockets c'est sur : 
+	m.typedSocket.send{type, {data}}
+*/

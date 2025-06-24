@@ -55,3 +55,38 @@ export function handleUpdateTournamentList(data: Interfaces.SocketMessageMap['up
 	localStorage.setItem('tournament_list', JSON.stringify(parsedList));
 	showPongMenu();
 }
+
+export function handleStartTournament(data:Interfaces.SocketMessageMap['startTournament']){
+	showNotification({message:'Tournament is about to start', type:'success'});
+	//back send update for playerState so no need to change here
+	//state.canvasViewState='StartTournament' ?
+	//showPonfMenu();
+}
+
+//data.score=stringJSON{username{score: , rank|pos: } username{} ...}
+export function handleEndTournament(data:Interfaces.SocketMessageMap['endTournament']){
+	
+	//OverRide regularEndMatch
+	// localStorage.removeItem(''); -> all tournament related
+	//state.canvasViewState='EndTournament'
+	//showPongMenu();
+}
+
+
+/*DU coup le mieux c'est en fin de match tournoi 
+		->Afficher placement/score tournoi(en socket ca permet d'overide le match regular inch)
+		->rester sur la view tant que startNextRound est pas appele
+*/
+export function handleStartNextRound(data:Interfaces.SocketMessageMap['startNextRound']){
+	//get rid of previous canvas if there
+	//state.canvasViewState='playing'
+	//showPongMenu();
+}
+
+
+export function handleUpdateTourScore(data:Interfaces.SocketMessageMap['updateTourScore']){
+		//BACK SEND THIS ONLY IF YOU ARE IN TOUR and your match is over
+		//update data.score{JSON shit} on screen
+		//state.canvasViewState='waitingNextRound'
+		//showPongMenu();
+}

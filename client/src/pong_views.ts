@@ -581,3 +581,75 @@ export function drawWaitingTournamentView(
   ];
   (canvas as any)._waitingTournamentButtons = buttons;
 }
+
+export function drawWaitingRoundsTournamentView(
+  canvas: HTMLCanvasElement,
+  ctx: CanvasRenderingContext2D,
+  tournamentName: string,
+  players: { name: string; score: number }[],
+  currentRound: number,
+  totalRounds: number
+): void {
+  const width  = canvas.width;
+  const height = canvas.height;
+
+  // Clear entire canvas
+  ctx.clearRect(0, 0, width, height);
+
+  // Background gradient (left → right: #2C5364 → #203A43 → #0F2027)
+  const grad = ctx.createLinearGradient(0, 0, width, 0);
+  grad.addColorStop(0.0, '#2C5364');
+  grad.addColorStop(0.5, '#203A43');
+  grad.addColorStop(1.0, '#0F2027');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, width, height);
+
+  // Rounds indicator
+  ctx.fillStyle = 'white';
+  ctx.font      = `${Math.floor(height / 30)}px Orbitron`;
+  ctx.textAlign = 'center';
+  ctx.fillText(`Rounds : ${currentRound} / ${totalRounds}`, width / 2, height * 0.06);
+
+  // Tournament title
+  ctx.fillStyle = 'white';
+  ctx.font      = `${Math.floor(height / 15)}px Orbitron`;
+  ctx.textAlign = 'center';
+  ctx.fillText(tournamentName, width / 2, height * 0.12);
+
+  // Player list label
+  ctx.fillStyle = 'white';
+  ctx.font      = `${Math.floor(height / 28)}px Orbitron`;
+  ctx.textAlign = 'left';
+  const listX = width * 0.18;
+  const startY = height * 0.25;
+  const lineHeight = height * 0.06;
+  ctx.fillText('Participants:', listX, startY);
+
+  // List of players with scores
+  players.forEach((player, index) => {
+    const y = startY + lineHeight * (index + 1);
+    ctx.fillText(
+      `• ${player.name} — ${player.score}`,
+      listX,
+      y
+    );
+  });
+
+  // Leave Tournament button
+  const btnW = width  * 0.25;
+  const btnH = height * 0.08;
+  const btnX = width  / 2 - btnW / 2;
+  const btnY = height * 0.8;
+  ctx.fillStyle = '#f87171';
+  ctx.fillRect(btnX, btnY, btnW, btnH);
+
+  ctx.fillStyle = 'white';
+  ctx.font      = `${Math.floor(height / 22)}px Orbitron`;
+  ctx.textAlign = 'center';
+  ctx.fillText('Leave Tournament', width / 2, btnY + btnH * 0.65);
+
+  // store the leave button for click handling
+  (canvas as any)._waitingTournamentButtons = [
+    { x: btnX, y: btnY, w: btnW, h: btnH, action: 'leaveTournament' }
+  ];
+}

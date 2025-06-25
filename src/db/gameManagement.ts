@@ -112,28 +112,35 @@ export const getLastAddedToRoom = (gameID:number) =>
 export const createTournament = (
 	name: string,
 	createdBy: number,
-	maxPlayers: number,
+	playersCount: number,
 	status: string
 ) => {
 	return run(
-		`INSERT INTO tournaments (name, createdBy, maxPlayers, status)
+		`INSERT INTO tournaments (name, createdBy, playersCount, status)
 		 VALUES (?, ?, ?, ?)`,
-		[name, createdBy, maxPlayers, status]
+		[name, createdBy, playersCount, status]
 	);
 };
+
+export const setStateforTourID = (tournamentID:number, state:string)=>
+  run(`UPDATE tournaments SET state = ? where tournamentID = ?`, [state, tournamentID])
+
+
+export const setPlayersCountForTourID = (tournamentID:number, count:number)=>
+  run(`UPDATE tournaments SET playersCount = ? where tournamentID = ?`, [count, tournamentID])
 
 export const delTournament = (tournamentID: number) =>
 	run(`DELETE FROM tournaments WHERE tournamentID = ?`, [tournamentID]);
 
 export const getTournamentById = (tournamentID: number) =>
-	get<{ tournamentID: number; name: string; createdBy: number; maxPlayers: number; status: string; created_at: string }>(
+	get<{ tournamentID: number; name: string; createdBy: number; playersCount: number; status: string; created_at: string }>(
 		`SELECT * FROM tournaments WHERE tournamentID = ?`,
 		[tournamentID]
 	);
 
 export const getAllTournaments = () =>
-	getAll<{ tournamentID: number; name: string; createdBy: number; maxPlayers: number; status: string }>(
-		`SELECT tournamentID, name, createdBy, maxPlayers, status FROM tournaments`
+	getAll<{ tournamentID: number; name: string; createdBy: number; playersCount: number; status: string }>(
+		`SELECT tournamentID, name, createdBy, maxPlayers, status FROM tournaments WHERE state='waiting'`
 	);
 
 // Add a member to a tournament

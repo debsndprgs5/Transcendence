@@ -84,9 +84,12 @@ CREATE TABLE IF NOT EXISTS tournaments (
   tournamentID   INTEGER PRIMARY KEY AUTOINCREMENT,
   name           TEXT    NOT NULL,
   createdBy      INTEGER NOT NULL,  -- owner userID
-  maxPlayers     INTEGER NOT NULL,  -- max players in tournament
-  status         TEXT    NOT NULL,  -- 'open' | 'ongoing' | 'finished'
+  playersCount   INTEGER ,  -- players in tournament
+  status         TEXT    NOT NULL,  -- 'waiting' | 'playing' | 'closed'
   created_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
+  paddle_speed 	 INTEGER NOT NULL,
+  ball_speed 	 INTEGER NOT NULL,
+  limit 		 INTEGER NOT NULL,
   FOREIGN KEY(createdBy) REFERENCES users(our_index)
 );
 

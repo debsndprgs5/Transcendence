@@ -286,13 +286,12 @@ async function  handleFriendStatus(parsed:any, ws:WebSocket){
 
 function cleanState(OgState:string):'online'|'offline'|'in-game'{
 
+	if(!OgState || OgState === undefined || OgState === 'offline')
+		return('offline');
 	if(OgState === 'init' || OgState === 'online')
 		return ('online')
-	if(OgState === 'playing' || OgState === 'waiting' || OgState === 'waitingTournament' || OgState === 'invite')//Add any game related state here
-		return ('in-game')
-	if(OgState !== 'offline')
-		console.log(`Error while parsing state to send update, playerstate:${OgState}`)
-	return('offline')
+	return ('in-game')
+	
 }
 
 function handleDisconnect(userId: number, username: string, ws: WebSocket) {

@@ -128,7 +128,9 @@ export async function handleCreateTournament(): Promise<void> {
       body: JSON.stringify({
         name,
         maxPlayers: 16,
-        status: 'open'
+        status: 'open',
+        paddleSpeed: createTournamentFormData.paddleSpeed,
+        ballSpeed: createTournamentFormData.ballSpeed
       })
     });
     showNotification({ message: `Tournament "${name}" created`, type: 'success' });

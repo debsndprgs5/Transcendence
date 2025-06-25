@@ -159,8 +159,12 @@ export type SocketMessageMap = {
 						score:string;//JSON{username{score, pos}, user{}...}
 						isWinner:boolean;// or 'yes'|'no'|'tie'?
 	};
+	//When front recived this, send back joinGame with given data
 	startNextRound:{	type:'startNextRound';
 						currentRound:number;
+						tournamentID:number;
+						gameID:number;
+						gameName:string;
 						score:string;//To update positons before new match?
 	};
 	updateTourScore:{	type:'updateTourScore';

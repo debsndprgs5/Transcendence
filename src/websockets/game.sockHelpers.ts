@@ -217,7 +217,7 @@ export async function tryStartGameIfReady(gameID: number) {
 
   if (playersInGameRoom.length === maxPlayers) {
     const playerObjs = playersInGameRoom
-      .map(p => getPlayerByUserID(p.userID))//same HERE
+      .map(p => getPlayerByUserID(p.userID))
       .filter((p): p is Interfaces.playerInterface => !!p);
 
     if (playerObjs.length === maxPlayers) {

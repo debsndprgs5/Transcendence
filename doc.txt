@@ -23,6 +23,11 @@ Majors :
 
 5. User management
 
+6. WAF
+
+7. Multi players
+
+8. 3D PONG
 
 Minors :
 
@@ -31,6 +36,9 @@ Minors :
 2. Front (Tailwind)
 
 3. Extra browser
+
+4. Game settings
+
 
 
 ## 1. Architecture générale

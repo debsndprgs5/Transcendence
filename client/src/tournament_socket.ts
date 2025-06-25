@@ -79,8 +79,7 @@ export function handleEndTournament(data:Interfaces.SocketMessageMap['endTournam
 */
 export function handleStartNextRound(data:Interfaces.SocketMessageMap['startNextRound']){
 	//get rid of previous canvas if there
-	//state.canvasViewState='playing'
-	//showPongMenu();
+	//state.typedSocket.send('joinGame', {data})
 }
 
 

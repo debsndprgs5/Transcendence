@@ -9,7 +9,6 @@ import { tournamentRoutes } from '../routes/tournament.routes';
 
 
 export async function handleJoinTournament(player:Interfaces.playerInterface, data:any){
-
 		//data.userID , data.tournamentID,
 		try{
 				await GameManagement.addMemberToTournament(data.tournamentID, data.userID);
@@ -275,7 +274,7 @@ function groupBy<T, K extends string | number>(
 }
 
 
-// Select a flotter in a odd group
+// Select a floater in a odd group
 function selectFloater(
 	group: Member[], 
 	nextGroup: Member[]
@@ -296,6 +295,22 @@ function selectFloater(
 	// If none fit, pick the weakest
 	const fallback = group.shift()!;
 	return fallback;
+}
+
+
+function selectOpponentForFloater(
+  floater: { userID: number; opponents: number[] },
+  targetGroup: { userID: number; opponents: number[] }[]
+): { userID: number; opponents: number[] } {
+  // try to find someone the floater hasn't played yet
+  for (const candidate of targetGroup) {
+    if (!floater.opponents.includes(candidate.userID)) {
+      return candidate;
+    }
+  }
+
+  // if all candidates are rematches, just pick the one with the lowest pairing priority
+  return targetGroup[0];
 }
 
 

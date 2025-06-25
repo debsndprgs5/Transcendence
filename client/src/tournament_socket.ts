@@ -58,7 +58,7 @@ export function handleUpdateTournamentList(data: Interfaces.SocketMessageMap['up
 
 export function handleStartTournament(data:Interfaces.SocketMessageMap['startTournament']){
 	showNotification({message:'Tournament is about to start', type:'success'});
-	//back send update for playerState so no need to change here
+	//back send update for playerState so no need to change handleEndTournament
 	//state.canvasViewState='StartTournament' ?
 	//showPonfMenu();
 }

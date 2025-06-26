@@ -113,21 +113,21 @@ export const createTournament = (
 	name: string,
 	createdBy: number,
 	playersCount: number,
-	status: string
+	status: string,
+	paddle_speed:number,
+	ball_speed:number,
+	limit:number
 ) => {
 	return run(
-		`INSERT INTO tournaments (name, createdBy, playersCount, status)
-		 VALUES (?, ?, ?, ?)`,
-		[name, createdBy, playersCount, status]
+		`INSERT INTO tournaments (name, createdBy, playersCount, status, paddle_speed, ball_sped, limit)
+		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		[name, createdBy, playersCount, status, paddle_speed, ball_speed, limit]
 	);
 };
 
 export const setStateforTourID = (tournamentID:number, state:string)=>
   run(`UPDATE tournaments SET state = ? where tournamentID = ?`, [state, tournamentID])
 
-
-export const setPlayersCountForTourID = (tournamentID:number, count:number)=>
-  run(`UPDATE tournaments SET playersCount = ? where tournamentID = ?`, [count, tournamentID])
 
 export const delTournament = (tournamentID: number) =>
 	run(`DELETE FROM tournaments WHERE tournamentID = ?`, [tournamentID]);
@@ -143,17 +143,28 @@ export const getAllTournaments = () =>
 		`SELECT tournamentID, name, createdBy, maxPlayers, status FROM tournaments WHERE state='waiting'`
 	);
 
-// Add a member to a tournament
-export const addMemberToTournament = (tournamentID: number, userID: number) =>
-	run(
+export const addMemberToTournament = async (tournamentID: number, userID: number) => {
+	await run(
 		`INSERT INTO tournamentMembers (tournamentID, userID, points, matchesPlayed)
 		 VALUES (?, ?, 0, 0)`,
 		[tournamentID, userID]
 	);
+	await run(
+		`UPDATE tournaments SET playersCount = playersCount + 1 WHERE tournamentID = ?`,
+		[tournamentID]
+	);
+};
 
-// Eventually remove a member from a tournament
-export const delMemberFromTournament = (tournamentID: number, userID: number) =>
-	run(`DELETE FROM tournamentMembers WHERE tournamentID = ? AND userID = ?`, [tournamentID, userID]);
+export const delMemberFromTournament = async (tournamentID: number, userID: number) => {
+	await run(
+		`DELETE FROM tournamentMembers WHERE tournamentID = ? AND userID = ?`,
+		[tournamentID, userID]
+	);
+	await run(
+		`UPDATE tournaments SET playersCount = playersCount - 1 WHERE tournamentID = ?`,
+		[tournamentID]
+	);
+};
 
 // Get all members from a tournament
 export const getAllTournamentMembers = (tournamentID: number) =>

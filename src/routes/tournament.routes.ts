@@ -9,14 +9,18 @@ export async function tournamentRoutes(fastify: FastifyInstance) {
 			const userID = Number((request.params as any).userID);
 			const body = request.body as {
 				name: string;
-				maxPlayers: number;
-				status: 'open' | 'ongoing' | 'finished';
+				status:string;
+				paddleSpeed:number;
+				ballSpeed:number;
+				limit:number;
 			};
 
 			if (
 				typeof body.name !== 'string' ||
-				typeof body.maxPlayers !== 'number' ||
-				(body.status !== 'open' && body.status !== 'ongoing' && body.status !== 'finished')
+				typeof body.paddleSpeed !== 'number' ||
+				typeof body.ballSpeed !== 'number' ||
+				typeof body.limit !== 'number' ||
+				(body.status !== 'waiting')
 			) {
 				return reply.code(400).send({ success: false, message: 'Invalid payload' });
 			}
@@ -24,8 +28,11 @@ export async function tournamentRoutes(fastify: FastifyInstance) {
 			const result = await gameMgr.createTournament(
 				body.name,
 				userID,
-				body.maxPlayers,
-				body.status
+				0,
+				body.status,
+				body.paddleSpeed,
+				body.ballSpeed,
+				body.limit
 			);
 			const newTournamentID = (result as any).lastID as number;
 
@@ -35,7 +42,6 @@ export async function tournamentRoutes(fastify: FastifyInstance) {
 					tournamentID: newTournamentID,
 					name: body.name,
 					createdBy: userID,
-					maxPlayers: body.maxPlayers,
 					status: body.status
 				}
 			});

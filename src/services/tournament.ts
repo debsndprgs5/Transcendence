@@ -66,8 +66,8 @@ export class Tournament{
 	ATest	20min		ONLINE STATUS -> if ('offline' | undefined) -> offline
 											if(online|init) -> online
 											else -> in-game
-			20min		DB -> updateStatusForTourID()
-							-> add paddle_speed , ball_speed , limit for tournament
+	ATest	20min		DB -> updateStatusForTourID()
+						-> add paddle_speed , ball_speed , limit for tournament
 						
 			25min		FRONT -> typedSocket.on('startNextRound') -> send(joinGame)
 
@@ -82,9 +82,7 @@ export class Tournament{
 
 
 
--> Rajouter a la db tournoi les regles des matchs 
-			-> enlever maxPlayers et juste laisser playerCount
-			-> pouvoir updateTourStatus
+-> Rajouter 
 			-> FRONT on('StartNextRound', data) -> send('joinGame', data)
 			-> BACK on endMatch -> if tourID -> notify end match and send score to TourClass
 			-> TourClass -> on endMatch -> put PlayingPairs in waitingPairs, send scores to any one with match over 

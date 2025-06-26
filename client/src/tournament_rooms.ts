@@ -14,7 +14,8 @@ import { PongButton, showPongMenu } from './pong_rooms';
 export const createTournamentFormData = {
   tournamentName: null as string | null,
   ballSpeed: 50,
-  paddleSpeed: 50
+  paddleSpeed: 50,
+  limit:60
 };
 
 export async function fetchOpenTournaments(): Promise<{ tournamentID: number; name: string }[]> {
@@ -127,10 +128,10 @@ export async function handleCreateTournament(): Promise<void> {
       },
       body: JSON.stringify({
         name,
-        maxPlayers: 16,
-        status: 'open',
+        status: 'waiting',
         paddleSpeed: createTournamentFormData.paddleSpeed,
-        ballSpeed: createTournamentFormData.ballSpeed
+        ballSpeed: createTournamentFormData.ballSpeed,
+        limit: createTournamentFormData.limit
       })
     });
     showNotification({ message: `Tournament "${name}" created`, type: 'success' });
@@ -140,31 +141,6 @@ export async function handleCreateTournament(): Promise<void> {
   
   // notify that this user is the tournament's creator
   state.isTournamentCreator = true;
-
-	//ALL BELOW NEEDS TO MOVE TO UPDATELIST SOCKET 
-	// fetch owner username
-    // let ownerName = `User${state.userId}`;
-    // try {
-    //   const userResp = await apiFetch(`/api/user/by-index/${state.userId}`, {
-    //     headers: { Authorization: `Bearer ${state.authToken}` }
-    //   });
-    //   ownerName = userResp.username.username;
-    // } catch { /* keep numeric ID if fetch fails */ }
-
-    // // refresh list and update state
-    // state.availableTournaments = await fetchOpenTournaments();
-    // state.currentTournamentPlayers = [ownerName];
-    // const created = state.availableTournaments.find(t => t.name === name)!;
-    // state.currentTournamentID   = created.tournamentID;
-    // state.currentTournamentName = name;
-    // state.canvasViewState       = 'waitingTournament';
-
-    // // persist to localStorage
-    // localStorage.setItem('tournament_view', 'waitingTournament');
-    // localStorage.setItem('tournament_name', name);
-    // localStorage.setItem('tournament_id', String(state.currentTournamentID));
-    // localStorage.setItem('tournament_players', JSON.stringify([ownerName]));
-    // showPongMenu();
 
   } catch (err) {
     console.error('Error creating tournament:', err);
@@ -180,52 +156,8 @@ export async function handleJoinTournament(tourID: number): Promise<void> {
 		return;
 	}
 	state.playerInterface!.typedSocket.send('joinTournament',  {userID:state.userId, tournamentID:tourID})
-
+  
   state.isTournamentCreator = false;
-	//ALL BELOW NEEDS TO MOVE TO UPDATELIST SOCKET
-  // fetch members list
-//   let members: { userID: number; alias: string }[] = [];
-//   try {
-//     const resp = await apiFetch(`/api/tournament/${tourID}/members`, {
-//       headers: { Authorization: `Bearer ${state.authToken}` }
-//     });
-//     members = resp.members;
-//   } catch (err) {
-//     console.error('Error fetching tournament members:', err);
-//     showNotification({ message: 'Cannot fetch tournament members', type: 'error' });
-//     return;
-//   }
-
-//   // resolve usernames
-//   const usernames: string[] = [];
-//   for (const m of members) {
-//     if (m.alias?.trim()) {
-//       usernames.push(m.alias);
-//     } else {
-//       try {
-//         const userResp = await apiFetch(`/api/user/by-index/${m.userID}`, {
-//           headers: { Authorization: `Bearer ${state.authToken}` }
-//         });
-//         usernames.push(userResp.username.username);
-//       } catch {
-//         usernames.push(`User${m.userID}`);
-//       }
-//     }
-//   }
-
-//   // update state and persist
-//   state.currentTournamentPlayers = usernames;
-//   state.currentTournamentID      = tourID;
-//   state.currentTournamentName    =
-//     state.availableTournaments?.find(t => t.tournamentID === tourID)?.name
-//     ?? 'Unknown Tournament';
-//   state.canvasViewState          = 'waitingTournament';
-
-//   localStorage.setItem('tournament_view', 'waitingTournament');
-//   localStorage.setItem('tournament_id', String(tourID));
-//   localStorage.setItem('tournament_name', state.currentTournamentName);
-//   localStorage.setItem('tournament_players', JSON.stringify(usernames));
-  //showPongMenu();
 }
 
 // Handles the "Leave Tournament" button action

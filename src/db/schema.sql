@@ -13,10 +13,13 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- 0 => general , no groups no owner send to all 
 CREATE TABLE IF NOT EXISTS chatRooms (
-  roomID     INTEGER PRIMARY KEY AUTOINCREMENT,
-  ownerID    INTEGER NOT NULL,
-  name       TEXT    NOT NULL DEFAULT 'Room',
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  roomID        INTEGER PRIMARY KEY AUTOINCREMENT,
+  ownerID       INTEGER NOT NULL,
+  name          TEXT    NOT NULL DEFAULT 'Room',
+  paddle_speed  INTEGER NOT NULL,
+  ball_speed    INTEGER NOT NULL,
+  limit         INTEGER NOT NULL
+  created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY(ownerID) REFERENCES users(our_index) ON DELETE CASCADE
 );
 

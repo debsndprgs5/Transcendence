@@ -5,7 +5,7 @@ export type TypedSocket = ReturnType<typeof createTypedEventSocket>;
 
 export interface tournamentInterface{
 	tourID:number,
-	maxPlayers:number,
+	playerCount:number,
 	currentRound:number,
 	maxRound:number,
 	//score:string{pos:1{username: , userID: , score: } pos:2{}....}

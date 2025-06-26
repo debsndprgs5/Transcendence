@@ -62,13 +62,11 @@ export async function tournamentRoutes(fastify: FastifyInstance) {
 					tournamentID: number;
 					name: string;
 					createdBy: number;
-					maxPlayers: number;
 					status: string;
 				}[]).map(t => ({
 					tournamentID: t.tournamentID,
 					name: t.name,
 					createdBy: t.createdBy,
-					maxPlayers: t.maxPlayers,
 					status: t.status
 				}))
 			});
@@ -98,7 +96,6 @@ export async function tournamentRoutes(fastify: FastifyInstance) {
 					tournamentID: info.tournamentID,
 					name: info.name,
 					createdBy: info.createdBy,
-					maxPlayers: info.maxPlayers,
 					status: info.status,
 					created_at: info.created_at,
 					members, // array { userID, points, matchesPlayed }

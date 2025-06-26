@@ -105,6 +105,11 @@ export async function createQuickGameAndAddPlayers(inviterID: number, inviteeID:
   await GameManagement.addMemberToGameRoom(quickRoomID, inviterID);
   await GameManagement.addMemberToGameRoom(quickRoomID, inviteeID);
 
+  const inviter = getPlayerByUserID(inviterID);
+  inviter!.gameID = quickRoomID;
+  const invitee = getPlayerByUserID(inviteeID);
+  invitee!.gameID = quickRoomID;
+
   return quickRoomID;
 }
 

@@ -6,6 +6,8 @@ export class Tournament{
 	tourID:number
 	players:G.playerInterface[]
 	gameIDs?:number[]
+	waitingPairs?:G.playerInterface[]
+	playingPairs?:G.playerInterface[]
 
 	scores?:string
 	paddle_speed:number
@@ -36,26 +38,43 @@ export class Tournament{
 
 	}
 
-	private setupMatch(){
-		const pairs=swissParingAlgo(this.players)
+	private startNextRound(){
+
+		//empty playing and waiting Pairs
+		this.playingPairs = undefined;
+		this.waitingPairs = undefined;
+		
+		if(this.current_round === this.max_round){
+			this.endTournament();
+		}
+		const pairs=swissParingAlgo(this.players)//scores and all stuff for swiss algo
 		for(const p of pairs){
 			let match_count = 1;
 			if(p.length === 1)
-				setDirectWin()
+				setDirectWin(p[0])
 			const gameID = await gameMgr.createGameRoom('tournament', 'init', 'duo', this.rules, `${}` ,0, this.tourID)
 			p[0].typedSocket.send('startNextRound', gameID, gameName,)
 			p[1].typedSocket.send('startNextRound', gameID, gameName,)
 			match_count ++,
 
+		}
 	}
-
-	private waitNextRound(){
+	private setDirectWin(player:G.playerInterface){
+		this.waitingPairs?.push(player);
+		//send direct win socket -> set to waitingNextRound view
+		//update score
+	}
+	private waitNextRound(pair:G.playerInterface[], score:string, winner?:number){
 	}
 
 	private updateScore(){
 	}
+
+	public onEndMatch(pair:G.playerInterface){
+
+	}
 };
-}
+
 
 
 
@@ -83,7 +102,6 @@ export class Tournament{
 
 
 -> Rajouter 
-			-> FRONT on('StartNextRound', data) -> send('joinGame', data)
 			-> BACK on endMatch -> if tourID -> notify end match and send score to TourClass
 			-> TourClass -> on endMatch -> put PlayingPairs in waitingPairs, send scores to any one with match over 
 						-> if PlayingPair.length === 0 

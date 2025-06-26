@@ -128,7 +128,6 @@ async function handleConnection(ws: WebSocket, request: any) {
 		ws.on('close', () => handleDisconnect(userId, fullUser.username, ws));
 	
 		ws.on('message', async (data: RawData) => {
-			console.log('CHAT:Message received from client:', data.toString());
 			let parsed: any;
 			try {
 				parsed = JSON.parse(data.toString());
@@ -225,7 +224,6 @@ async function  handleFriendStatus(parsed:any, ws:WebSocket){
 	switch(parsed.action){
 		//Front is asking for the full list
 	case 'request': {
-		console.log('[BACK] friendStatus action=request', friendList);
 		if (!Array.isArray(friendList)) {
 			ws.send(JSON.stringify({ error: 'Invalid friend list' }));
 			return;
@@ -237,7 +235,6 @@ async function  handleFriendStatus(parsed:any, ws:WebSocket){
 			status
 		};
 		});
-		console.log('[BACK] friendStatus action=response', updatedStatus);
 		ws.send(JSON.stringify({
 			type: 'friendStatus',
 			action: 'response',
@@ -253,17 +250,14 @@ async function  handleFriendStatus(parsed:any, ws:WebSocket){
 		// 	ws.send(JSON.stringify({ error: 'Invalid update data' }));
 		// 	return;
 		// }
-		console.log(`[CHAT][PLAYERUPDATE] data.state : ${parsed.state}`)
 		try {
 			// 1) Get all user-IDs who have 'userID' as a friend
 			const relatedFriends = await chatManagement.getAllUsersWhoHaveMeAsFriend(userID) ?? [];
 
 			// 2) For each friend, if they have a connected socket, send them the update
 			for (const friendID of relatedFriends) {
-				console.log(`friend ID:${friendID} found to friend woth userID:${userID}`)
 				const friendSocket = MappedClients.get(friendID);
 				if (friendSocket) {
-					console.log(`friendSocket FOUND sending state updated`)
 					friendSocket.send(JSON.stringify({
 					type: 'friendStatus',
 					action: 'updateStatus',
@@ -272,7 +266,6 @@ async function  handleFriendStatus(parsed:any, ws:WebSocket){
 					status:cleanState(parsed.state)
 					}));
 				}
-				console.log(`NO SOCKET FOUND FOR FRIEND`)
 			}
 		} catch (err) {
 			console.error('Failed to update friend status:', err);
@@ -290,8 +283,6 @@ function cleanState(OgState:string):'online'|'offline'|'in-game'{
 		return ('online')
 	if(OgState === 'playing' || OgState === 'waiting' || OgState === 'waitingTournament' || OgState === 'invite')//Add any game related state here
 		return ('in-game')
-	if(OgState !== 'offline')
-		console.log(`Error while parsing state to send update, playerstate:${OgState}`)
 	return('offline')
 }
 
@@ -300,7 +291,6 @@ function handleDisconnect(userId: number, username: string, ws: WebSocket) {
 
 	if (existingSocket === ws) {
 		MappedClients.delete(userId);
-		console.log(`CHAT: User ${username} (ID: ${userId}) disconnected.`);
 	} else {
 		console.warn(`CHAT : WebSocket mismatch for user ${userId}, not removing.`);
 	}

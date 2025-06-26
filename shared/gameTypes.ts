@@ -24,20 +24,20 @@ export type PreferencesRow = {
 
 	paddle_color: string;
 	paddle_texture: string | null;
-	paddle_mesh: string;
+	paddle_material: string;
 
 	op_paddle_color: string;
 	op_paddle_texture: string | null;
-	op_paddle_mesh: string;
+	op_paddle_material: string;
 
 	ball_color: string;
 	ball_texture: string | null;
-	ball_mesh: string;
+	ball_material: string;
 	ball_trail_enabled: number;
 
 	wall_color: string;
 	wall_texture: string | null;
-	wall_mesh: string;
+	wall_material: string;
 
 	sound_wall_bounce: number;
 	sound_paddle_bounce: number;

@@ -7,6 +7,7 @@ import { drawCreateGameView,
 import { showNotification } from './notifications';
 import { pongState } from './pong_socket';
 import { PongRenderer } from './pong_render'
+import { settingsRenderer } from './settings_render';
 import { TypedSocket } from './shared/gameTypes';
 import { resizePongCanvas } from './handlers';
 import { handleTournamentClick, handleWaitingTournamentClick, handleCreateTournament, handleJoinTournament, handleLeaveTournament, fetchOpenTournaments } from './tournament_rooms';
@@ -96,11 +97,15 @@ export function showPongMenu(): void {
 			canvas.style.display        = 'block';
 		}
 
-		// Dispose of pongRenderer if exists but not in 'playingGame' state
-		// if (state.canvasViewState !== 'playingGame' && pongState.pongRenderer) {
-		// 		pongState.pongRenderer.dispose();
-		// 		pongState.pongRenderer = null;
-		// }
+		//Dispose render to avoid using one in use
+		if (state.canvasViewState !== 'playingGame' && pongState.pongRenderer) {
+			pongState.pongRenderer.dispose();
+			pongState.pongRenderer = null;
+		}
+		if (state.canvasViewState !== 'settings' && pongState.settingsRenderer) {
+			pongState.settingsRenderer.dispose();
+			pongState.settingsRenderer = null;
+		}
 		console.log('state.canvasViewState = ', state.canvasViewState);
 
 		// Handle different view states
@@ -167,7 +172,20 @@ export function showPongMenu(): void {
 
 					}
 					break;
+				case 'settings':
+						babylonCanvas.style.display = 'block';
+						canvas.style.display = 'none';
 
+						const rect = babylonCanvas.getBoundingClientRect();
+						babylonCanvas.width = Math.floor(rect.width);
+						babylonCanvas.height = Math.floor(rect.height);
+
+						if (!pongState.settingsRenderer) {
+							pongState.settingsRenderer = new settingsRenderer(babylonCanvas);
+						} else {
+							pongState.settingsRenderer.handleResize();
+						}
+					break;
 				default:
 					drawMainMenu(canvas, ctx);
 					break;
@@ -295,7 +313,10 @@ async function handleMainMenuClick(canvas: HTMLCanvasElement, x: number, y: numb
 			state.canvasViewState = 'tournament';
 			showPongMenu();
 			break;
-
+		case 'Settings':
+			state.canvasViewState = 'settings';
+			showPongMenu();
+			break;
 		default:
 			alert(`Clicked: ${btnMain.action}`);
 	}

@@ -1,7 +1,7 @@
 import sqlite3 from 'sqlite3';
 import { user } from '../types/user';
 import * as chatType from '../types/chat';
-import PreferencesRow from '../shared/gameTypes'
+import { PreferencesRow } from '../shared/gameTypes'
 import { run, get, getAll } from './userManagement';
 
 let db: sqlite3.Database;

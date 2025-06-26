@@ -1,6 +1,7 @@
 import { showNotification, showUserActionsBubble } from './notifications';
 import { isAuthenticated, apiFetch, state } from './api';
 import { PongRenderer } from './pong_render';
+import {settingsRenderer} from './settings_render';
 import * as Interfaces from './shared/gameTypes';
 import {createTypedEventSocket} from './shared/gameEventWrapper';
 import { showPongMenu } from './pong_rooms';
@@ -12,6 +13,7 @@ import * as Tournament from './tournament_socket'
 
 export const pongState = {
 	pongRenderer: null as PongRenderer | null,
+	settingsRenderer: null as settingsRenderer|null
 };
 
 export async function initGameSocket(): Promise<void> {

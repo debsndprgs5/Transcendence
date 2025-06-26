@@ -151,16 +151,16 @@ CREATE TABLE IF NOT EXISTS gameResultFour (
   FOREIGN KEY(playerD) REFERENCES users(our_index) ON DELETE CASCADE
 );
 
-CREATE TABLE user_preferences (
+CREATE TABLE IF NOT EXISTS user_preferences (
     userID INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
 
     -- Camera
-    camera_mode TEXT DEFAULT '2D',
+    camera_mode TEXT DEFAULT '3D',
     camera_angle REAL DEFAULT 0,
     camera_focus TEXT DEFAULT 'center',
-    camera_pos_x REAL DEFAULT 0,
-    camera_pos_y REAL DEFAULT 5,
-    camera_pos_z REAL DEFAULT -10,
+    camera_pos_x REAL DEFAULT -50,
+    camera_pos_y REAL DEFAULT 50,
+    camera_pos_z REAL DEFAULT 0,
 
     -- Lighting
     light_intensity REAL DEFAULT 1.0,
@@ -168,21 +168,21 @@ CREATE TABLE user_preferences (
     --Player Paddle
     paddle_color TEXT DEFAULT '#00ff00',
     paddle_texture TEXT,
-    paddle_mesh TEXT DEFAULT 'default',
-	--Opponent Paddle
-	op_paddle_color TEXT DEFAULT '#ff0000',
-	op_paddle_texture TEXT,
-	op_paddle_mesh TEXT DEFAULT 'default',
+    paddle_material TEXT DEFAULT 'default',
+    --Opponent Paddle
+    op_paddle_color TEXT DEFAULT '#ff0000',
+    op_paddle_texture TEXT,
+    op_paddle_material TEXT DEFAULT 'default',
     -- Ball
     ball_color TEXT DEFAULT '#ffffff',
     ball_texture TEXT,
-    ball_mesh TEXT DEFAULT 'default',
+    ball_material TEXT DEFAULT 'default',
     ball_trail_enabled INTEGER DEFAULT 0,
 
     -- Walls
     wall_color TEXT DEFAULT '#999999',
     wall_texture TEXT,
-    wall_mesh TEXT DEFAULT 'default',
+    wall_material TEXT DEFAULT 'default',
 
     -- Sound
     sound_wall_bounce INTEGER DEFAULT 1,
@@ -192,7 +192,7 @@ CREATE TABLE user_preferences (
 
     -- UI & Avatar
     avatar_enabled INTEGER DEFAULT 1,
-    avatar_follow_paddle INTEGER DEFAULT 1,
+    avatar_follow_paddle INTEGER DEFAULT 0,
     avatar_offset REAL DEFAULT 0.5,
     avatar_size REAL DEFAULT 1.0,
     ui_font TEXT DEFAULT 'Roboto',

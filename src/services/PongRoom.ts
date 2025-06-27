@@ -11,6 +11,7 @@ import {
 	ballSize,
 } from '../shared/gameTypes'
 import { getUnameByIndex } from '../db/userManagement'
+import { Tournament } from './tournament'
 
 /**
  * A lightweight container for one running Pong match.
@@ -367,6 +368,17 @@ private  handleWallScore(sideHit: 'left'|'right'|'top'|'bottom', ball: ballClass
 				isWinner,
 				playerScores
 			});
+		}
+		if(this.players[0].tournamentID){
+			const tour = Tournament.MappedTour.get(this.players[0].tournamentID);
+			const scoreA = this.scoreMap.get(this.players[0].userID);
+			const scoreB = this.scoreMap.get(this.players[1].userID!)
+			tour?.onMatchFinished(
+					this.players[0].tournamentID,
+					this.players[0].userID,
+					this.players[1].userID,
+					scoreA!,
+					scoreB!)
 		}
 	}
 }

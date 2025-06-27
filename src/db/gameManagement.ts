@@ -166,6 +166,14 @@ export const delMemberFromTournament = async (tournamentID: number, userID: numb
 	);
 };
 
+export const getRulesForTourID = (tournamentID:number) =>
+	getAll<{paddle_speed:number; ball_speed:number; limit:number}>(
+		`SELECT paddle_speed, ball_speed, limit 
+		 FROM tournaments
+		 WHERE tournamentID = ?`
+		 [tournamentID]
+	);
+
 // Get all members from a tournament
 export const getAllTournamentMembers = (tournamentID: number) =>
 	getAll<{ userID: number; points: number; matchesPlayed: number }>(

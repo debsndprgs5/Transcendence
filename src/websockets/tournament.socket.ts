@@ -134,29 +134,37 @@ export async function broadcastTourList() {
 	data{
 		userID:
 		tournamentID: } */
-export async function handleStartTournament(data:any) {
-	const tour = await GameManagement.getTournamentById(data.touranmentID);
-	if(tour!.createdBy !== data.userID){
-		console.log(`USER ID mismatch for ${tour!.name}`);
-		//Kick all players from tour and delete ?
-		return; 
+export async function handleStartTournament(data: any) {
+	const { tournamentID, userID } = data;
+
+	const tour = await GameManagement.getTournamentById(tournamentID);
+	if (!tour) {
+		console.error(`[TOUR] No tournament with ID ${tournamentID}`);
+		return;
 	}
-	
-	//IF FRONT NEEDS STUFF BEFORE TOURNAMENT START(like update views with some shit)
-	const members= await getMembersByTourID(data.tourID);
-	for(const m of members!){
-		//Sending here depends of front workflow
-		m.typedSocket.send('startTournament',{
-			userID:data.userID,
-			tournamentID:tour?.tournamentID
+
+	if (tour.createdBy !== userID) {
+		console.log(`USER ID mismatch for tournament "${tour.name}"`);
+		return;
+	}
+
+	const members = await getMembersByTourID(tournamentID);
+	for (const m of members!) {
+		m.typedSocket.send('startTournament', {
+			userID,
+			tournamentID: tour.tournamentID,
+			tourName: tour.name
 		});
-		//A savoir si on rajoute des etats en front faut les gerer pour le statut aussi
-		Helpers.updatePlayerState(m, 'startTournament')//|'playing'?
+		Helpers.updatePlayerState(m, 'tournamentPlay');
 	}
-	await GameManagement.setStateforTourID(data.tourID, 'playing');
-	const rules =  GameManagement.getRulesForTourID(data.tourID)
-	//Tournament logic start here
-	const tourClass = new Tournament(members!, tour!.tournamentID, JSON.stringify({rules}))
+
+	await GameManagement.setStateforTourID(tournamentID, 'playing');
+
+	const rulesRow = await GameManagement.getRulesForTourID(tournamentID);
+	// Selon votre schéma getRulesForTourID renvoie un tableau, prenez le premier
+	const rules = rulesRow?.[0] ?? { paddle_speed:50, ball_speed:50, limit:10, max_round:4 };
+
+	new Tournament(members!, tournamentID, JSON.stringify(rules));
 }
 
 

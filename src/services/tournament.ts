@@ -17,6 +17,7 @@ export class Tournament {
 	players: playerInterface[];
 	current_round = 0;
 	max_round: number;
+	rules:string;
 
 	// internal state for pairing
 	private points = new Map<number, number>();
@@ -33,6 +34,7 @@ export class Tournament {
 		this.players = players;
 		const parsed = JSON.parse(rules);
 		this.max_round = parsed.max_round;
+		this.rules=rules;
 
 		// points and opponents init
 		for (const p of players) {
@@ -113,6 +115,8 @@ export class Tournament {
 			tour.waitingPairs.push(tour.playingPairs[idx]);
 			tour.playingPairs.splice(idx, 1);
 		}
+		//send updated score to all waiting players ? 
+
 
 		// When all pairs are done, restart
 		if (tour.playingPairs.length === 0) {
@@ -131,7 +135,7 @@ private endTournament() {
 		.sort((a, b) => this.points.get(b.userID)! - this.points.get(a.userID)!);
 	// notify all clients
 	for (const p of this.players) {
-		p.typedSocket.send('tournamentFinished', {
+		p.typedSocket.send('endTournament', {
 			tourID: this.tourID,
 			standings: standings.map(pl => ({
 				userID: pl.userID,
@@ -142,11 +146,36 @@ private endTournament() {
 	}
 	Tournament.MappedTour.delete(this.tourID);
 }
+
+public giveBye(member: Member) {
+	const userID = member.userID;
+	const player = member.player;
+
+	// 1. Award points for the bye (half a win ? full win ? )
+	const BYE_POINTS = 5;
+	Tournament.MappedTour.get(player.tournamentID!)?.points.set(userID,
+		Tournament.MappedTour.get(player.tournamentID!)?.points.get(userID)! + BYE_POINTS
+	);
+
+	// 2. Mark the player as having “played” this round by pushing to waitingPairs
+	const tour = Tournament.MappedTour.get(player.tournamentID!)!;
+	tour.waitingPairs.push([player, player]); // or some sentinel value if needed
+
+	// 3. Send socket event to inform the player
+	player.typedSocket.send('waitingNextRound', {
+		round: tour.current_round,
+		message: 'You received a bye this round.',
+	});
 }
+
+}
+
+
+
 
 function generateSwissPairings(
 	round: number,
-	members: { userID: number, points: number, opponents: number[] }[]
+	members: Member[]
 	): { playerA: number, playerB: number }[] {
 		// compute Median Buchholz for all players
 	if (round === 1) {
@@ -193,7 +222,7 @@ function generateSwissPairings(
 	for (const floater of floaters) {
 	// try to insert into the next-lower score group
 	let placed = false;
-	for (let i = groups.indexOf(floater.originalGroup) + 1;
+	for (let i = groups.indexOf(floater.originalGroup!) + 1;
 			 i < groups.length && !placed;
 			 i++) {
 		const targetGroup = groups[i];
@@ -205,9 +234,11 @@ function generateSwissPairings(
 			placed = true;
 		}
 	}
+	
 	if (!placed) {
 		// give a bye
-		giveBye(floater);
+		const tour = Tournament.MappedTour.get(floater.player.tournamentID!) 
+		tour!.giveBye(floater);
 	}
 }
 
@@ -254,7 +285,7 @@ function selectFloater(
 	nextGroup: Member[]
 ): Member {
 	// sort group by tie-break low to high (so weakest first)
-	group.sort((a, b) => a.buchholz - b.buchholz);
+	group.sort((a, b) => a.buchholz! - b.buchholz!);
 	for (const candidate of group) {
 		// 2. check if candidate can play someone new in nextGroup to avoid rematch
 		const hasAvailable = nextGroup.some(opp =>
@@ -273,9 +304,9 @@ function selectFloater(
 
 
 function selectOpponentForFloater(
-	floater: { userID: number; opponents: number[] },
-	targetGroup: { userID: number; opponents: number[] }[]
-): { userID: number; opponents: number[] } {
+	floater: Member,
+	targetGroup: Member[]
+): Member {
 	// try to find someone the floater hasn't played yet
 	for (const candidate of targetGroup) {
 		if (!floater.opponents.includes(candidate.userID)) {
@@ -289,7 +320,7 @@ function selectOpponentForFloater(
 
 
 // Compute median Buchholz tiebreaker algorythm
-function computeMedianBuchholz(members: { userID: number, points: number, opponents: number[] }[]) {
+function computeMedianBuchholz(members:Member[]) {
 	// build a map userID -> points
 	const ptsMap = new Map<number, number>(
 		members.map(m => [m.userID, m.points])
@@ -314,58 +345,3 @@ function computeMedianBuchholz(members: { userID: number, points: number, oppone
 }
 
 
-/** A FAIRE 
-
-			CE SOIR : 
-	ATest	20min		ONLINE STATUS -> if ('offline' | undefined) -> offline
-											if(online|init) -> online
-											else -> in-game
-	ATest	20min		DB -> updateStatusForTourID()
-						-> add paddle_speed , ball_speed , limit for tournament
-						
-			25min		FRONT -> typedSocket.on('startNextRound') -> send(joinGame)
-
-			1h			TOUR class -> include swiss pairing -> members to playerInterfaces, scores as JSONstring
-
-
-			30min		SOCKET -> waitNextRound -> canvasViewState=waitingTournament, updateState, showPongMenu()
-
-						
-						
-
-
-
-
--> Rajouter 
-			-> FRONT on('StartNextRound', data) -> send('joinGame', data)
-			-> BACK on endMatch -> if tourID -> notify end match and send score to TourClass
-			-> TourClass -> on endMatch -> put PlayingPairs in waitingPairs, send scores to any one with match over 
-						-> if PlayingPair.length === 0 
-								if currentRound == MaxRound
-									endTournament
-								StartNextRound
-
-
-			=>bouger logique tournoi dans services 
-			-> demarrer la logique tournoi
-					constructor -> 
-									make pairs 
-									send startNextRound for full pairs -> they send back joinGame 
-									send endMatch for unfull -> add to waiting pairs
-									on a pair who finish -> add to wating pairs -> send waitingNextRound to all waitingPairs
-									if playingPairs empty -> exchange with waiting pairs , ++ on currentRound -> loop back
-
-									if currentRound === maxRounds
-										send EndTournament, update DB, dispose
-
-
-
-
-			players[]
-			
-		playingPairs[]	waitingPairs[]
-
-
-								
-								
-*/

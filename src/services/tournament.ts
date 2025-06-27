@@ -55,15 +55,16 @@ export class Tournament {
 
 		// Generating pairs
 		this.playingPairs = this.swissPairingAlgo();
-
+		console.log(`PLAYING PAIRS:${this.playingPairs.length}`)
+		const gameName = `Tournament : Round ${this.current_round}/${this.max_round}.`
 		// Start Matches
 		for (const [pA, pB] of this.playingPairs) {
 			const gameID = await gameMgr.createGameRoom(
 				'tournament', 'init', 'duo',
-				this.rules, 'Tournament : Round ${this.current_round}/${this.max_round}.', 0, this.tourID
+				this.rules, gameName, 0, this.tourID
 			);
-			pA.typedSocket.send('startNextRound', { gameID, opponent: pB.userID });
-			pB.typedSocket.send('startNextRound', { gameID, opponent: pA.userID });
+			pA.typedSocket.send('startNextRound', { userID:pA.userID,gameID, gameName});
+			pB.typedSocket.send('startNextRound', {userID:pB.userID, gameID, gameName });
 		}
 	}
 

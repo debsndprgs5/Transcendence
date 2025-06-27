@@ -72,7 +72,7 @@ export async function handleJoin(
   const { userID, gameName, gameID } = parsed;
 
 
-  if (player.state !== 'init') {
+  if (player.state !== 'init' && player.state !== 'tournamentPlay') {
     player.typedSocket.send('joinGame', {
       success: false,
       reason: `you are in ${player.state} mode`,

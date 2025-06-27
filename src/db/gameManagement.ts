@@ -140,7 +140,7 @@ export const getTournamentById = (tournamentID: number) =>
 
 export const getAllTournaments = () =>
 	getAll<{ tournamentID: number; name: string; createdBy: number; playersCount: number; status: string }>(
-		`SELECT tournamentID, name, createdBy, maxPlayers, status FROM tournaments WHERE state='waiting'`
+		`SELECT tournamentID, name, createdBy, status FROM tournaments WHERE state='waiting'`
 	);
 
 export const addMemberToTournament = async (tournamentID: number, userID: number) => {

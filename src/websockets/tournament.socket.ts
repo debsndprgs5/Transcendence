@@ -161,10 +161,10 @@ export async function handleStartTournament(data: any) {
 	await GameManagement.setStateforTourID(tournamentID, 'playing');
 
 	const rulesRow = await GameManagement.getRulesForTourID(tournamentID);
-	// Selon votre schéma getRulesForTourID renvoie un tableau, prenez le premier
 	const rules = rulesRow?.[0] ?? { paddle_speed:50, ball_speed:50, limit:10, max_round:4 };
 
-	new Tournament(members!, tournamentID, JSON.stringify(rules));
+	const tourobj = new Tournament(members!, tournamentID, JSON.stringify(rules));
+	tourobj.start();
 }
 
 

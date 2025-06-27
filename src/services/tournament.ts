@@ -24,6 +24,7 @@ export class Tournament {
 	private opponents = new Map<number, Set<number>>();
 	private playingPairs: [playerInterface, playerInterface][] = [];
 	private waitingPairs: [playerInterface, playerInterface][] = [];
+	private hasStarted = false;
 
 	constructor(
 		players: playerInterface[],
@@ -43,7 +44,10 @@ export class Tournament {
 		}
 
 		Tournament.MappedTour.set(tourID, this);
-		// start first round
+	}
+	public start() {
+		if (this.hasStarted) return;
+		this.hasStarted = true;
 		this.nextRound();
 	}
 
@@ -52,7 +56,7 @@ export class Tournament {
 		if (this.current_round > this.max_round) {
 			return this.endTournament();
 		}
-
+		console.warn('NEXT ROUND CALLED !!!!');
 		// Generating pairs
 		this.playingPairs = this.swissPairingAlgo();
 
@@ -116,10 +120,11 @@ export class Tournament {
 			tour.playingPairs.splice(idx, 1);
 		}
 		//send updated score to all waiting players ? 
+ 		if (!this.hasStarted) return;
 
 
 		// When all pairs are done, restart
-		if (tour.playingPairs.length === 0) {
+		if (tour.playingPairs.length === 0 && tour.waitingPairs.length > 0) {
 			// swap waiting -> playing for next loop
 			tour.playingPairs = tour.waitingPairs;
 			tour.waitingPairs = [];

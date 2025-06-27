@@ -119,7 +119,7 @@ export const createTournament = (
 	limit:number
 ) => {
 	return run(
-		`INSERT INTO tournaments (name, createdBy, playersCount, status, paddle_speed, ball_sped, limit)
+		`INSERT INTO tournaments (name, createdBy, playersCount, status, paddle_speed, ball_speed, "limit")
 		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
 		[name, createdBy, playersCount, status, paddle_speed, ball_speed, limit]
 	);
@@ -133,14 +133,23 @@ export const delTournament = (tournamentID: number) =>
 	run(`DELETE FROM tournaments WHERE tournamentID = ?`, [tournamentID]);
 
 export const getTournamentById = (tournamentID: number) =>
-	get<{ tournamentID: number; name: string; createdBy: number; playersCount: number; status: string; created_at: string }>(
+	get<{	tournamentID: number;
+			name: string;
+			createdBy: number;
+			playersCount: number;
+			status: string;
+			created_at: string;
+			paddle_speed: number;
+			ball_speed: number;
+			limit: number
+		}>(
 		`SELECT * FROM tournaments WHERE tournamentID = ?`,
 		[tournamentID]
 	);
 
 export const getAllTournaments = () =>
 	getAll<{ tournamentID: number; name: string; createdBy: number; playersCount: number; status: string }>(
-		`SELECT tournamentID, name, createdBy, maxPlayers, status FROM tournaments WHERE state='waiting'`
+		`SELECT tournamentID, name, createdBy, playersCount, status FROM tournaments WHERE status='waiting'`
 	);
 
 export const addMemberToTournament = async (tournamentID: number, userID: number) => {
@@ -168,7 +177,7 @@ export const delMemberFromTournament = async (tournamentID: number, userID: numb
 
 export const getRulesForTourID = (tournamentID:number) =>
 	getAll<{paddle_speed:number; ball_speed:number; limit:number}>(
-		`SELECT paddle_speed, ball_speed, limit 
+		`SELECT paddle_speed, ball_speed, limit
 		 FROM tournaments
 		 WHERE tournamentID = ?`
 		 [tournamentID]

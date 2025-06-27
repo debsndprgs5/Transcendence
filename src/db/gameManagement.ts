@@ -154,7 +154,7 @@ export const getAllTournaments = () =>
 
 export const addMemberToTournament = async (tournamentID: number, userID: number) => {
 	await run(
-		`INSERT INTO tournamentMembers (tournamentID, userID, points, matchesPlayed)
+		`INSERT OR IGNORE INTO tournamentMembers (tournamentID, userID, points, matchesPlayed)
 		 VALUES (?, ?, 0, 0)`,
 		[tournamentID, userID]
 	);

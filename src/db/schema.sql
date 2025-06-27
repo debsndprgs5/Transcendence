@@ -82,14 +82,14 @@ CREATE TABLE IF NOT EXISTS gameMembers(
 --  Main Tournament table
 CREATE TABLE IF NOT EXISTS tournaments (
   tournamentID   INTEGER PRIMARY KEY AUTOINCREMENT,
-  "name"           TEXT    NOT NULL,
+  "name"         TEXT    NOT NULL,
   createdBy      INTEGER NOT NULL,  -- owner userID
   playersCount   INTEGER ,  -- players in tournament
-  "status"         TEXT    NOT NULL,  -- 'waiting' | 'playing' | 'closed'
+  "status"       TEXT    NOT NULL,  -- 'waiting' | 'playing' | 'closed'
   created_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
   paddle_speed 	 INTEGER NOT NULL,
   ball_speed 	   INTEGER NOT NULL,
-  "limit" 		     INTEGER NOT NULL,
+  "limit" 		   INTEGER NOT NULL,
   FOREIGN KEY(createdBy) REFERENCES users(our_index)
 );
 
@@ -153,3 +153,28 @@ CREATE TABLE IF NOT EXISTS gameResultFour (
   FOREIGN KEY(playerC) REFERENCES users(our_index) ON DELETE CASCADE,
   FOREIGN KEY(playerD) REFERENCES users(our_index) ON DELETE CASCADE
 );
+
+
+/* 
+    IDEAL POUR HISTORIQUE :  
+      TABLE MATCH_HISTORY{
+        gameID:
+        TourID:
+        rules(speed, limit, condition):
+        scores:
+      }
+
+      TABLE TOUR_HISTORY{
+        TourID:
+        scores:
+      }
+
+      TABLE Players_HISTORY{
+        userID:ref
+        tourID:ref ou NULL 
+        gameID:ref
+        winner:'yes'|'no'|'tie'
+      }
+    Ca permet de trier les matchs comme on veut 
+      on peut aussi rajouter des donnes sur chaque players
+*/

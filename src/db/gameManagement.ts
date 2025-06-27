@@ -125,8 +125,10 @@ export const createTournament = (
 	);
 };
 
+
 export const setStateforTourID = (tournamentID:number, state:string)=>
   run(`UPDATE tournaments SET status = ? where tournamentID = ?`, [state, tournamentID])
+
 
 
 export const delTournament = (tournamentID: number) =>

@@ -6,29 +6,26 @@ import {getPlayerBySocket, getPlayerByUserID, getAllMembersFromGameID, delPlayer
 import { playerMove } from '../services/pong'
 import { PongRoom } from '../services/PongRoom';
 import { tournamentRoutes } from '../routes/tournament.routes';
-
+import { Tournament } from '../services/tournament';
 
 export async function handleJoinTournament(player:Interfaces.playerInterface, data:any){
 		//data.userID , data.tournamentID,
 		try{
-				await GameManagement.addMemberToTournament(data.tournamentID, data.userID);
-				Helpers.updatePlayerState(player, 'waitingTournament');
-				const tour = await GameManagement.getTournamentById(data.tournamentID);
-				//addPlayerToTournamentObj()
-				
-				//Notify front
-				player.typedSocket.send('joinTournament',{
-						userID:data.userID,
-			username:player.username,
-						tournamentID:data.tournamentID,
-			tourName:tour?.name,
-						success:true
-				});
-				player.tournamentID = data.tournamentID
-		console.log(`${player.username} just joined tournament ID : ${data.tournamentID}`);
-		updateTourPlayerList(player, data.tournamentID, false)
-		Helpers.updatePlayerState(player, 'waitingTournament');
-				//tryStartTournament()
+			await GameManagement.addMemberToTournament(data.tournamentID, data.userID);
+			Helpers.updatePlayerState(player, 'waitingTournament');
+			const tour = await GameManagement.getTournamentById(data.tournamentID);
+			//Notify front
+			player.typedSocket.send('joinTournament',{
+					userID:data.userID,
+					username:player.username,
+					tournamentID:data.tournamentID,
+					tourName:tour?.name,
+					success:true
+			});
+			player.tournamentID = data.tournamentID
+			console.log(`${player.username} just joined tournament ID : ${data.tournamentID}`);
+			updateTourPlayerList(player, data.tournamentID, false)
+			Helpers.updatePlayerState(player, 'waitingTournament');	
 		}
 		catch{
 				player.typedSocket.send('joinTournament',{
@@ -86,6 +83,8 @@ export async function handleLeaveTournament(player: Interfaces.playerInterface, 
 	const leftTourID = player.tournamentID;
 	player.tournamentID = -1;
 	Helpers.updatePlayerState(player, 'init');
+	
+	//HERE -> call Tournament -> removeMember(userID)
 
 	// 4. Get remaining members
 	const members = await getMembersByTourID(leftTourID!);
@@ -154,19 +153,27 @@ export async function handleStartTournament(data:any) {
 		//A savoir si on rajoute des etats en front faut les gerer pour le statut aussi
 		Helpers.updatePlayerState(m, 'startTournament')//|'playing'?
 	}
-	//GameManagement.setStateByTourId(data.tourID, 'playing') -> on a pas ca
+	await GameManagement.setStateforTourID(data.tourID, 'playing');
+	const rules =  GameManagement.getRulesForTourID(data.tourID)
 	//Tournament logic start here
+	const tourClass = new Tournament(members!, tour!.tournamentID, JSON.stringify({rules}))
 }
 
 
-//END TOURNAMENT -> BACK ONLY send tournamentLogic or if only on player is left on tournament after leaves 
-//START NEXT ROUND -> BACK ONLY send in tournamentLogic
 
 
-/*En gros , on aura une map <tourID, tourClass>
-	dans tourClass y'a players[], que tu chopes: 
-		const members= await getMembersByTourID(data.tourID);
-	quand tu balances des sockets c'est sur : 
-	m.typedSocket.send{type, {data}}
-*/
-
+/** 
+ *  			 -> arreter le tournoi, on va rester en playing 
+ * 				-> demarrer les games depuis tournoi -> check les rules envoyes 
+ * 				-> verifier workflow fin de game till nextRound 
+ * 				-> update DB sur fin de tournoi 
+ * 
+ *				-> TournamentClass -> rajouter un function delMember(id)
+ *									-> si c'est owner -> newOwner
+ * 
+ * 				->WaitingNextRoundView	-> update score 
+ * 										-> ownerID startNextRound
+ * 	
+ * 				->PLEIN D'AUTRES BAUX QUE JE VOIS PAS CASH 
+ * 
+ */

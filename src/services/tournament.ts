@@ -18,7 +18,7 @@ export class Tournament {
 	current_round = 0;
 	max_round: number;
 
-	// état interne pour le pairing
+	// internal state for pairing
 	private points = new Map<number, number>();
 	private opponents = new Map<number, Set<number>>();
 	private playingPairs: [playerInterface, playerInterface][] = [];
@@ -177,7 +177,7 @@ function generateSwissPairings(
 
 		// if odd, pull one floater to next group
 		if (pool.length % 2 === 1) {
-			const floater = selectFloater(group, []);;
+			const floater = selectFloater(group, []);
 			floaters.push(floater);
 		}
 

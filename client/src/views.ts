@@ -291,6 +291,7 @@ export function Verify2FAView(): string {
 /**
  * Returns the HTML for the account view.
  */
+
 export function AccountView(user: any, friends: any[] = []): string {
 	const username = user.username || '';
 	const style = /^\d+$/.test(username)

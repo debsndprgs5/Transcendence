@@ -126,7 +126,7 @@ export const createTournament = (
 };
 
 export const setStateforTourID = (tournamentID:number, state:string)=>
-  run(`UPDATE tournaments SET state = ? where tournamentID = ?`, [state, tournamentID])
+  run(`UPDATE tournaments SET status = ? where tournamentID = ?`, [state, tournamentID])
 
 
 export const delTournament = (tournamentID: number) =>
@@ -177,9 +177,9 @@ export const delMemberFromTournament = async (tournamentID: number, userID: numb
 
 export const getRulesForTourID = (tournamentID:number) =>
 	getAll<{paddle_speed:number; ball_speed:number; limit:number; win_condition:'time'}>(
-		`SELECT paddle_speed, ball_speed, limit
+		`SELECT paddle_speed, ball_speed, "limit"
 		 FROM tournaments
-		 WHERE tournamentID = ?`
+		 WHERE tournamentID = ?`,
 		 [tournamentID]
 	);
 

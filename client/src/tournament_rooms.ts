@@ -104,6 +104,7 @@ export async function handleWaitingTournamentClick(
   else if (clickedBtn.action === 'startTournament') {
     // await startTournament();
     showNotification({message:`Tournament Starting now !`, type:'success'});
+    state.playerInterface!.typedSocket.send('startTournament', {userID:state.userId, tournamentID:state.currentTournamentID})
   }
 }
 

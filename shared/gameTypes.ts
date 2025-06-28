@@ -81,6 +81,7 @@ export type SocketMessageMap = {
 	startGame:{	type:'startGame';
 				userID:number;
 				gameID:number;
+				gameName:string;
 				win_condition:string;
 				limit:number; 
 				usernames: Record<'left' | 'right' | 'top' | 'bottom', string>; 

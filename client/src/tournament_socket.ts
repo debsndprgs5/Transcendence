@@ -78,7 +78,7 @@ export function handleEndTournament(data:Interfaces.SocketMessageMap['endTournam
 		->rester sur la view tant que startNextRound est pas appele
 */
 export function handleStartNextRound(data:Interfaces.SocketMessageMap['startNextRound']){
-	console.warn('gamename =', data.gameName);
+	console.warn('[TOUR][STARTNEXTROUND]gamename =', data.gameName);
 	state.typedSocket.send('joinGame', {userID:state.userId, gameID:data.gameID, gameName:data.gameName});
 	//Show notif with user Rank and matches left ? 
 }

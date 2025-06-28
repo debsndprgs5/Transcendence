@@ -48,6 +48,7 @@ export class PongRenderer{
 	canvas: HTMLCanvasElement,
 	typedSocket: TypedSocket,
 	playerCount: number,
+	gameName:string,
 	playerSide: 'left' | 'right' | 'top' | 'bottom',
 	usernames: Record<'left' | 'right' | 'top' | 'bottom', string>
 	) {
@@ -60,9 +61,9 @@ export class PongRenderer{
 		localStorage.setItem('playerCount', playerCount.toString());
 		localStorage.setItem('playerSide', playerSide);
 		localStorage.setItem('usernames', JSON.stringify(usernames));
-		if(state.currentGameName !== undefined)
-			localStorage.setItem('gameName', state.currentGameName!);
-
+		if(gameName !== undefined)
+			localStorage.setItem('gameName', gameName);
+		
 		this.engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: false, stencil: true });
 		this.scene = new BABYLON.Scene(this.engine);
 		this.setupGUI();

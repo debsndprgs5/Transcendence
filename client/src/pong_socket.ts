@@ -384,7 +384,7 @@ export async function handleStartGame(data: Interfaces.SocketMessageMap['startGa
 	console.log(`USERSTATE:${state.playerInterface.state}| Uname: ${state.playerInterface.username}`)
 	const count = Object.keys(data.usernames).length
 	pongState.pongRenderer = new PongRenderer(canvas, state.typedSocket,
-		count, state.playerInterface.playerSide!, data.usernames);
+		count, data.gameName,state.playerInterface.playerSide!, data.usernames);
 	state.playerInterface.gameID = data.gameID;
 	showPongMenu();
 	}
@@ -532,8 +532,10 @@ export async function handleReconnection(socket:WebSocket, typedSocket:TypedSock
 			console.error('Canvas element not found or not a valid canvas.');
 			return;
 		}
-
-		pongState.pongRenderer = new PongRenderer(canvas, state.typedSocket, playerCount, side, usernames);
+		let oldGameName = localStorage.getItem('gameName');
+		if(!oldGameName)
+			oldGameName = 'Name was lost during reconnection'
+		pongState.pongRenderer = new PongRenderer(canvas, state.typedSocket, playerCount, oldGameName! ,side, usernames);
 		state.canvasViewState = 'playingGame';
 		showPongMenu();
 

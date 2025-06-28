@@ -53,6 +53,12 @@ export const getAllPublicGames = () =>
 export const getModePerGameID = (gameID:number) =>
   get<{mode:string}>(
     `SELECT mode FROM gameRooms WHERE gameID = ?`, [gameID]);
+
+//get name for gameID
+export const getNamePerGameID = (gameID:number) => 
+	get<{name:string}>(
+		`SELECT name FROM gameRooms WHERE gameID=?`, [gameID]
+	);
 export const setStateforGameID = (gameID:number, state:string)=>
   run(`UPDATE gameRooms SET state = ? where gameID = ?`, [state, gameID])
 

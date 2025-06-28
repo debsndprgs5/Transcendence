@@ -71,8 +71,8 @@ export async function handleJoin(
     player: Interfaces.playerInterface) {
   const { userID, gameName, gameID } = parsed;
 
-
-  if (player.state !== 'init' && player.state !== 'tournamentPlay') {
+      //DANGEREUX MOVE HERE -> ENTRE 2 match de tournoi on reste en playing
+  if (player.state !== 'init' && !player.tournamentID) {
     player.typedSocket.send('joinGame', {
       success: false,
       reason: `you are in ${player.state} mode`,

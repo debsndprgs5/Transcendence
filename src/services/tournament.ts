@@ -31,12 +31,18 @@ export class Tournament {
 		tourID: number,
 		rules: string
 	) {
+		const sameTour = Tournament.MappedTour.get(tourID);
+		
 		this.tourID = tourID;
 		this.players = players;
 		const parsed = JSON.parse(rules);
 		this.max_round = 5;
 		this.rules=rules;
-
+		if(sameTour){
+			console.warn(`[TOURNAMENT][TOURID called twice]`)
+			return;
+		}
+		
 		// points and opponents init
 		for (const p of players) {
 			this.points.set(p.userID, 0);
@@ -220,10 +226,10 @@ function generateSwissPairings(
 
 		// if odd, pull one floater to next group
 		if (pool.length % 2 === 1) {
-			const floater = selectFloater(group, []);
+			const floater = selectFloater(pool, []);
 			floaters.push(floater);
+			pool = pool.filter(p => p !== floater); // REMOVE the floater from pool
 		}
-
 		// split and pair within group
 		const half = pool.length / 2;
 		const top = pool.slice(0, half);

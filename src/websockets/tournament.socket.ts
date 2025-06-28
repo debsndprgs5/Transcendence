@@ -94,8 +94,6 @@ export async function handleLeaveTournament(player: Interfaces.playerInterface, 
 		console.log(`[TOUR][LEFT]{No members left deleting room}`)
 		GameManagement.delTournament(leftTourID!);
 		await broadcastTourList();
-		// Optional: tournament is now empty, auto-cancel?
-		//GameManagement.delTournament(leftTourID)
 	}
 
 	// 6. Update all others

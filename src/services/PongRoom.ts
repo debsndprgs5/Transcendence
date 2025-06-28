@@ -39,6 +39,7 @@ export class PongRoom {
 		game: G.gameRoomInterface & { ballSpeed: number; paddleSpeed: number },
 		players: G.playerInterface[]
 	) {
+		console.warn(`[PONGROOM][CONSTRUCTOR]GameID:${game.gameID}`);
 		this.game    = game
 		this.gameID  = game.gameID
 		this.players = players

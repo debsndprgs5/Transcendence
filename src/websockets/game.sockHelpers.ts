@@ -166,13 +166,16 @@ export async function beginGame(gameID: number, players: Interfaces.playerInterf
     };
     player.typedSocket.send('giveSide', sideMsg);
   });
-
+  let gameName = await GameManagement.getNamePerGameID(gameID);
+  if(!gameName!.name)
+      gameName!.name = `WE COULD PUT "EASTER EGG" HERE`;
   // Send startGame message after sideToUsername is fully built
   shuffled.forEach((player) => {
     const startMsg: Interfaces.SocketMessageMap['startGame'] = {
       type: 'startGame',
       userID: player.userID,
       gameID,
+      gameName:gameName!.name,
       win_condition: gameDesc.winCondition,
       limit: gameDesc.limit,
       usernames: sideToUsername,
@@ -180,7 +183,9 @@ export async function beginGame(gameID: number, players: Interfaces.playerInterf
     player.typedSocket.send('startGame', startMsg);
   });
 
-  new PongRoom(gameDesc, shuffled);
+  const existingGame = PongRoom.rooms.get(gameID)
+  if(!existingGame)
+    new PongRoom(gameDesc, shuffled);
 }
 
 

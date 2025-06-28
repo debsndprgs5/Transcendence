@@ -57,18 +57,26 @@ export class Tournament {
 			return this.endTournament();
 		}
 		console.warn('NEXT ROUND CALLED !!!!');
-		// Generating pairs
 		this.playingPairs = this.swissPairingAlgo();
-		console.log(`PLAYING PAIRS:${this.playingPairs.length}`)
-		const gameName = `Tournament : Round ${this.current_round}/${this.max_round}.`
-		// Start Matches
+		console.log(`PLAYING PAIRS:${this.playingPairs.length}`);
+
+		const baseRules = JSON.parse(this.rules);
+		// Inject the tournament's win_condition
+		const extendedRules = {
+			...baseRules,
+			win_condition: 'time',
+		};
+
+		const gameRulesStr = JSON.stringify(extendedRules);
+		const gameName = `Tournament : Round ${this.current_round}/${this.max_round}.`;
+
 		for (const [pA, pB] of this.playingPairs) {
 			const gameID = await gameMgr.createGameRoom(
 				'tournament', 'init', 'duo',
-				this.rules, gameName, 0, this.tourID
+				gameRulesStr, gameName, 0, this.tourID
 			);
-			pA.typedSocket.send('startNextRound', { userID:pA.userID,gameID, gameName});
-			pB.typedSocket.send('startNextRound', {userID:pB.userID, gameID, gameName });
+			await pA.typedSocket.send('startNextRound', { userID: pA.userID, gameID, gameName });
+			await pB.typedSocket.send('startNextRound', { userID: pB.userID, gameID, gameName });
 		}
 	}
 

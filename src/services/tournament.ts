@@ -34,7 +34,7 @@ export class Tournament {
 		this.tourID = tourID;
 		this.players = players;
 		const parsed = JSON.parse(rules);
-		this.max_round = parsed.max_round;
+		this.max_round = 5;
 		this.rules=rules;
 
 		// points and opponents init
@@ -56,7 +56,6 @@ export class Tournament {
 		if (this.current_round > this.max_round) {
 			return this.endTournament();
 		}
-		console.warn('NEXT ROUND CALLED !!!!');
 		// Generating pairs
 		this.playingPairs = this.swissPairingAlgo();
 		console.log(`PLAYING PAIRS:${this.playingPairs.length}`)

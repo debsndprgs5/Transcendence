@@ -36,6 +36,21 @@ services:
     networks:
       - transcendence_net
 
+  vault-init:
+    image: hashicorp/vault:1.19
+    container_name: vault-init
+    depends_on:
+      - vault
+    volumes:
+      - ./:/app
+    working_dir: /app
+    entrypoint: /bin/sh
+    command: -c "apk add --no-cache bash netcat-openbsd && ./vault/init-vault.sh"
+    networks:
+      - transcendence_net
+    environment:
+      - VAULT_ADDR=http://vault:8200
+
   waf:
     build:
       context: ./src/WAF

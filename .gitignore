@@ -3,4 +3,8 @@
 src/db/*.db
 Makefile
 en.subject.pdf
+
+# Vault
 /vault/data/*
+.env.vault
+.vault-keys

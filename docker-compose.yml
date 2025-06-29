@@ -21,6 +21,21 @@ services:
     networks:
       - transcendence_net
 
+  vault:
+    image: hashicorp/vault:1.19
+    container_name: vault
+    ports:
+      - "8200:8200"
+    volumes:
+      - ./vault/config:/vault/config
+      - ./vault/policies:/vault/policies
+      - vault_data:/vault/file
+    cap_add:
+      - IPC_LOCK
+    command: server
+    networks:
+      - transcendence_net
+
   waf:
     build:
       context: ./src/WAF
@@ -31,10 +46,13 @@ services:
       - "1800:1800"
     depends_on:
       - app
+      - vault
     networks:
       - transcendence_net
 
 volumes:
+  vault_data:
+    name: vault_data
   transcendence_volume:
     name: transcendence_volume
     driver: local

@@ -31,6 +31,8 @@ services:
       - "1800:1800"
     depends_on:
       - app
+    volumes:
+      - ./src/WAF/logs:/var/log/nginx
     networks:
       - transcendence_net
 

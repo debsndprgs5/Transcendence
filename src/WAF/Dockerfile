@@ -19,9 +19,9 @@ RUN mkdir -p /usr/share/modsecurity-crs && \
 
 COPY conf/crs-setup.conf /usr/share/modsecurity-crs/crs-setup.conf
 COPY conf/nginx.conf /etc/nginx/nginx.conf
-COPY conf/modsecurity/ /etc/nginx/modsecurity/
-
+COPY conf/modsecurity.conf /etc/nginx/modsecurity/main.conf
 COPY conf/app_proxy.conf.template /etc/nginx/conf.d/app_proxy.conf.template
+
 RUN sed "s|\${APP_TARGET_PORT}|${APP_TARGET_PORT_BUILD_ARG}|g" /etc/nginx/conf.d/app_proxy.conf.template > /etc/nginx/conf.d/default.conf
 # RUN rm /etc/nginx/conf.d/app_proxy.conf.template
 

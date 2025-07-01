@@ -26,11 +26,13 @@ myexport-env:
 	  fi; \
 	done
 
+clear-waf-logs:
+	@rm -rf src/WAF/logs/*
 
 # -------------------------------------------------------------------
 # Docker Rules
 # -------------------------------------------------------------------
-docker-up:myexport-env
+docker-up:myexport-env clear-waf-logs
 	@if grep -q '^WORK_DIR=' .env; then \
 	  sed -i 's|^WORK_DIR=.*|WORK_DIR=$(WORK_DIR)|' .env; \
 	else \

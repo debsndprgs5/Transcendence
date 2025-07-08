@@ -213,7 +213,7 @@ export async function tryStartGameIfReady(gameID: number) {
   }
 
   const playersInGameRoom = getAllMembersFromGameID(gameID) ?? [];
-
+  console.log(`[TRYifR4DY] ${playersInGameRoom}`);
   if (playersInGameRoom.length > maxPlayers) {
     const playerToKick = await GameManagement.getLastAddedToRoom(gameID);
     if (!playerToKick?.userID) return;
@@ -234,7 +234,7 @@ export async function tryStartGameIfReady(gameID: number) {
       playerObjs.forEach(p => {
         updatePlayerState(p, 'playing');  // Event-driven status update
       });
-
+      console.log(`[TryStartGameIfReady] calling beginGame on gameID ${gameID}`);
       // start the game (send first render and start game loop)
       beginGame(gameID, playerObjs);
     }

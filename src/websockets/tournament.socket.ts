@@ -165,6 +165,12 @@ export async function handleStartTournament(data: any) {
 	tourobj.start();
 }
 
+export async function handleMatchFinish(data:any){
+
+	const tour = Tournament.MappedTour.get(data.tourID)!;
+	tour.onMatchFinished(data.tourID, data.a_ID, data.b_ID, data.a_score, data.b_score, data.userID);
+}
+
 
 
 

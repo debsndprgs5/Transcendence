@@ -18,6 +18,7 @@ export class Tournament {
 	current_round = 0;
 	max_round: number;
 	rules:string;
+	
 
 	// internal state for pairing
 	private points = new Map<number, number>();
@@ -25,6 +26,7 @@ export class Tournament {
 	private playingPairs: [playerInterface, playerInterface][] = [];
 	private waitingPairs: [playerInterface, playerInterface][] = [];
 	private hasStarted = false;
+	private matchReports = new Map<string, Set<number>>();
 
 	constructor(
 		players: playerInterface[],
@@ -110,48 +112,83 @@ export class Tournament {
 		});
 	}
 
-	public async onMatchFinished(
-		tourID: number,
-		playerA: number,
-		playerB: number,
-		scoreA: number,
-		scoreB: number
-	) {
-		const tour = Tournament.MappedTour.get(tourID)!;
-		// update points
-		const winPoints = 10, lossPoints = 0;
-		if (scoreA > scoreB) {
-			tour.points.set(playerA, tour.points.get(playerA)! + winPoints);
-		} else {
-			tour.points.set(playerB, tour.points.get(playerB)! + winPoints);
-		}
-		// register match in opponents to avoid rematch
-		tour.opponents.get(playerA)!.add(playerB);
-		tour.opponents.get(playerB)!.add(playerA);
-
-		// remove pair from playingPairs and put in waitingPairs
-		const idx = tour.playingPairs.findIndex(
-			([a,b]) =>
-				(a.userID === playerA && b.userID === playerB) ||
-				(a.userID === playerB && b.userID === playerA)
-		);
-		if (idx !== -1) {
-			tour.waitingPairs.push(tour.playingPairs[idx]);
-			tour.playingPairs.splice(idx, 1);
-		}
-		//send updated score to all waiting players ? 
- 		if (!this.hasStarted) return;
-
-
-		// When all pairs are done, restart
-		if (tour.playingPairs.length === 0 && tour.waitingPairs.length > 0) {
-			// swap waiting -> playing for next loop
-			tour.playingPairs = tour.waitingPairs;
-			tour.waitingPairs = [];
-			// next round
-			tour.nextRound();
-		}
+public async onMatchFinished(
+	tourID: number,
+	playerA: number,
+	playerB: number,
+	scoreA: number,
+	scoreB: number,
+	userID: number
+) {
+	if (userID !== playerA && userID !== playerB) {
+		console.warn(`WTF ?! userID ${userID} is not part of this match`);
+		return;
 	}
+
+	const tour = Tournament.MappedTour.get(tourID)!;
+
+	// Ensure a matchReportMap is initialized
+	if (!tour.matchReports) tour.matchReports = new Map<string, Set<number>>();
+
+	// Use a consistent key
+	const matchKey = [playerA, playerB].sort((a, b) => a - b).join("-");
+
+	// Add reporter to the match report tracker
+	if (!tour.matchReports.has(matchKey)) {
+		tour.matchReports.set(matchKey, new Set());
+	}
+	const reporters = tour.matchReports.get(matchKey)!;
+	reporters.add(userID);
+
+	// Wait until both players have reported
+	if (reporters.size < 2) {
+		return; // wait for the other player to confirm
+	}
+
+	// Remove tracker — match is finalized
+	tour.matchReports.delete(matchKey);
+
+	// Award points
+	const winPoints = 10, drawPoints = 5, lossPoints = 0;
+
+	if (scoreA > scoreB) {
+		tour.points.set(playerA, (tour.points.get(playerA) ?? 0) + winPoints);
+		tour.points.set(playerB, (tour.points.get(playerB) ?? 0) + lossPoints);
+	} else if (scoreB > scoreA) {
+		tour.points.set(playerB, (tour.points.get(playerB) ?? 0) + winPoints);
+		tour.points.set(playerA, (tour.points.get(playerA) ?? 0) + lossPoints);
+	} else {
+		// draw
+		tour.points.set(playerA, (tour.points.get(playerA) ?? 0) + drawPoints);
+		tour.points.set(playerB, (tour.points.get(playerB) ?? 0) + drawPoints);
+	}
+
+	// Prevent rematch
+	tour.opponents.get(playerA)!.add(playerB);
+	tour.opponents.get(playerB)!.add(playerA);
+
+	// Move to waitingPairs
+	const idx = tour.playingPairs.findIndex(
+		([a, b]) =>
+			(a.userID === playerA && b.userID === playerB) ||
+			(a.userID === playerB && b.userID === playerA)
+	);
+
+	if (idx !== -1) {
+		tour.waitingPairs.push(tour.playingPairs[idx]);
+		tour.playingPairs.splice(idx, 1);
+	}
+
+	// Restart next round if done
+	if (!this.hasStarted) return;
+
+	if (tour.playingPairs.length === 0 && tour.waitingPairs.length > 0) {
+		tour.playingPairs = tour.waitingPairs;
+		tour.waitingPairs = [];
+		tour.nextRound();
+	}
+}
+
 
 
 private endTournament() {

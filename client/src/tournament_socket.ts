@@ -5,42 +5,57 @@ import { showPongMenu } from './pong_rooms';
 import { TypedSocket } from './shared/gameTypes';
 import { showNotification, showUserActionsBubble } from './notifications';
 
-
 export function handleJoinTournament(data: Interfaces.SocketMessageMap['joinTournament']) {
 	if (!data.success) {
 		showNotification({ message: `Unable to join tournament "${data.tourName}"`, type: 'error' });
 		return;
 	}
-
 	showNotification({ message: `Joined tournament "${data.tourName}" successfully`, type: 'success' });
-
-	state.currentTournamentID = data.tournamentID;
+	state.currentTournamentID   = data.tournamentID;
 	state.playerInterface!.tournamentID = data.tournamentID;
 	state.currentTournamentName = data.tourName;
-	state.canvasViewState = 'waitingTournament';
+	state.canvasViewState       = 'waitingTournament';
 
-	if (!state.currentTournamentPlayers)
+	if (!state.currentTournamentPlayers) {
 		state.currentTournamentPlayers = [];
+	}
 
-	if (!state.currentTournamentPlayers!.includes(data.username!))
-		state.currentTournamentPlayers.push(data.username!);
+	if (!state.currentTournamentPlayers.some(p => p.username === data.username!)) {
+		state.currentTournamentPlayers.push({
+			username: data.username!,
+			score: 0
+		});
+	}
 
 	localStorage.setItem('tournament_view', 'waitingTournament');
 	localStorage.setItem('tournament_name', data.tourName);
 	localStorage.setItem('tournament_id', String(data.tournamentID));
-	localStorage.setItem('tournament_players', JSON.stringify(state.currentTournamentPlayers));
+	localStorage.setItem(
+		'tournament_players',
+		JSON.stringify(state.currentTournamentPlayers)
+	);
 
 	showPongMenu();
 }
 
 
-export function handleUpdateTournamentPlayerList(data: Interfaces.SocketMessageMap['updateTourPlayerList']) {
-	if (!state.currentTournamentID || data.tournamentID !== state.currentTournamentID)
+export function handleUpdateTournamentPlayerList(
+	data: Interfaces.SocketMessageMap['updateTourPlayerList']
+) {
+	if (!state.currentTournamentID || data.tournamentID !== state.currentTournamentID) {
 		return;
+	}
 
-	state.currentTournamentPlayers = data.members.map(m => m.username);
+	state.currentTournamentPlayers = data.members.map(m => ({
+		username: m.username,
+		score: 0
+	}));
 
-	localStorage.setItem('tournament_players', JSON.stringify(state.currentTournamentPlayers));
+	localStorage.setItem(
+		'tournament_players',
+		JSON.stringify(state.currentTournamentPlayers)
+	);
+
 	showPongMenu();
 }
 
@@ -80,6 +95,7 @@ export function handleEndTournament(data:Interfaces.SocketMessageMap['endTournam
 */
 export function handleStartNextRound(data:Interfaces.SocketMessageMap['startNextRound']){
 	console.warn('[TOUR][STARTNEXTROUND]gamename =', data.gameName);
+	state.canvasViewState = 'waitingTournamentRounds';
 	state.typedSocket.send('joinGame', {userID:state.userId, gameID:data.gameID, gameName:data.gameName});
 	//Show notif with user Rank and matches left ? 
 }

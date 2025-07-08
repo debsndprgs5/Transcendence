@@ -184,3 +184,42 @@ export async function handleLeaveTournament(): Promise<void> {
   state.canvasViewState = 'mainMenu';
   showPongMenu();
 }
+
+export function handleTournamentRoundsClick(
+  canvas: HTMLCanvasElement,
+  x: number,
+  y: number
+): void {
+  const rect = canvas.getBoundingClientRect();
+
+  const buttons = (canvas as any)._waitingTournamentButtons as {
+    x: number; y: number; w: number; h: number; action: string;
+  }[] | undefined;
+  if (!buttons) return;
+
+  for (const btn of buttons) {
+    if (
+      x >= btn.x &&
+      x <= btn.x + btn.w &&
+      y >= btn.y &&
+      y <= btn.y + btn.h
+    ) {
+      switch (btn.action) {
+        case 'leaveTournament':
+          handleLeaveTournament();
+          break;
+        case 'ready':
+          state.playerInterface!.typedSocket.send('matchFinish', {
+            tourID:state.playerInterface!.tournamentID,
+            userID:state.userId!,
+            a_ID:state.playerInterface!.a_ID,
+            b_ID:state.playerInterface!.b_ID,
+            a_score:state.playerInterface!.a_score,
+            b_score:state.playerInterface!.b_score
+          });
+          break;
+      }
+      break;
+    }
+  }
+}

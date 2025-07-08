@@ -3,13 +3,20 @@ import { drawCreateGameView,
 		drawWaitingGameView,
 		drawJoinGameView,
 		drawTournamentView,
-		drawWaitingTournamentView } from './pong_views';
+		drawWaitingTournamentView,
+		drawWaitingRoundsTournamentView } from './pong_views';
 import { showNotification } from './notifications';
 import { pongState } from './pong_socket';
 import { PongRenderer } from './pong_render'
 import { TypedSocket } from './shared/gameTypes';
 import { resizePongCanvas } from './handlers';
-import { handleTournamentClick, handleWaitingTournamentClick, handleCreateTournament, handleJoinTournament, handleLeaveTournament, fetchOpenTournaments } from './tournament_rooms';
+import { handleTournamentClick, 
+		handleWaitingTournamentClick, 
+		handleCreateTournament, 
+		handleJoinTournament, 
+		handleLeaveTournament, 
+		fetchOpenTournaments,
+		handleTournamentRoundsClick } from './tournament_rooms';
 
 export interface PongButton {
 	x: number;
@@ -137,7 +144,15 @@ export function showPongMenu(): void {
 						state.currentTournamentPlayers || []
 					);
 					break;
-
+				case 'waitingTournamentRounds':
+					drawWaitingRoundsTournamentView(
+					  canvas,
+					  ctx,
+					  state.currentTournamentName || 'Unnamed Tournament',
+					  state.currentTournamentPlayers || [],
+					  state.currentGameName || 'Unknown game room',
+					);
+					break;
 				case 'joinGame':
 						drawJoinGameView(
 								canvas,
@@ -266,6 +281,8 @@ async function handlePongMenuClick(e: MouseEvent): Promise<void> {
 			await handleWaitingTournamentClick(canvas, x, y);
 			break;
 
+		case 'waitingTournamentRounds':
+			await handleTournamentRoundsClick(canvas, x, y);
 		default:
 			break;
 	}

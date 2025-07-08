@@ -439,16 +439,12 @@ export async function handleEndMatch(
 			if (state.playerInterface!.tournamentID) {
 				renderer.dispose();
 				pongState.pongRenderer = null;
-				state.playerInterface!.typedSocket.send('matchFinish', {
-					tourID:state.playerInterface!.tournamentID,
-					userID:state.userId!,
-					a_ID:data.a_ID!,
-					b_ID:data.b_ID!,
-					a_score:data.a_score!,
-					b_score:data.b_score!
-			});
-				state.canvasViewState = 'playingGame';
-				localStorage.setItem('pong_view','playingGame');
+				state.playerInterface!.a_ID = data.a_ID
+				state.playerInterface!.b_ID = data.b_ID
+				state.playerInterface!.a_score = data.a_score
+				state.playerInterface!.b_score = data.b_score
+				state.canvasViewState = 'waitingTournamentRounds';
+				localStorage.setItem('pong_view','waitingTournamentRounds');
 				showPongMenu();
 			}
 			else {

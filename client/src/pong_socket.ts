@@ -436,11 +436,20 @@ export async function handleEndMatch(
 		{ username: winnerName, score: winnerScore },
 		{ username: loserName,  score: loserScore  },
 		() => {
-			renderer.dispose();
-			pongState.pongRenderer = null;
-			state.canvasViewState = 'mainMenu';
-			localStorage.setItem('pong_view','mainMenu');
-			showPongMenu();
+			if (state.playerInterface!.tournamentID) {
+				renderer.dispose();
+				pongState.pongRenderer = null;
+				state.canvasViewState = 'playingGame';
+				localStorage.setItem('pong_view','playingGame');
+				showPongMenu();
+			}
+			else {
+				renderer.dispose();
+				pongState.pongRenderer = null;
+				state.canvasViewState = 'mainMenu';
+				localStorage.setItem('pong_view','mainMenu');
+				showPongMenu();
+			}
 		}
 	);
 

@@ -15,6 +15,7 @@ export function handleJoinTournament(data: Interfaces.SocketMessageMap['joinTour
 	showNotification({ message: `Joined tournament "${data.tourName}" successfully`, type: 'success' });
 
 	state.currentTournamentID = data.tournamentID;
+	state.playerInterface!.tournamentID = data.tournamentID;
 	state.currentTournamentName = data.tourName;
 	state.canvasViewState = 'waitingTournament';
 

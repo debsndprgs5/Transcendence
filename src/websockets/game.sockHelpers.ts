@@ -122,7 +122,7 @@ export async function beginGame(gameID: number, players: Interfaces.playerInterf
     console.error(`[beginGame] GameID ${gameID} expected ${expectedCount} players for mode '${mode}'`);
     return;
   }
-
+  console.warn('bleep bloop bleep bloopbleep bloop bleep bloopbleep bloop bleep bloopbleep bloop bleep bloopbleep bloop bleep bloop');
   const shuffled = [...players].sort(() => Math.random() - 0.5);
   const sides = mode === 'quator'
     ? ['left', 'right', 'top', 'bottom'] as const
@@ -213,7 +213,8 @@ export async function tryStartGameIfReady(gameID: number) {
   }
 
   const playersInGameRoom = getAllMembersFromGameID(gameID) ?? [];
-  console.log(`[TRYifR4DY] ${playersInGameRoom}`);
+  console.log(playersInGameRoom);
+
   if (playersInGameRoom.length > maxPlayers) {
     const playerToKick = await GameManagement.getLastAddedToRoom(gameID);
     if (!playerToKick?.userID) return;

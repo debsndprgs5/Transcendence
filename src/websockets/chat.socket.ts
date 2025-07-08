@@ -2,23 +2,19 @@ import { user } from '../types/user';
 import * as UserManagement from '../db/userManagement';
 import { getChatRoomMembers } from '../db/chatManagement';
 import * as chatManagement from '../db/chatManagement';
+import { getPlayerState } from './game.socket';
+import { playerInterface } from '../shared/gameTypes';
 import fp from 'fastify-plugin';
 import * as dotenv from 'dotenv';
 import path from 'path';
 import { WebSocketServer, WebSocket, RawData } from 'ws';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 
-
+let jwtSecret: string;
 
 dotenv.config({
 	path: path.resolve(process.cwd(), '.env'),
 }); // get env
-
-
-const jwtSecret = process.env.JWT_SECRET!;
-if (!jwtSecret) {
-	throw new Error("JWT_SECRET environment variable is not defined");
-}
 
 const MappedClients = new Map<number, WebSocket>();
 
@@ -126,7 +122,6 @@ async function handleConnection(ws: WebSocket, request: any) {
 		ws.on('close', () => handleDisconnect(userId, fullUser.username, ws));
 	
 		ws.on('message', async (data: RawData) => {
-			console.log('CHAT:Message received from client:', data.toString());
 			let parsed: any;
 			try {
 				parsed = JSON.parse(data.toString());
@@ -223,19 +218,17 @@ async function  handleFriendStatus(parsed:any, ws:WebSocket){
 	switch(parsed.action){
 		//Front is asking for the full list
 	case 'request': {
-		console.log('[BACK] friendStatus action=request', friendList);
 		if (!Array.isArray(friendList)) {
 			ws.send(JSON.stringify({ error: 'Invalid friend list' }));
 			return;
 		}
 		const updatedStatus = friendList.map(friend => {
-			const isOnline = MappedClients.has(friend.friendID);
-			return {
-				friendID: friend.friendID,
-				status: isOnline ? 'online' : 'offline'
-			};
+		const status = getPlayerState(friend.friendID);
+		return {
+			friendID: friend.friendID,
+			status
+		};
 		});
-		console.log('[BACK] friendStatus action=response', updatedStatus);
 		ws.send(JSON.stringify({
 			type: 'friendStatus',
 			action: 'response',
@@ -247,28 +240,26 @@ async function  handleFriendStatus(parsed:any, ws:WebSocket){
 		//Back send live update to any one friends with A, A has B for friends, B join the app, A is "notify"
 	case 'update': {
 		// Validate inputs
-		if (typeof userID !== 'number' || typeof parsed.status !== 'string') {
-			ws.send(JSON.stringify({ error: 'Invalid update data' }));
-			return;
-		}
-		const status = parsed.status === 'online' ? 'online' : 'offline';
-
+		// if (typeof userID !== 'number' || typeof parsed.status !== 'string') {
+		// 	ws.send(JSON.stringify({ error: 'Invalid update data' }));
+		// 	return;
+		// }
 		try {
 			// 1) Get all user-IDs who have 'userID' as a friend
 			const relatedFriends = await chatManagement.getAllUsersWhoHaveMeAsFriend(userID) ?? [];
 
 			// 2) For each friend, if they have a connected socket, send them the update
 			for (const friendID of relatedFriends) {
-			const friendSocket = MappedClients.get(friendID);
-			if (friendSocket) {
-				friendSocket.send(JSON.stringify({
-				type: 'friendStatus',
-				action: 'updateStatus',
-				targetID: friendID,  // the friend receiving the update
-				friendID: userID,    // the user whose status changed
-				status
-				}));
-			}
+				const friendSocket = MappedClients.get(friendID);
+				if (friendSocket) {
+					friendSocket.send(JSON.stringify({
+					type: 'friendStatus',
+					action: 'updateStatus',
+					targetID: friendID,  // the friend receiving the update
+					friendID: userID,    // the user whose status changed
+					status:cleanState(parsed.state)
+					}));
+				}
 			}
 		} catch (err) {
 			console.error('Failed to update friend status:', err);
@@ -279,13 +270,21 @@ async function  handleFriendStatus(parsed:any, ws:WebSocket){
 	}
 	}
 }
-	
+
+function cleanState(OgState:string):'online'|'offline'|'in-game'{
+
+	if(OgState === 'init' || OgState === 'online')
+		return ('online')
+	if(OgState === 'playing' || OgState === 'waiting' || OgState === 'waitingTournament' || OgState === 'invite')//Add any game related state here
+		return ('in-game')
+	return('offline')
+}
+
 function handleDisconnect(userId: number, username: string, ws: WebSocket) {
 	const existingSocket = MappedClients.get(userId);
 
 	if (existingSocket === ws) {
 		MappedClients.delete(userId);
-		console.log(`CHAT: User ${username} (ID: ${userId}) disconnected.`);
 	} else {
 		console.warn(`CHAT : WebSocket mismatch for user ${userId}, not removing.`);
 	}
@@ -293,8 +292,12 @@ function handleDisconnect(userId: number, username: string, ws: WebSocket) {
 	
 
 export default fp(async fastify => {
-	const wss = new WebSocketServer({ noServer: true });
-	wss.on('connection', handleConnection);
+    jwtSecret = fastify.vault.jwt;
+    if (!jwtSecret) {
+        throw new Error("JWT_SECRET was not loaded from Vault. Chat socket cannot start.");
+    }
+    const wss = new WebSocketServer({ noServer: true });
+    wss.on('connection', handleConnection);
 
 	fastify.server.on('upgrade', (request, socket, head) => {
 		const { url } = request;

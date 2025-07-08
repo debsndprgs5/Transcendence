@@ -1,7 +1,7 @@
 import sqlite3 from 'sqlite3';
 import { user } from '../types/user';
 import * as chatType from '../types/chat';
-
+import { PreferencesRow } from '../shared/gameTypes'
 import { run, get, getAll } from './userManagement';
 
 let db: sqlite3.Database;
@@ -49,6 +49,29 @@ export const getAllPublicGames = () =>
 		`SELECT gameID, name, mode, createdBy FROM gameRooms WHERE gameType = 'public' AND state = 'waiting'`
 	);
 
+//get mode for gameID
+export const getModePerGameID = (gameID:number) =>
+  get<{mode:string}>(
+    `SELECT mode FROM gameRooms WHERE gameID = ?`, [gameID]);
+export const setStateforGameID = (gameID:number, state:string)=>
+  run(`UPDATE gameRooms SET state = ? where gameID = ?`, [state, gameID])
+
+export async function getModeAndRulesForGameID(gameID: number) {
+  const row = await get<{ mode: string; rules: string }>(
+    `SELECT mode, rules FROM gameRooms WHERE gameID = ?`,
+    [gameID]
+  );
+  if (!row) return null;
+  try {
+    return {
+      mode: row.mode,
+      rules: JSON.parse(row.rules),
+    };
+  } catch (err) {
+    console.error(`[getModeAndRulesForGameID] JSON parse error for gameID ${gameID}:`, err);
+    return null;
+  }
+}
 // ########################
 // #    GAME MEMBERS      #
 // ########################
@@ -70,6 +93,7 @@ export const getAllMembersFromGameRoom = (gameID: number) =>
 		 WHERE gm.gameID = ?`,
 		[gameID]
 	);
+
 
 export const getLastAddedToRoom = (gameID:number) =>
 	get<{userID:number}>(
@@ -170,26 +194,53 @@ export const getAllMatches = (tournamentID: number) =>
 		[tournamentID]
 	);
 
-// ########################
-// #      USERSTAT        #
-// ########################
 
-export const createData = (gameID: number, userID: number, mode: string, result: string, score: string, duration: number, datas: string) =>
+
+// ############################
+// #       Match Result       #
+// ############################
+
+export const sendGameResultTwo = (gameID: number, userID: [number, number], winner: number, score: [number, number], start: string) =>
 	run(
-		`INSERT INTO userStat (gameID, userID, mode, result, score, gameDuration, datas) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		[gameID, userID, mode, result, score, duration, datas]
+		`INSERT INTO gameResultTwo (gameID, winner, playerA, playerB, scoreA, scoreB, started_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		[gameID, winner, userID[0], userID[1], score[0], score[1], start]
 	);
 
-export const addData = createData; // Alias
+export const sendGameResultFour = (gameID: number, userID: [number, number, number, number], winner: number, score: [number, number, number, number], start: string) =>
+	run(
+		`INSERT INTO gameResultFour (gameID, winner, playerA, playerB, playerC, playerD, scoreA, scoreB, scoreC, scoreD, started_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		[gameID, winner, userID[0], userID[1], userID[2], userID[3], score[0], score[1], score[2], score[3], start]
+	);
 
-export const getAllDataFromId = (userID: number) =>
-	getAll<{ gameID: number; mode: string; result: string; score: string; gameDuration: number; datas: string }>(
-		`SELECT * FROM userStat WHERE userID = ?`,
+
+// ############################
+// #      USER PREFERENCES    #
+// ############################
+export const getAllPref = (userID: number): Promise<PreferencesRow | null> => {
+	return get<PreferencesRow>(
+		`SELECT * FROM user_preferences WHERE userID = ?`,
 		[userID]
 	);
+};
 
-export const getAllDataFromGameId = (gameID: number) =>
-	getAll<{ userID: number; result: string; score: string }>(
-		`SELECT * FROM userStat WHERE gameID = ?`,
-		[gameID]
+export const setAllPref = async (userID: number, data: Partial<PreferencesRow>) => {
+	if (Object.keys(data).length === 0) return;
+
+	const fields = Object.keys(data);
+	const values = Object.values(data);
+	const setClause = fields.map((key) => `${key} = ?`).join(', ');
+
+	await run(
+		`UPDATE user_preferences SET ${setClause} WHERE userID = ?`,
+		[...values, userID]
 	);
+};
+
+export const setBackDefPref = async (userID: number) => {
+	await run(`DELETE FROM user_preferences WHERE userID = ?`, [userID]);
+	await run(`INSERT INTO user_preferences (userID) VALUES (?)`, [userID]);
+};
+
+export const createDefaultPref = async (userID: number) => {
+	await run(`INSERT INTO user_preferences (userID) VALUES (?)`, [userID]);
+};

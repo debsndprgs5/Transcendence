@@ -81,6 +81,8 @@ export const getUserByName = (username: string): Promise<user | null> =>
   get<user>('SELECT * FROM users WHERE username = ?', [username])
     .then(row => row ?? null);
 
+export const getAvatarUrl = (username: string) =>
+  get<user>('SELECT avatar_url FROM users WHERE username = ?', [username])
 
 export const getUserByRand = (username: string): Promise<user | null> =>
   get<user>('SELECT * FROM users WHERE rand_id = ?', [username])
@@ -110,9 +112,11 @@ export const getTotpPendingByIndex = (index: number) =>
   get<user>('SELECT totp_pending FROM users WHERE our_index = ?', [index]);
 
 // Create User
-export const createUser = (rand_id: string, username: string, password_hashed: string, totp_secret: string | null = null) =>
-  run(
+export const createUser = async (rand_id: string, username: string, password_hashed: string, totp_secret: string | null = null):Promise<number> =>{
+   const result = await run(
     `INSERT INTO users (rand_id, username, password_hashed, totp_secret)
      VALUES (?, ?, ?, ?)`,
     [rand_id, username, password_hashed, totp_secret]
   );
+  return result.lastID;
+}

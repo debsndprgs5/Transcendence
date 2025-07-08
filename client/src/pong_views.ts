@@ -1,4 +1,5 @@
-import { createGameFormData, createTournamentFormData } from './pong_rooms';
+import { createGameFormData } from './pong_rooms';
+import { createTournamentFormData } from './tournament_rooms';
 import { state } from './api';
 
 interface PongButton {
@@ -20,104 +21,175 @@ declare global {
  * Draws the "Create Game" view onto the given canvas.
  */
 export function drawCreateGameView(
-	canvas: HTMLCanvasElement,
-	ctx: CanvasRenderingContext2D
+  canvas: HTMLCanvasElement,
+  ctx: CanvasRenderingContext2D
 ): void {
-	const width  = canvas.width;
-	const height = canvas.height;
+  const w = canvas.width;
+  const h = canvas.height;
 
-	// Clear
-	ctx.clearRect(0, 0, width, height);
+  // Clear
+  ctx.clearRect(0, 0, w, h);
 
-	// Background
-	const grad = ctx.createLinearGradient(0, 0, width, 0);
-	grad.addColorStop(0.0, '#2C5364');
-	grad.addColorStop(0.5, '#203A43');
-	grad.addColorStop(1.0, '#0F2027');
+  // Background gradient
+  const grad = ctx.createLinearGradient(0, 0, w, 0);
+  grad.addColorStop(0, '#2C5364');
+  grad.addColorStop(0.5, '#203A43');
+  grad.addColorStop(1, '#0F2027');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
 
-	ctx.fillStyle = grad;
-	ctx.fillRect(0, 0, width, height);
+  // Title
+  ctx.fillStyle = 'white';
+  ctx.font      = `${Math.floor(h / 15)}px Orbitron`;
+  ctx.textAlign = 'center';
+  ctx.fillText('CREATE GAME', w / 2, h * 0.08);
 
-	// Title
-	ctx.fillStyle = 'white';
-	ctx.font      = `${Math.floor(height / 15)}px Orbitron`;
-	ctx.textAlign = 'center';
-	ctx.fillText('CREATE GAME', width / 2, height * 0.12);
+  // Helpers for rows
+  const labelX = w * 0.15;
+  const valueX = w * 0.45;
+  const rowY = (i: number) => h * (0.18 + i * 0.10);
 
-	// Labels
-	ctx.font      = `${Math.floor(height / 28)}px Orbitron`;
-	ctx.textAlign = 'left';
-	const labelX = width * 0.2;
-	ctx.fillText('Room name:',    labelX, height * 0.25);
-	ctx.fillText('Ball speed:',   labelX, height * 0.4);
-	ctx.fillText('Paddle speed:', labelX, height * 0.55);
+  // Labels & Values
+  ctx.fillStyle = 'white';
+  ctx.font      = `${Math.floor(h / 28)}px Orbitron`;
+  ctx.textAlign = 'left';
 
-	// Values
-	const valueX = width * 0.44;
-	ctx.textAlign = 'left';
-	ctx.fillText(createGameFormData.roomName || '________', valueX, height * 0.25);
-	ctx.fillText(`${createGameFormData.ballSpeed}`,         valueX, height * 0.4);
-	ctx.fillText(`${createGameFormData.paddleSpeed}`,       valueX, height * 0.55);
+  // 0. Room Name
+  ctx.fillText('Room name:', labelX, rowY(0));
+  ctx.fillText(createGameFormData.roomName || '________', valueX, rowY(0));
 
-	// Buttons (+/-)
-	const btnW   = width  * 0.06;
-	const btnH   = height * 0.06;
-	const plusX  = valueX + width * 0.1;
-	const minusX = valueX + width * 0.19;
-	const yBall  = height * 0.4  - btnH / 2;
-	const yPad   = height * 0.55 - btnH / 2;
+  // 1. Mode
+  ctx.fillText('Mode:', labelX, rowY(1));
+  // draw checkboxes
+  const cbSize = h * 0.03;
+  const duoX    = valueX;
+  const quatX   = valueX + w * 0.20;
+  const cbY     = rowY(1) - cbSize + 4;
 
-	ctx.fillStyle = '#38bdf8';
-	ctx.fillRect(plusX,  yBall, btnW, btnH);
-	ctx.fillRect(minusX, yBall, btnW, btnH);
-	ctx.fillRect(plusX,  yPad,  btnW, btnH);
-	ctx.fillRect(minusX, yPad,  btnW, btnH);
+  // Duo box
+  ctx.strokeStyle = 'white';
+  ctx.lineWidth   = 2;
+  ctx.strokeRect(duoX, cbY, cbSize, cbSize);
+  if (createGameFormData.mode === 'duo') {
+    ctx.fillStyle = '#38bdf8';
+    ctx.fillRect(duoX+2, cbY+2, cbSize-4, cbSize-4);
+  }
+  ctx.fillStyle = 'white';
+  ctx.fillText('Duo', duoX + cbSize + 8, rowY(1));
 
-	ctx.fillStyle = 'black';
-	ctx.font      = `${Math.floor(height / 28)}px Orbitron`;
-	ctx.textAlign = 'center';
-	ctx.fillText('+', plusX  + btnW/2, yBall + btnH*0.7);
-	ctx.fillText('-', minusX + btnW/2, yBall + btnH*0.7);
-	ctx.fillText('+', plusX  + btnW/2, yPad  + btnH*0.7);
-	ctx.fillText('-', minusX + btnW/2, yPad  + btnH*0.7);
+  // Quatuor box
+  ctx.strokeStyle = 'white';
+  ctx.strokeRect(quatX, cbY, cbSize, cbSize);
+  if (createGameFormData.mode === 'quatuor') {
+    ctx.fillStyle = '#38bdf8';
+    ctx.fillRect(quatX+2, cbY+2, cbSize-4, cbSize-4);
+  }
+  ctx.fillStyle = 'white';
+  ctx.fillText('Quatuor', quatX + cbSize + 8, rowY(1));
 
-	// Confirm button
-	const confirmW = width  * 0.23;
-	const confirmH = height * 0.10;
-	const confirmX = width / 2 - confirmW/2;
-	const confirmY = height * 0.72;
-	ctx.fillStyle = '#22c55e';
-	ctx.fillRect(confirmX, confirmY, confirmW, confirmH);
+  // 2. Ball speed
+  ctx.fillStyle = 'white';
+  ctx.fillText('Ball speed:', labelX, rowY(2));
+  ctx.fillText(`${createGameFormData.ballSpeed}`, valueX, rowY(2));
 
-	ctx.fillStyle = 'black';
-	ctx.font      = `${Math.floor(height / 22)}px Orbitron`;
-	ctx.textAlign = 'center';
-	ctx.fillText('Confirm', width/2, confirmY + confirmH*0.65);
+  // 3. Paddle speed
+  ctx.fillText('Paddle speed:', labelX, rowY(3));
+  ctx.fillText(`${createGameFormData.paddleSpeed}`, valueX, rowY(3));
 
-	// Back button
-	const backW = width  * 0.18;
-	const backH = height * 0.08;
-	const backX = width  * 0.08;
-	const backY = height * 0.05;
-	ctx.fillStyle = '#f87171';
-	ctx.fillRect(backX, backY, backW, backH);
+  // 4. Win condition
+  ctx.fillText('Win condition:', labelX, rowY(4));
+  const wcTimeX = valueX;
+  const wcScoreX = valueX + w * 0.20;
+  const wcY    = rowY(4) - cbSize + 4;
 
-	ctx.fillStyle = 'white';
-	ctx.font      = `${Math.floor(height / 32)}px Orbitron`;
-	ctx.textAlign = 'center';
-	ctx.fillText('← Back', backX + backW/2, backY + backH*0.62);
+  // Time box
+  ctx.strokeStyle = 'white';
+  ctx.strokeRect(wcTimeX, wcY, cbSize, cbSize);
+  if (createGameFormData.winCondition === 'time') {
+    ctx.fillStyle = '#fbbf24';
+    ctx.fillRect(wcTimeX+2, wcY+2, cbSize-4, cbSize-4);
+  }
+  ctx.fillStyle = 'white';
+  ctx.fillText('Time', wcTimeX + cbSize + 8, rowY(4));
 
-	// Memorize button bounds
-	canvas._createGameButtons = [
-		{ x: plusX,    y: yBall, w: btnW, h: btnH, action: 'ballSpeedUp'   },
-		{ x: minusX,   y: yBall, w: btnW, h: btnH, action: 'ballSpeedDown' },
-		{ x: plusX,    y: yPad,  w: btnW, h: btnH, action: 'paddleSpeedUp' },
-		{ x: minusX,   y: yPad,  w: btnW, h: btnH, action: 'paddleSpeedDown' },
-		{ x: confirmX, y: confirmY, w: confirmW, h: confirmH, action: 'confirmGame' },
-		{ x: backX,    y: backY,    w: backW,    h: backH,    action: 'backToMenu' }
-	];
+  // Score box
+  ctx.strokeRect(wcScoreX, wcY, cbSize, cbSize);
+  if (createGameFormData.winCondition === 'score') {
+    ctx.fillStyle = '#fbbf24';
+    ctx.fillRect(wcScoreX+2, wcY+2, cbSize-4, cbSize-4);
+  }
+  ctx.fillStyle = 'white';
+  ctx.fillText('Score', wcScoreX + cbSize + 8, rowY(4));
+
+  // 5. Limit
+  ctx.fillText('Limit:', labelX, rowY(5));
+  ctx.fillText(`${createGameFormData.limit}`, valueX, rowY(5));
+
+  // +/- buttons for ball & paddle as before
+  const btnW   = w * 0.06;
+  const btnH   = h * 0.06;
+  const plusX  = valueX + w * 0.1;
+  const minusX = valueX + w * 0.19;
+  const yBall  = rowY(2) - btnH / 2;
+  const yPad   = rowY(3) - btnH / 2;
+
+  ctx.fillStyle = '#38bdf8';
+  ctx.fillRect(plusX,  yBall, btnW, btnH);
+  ctx.fillRect(minusX, yBall, btnW, btnH);
+  ctx.fillRect(plusX,  yPad,  btnW, btnH);
+  ctx.fillRect(minusX, yPad,  btnW, btnH);
+
+  ctx.fillStyle = 'black';
+  ctx.font      = `${Math.floor(h / 28)}px Orbitron`;
+  ctx.textAlign = 'center';
+  ctx.fillText('+', plusX  + btnW/2, yBall + btnH*0.7);
+  ctx.fillText('-', minusX + btnW/2, yBall + btnH*0.7);
+  ctx.fillText('+', plusX  + btnW/2, yPad  + btnH*0.7);
+  ctx.fillText('-', minusX + btnW/2, yPad  + btnH*0.7);
+
+  // Confirm button
+  const confirmW = w * 0.23;
+  const confirmH = h * 0.10;
+  const confirmX = w / 2 - confirmW/2;
+  const confirmY = h * 0.88 - confirmH;
+  ctx.fillStyle = '#22c55e';
+  ctx.fillRect(confirmX, confirmY, confirmW, confirmH);
+  ctx.fillStyle = 'black';
+  ctx.font      = `${Math.floor(h / 22)}px Orbitron`;
+  ctx.fillText('Confirm', w/2, confirmY + confirmH*0.65);
+
+  // Back button
+  const backW = w * 0.18;
+  const backH = h * 0.08;
+  const backX = w * 0.05;
+  const backY = h * 0.05;
+  ctx.fillStyle = '#f87171';
+  ctx.fillRect(backX, backY, backW, backH);
+  ctx.fillStyle = 'white';
+  ctx.font      = `${Math.floor(h / 32)}px Orbitron`;
+  ctx.textAlign = 'center';
+  ctx.fillText('← Back', backX + backW/2, backY + backH*0.62);
+
+  // Memorize button & checkbox bounds
+  canvas._createGameButtons = [
+    // mode
+    { x: duoX,    y: cbY, w: cbSize, h: cbSize, action: 'toggleModeDuo' },
+    { x: quatX,   y: cbY, w: cbSize, h: cbSize, action: 'toggleModeQuatuor' },
+    // win condition
+    { x: wcTimeX,  y: wcY, w: cbSize, h: cbSize, action: 'toggleWinTime' },
+    { x: wcScoreX, y: wcY, w: cbSize, h: cbSize, action: 'toggleWinScore' },
+    // limit (click on the number)
+    { x: valueX, y: rowY(5) - 14, w: 40, h: 20, action: 'editLimit' },
+    // ball/paddle
+    { x: plusX,    y: yBall, w: btnW, h: btnH, action: 'ballSpeedUp'   },
+    { x: minusX,   y: yBall, w: btnW, h: btnH, action: 'ballSpeedDown' },
+    { x: plusX,    y: yPad,  w: btnW, h: btnH, action: 'paddleSpeedUp' },
+    { x: minusX,   y: yPad,  w: btnW, h: btnH, action: 'paddleSpeedDown' },
+    // confirm & back
+    { x: confirmX, y: confirmY, w: confirmW, h: confirmH, action: 'confirmGame' },
+    { x: backX,    y: backY,    w: backW,    h: backH,    action: 'backToMenu' }
+  ];
 }
-
 
 export function drawWaitingGameView(
 	canvas: HTMLCanvasElement,
@@ -183,88 +255,101 @@ export function drawWaitingGameView(
 }
 
 export function drawJoinGameView(
-	canvas: HTMLCanvasElement,
-	ctx: CanvasRenderingContext2D,
-	rooms: { roomID: number; roomName: string }[]
+  canvas: HTMLCanvasElement,
+  ctx: CanvasRenderingContext2D,
+  rooms: { roomID: number; roomName: string }[]
 ): void {
-	const width  = canvas.width;
-	const height = canvas.height;
+  const width  = canvas.width;
+  const height = canvas.height;
 
-	// Clear the entire canvas
-	ctx.clearRect(0, 0, width, height);
+  // Clear
+  ctx.clearRect(0, 0, width, height);
 
-	// Background gradient (left → right: #2C5364 → #203A43 → #0F2027)
-	const grad = ctx.createLinearGradient(0, 0, width, 0);
-	grad.addColorStop(0.0, '#2C5364');
-	grad.addColorStop(0.5, '#203A43');
-	grad.addColorStop(1.0, '#0F2027');
-	ctx.fillStyle = grad;
-	ctx.fillRect(0, 0, width, height);
+  // Background gradient
+  const grad = ctx.createLinearGradient(0, 0, width, 0);
+  grad.addColorStop(0.0, '#2C5364');
+  grad.addColorStop(0.5, '#203A43');
+  grad.addColorStop(1.0, '#0F2027');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, width, height);
 
-	// Title: "Join Game"
-	ctx.fillStyle   = 'white';
-	ctx.font        = `${Math.floor(height / 15)}px Orbitron`;
-	ctx.textAlign   = 'center';
-	ctx.fillText('Join Game', width / 2, height * 0.12);
+  // Title
+  ctx.fillStyle   = 'white';
+  ctx.font        = `${Math.floor(height / 15)}px Orbitron`;
+  ctx.textAlign   = 'center';
+  ctx.fillText('Join Game', width / 2, height * 0.12);
 
-	// Label for rooms list
-	ctx.fillStyle   = 'white';
-	ctx.font        = `${Math.floor(height / 28)}px Orbitron`;
-	ctx.textAlign   = 'left';
-	const listX     = width * 0.1;
-	let currentY    = height * 0.25;
-	const lineHeight = height * 0.06;
+  // Label rooms
+  ctx.fillStyle   = 'white';
+  ctx.font        = `${Math.floor(height / 28)}px Orbitron`;
+  ctx.textAlign   = 'left';
+  const listX     = width * 0.1;
+  let currentY    = height * 0.25;
+  const lineHeight = height * 0.06;
 
-	ctx.fillText('Available Rooms:', listX, currentY);
+  ctx.fillText('Available Rooms:', listX, currentY);
 
-	// Prepare an array to store clickable areas for each room
-	const joinButtons: { x: number; y: number; w: number; h: number; action: string }[] = [];
+  // Prepare clickable areas
+  const joinButtons: PongButton[] = [];
 
-	// Draw each room as a bullet + text, and register a button area
-	rooms.forEach((room, index) => {
-		const textY = currentY + lineHeight * (index + 1);
-		// draw the room name with a bullet
-		ctx.fillText(`• ${room.roomName}`, listX, textY);
+  // Draw each room
+  rooms.forEach((room, index) => {
+    const textY = currentY + lineHeight * (index + 1);
+    ctx.fillText(`• ${room.roomName}`, listX, textY);
 
-		// define a clickable area around the text
-		// We'll assume each line occupies roughly (width * 0.8) in width and lineHeight in height
-		const btnX = listX;
-		const btnY = textY - lineHeight * 0.75; // adjust so that vertical click is centered on the text
-		const btnW = width * 0.8;
-		const btnH = lineHeight;
-		joinButtons.push({
-			x: btnX,
-			y: btnY,
-			w: btnW,
-			h: btnH,
-			action: `join:${room.roomID}`
-		});
-	});
+    const btnX = listX;
+    const btnY = textY - lineHeight * 0.75;
+    const btnW = width * 0.8;
+    const btnH = lineHeight;
+    joinButtons.push({ x: btnX, y: btnY, w: btnW, h: btnH, action: `join:${room.roomID}` });
+  });
 
-	// Draw a "Back to Menu" button at the bottom
-	const btnW = width  * 0.3;
-	const btnH = height * 0.08;
-	const btnX = width  / 2 - btnW / 2;
-	const btnY = height * 0.85;
-	ctx.fillStyle = '#f87171';
-	ctx.fillRect(btnX, btnY, btnW, btnH);
+  // Join Random
+  const randW = 140;
+  const randH = 40;
+  const randX = width - randW - 40;
+  const randY = height * 0.15;
 
-	ctx.fillStyle  = 'white';
-	ctx.font       = `${Math.floor(height / 22)}px Orbitron`;
-	ctx.textAlign  = 'center';
-	ctx.fillText('Back to Menu', width / 2, btnY + btnH * 0.65);
+  // Random join gradient
+  const randGrad = ctx.createLinearGradient(randX, randY, randX + randW, randY + randH);
+  randGrad.addColorStop(0, '#f97316');
+  randGrad.addColorStop(1, '#fb923c');
 
-	// Register the "Back" button
-	joinButtons.push({
-		x: btnX,
-		y: btnY,
-		w: btnW,
-		h: btnH,
-		action: 'back'
-	});
+  ctx.beginPath();
+  (ctx as any).roundRect(randX, randY, randW, randH, 6);
+  ctx.fillStyle = randGrad;
+  ctx.fill();
 
-	// Store the buttons on the canvas for click handling
-	(canvas as any)._joinGameButtons = joinButtons;
+  // Centered white text
+  ctx.fillStyle    = 'white';
+  ctx.font         = `${Math.floor(randH * 0.5)}px Orbitron`;
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('Join Random', randX + randW / 2, randY + randH / 2);
+
+  joinButtons.push({ x: randX, y: randY, w: randW, h: randH, action: 'joinRandom' });
+
+  // Leave button
+  const leaveW = 100;
+  const leaveH = 35;
+  const leaveX = width - leaveW - 40;
+  const leaveY = height - leaveH - 40;
+
+  ctx.beginPath();
+  (ctx as any).roundRect(leaveX, leaveY, leaveW, leaveH, 6);
+  ctx.fillStyle = '#ef4444';
+  ctx.fill();
+
+  ctx.fillStyle    = 'white';
+  ctx.font         = `${Math.floor(leaveH * 0.5)}px Orbitron`;
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('Leave', leaveX + leaveW / 2, leaveY + leaveH / 2);
+
+  joinButtons.push({ x: leaveX, y: leaveY, w: leaveW, h: leaveH, action: 'back' });
+
+  // Store for click handler
+  canvas._joinGameButtons = joinButtons;
 }
 
 

@@ -1,425 +1,114 @@
-import { WebSocketServer, WebSocket, RawData } from 'ws';
+import { WebSocket, WebSocketServer } from 'ws';
 import fp from 'fastify-plugin';
 import { user } from '../types/user';
 import * as UserManagement from '../db/userManagement';
-import * as GameManagement from '../db/gameManagement';
+import { updatePlayerState } from './game.sockHelpers';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import * as dotenv from 'dotenv';
-import { players } from '../types/game'
 import path from 'path';
-//import {getRenderData, beginGame} from '../services/pong'
+//import {setPongRoom} from '../utils/pongUtils'
+import * as Interfaces from '../shared/gameTypes'
+import {createTypedEventSocket} from '../shared/gameEventWrapper'
+import { playerMove } from '../services/pong'
+import { TypedSocket } from '../shared/gameTypes';
+import {handleAllEvents, handleDisconnect} from './game.sockEvents'
+import { PongRoom } from '../services/PongRoom';
 
 
-const MappedPlayers= new Map<number, players>();
 
+export const MappedPlayers = new Map<number, Interfaces.playerInterface<WebSocket>>();
 
 dotenv.config({
 	path: path.resolve(process.cwd(), '.env'),
 }); // get env
 
-const jwtSecret = process.env.JWT_SECRET!;
-if (!jwtSecret) {
-	throw new Error("JWT_SECRET environment variable is not defined");
-}
-
-function send(ws: WebSocket, message: any) {
-	if (ws.readyState === WebSocket.OPEN) {
-		ws.send(JSON.stringify(message));
-	}
-}
-
+let jwtSecret: string;
 
 export async function initGameSocket(ws: WebSocket, request: any) {
 	const result = await verifyAndExtractUser(ws, request).catch(e => {
-	console.error('[verifyAndExtractUser ERROR]', e);
-	return null;
+		console.error('[verifyAndExtractUser ERROR]', e);
+		return null;
 	});
-	console.log('[verifyAndExtractUser SUCCESS]');
 	if (!result) return;
 
-	const { userId, fullUser } = result;
+	const userID = result.userId;
+	const oldPlayer = MappedPlayers.get(userID);
 
-	const existingPlayer = MappedPlayers.get(userId);
+	// Always create a fresh typed socket for the new WebSocket instance
+	const typedSocket = createTypedEventSocket(ws);
 
-	// Handle reconnect
-	if (existingPlayer?.hasDisconnected) {
-		console.log(`User ${userId} reconnected`);
-		existingPlayer.hasDisconnected = false;
-		existingPlayer.socket = ws;
+	if (oldPlayer) {
+    oldPlayer.typedSocket?.cleanup?.(); // <- this should remove all old listeners
+    oldPlayer.socket?.removeAllListeners?.(); 
+		//  Reuse existing player object on reconnect
+		oldPlayer.socket = ws;
+		oldPlayer.typedSocket = typedSocket;
+		oldPlayer.hasDisconnected = false;
 
-		// Clear old timeout if saved
-		if ((existingPlayer as any).disconnectTimeout)
-			clearTimeout((existingPlayer as any).disconnectTimeout);
+		// Clear disconnect timeout if still active
+		if (oldPlayer.disconnectTimeOut) {
+			clearTimeout(oldPlayer.disconnectTimeOut);
+			oldPlayer.disconnectTimeOut = undefined;
+		}
 
-		send(ws, {
-			type: 'reconnected',
-			state: existingPlayer.state,
-			gameID: existingPlayer.gameID,
+		// Register event handlers again on the new socket
+		handleAllEvents(typedSocket, oldPlayer);
+		ws.on('close', () => handleDisconnect(oldPlayer));
+
+		// Notify client of reconnection
+    oldPlayer.typedSocket.send('reconnected', {
+			userID: oldPlayer.userID,
+			username: oldPlayer.username,
+			state: oldPlayer.state,
+			gameID: oldPlayer.gameID ?? null,
+			tournamentID: oldPlayer.tournamentID ?? null,
+			message: oldPlayer.state === 'playing' ? 'Reconnected' : 'No game to resume',
 		});
+    updatePlayerState(oldPlayer, oldPlayer.state);
+    if (oldPlayer.gameID) {
+      const room = PongRoom.rooms.get(oldPlayer.gameID);
+        if (room) {
+          room.resume(oldPlayer.userID);
+        }
+    }
+	} else {
+		//  First-time connection — create new player
+		const user = await UserManagement.getUnameByIndex(userID);
 
-		setupMessageHandlers(ws, existingPlayer);
-		return;
-	}
-
-	// Disconnect old connection if needed
-	if (existingPlayer) {
-		try {
-			existingPlayer.socket.close(1000, '[GAME]:New connection established');
-		} catch (e) {
-			console.warn('Failed to close previous socket:', e);
-		}
-	}
-
-	const player: players = {
-		socket: ws,
-		userID: userId,
-		state: 'init',
-		hasDisconnected: false
-	};
-
-	MappedPlayers.set(userId, player);
-
-	send(ws,{
-		type: 'init',
-		userID:player.userID,
-		state:'init',
-		success: 'true'
-	});
-
-	setupMessageHandlers(ws, player);
-}
-
-async function verifyAndExtractUser(
-	ws: WebSocket,
-	request: any
-): Promise<{ userId: number; fullUser: user } | null> {
-	const url = new URL(request.url, `https://${request.headers.host}`);
-	const token = url.searchParams.get('token');
-
-	if (!token) {
-		console.log('Connection rejected: No token provided');
-		ws.close(1008, 'No token');
-		return null;
-	}
-
-	try {
-		const payload = jwt.verify(token, jwtSecret) as JwtPayload;
-		const rand_id = payload.sub as string;
-
-		const fullUser: user | null = await UserManagement.getUserByRand(rand_id);
-		if (!fullUser) {
-			ws.close(1008, 'User not found');
-			return null;
-		}
-
-		return {
-			userId: fullUser.our_index,
-			fullUser,
+		const player = {
+			socket: ws,
+			typedSocket,
+			userID,
+			state: 'init',
+			username: user!.username,
+			hasDisconnected: false,
 		};
-	} catch (error) {
-		console.log('Connection rejected: Invalid token', error);
-		ws.close(1008, 'Invalid token');
-		return null;
+
+		MappedPlayers.set(userID, player);
+		handleAllEvents(typedSocket, player);
+		ws.on('close', () => handleDisconnect(player));
+
+		typedSocket.send('init', {
+			userID,
+			state: 'init',
+			success: true
+		});
+    updatePlayerState(player, player.state);
 	}
 }
 
 
-export async function setupMessageHandlers(ws: WebSocket, player: players) {
-	ws.on('message', async (data: RawData) => {
-
-		let parsed: any;
-		try {
-			parsed = JSON.parse(data.toString());
-		} catch {
-			return send(ws, { error: 'Failed to receive gameSocket' });
-		}
-		console.log('GAME : Message received from client:', parsed);
-		switch (parsed.type) {
-			case 'init': await handleInit(parsed, player); break;
-			case 'joinGame': await handleJoin(parsed, player); break;
-			case 'invite': await handleInvite(parsed, player); break;
-			case 'startGame': beginGame(parsed.roomID); break;
-			case 'leaveGame': handleLeaveGame(parsed, player); break;
-			case 'playerMove': await handlePlayerMove(parsed, player); break;
-			case 'render': await handleRender(parsed, player); break;
-			default:
-				send(ws, { error: 'Unknown message type' });
-		}
-	});
-
-	ws.on('close', () => handleDisconnect(player));
-}
-
-
-
-function beginGame(roomID:number){
-	console.log('GAME IS NOT IMPLEMENTED YET SORRY');
-
-}
-
-async function handleInit(parsed:any, player:players){
-	
-	const {userID} = parsed;
-	console.log(`HANDLE INIT CALLED : ${userID}`)
-	if(userID !== player.userID)
-		player.socket.send(JSON.stringify({
-			type: 'init',
-			success: 'failure'
-		}));
-	if(userID === player.userID)
-		player.socket.send(JSON.stringify({
-			type: 'init',
-			userID:player.userID,
-			state:'init',
-			success: 'true',
-		}));
-}
-
-
-function handleDisconnect(player: players) {
-	console.log(`User ${player.userID} disconnected. Waiting 15s for reconnect...`);
-	player.hasDisconnected = true;
-
-	// Store timeout so we can cancel it if they reconnect
-	const timeout = setTimeout(() => {
-		const stillDisconnected = MappedPlayers.get(player.userID);
-		if (stillDisconnected && stillDisconnected.hasDisconnected) {
-			console.log(`User ${player.userID} in game: ${player.gameID} did not reconnect in time. Removing from game.`);
-			cleanupPlayerFromGame(player);
-			MappedPlayers.delete(player.userID);
-		}
-	}, 15000);
-
-	// Save the timeout on the player object (optional but handy)
-	(player as any).disconnectTimeout = timeout;
-}
-
-//When user create gameRoom front send joinGame for him 
-export async function handleJoin(parsed:any, player:players){
-const { userID, gameName, gameID } = parsed;
-
-	if (player.state !== 'init') {
-		player.socket.send(JSON.stringify({
-			type: 'joinGame',
-			success: false,
-			reason: `you are in ${player.state} mode`,
-		}));
-		return;
-	}
-
-	try {
-		await GameManagement.addMemberToGameRoom(gameID, userID);
-		console.log(`ADDING [USERID]${userID} in gameRoom : ${gameID}`);
-		player.state = 'waiting';
-		player.gameID = gameID;
-		player.socket.send(JSON.stringify({
-			type: 'joinGame',
-			success: true,
-			state: player.state,
-			gameID:player.gameID,
-			gameName:gameName,
-			userID: player.userID
-		}));
-	} catch (err) {
-		console.error('handleJoin error', err);
-		player.socket.send(JSON.stringify({
-			type: 'joinGame',
-			success: false,
-			reason: 'Join failed',
-		}));
-	}
-	await tryStartGameIfReady(gameID);
-}
-
-export async function handleInvite(parsed:any, player:players){
-	const { actionRequested } = parsed;
-
-	if (actionRequested === 'send') {
-		const { userID, alias, targetID, gameID } = parsed;
-		const target = MappedPlayers.get(targetID);
-
-		if (!target) {
-			player.socket.send(JSON.stringify({ type: 'invite', action: 'reply', response: 'offline' }));
-			return;
-		}
-
-		if (target.state !== 'init') {
-			player.socket.send(JSON.stringify({ type: 'invite', action: 'reply', response: 'busy' }));
-			return;
-		}
-
-		player.state = 'waiting';
-		target.state = 'invited';
-
-		target.socket.send(JSON.stringify({
-			type: 'invite',
-			action: 'receive',
-			fromID: userID,
-			gameID
-		}));
-	}
-
-	if (actionRequested === 'reply') {
-		const { fromID, toID, response, gameID } = parsed;
-		const inviter = MappedPlayers.get(fromID);
-		const invitee = MappedPlayers.get(toID);
-
-		if (inviter)
-			inviter.socket.send(JSON.stringify({
-				type: 'invite',
-				action: 'reply',
-				response,
-				targetID: toID
-			}));
-
-		if (response === 'accept') {
-			await GameManagement.addMemberToGameRoom(gameID, toID);
-			invitee!.state = 'waiting';
-			if (inviter) inviter.state = 'waiting';
-
-			await tryStartGameIfReady(gameID, 2);
-		} else {
-			if (invitee) invitee.state = 'init';
-		}
-	}
-}
-
-
-export async function handleRender(parsed:any, player:players){
-	//Send all players and balls pos/velocity/angle 
-	//const renderData = await getRenderData()
-	const renderData=null;
-	player.socket.send(JSON.stringify({
-		type:'render',
-		gameID:player.gameID,
-		userID:player.userID,
-		data:renderData
-	}));
-}
-
-async function cleanupPlayerFromGame(player: players) {
-	 const gameID = player.gameID;
-	if (!gameID) {
-		console.warn(`cleanupPlayerFromGame called with no gameID`);
-		return;
-	}
-
-	// Remove player from DB and update their state
-	await GameManagement.delMemberFromGameRoom(gameID , player.userID);
-	player.state = 'init';
-	// Notify them (if socket still open)
-	if (player.socket.readyState === WebSocket.OPEN) {
-		player.socket.send(JSON.stringify({
-			type: 'removed',
-			reason: 'Disconnected for too long',
-			gameID:player.gameID
-		}));
-		player.socket.send(JSON.stringify({
-			type:'statusUpdate',
-			newState:'init',
-			userID: player.userID
-		}));
-	}
-
-	// Check if other players remain in the game room
-	const remainingPlayers = await GameManagement.getAllMembersFromGameRoom(gameID);
-
-	if (remainingPlayers.length === 0) {
-		console.log(`Room ${gameID} is now empty. Deleting it.`);
-
-		// ❌ Remove from gameRooms
-		await GameManagement.deleteGameRoom(gameID);
-
-		// ✅ Add here any future cleanup (like ending match stats or timers)
-		// e.g. cancelGameLoop(gameID);
-	}
-}
-
-
-//does same logic but up to maxplayers instead 
-export async function tryStartGameIfReady(gameID:number, maxPlayers = 2){
-	const playersInGameRoom = await GameManagement.getAllMembersFromGameRoom(gameID);
-	console.log(`TRYSTARTGAME IF READY : ${gameID}`);
-	if (playersInGameRoom.length > maxPlayers) {
-		const playerToKick = await GameManagement.getLastAddedToRoom(gameID);
-		if(!playerToKick?.userID)
-			return;
-		const excluded = MappedPlayers.get(playerToKick?.userID);
-		await kickFromGameRoom(gameID, excluded);
-		return tryStartGameIfReady(gameID, maxPlayers);
-	}
-
-	if (playersInGameRoom.length === maxPlayers) {
-		const playerObjs = playersInGameRoom
-			.map(p => MappedPlayers.get(p.userID))
-			.filter(p => p?.state === 'waiting') as players[];
-
-		if (playerObjs.length === maxPlayers) {
-			playerObjs.forEach(p => {
-				p.state = 'playing';
-				p.socket.send(JSON.stringify({ type: 'startGame', gameID }));
-				p.socket.send(JSON.stringify({type:'statusUpdate', playerState:p.state}))
-			});
-
-			// send first render and start game loop
-			 beginGame(gameID);
-		}
-	}
-}
-
-
-export async function kickFromGameRoom(gameID:number, player?:players){
-	if(!player){
-		console.warn('IS PLAYER STILL CONNECTED ??');
-		return;
-	}
-	await GameManagement.delMemberFromGameRoom(gameID, player.userID);
-	player.state = 'init';
-	player.socket.send(JSON.stringify({
-		type: 'kicked',
-		reason: 'too many players in room',
-		gameID
-	}));
-	player.socket.send(JSON.stringify({
-		type:'statusUpdate',
-		playerState: player.state
-	}))
-}
-
-export async function handlePlayerMove(parsed: any, player: players) {
-	const { direction, gameID } = parsed;
-
-	// Get all players from the game room
-	const allPlayers = await GameManagement.getAllMembersFromGameRoom(gameID);
-	//send the move , the player ID and roomID to the gameLoop?
-	// Broadcast to all players in the room except the one who moved
-	for (const p of allPlayers) {
-		if (p.userID === player.userID) continue;
-
-		const targetPlayer = MappedPlayers.get(p.userID);
-		if (targetPlayer && targetPlayer.socket.readyState === WebSocket.OPEN) {
-			targetPlayer.socket.send(JSON.stringify({
-				type: 'playerMove', 
-				userID: player.userID,
-				direction
-			}));
-		}
-	}
-}
-
-export async function handleLeaveGame(parsed:any, player:players){
-	//Check for winner loser before 
-	await cleanupPlayerFromGame(player)
-}
 
 export default fp(async (fastify) => {
+  jwtSecret = fastify.vault.jwt;
+  if (!jwtSecret) {
+    throw new Error("JWT_SECRET was not loaded from Vault. Game socket cannot start.");
+  }
   const wss = new WebSocketServer({ noServer: true });
 
   fastify.server.on('upgrade', (request, socket, head) => {
     const { url } = request;
-	console.log('[GAME][onupgrade]');
     if (url?.startsWith('/gameSocket')) {
-		console.log('[startWith/game]')
       wss.handleUpgrade(request, socket, head, (ws) => {
         wss.emit('connection', ws, request);
       });
@@ -429,3 +118,100 @@ export default fp(async (fastify) => {
   wss.on('connection', initGameSocket);
 });
 
+//HELPERS 
+
+async function verifyAndExtractUser(
+    ws: WebSocket,
+    request: any
+): Promise<{ userId: number; fullUser: user } | null> {
+    const url = new URL(request.url, `https://${request.headers.host}`);
+    const token = url.searchParams.get('token');
+
+    if (!token) {
+        console.log('Connection rejected: No token provided');
+        ws.close(1008, 'No token');
+        return null;
+    }
+
+    try {
+        const payload = jwt.verify(token, jwtSecret) as JwtPayload;
+        const rand_id = payload.sub as string;
+
+        const fullUser: user | null = await UserManagement.getUserByRand(rand_id);
+        if (!fullUser) {
+            ws.close(1008, 'User not found');
+            return null;
+        }
+
+        return {
+            userId: fullUser.our_index,
+            fullUser,
+        };
+    } catch (error) {
+        console.log('Connection rejected: Invalid token', error);
+        ws.close(1008, 'Invalid token');
+        return null;
+    }
+}
+
+export function getPlayerBySocket(ws: WebSocket): Interfaces.playerInterface<WebSocket> {
+  for (const player of MappedPlayers.values()) {
+    if (player.socket === ws) return player as Interfaces.playerInterface<WebSocket>;
+  }
+  throw new Error('Player not found for socket');
+}
+
+export function getPlayerByUserID(userID: number): Interfaces.playerInterface | undefined {
+  return MappedPlayers.get(userID);
+}
+
+export function getPlayerState(userID:number): string | undefined{
+  const player = getPlayerByUserID(userID);
+  if(!player || player.state === 'offline')
+    return('offline')
+  if(player.state !== 'init')
+    return('in-game')
+  if(player.state === 'init')
+    return ('online')
+  return ('error')
+}
+
+export function getAllMembersFromGameID(gameID:number): Interfaces.playerInterface[]|undefined{
+    
+    const currentPlayers: Interfaces.playerInterface[] = [];
+
+    for (const player of MappedPlayers.values()) {
+        if (player.gameID === gameID) {
+        currentPlayers.push(player);
+        }
+    }
+    return currentPlayers;
+}
+
+export function delPlayer(userID: number) {
+  const player = MappedPlayers.get(userID);
+  if (!player) return;
+  // Close socket if still open
+  if (player.socket && player.socket.readyState === WebSocket.OPEN) {
+    player.socket.close();
+  }
+  MappedPlayers.delete(userID);
+}
+
+export async function getMembersByTourID(tourID:number):Promise<Interfaces.playerInterface[]|undefined>{
+	const members:Interfaces.playerInterface[] = [];
+	for(const p of MappedPlayers.values()){
+		if(p.tournamentID === tourID)
+			members.push(p);
+	}
+	return members;
+}
+
+export async function getAllInitPlayers():Promise<Interfaces.playerInterface[]|undefined>{
+	const players:Interfaces.playerInterface[] = [];
+	for(const p of MappedPlayers.values()){
+		if(p.state === 'init' || p.state === 'online')
+			players.push(p);
+	}
+	return players;
+}

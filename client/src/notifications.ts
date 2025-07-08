@@ -233,6 +233,8 @@ export function showUserActionsBubble(target: Element, username: string): void {
 			await createDirectMessageWith(username);
 			bubble.remove();
 		}
-		// "invite" does nothing
+		// else if (action === 'invite'){
+		// 	await handleInviteButton()
+		// }
 	});
 }

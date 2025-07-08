@@ -12,12 +12,17 @@ import * as dotenv from 'dotenv';
 import dbPlugin from './db/db';
 import { gameRoutes } from './routes/game.routes'
 import { tournamentRoutes } from './routes/tournament.routes'
-
-
+import vaultPlugin from './vault/vaultPlugin';
 
 dotenv.config({
   path: path.resolve(process.cwd(), '.env'),
 });
+
+function extractHostFromSessionManager(session: string | undefined): string | null {
+  if (!session) return null;
+  const match = session.match(/(c\d+r\d+p\d+)/);
+  return match ? `${match[1]}` : null;
+}
 
 async function bootstrap() {
   const keyPath = process.env.CERT_KEY_PATH || '/app/cert/key.pem';
@@ -25,7 +30,7 @@ async function bootstrap() {
 
   const key = fs.readFileSync(keyPath);
   const cert = fs.readFileSync(certPath);
-
+  
   const app = Fastify({
     https: {
       key,
@@ -33,7 +38,10 @@ async function bootstrap() {
     }
   });
 
-
+  //load plugin vault // acces aux secrets comme ca : app.vault.<secretName>
+  await app.register(vaultPlugin);
+  // console.log('gnngnggggg: ', app.vault.jwt);
+  // console.log('2222222: ', app.vault.cookie);
   // Config CORS
   await app.register(require('@fastify/cors'), {
     origin: true,
@@ -42,7 +50,7 @@ async function bootstrap() {
 
   // Cookie plugin
   await app.register(cookie, {
-    secret: process.env.COOKIE_SECRET || '&hotzBs@bziCO$oy2xTY0pq7QiBJ9Jz4Clgb$@od0MWzuU*ybL', // secret pour signer les cookies
+    secret: app.vault.cookie,
     parseOptions: {  // options pour le parsing des cookies
       secure: process.env.NODE_ENV === 'production',
       httpOnly: false,
@@ -128,13 +136,15 @@ async function bootstrap() {
       message: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   });
-	const port = process.env.PORT ? Number(process.env.PORT) : 3000;
+	const port = process.env.PORT ? Number(process.env.PORT) : 1400;
   try {
     await app.listen({ 
       port, 
       host: '0.0.0.0'
     });
-    console.log('🚀 Server listening on port ', port);
+
+    const dynamicHost = extractHostFromSessionManager(process.env.SESSION_MANAGER) || '0.0.0.0';
+    console.log(`🚀 Server listening on https://${dynamicHost}`);
   } catch (err) {
     console.error('Error starting server:', err);
     process.exit(1);

@@ -142,7 +142,7 @@ export const getAllUsersWhoHaveMeAsFriend = async (userID: number) => {
     `SELECT user_id FROM user_relationships WHERE related_user_id = ? AND type = 'friend'`,
     [userID]
   );
-  return result.map(row => row.userID); // returns number[]
+  return result.map(row => row.user_id); // returns number[]
 };
 
 

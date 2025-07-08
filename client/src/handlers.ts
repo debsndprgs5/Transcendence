@@ -8,10 +8,11 @@ import {
 	ProfileView,
 	render
 } from './views';
-import { isAuthenticated, apiFetch, initWebSocket, state } from './api';
+import { isAuthenticated, apiFetch, initWebSocket, state, resetState } from './api';
 import { showNotification, showUserActionsBubble } from './notifications';
 import { showPongMenu } from './pong_rooms';
 import { initGameSocket } from './pong_socket';
+//import { WebSocket } from 'ws';
 
 interface User {
 	username: string;
@@ -38,7 +39,7 @@ export function startTokenValidation(): void {
 				handleLogout();
 			}
 		}
-	}, 60_000); // Check every minute
+	}, 180_000); // Check every minute
 }
 
 // =======================
@@ -299,7 +300,7 @@ export async function createDirectMessageWith(friendUsername: string): Promise<v
 }
 
 // Little helper to resize canvas
-function resizePongCanvas(): void {
+export function resizePongCanvas(): void {
 	const container = document.querySelector('#pong-canvas')?.parentElement;
 	const canvas = document.getElementById('pong-canvas') as HTMLCanvasElement | null;
 	if (!canvas || !container) return;
@@ -337,6 +338,7 @@ export async function setupHomeHandlers(): Promise<void> {
 			state.currentPlayers = [];
 		}
 	}
+
 	const savedTView = localStorage.getItem('tournament_view');
 	if (savedTView === 'waitingTournament') {
 		const name = localStorage.getItem('tournament_name');
@@ -350,15 +352,15 @@ export async function setupHomeHandlers(): Promise<void> {
 		}
 	}
 	// Logout button
-	const logoutBtn = document.getElementById('logoutBtn');
+	const logoutBtn = document.getElementById('logoutNavBtn');
 	if (logoutBtn) {
 		logoutBtn.addEventListener('click', () => {
 			localStorage.removeItem('token');
 			localStorage.removeItem('username');
 			history.pushState(null, '', '/');
-			
-			router();
 			handleLogout();
+			router();
+			
 		});
 	}
 
@@ -529,10 +531,10 @@ export async function setupHomeHandlers(): Promise<void> {
 	// Call loadRooms immediately and set up WebSocket
 	if (state.authToken) {
 		loadRooms();
-		if (!state.socket || state.socket.readyState === WebSocket.CLOSED)
-			initWebSocket();
-		if (!state.gameSocket || state.gameSocket.readyState === WebSocket.CLOSED)
-			await initGameSocket();
+		// if (!state.socket || state.socket.readyState === WebSocket.CLOSED)
+		// 	initWebSocket();
+		// if (!state.playerInterface?.socket || state.playerInterface.socket.readyState === WebSocket.CLOSED)
+		// 	await initGameSocket();
 	}
 
 	// General chat button
@@ -1052,35 +1054,42 @@ window.addEventListener('storage', (event: StorageEvent) => {
  * Clears all auth state, closes socket and renders Home.
  */
 export function handleLogout(): void {
-	localStorage.removeItem('token');
-	localStorage.removeItem('username');
-	localStorage.removeItem('currentRoom');
-
 	
-	if (!state.gameSocket)
-		console.log(`[GAMESOCKET]NOT FOUND for ${state.userId}`);
-	if (state.gameSocket) {
-		console.log(`[GAMESOCKET]closing for ${state.userId}`);
-		state.gameSocket.close();
-	}
-	state.playerState = 'offline';
-	state.socket?.send(JSON.stringify({
-		type: 'friendStatus',
-		action: 'update',
-		state: 'offline',
-		userID: state.userId,
-	}));
-	state.canvasViewState = 'mainMenu';
-	if (state.socket?.readyState === WebSocket.OPEN) {
-		state.socket.close();
-	}
-	state.authToken = null;
-	state.userId    = null;
-	state.currentRoom = 0;
+
+	// Notify server about game leave (only if socket is open)
+	//if (state.playerInterface?.gameID && state.playerInterface?.socket?.readyState === WebSocket.OPEN) {
+		state.playerInterface!.typedSocket.send('leaveGame', {
+			userID: state.playerInterface!.userID,
+			gameID: state.playerInterface!.gameID,
+			islegit: false
+		});
+//	}
+
+	// Send offline status via friend socket (if open)
+//	if (state.socket?.readyState === WebSocket.OPEN) {
+		console.warn(`CLOSING CHAT socket`)
+		state.socket?.send(JSON.stringify({
+			type: 'friendStatus',
+			action: 'update',
+			state: 'offline',
+			userID: state.userId,
+		}));
+		state.socket?.close();
+//	}
+
+	// Close game socket
+	//if (state.playerInterface?.socket?.readyState === WebSocket.OPEN) {
+		console.warn(`[GAMESOCKET] Closing for ${state.userId}`);
+		state.playerInterface!.socket?.close();
+//	}
+
+	// Clear runtime 
+	resetState();
+	localStorage.clear();
+
 	updateNav();
 	render(HomeView());
 }
-
 /**
  * Sets up the back button on profile view.
  */
@@ -1159,8 +1168,8 @@ export async function router(): Promise<void> {
 					render(AccountView(user, friends));
 					if (!state.socket || state.socket.readyState === WebSocket.CLOSED)
 						initWebSocket();
-					if (!state.gameSocket || state.gameSocket.readyState === WebSocket.CLOSED)
-						await initGameSocket();
+					if (!state.playerInterface?.socket || state.playerInterface?.socket.readyState === WebSocket.CLOSED)
+						initGameSocket();
 					setupAccountHandlers(user, friends);
 				} catch (e: any) {
 					showNotification({ message: 'Error during account loading: ' + e.message, type: 'error', duration: 5000 });
@@ -1173,13 +1182,12 @@ export async function router(): Promise<void> {
 		default:
 			render(HomeView());
 			if (isAuthenticated()) {
-				setupHomeHandlers();
 				if (!state.socket || state.socket.readyState === WebSocket.CLOSED)
-					initWebSocket();
-				if (!state.gameSocket || state.gameSocket.readyState === WebSocket.CLOSED)
+					 await initWebSocket();
+				if (!state.playerInterface?.socket || state.playerInterface?.socket.readyState === WebSocket.CLOSED)
 					await initGameSocket();
+				setupHomeHandlers();
 				startTokenValidation();
-				
 			}
 			break;
 	}

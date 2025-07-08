@@ -1,0 +1,6 @@
+vault_data_local
+node_modules
+.git
+.gitignore
+dist
+.vscode

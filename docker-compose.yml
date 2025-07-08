@@ -1,26 +1,79 @@
-version: "3.8"
-
 services:
   app:
     build: .
     image: transcendence:latest
-    ports:
-      - "${PORT}:${PORT}"
+    depends_on:
+      vault-init:
+        condition: service_completed_successfully
+    env_file:
+      - .env
+      # - .env.vault
+    environment:
+      - VAULT_ADDR=http://vault:8200
+      # decommente pour mettre ces vars d'env classiques
+      # - NODE_ENV=production
+      # - PORT=${PORT}
+      # - WORK_DIR=${WORK_DIR}
+      # - USER=${USER}
+      # - SESSION_MANAGER=${SESSION_MANAGER}
+    networks:
+      - transcendence_net
     volumes:
+      - ./.env.vault:/app/.env.vault:ro
       - ./client/src:/app/client/src
       - ./src:/app/src
       - transcendence_volume:/app/runtime
       - db_volume:/app/db
       - avatars_volume:/app/client/avatars
+      - shared_volume:/app/client/shared
     restart: always
-    env_file:
-      - .env
+
+  vault:
+    image: hashicorp/vault:1.19
+    container_name: vault
+    ports:
+      - "8200:8200"
     environment:
-      - NODE_ENV=production
-      - PORT=${PORT}
-      - WORK_DIR=${WORK_DIR}
-      - USER=${USER}
-      - SESSION_MANAGER=${SESSION_MANAGER}
+      VAULT_ADDR: 'http://127.0.0.1:8200'
+    volumes:
+      - ./vault/config:/vault/config
+      - ./vault_data_local:/vault/file
+    cap_add:
+      - IPC_LOCK
+    command: server
+    networks:
+      - transcendence_net
+
+  vault-init:
+    image: hashicorp/vault:1.19
+    container_name: vault-init
+    depends_on:
+      - vault
+    volumes:
+      - ./:/app
+    working_dir: /app
+    entrypoint: /bin/sh
+    command: -c "apk add --no-cache bash netcat-openbsd jq && ./vault/init-vault.sh && ./vault/init-value.sh"
+    networks:
+      - transcendence_net
+    environment:
+      - VAULT_ADDR=http://vault:8200
+
+  waf:
+    build:
+      context: ./src/WAF
+      args:
+        - APP_TARGET_PORT_BUILD_ARG=${PORT}
+    ports:
+      - "1400:1400"
+      - "1800:1800"
+    depends_on:
+      - app
+      # - vault   # a check
+    volumes:
+      - ./src/WAF/logs:/var/log/nginx
+    networks:
+      - transcendence_net
 
 volumes:
   transcendence_volume:
@@ -44,4 +97,15 @@ volumes:
       type: none
       device: ./client/avatars
       o: bind
+  shared_volume:
+   name: shared_volume
+   driver: local
+   driver_opts:
+    type: none
+    device: ./shared
+    o: bind
+
+networks:
+  transcendence_net:
+    driver: bridge
 

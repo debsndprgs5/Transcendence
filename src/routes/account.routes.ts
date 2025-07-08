@@ -5,9 +5,7 @@ import sharp from 'sharp';
 import fs from 'fs/promises';
 import path from 'path';
 import * as UserManagement from '../db/userManagement';
-
 import jwt from 'jsonwebtoken';
-const JWT_SECRET = process.env.JWT_SECRET!;
 
 export default async function accountRoutes(fastify: FastifyInstance) {
 	fastify.register(fastifyMultipart);
@@ -18,7 +16,7 @@ export default async function accountRoutes(fastify: FastifyInstance) {
 	  const token = auth.split(' ')[1];
 	  let payload;
 	  try { 
-		payload = jwt.verify(token, JWT_SECRET);
+		payload = jwt.verify(token, fastify.vault.jwt);
 	  } catch {
 		return reply.code(401).send({ error: 'Invalid token' });
 	  }
@@ -44,6 +42,25 @@ export default async function accountRoutes(fastify: FastifyInstance) {
 	  console.log('Sending avatarUrl:', avatarUrl);
 
 	  reply.send({ avatarUrl });
+	});
+
+	fastify.get('/users/:username/avatar', async (request, reply) => {
+		try {
+			const { username } = request.params as { username: string };
+			if (!username) {
+				return reply.code(400).send({ error: 'Username required'});
+			}
+			const obj = await UserManagement.getAvatarUrl(username);
+			if (!obj)
+				return reply.code(404).send({ error: 'No avatar found'});
+			return reply.send({
+				avatar_url: obj.avatar_url
+			});
+			console.log('AVATAR EN BACK = ', obj!.avatar_url)
+		} catch (error) {
+			console.error('Error getting avatar : ', error);
+			return reply.code(500).send({ error: 'Internal server error' });
+		}
 	});
 
 

@@ -25,7 +25,11 @@ export interface playerInterface<SocketType= any>{
 	disconnectTimeOut?:NodeJS.Timeout,
 	state:string, // 'init'|'waiting'| 'playing'| 'tournamentWait' | 'tournamentPlay'
 	playerSide?:"left" | "right"| "top" | "bottom",
-	playerPos?:number
+	playerPos?:number,
+	a_ID?:number,
+	b_ID?:number,
+	a_score?:number,
+	b_score?:number
 }
 
 export interface paddleInterface{

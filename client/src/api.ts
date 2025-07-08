@@ -14,7 +14,7 @@ export interface AppState {
 	availableRooms: { roomID: number; roomName: string }[];
 	availableTournaments?: { tournamentID: number; name: string }[];
 	currentTournamentName?: string;
-	currentTournamentPlayers?: string[];
+	currentTournamentPlayers?: { username: string; score: number }[];
 	currentTournamentID?: number;
 	isTournamentCreator?: boolean;
 	canvasViewState: string;

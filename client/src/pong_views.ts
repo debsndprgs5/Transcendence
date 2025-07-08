@@ -503,7 +503,7 @@ export function drawWaitingTournamentView(
   canvas: HTMLCanvasElement,
   ctx: CanvasRenderingContext2D,
   tournamentName: string,
-  players: string[],
+  players: { username: string; score: number }[]
 ): void {
   const width  = canvas.width;
   const height = canvas.height;
@@ -535,9 +535,9 @@ export function drawWaitingTournamentView(
   ctx.fillText('Participants:', listX, currentY);
 
   // List of players
-  players.forEach((player, index) => {
+  players.forEach(({ username }, index) => {
     ctx.fillText(
-      `• ${player}`,
+      `• ${username}`,
       listX,
       currentY + lineHeight * (index + 1)
     );
@@ -586,17 +586,14 @@ export function drawWaitingRoundsTournamentView(
   canvas: HTMLCanvasElement,
   ctx: CanvasRenderingContext2D,
   tournamentName: string,
-  players: { name: string; score: number }[],
-  currentRound: number,
-  totalRounds: number
+  players: { username: string; score: number }[],
+  currentGameName: string
 ): void {
   const width  = canvas.width;
   const height = canvas.height;
 
-  // Clear entire canvas
+  // --- background ---
   ctx.clearRect(0, 0, width, height);
-
-  // Background gradient (left → right: #2C5364 → #203A43 → #0F2027)
   const grad = ctx.createLinearGradient(0, 0, width, 0);
   grad.addColorStop(0.0, '#2C5364');
   grad.addColorStop(0.5, '#203A43');
@@ -604,52 +601,55 @@ export function drawWaitingRoundsTournamentView(
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, width, height);
 
-  // Rounds indicator
+  // --- titles ---
   ctx.fillStyle = 'white';
-  ctx.font      = `${Math.floor(height / 30)}px Orbitron`;
   ctx.textAlign = 'center';
-  ctx.fillText(`Rounds : ${currentRound} / ${totalRounds}`, width / 2, height * 0.06);
+  ctx.font = `${Math.floor(height / 30)}px Orbitron`;
+  ctx.fillText(currentGameName, width / 2, height * 0.06);
 
-  // Tournament title
-  ctx.fillStyle = 'white';
-  ctx.font      = `${Math.floor(height / 15)}px Orbitron`;
-  ctx.textAlign = 'center';
+  ctx.font = `${Math.floor(height / 15)}px Orbitron`;
   ctx.fillText(tournamentName, width / 2, height * 0.12);
 
-  // Player list label
+  // --- participants list ---
   ctx.fillStyle = 'white';
-  ctx.font      = `${Math.floor(height / 28)}px Orbitron`;
   ctx.textAlign = 'left';
-  const listX = width * 0.18;
-  const startY = height * 0.25;
+  ctx.font = `${Math.floor(height / 28)}px Orbitron`;
+  const listX      = width * 0.18;
+  const startY     = height * 0.25;
   const lineHeight = height * 0.06;
   ctx.fillText('Participants:', listX, startY);
 
-  // List of players with scores
-  players.forEach((player, index) => {
+  players.forEach(({ username, score }, index) => {
     const y = startY + lineHeight * (index + 1);
-    ctx.fillText(
-      `• ${player.name} — ${player.score}`,
-      listX,
-      y
-    );
+    ctx.fillText(`• ${username} -> ${score} pts`, listX, y);
   });
 
-  // Leave Tournament button
-  const btnW = width  * 0.25;
-  const btnH = height * 0.08;
-  const btnX = width  / 2 - btnW / 2;
-  const btnY = height * 0.8;
-  ctx.fillStyle = '#f87171';
-  ctx.fillRect(btnX, btnY, btnW, btnH);
+  // --- buttons Leave + Ready ---
+  const btnW    = width  * 0.25;
+  const btnH    = height * 0.08;
+  const spacing = width  * 0.05;
+  const totalW  = btnW * 2 + spacing;
+  const baseX   = width  / 2 - totalW / 2;
+  const btnY    = height * 0.8;
+  const leaveX  = baseX;
+  const readyX  = baseX + btnW + spacing;
 
+  // Leave Tournament
+  ctx.fillStyle = '#f87171';
+  ctx.fillRect(leaveX, btnY, btnW, btnH);
   ctx.fillStyle = 'white';
   ctx.font      = `${Math.floor(height / 22)}px Orbitron`;
   ctx.textAlign = 'center';
-  ctx.fillText('Leave Tournament', width / 2, btnY + btnH * 0.65);
+  ctx.fillText('Leave Tournament', leaveX + btnW / 2, btnY + btnH * 0.65);
 
-  // store the leave button for click handling
+  // Ready
+  ctx.fillStyle = '#34d399';
+  ctx.fillRect(readyX, btnY, btnW, btnH);
+  ctx.fillStyle = 'white';
+  ctx.fillText('Ready', readyX + btnW / 2, btnY + btnH * 0.65);
+
   (canvas as any)._waitingTournamentButtons = [
-    { x: btnX, y: btnY, w: btnW, h: btnH, action: 'leaveTournament' }
+    { x: leaveX, y: btnY,   w: btnW, h: btnH, action: 'leaveTournament' },
+    { x: readyX, y: btnY,   w: btnW, h: btnH, action: 'ready' }
   ];
 }

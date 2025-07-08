@@ -104,6 +104,10 @@ export type SocketMessageMap = {
 	endMatch:{	type:'endMatch';
 				iswinner: boolean;
 				playerScores: Record<string, number>;
+				a_ID?:number;
+				b_ID?:number;
+				a_score?:number;
+				b_score?:number;
 			};
 	reconnected:{	type:'reconnected';
 					userID:number;
@@ -175,6 +179,14 @@ export type SocketMessageMap = {
 	updateTourScore:{	type:'updateTourScore';
 						score:string;
 	};
+	matchFinish:{	type:'matchFinish';
+					tourID:number;
+					userID:number;
+					a_ID:number;
+					b_ID:number;
+					a_score:number;
+					b_score:number;
+	}
 };
 
 export type SocketMessage = SocketMessageMap[keyof SocketMessageMap];

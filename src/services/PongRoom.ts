@@ -365,21 +365,28 @@ private  handleWallScore(sideHit: 'left'|'right'|'top'|'bottom', ball: ballClass
 
 		for (const p of this.players) {
 			const isWinner = (this.scoreMap.get(p.userID)! >= this.game.limit);
-			p.typedSocket.send('endMatch', {
-				isWinner,
-				playerScores
-			});
-		}
-		if(this.players[0].tournamentID){
-			const tour = Tournament.MappedTour.get(this.players[0].tournamentID);
-			const scoreA = this.scoreMap.get(this.players[0].userID);
-			const scoreB = this.scoreMap.get(this.players[1].userID!)
-			tour?.onMatchFinished(
-					this.players[0].tournamentID,
-					this.players[0].userID,
-					this.players[1].userID,
-					scoreA!,
-					scoreB!)
+			if(p.tournamentID){
+				const tour = Tournament.MappedTour.get(p.tournamentID);
+				const scoreA = this.scoreMap.get(this.players[0].userID!);
+				const scoreB = this.scoreMap.get(this.players[1].userID!)
+				p.typedSocket.send('endMatch',{
+					isWinner,
+					playerScores,
+					tourID:p.tournamentID,
+					userID:p.userID,
+					a_ID:this.players[0].userID,
+					b_ID:this.players[1].userID,
+					a_score:scoreA,
+					b_score:scoreB
+
+				});
+			}
+			else{
+				p.typedSocket.send('endMatch', {
+					isWinner,
+					playerScores
+				});
+			}
 		}
 	}
 }

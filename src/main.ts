@@ -14,7 +14,6 @@ import { gameRoutes } from './routes/game.routes'
 import { tournamentRoutes } from './routes/tournament.routes'
 
 
-
 dotenv.config({
   path: path.resolve(process.cwd(), '.env'),
 });

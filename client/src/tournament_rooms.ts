@@ -209,13 +209,9 @@ export function handleTournamentRoundsClick(
           handleLeaveTournament();
           break;
         case 'ready':
-          state.playerInterface!.typedSocket.send('matchFinish', {
+          state.playerInterface!.typedSocket.send('readyNextRound', {
             tourID:state.playerInterface!.tournamentID,
-            userID:state.userId!,
-            a_ID:state.playerInterface!.a_ID,
-            b_ID:state.playerInterface!.b_ID,
-            a_score:state.playerInterface!.a_score,
-            b_score:state.playerInterface!.b_score
+            userID:state.userId!
           });
           break;
       }

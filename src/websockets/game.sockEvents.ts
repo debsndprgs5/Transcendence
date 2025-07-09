@@ -33,6 +33,9 @@ export function handleAllEvents(typedSocket:TypedSocket, player:Interfaces.playe
   typedSocket.on('matchFinish', async(socket:WebSocket, data:Interfaces.SocketMessageMap['matchFinish']) => {
     Tournament.handleMatchFinish(data);
   });
+  typedSocket.on('readyNextRound', async(socket:WebSocket, data:Interfaces.SocketMessageMap['readyNextRound']) => {
+    Tournament.handleReadyNextRound(data);
+  });
   typedSocket.on('invite', async (socket:WebSocket, data:Interfaces.SocketMessageMap['invite']) => {
     handleInvite(data, player);
   });

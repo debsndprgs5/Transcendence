@@ -171,6 +171,10 @@ export async function handleMatchFinish(data:any){
 	tour.onMatchFinished(data.tourID, data.a_ID, data.b_ID, data.a_score, data.b_score, data.userID);
 }
 
+export async function handleReadyNextRound(data:any){
+	const tour = Tournament.MappedTour.get(data.tourID)!;
+	tour.isReadyForNextRound(data.userID!);
+}
 
 
 

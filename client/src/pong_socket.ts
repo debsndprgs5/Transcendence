@@ -443,6 +443,14 @@ export async function handleEndMatch(
 				state.playerInterface!.b_ID = data.b_ID
 				state.playerInterface!.a_score = data.a_score
 				state.playerInterface!.b_score = data.b_score
+				state.playerInterface!.typedSocket.send('matchFinish', {
+					tourID:state.playerInterface!.tournamentID!,
+					userID:state.userId!,
+					a_ID: data.a_ID,
+					b_ID: data.b_ID,
+					a_score: data.a_score,
+					b_score: data.b_score
+				});
 				state.canvasViewState = 'waitingTournamentRounds';
 				localStorage.setItem('pong_view','waitingTournamentRounds');
 				showPongMenu();

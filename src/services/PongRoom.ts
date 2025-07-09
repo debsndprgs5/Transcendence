@@ -379,14 +379,14 @@ private  handleWallScore(sideHit: 'left'|'right'|'top'|'bottom', ball: ballClass
 					a_score:scoreA,
 					b_score:scoreB
 				});
-				tour!.onMatchFinished(
-					p.tournamentID,
-					this.players[0].userID,
-					this.players[1].userID,
-					scoreA!,
-					scoreB!,
-					p.userID
-				);
+				// tour!.onMatchFinished(
+				// 	p.tournamentID,
+				// 	this.players[0].userID,
+				// 	this.players[1].userID,
+				// 	scoreA!,
+				// 	scoreB!,
+				// 	p.userID
+				// );
 			}
 			else{
 				p.typedSocket.send('endMatch', {

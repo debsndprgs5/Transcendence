@@ -192,6 +192,10 @@ export type SocketMessageMap = {
 					a_score:number;
 					b_score:number;
 	}
+	readyNextRound:{	type:'readyNextRound';
+						tourID:number;
+						userID:number;
+	}
 };
 
 export type SocketMessage = SocketMessageMap[keyof SocketMessageMap];

@@ -1,5 +1,6 @@
 import { playerInterface } from '../shared/gameTypes'
 import * as gameMgr from '../db/gameManagement'
+import { getUnameByIndex } from '../db/userManagement'
 
 type Member = {
 	player: playerInterface;
@@ -162,6 +163,17 @@ public async onMatchFinished(
 		tour.points.set(playerA, (tour.points.get(playerA) ?? 0) + drawPoints);
 		tour.points.set(playerB, (tour.points.get(playerB) ?? 0) + drawPoints);
 	}
+	const scoreUpdates = await Promise.all(
+	  Array.from(tour.points.entries()).map(async ([playerId, pts]) => {
+	    const user = await getUnameByIndex(playerId);
+	    return {
+	      username: user!.username,
+	      score: pts
+	    };
+	  })
+	);
+
+	scoreUpdates.sort((a, b) => b.score - a.score);
 
 	// Prevent rematch
 	tour.opponents.get(playerA)!.add(playerB);
@@ -177,6 +189,17 @@ public async onMatchFinished(
 	if (idx !== -1) {
 		tour.waitingPairs.push(tour.playingPairs[idx]);
 		tour.playingPairs.splice(idx, 1);
+	}
+	for (const [pA, pB] of tour.waitingPairs) {
+	  // pA.typedSocket and pB.typedSocket both exist on playerInterface
+	  pA.typedSocket.send('updateTourScore', {
+	    tourID,
+	    score: scoreUpdates
+	  });
+	  pB.typedSocket.send('updateTourScore', {
+	    tourID,
+	    score: scoreUpdates
+	  });
 	}
 
 	// Restart next round if done

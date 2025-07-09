@@ -102,8 +102,8 @@ export function handleStartNextRound(data:Interfaces.SocketMessageMap['startNext
 
 
 export function handleUpdateTourScore(data:Interfaces.SocketMessageMap['updateTourScore']){
-		//BACK SEND THIS ONLY IF YOU ARE IN TOUR and your match is over
-		//update data.score{JSON shit} on screen
-		//state.canvasViewState='waitingNextRound'
-		//showPongMenu();
+		state.currentTournamentPlayers = data.score;
+		console.warn('SCORES > ', data.score);
+		state.canvasViewState = 'waitingTournamentRounds';
+		showPongMenu();
 }

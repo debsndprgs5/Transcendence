@@ -196,6 +196,9 @@ export type SocketMessageMap = {
 						tourID:number;
 						userID:number;
 	}
+	healthcheck:{	type:'healthcheck';
+					token:string;
+	}
 };
 
 export type SocketMessage = SocketMessageMap[keyof SocketMessageMap];

@@ -8,7 +8,7 @@ import { TypedSocket } from './shared/gameTypes';
 import * as GUI from "@babylonjs/gui";
 import * as BABYLON from "@babylonjs/core";
 import * as Tournament from './tournament_socket'
-
+import { handleLogout } from './handlers'
 
 export const pongState = {
 	pongRenderer: null as PongRenderer | null,
@@ -84,6 +84,10 @@ export async function initGameSocket(): Promise<void> {
 				console.warn(`[GAME] WebSocket closed — code=${ev.code}, reason="${ev.reason}"`);
 				if (state.gameSocket?.readyState === WebSocket.OPEN)
 					state.typedSocket?.send('disconnected', {});
+				if (ev.code === 1008) {
+				  //Unauthorized or invalid token
+				  handleLogout();
+				}
 			} catch (err) {
 				console.warn('Cannot send disconnected message: ', err);
 			}

@@ -81,6 +81,8 @@ export function resetState(){
 
 export function isAuthenticated(): boolean {
 	state.authToken = localStorage.getItem('token');
+	if (state.playerInterface)
+		state.playerInterface!.typedSocket.send('healthcheck', { token: state.authToken });
 	return !!state.authToken;
 }
 

@@ -39,7 +39,7 @@ export function startTokenValidation(): void {
 				handleLogout();
 			}
 		}
-	}, 180_000); // Check every minute
+	}, 30_000); // Check every 30s
 }
 
 // =======================
@@ -1054,19 +1054,17 @@ window.addEventListener('storage', (event: StorageEvent) => {
  * Clears all auth state, closes socket and renders Home.
  */
 export function handleLogout(): void {
-	
-
 	// Notify server about game leave (only if socket is open)
-	//if (state.playerInterface?.gameID && state.playerInterface?.socket?.readyState === WebSocket.OPEN) {
+	if (state.playerInterface?.gameID && state.playerInterface?.socket?.readyState === WebSocket.OPEN) {
 		state.playerInterface!.typedSocket.send('leaveGame', {
 			userID: state.playerInterface!.userID,
 			gameID: state.playerInterface!.gameID,
 			islegit: false
 		});
-//	}
+	}
 
 	// Send offline status via friend socket (if open)
-//	if (state.socket?.readyState === WebSocket.OPEN) {
+	if (state.socket?.readyState === WebSocket.OPEN) {
 		console.warn(`CLOSING CHAT socket`)
 		state.socket?.send(JSON.stringify({
 			type: 'friendStatus',
@@ -1075,21 +1073,22 @@ export function handleLogout(): void {
 			userID: state.userId,
 		}));
 		state.socket?.close();
-//	}
+	}
 
 	// Close game socket
-	//if (state.playerInterface?.socket?.readyState === WebSocket.OPEN) {
+	if (state.playerInterface?.socket?.readyState === WebSocket.OPEN) {
 		console.warn(`[GAMESOCKET] Closing for ${state.userId}`);
 		state.playerInterface!.socket?.close();
-//	}
+	}
 
 	// Clear runtime 
 	resetState();
 	localStorage.clear();
 
 	updateNav();
-	render(HomeView());
+	window.location.href = '/';
 }
+
 /**
  * Sets up the back button on profile view.
  */

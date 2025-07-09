@@ -15,7 +15,7 @@ export const createTournamentFormData = {
   tournamentName: null as string | null,
   ballSpeed: 50,
   paddleSpeed: 50,
-  limit:60
+  limit:20
 };
 
 export async function fetchOpenTournaments(): Promise<{ tournamentID: number; name: string }[]> {

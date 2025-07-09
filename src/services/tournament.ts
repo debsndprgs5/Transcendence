@@ -113,6 +113,7 @@ export class Tournament {
 			return [mA.player, mB.player];
 		});
 	}
+
 public async onMatchFinished(
 	tourID: number,
 	playerA: number,
@@ -384,7 +385,7 @@ public giveBye(member: Member) {
 	const player = member.player;
 
 	// 1. Award points for the bye (half a win ? full win ? )
-	const BYE_POINTS = 5;
+	const BYE_POINTS = 10;
 	Tournament.MappedTour.get(player.tournamentID!)?.points.set(userID,
 		Tournament.MappedTour.get(player.tournamentID!)?.points.get(userID)! + BYE_POINTS
 	);
@@ -597,23 +598,41 @@ function generateSwissPairings(
 		}
 	}
 
+	const pairedFloaterIds = new Set<number>();
+
 	for (const floater of floaters) {
+		// Skip if this floater was used as an opponent earlier
+		if (pairedFloaterIds.has(floater.userID)) continue;
+
 		let placed = false;
-		for (let i = groups.indexOf(floater.originalGroup!) + 1; i < groups.length && !placed; i++) {
+
+		// Essayez de l’insérer dans les groupes suivants
+		for (let i = groups.indexOf(floater.originalGroup!) + 1;
+				 i < groups.length && !placed; i++) {
+
 			const targetGroup = groups[i];
+
 			if (targetGroup.length % 2 === 1) {
 				const opponent = selectOpponentForFloater(floater, targetGroup);
+
 				pairs.push({ playerA: floater.userID, playerB: opponent.userID });
+
+				// Remove opponent from its group
 				targetGroup.splice(targetGroup.indexOf(opponent), 1);
+
+				// Mark both players as already paired
+				pairedFloaterIds.add(floater.userID);
+				pairedFloaterIds.add(opponent.userID);
+
 				placed = true;
 			}
 		}
+
 		if (!placed) {
-			console.warn(`GIVING BYE to ${floater.player.userID!}`);
+			console.warn(`GIVING BYE to ${floater.player.userID}`);
 			tour.giveBye(floater);
 		}
 	}
-
 	return pairs;
 }
 

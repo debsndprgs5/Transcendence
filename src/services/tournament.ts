@@ -405,48 +405,173 @@ public giveBye(member: Member) {
 
 
 
+// function generateSwissPairings(
+// 	round: number,
+// 	members: Member[]
+// 	): { playerA: number, playerB: number }[] {
+// 		// compute Median Buchholz for all players
+// 	console.log(`Members before shuffles : `)
+// 	console.log(members);
+// 	if (round === 1) {
+// 		// randomize initial pairing
+// 		members = shuffle(members);
+// 	} else {
+// 		computeMedianBuchholz(members);
+// 	}
+// 	console.log(`members after shuffle : `)
+// 	console.log(members);
+// 	// sort by points desc, then by buchholz desc
+// 	members.sort((a, b) => {
+// 		if (b.points !== a.points) {
+// 			return b.points - a.points;
+// 		}
+// 		const mbA = (a as any).buchholz as number;
+// 		const mbB = (b as any).buchholz as number;
+// 		return mbB - mbA;
+// 	});
+
+// 	// group by identical score
+// 	const groups = groupBy(members, m => m.points);
+
+// 	const pairs: { playerA: number, playerB: number }[] = [];
+// 	const floaters: typeof members = [];
+
+// 	for (const group of groups) {
+// 		let pool = [...group];
+
+// 		// if odd, pull one floater to next group
+// 		if (pool.length % 2 === 1) {
+// 			const floater = selectFloater(pool, []);
+// 			floater.originalGroup = group;
+// 			floaters.push(floater);
+// 			pool = pool.filter(p => p !== floater); // REMOVE the floater from pool
+// 		}
+// 		// split and pair within group
+// 		const half = pool.length / 2;
+// 		const top = pool.slice(0, half);
+// 		let bottom = pool.slice(half);
+
+// 		for (let i = 0; i < top.length; i++) {
+// 			const a = top[i];
+// 			let paired = false;
+
+// 			for (let j = 0; j < bottom.length; j++) {
+// 				const b = bottom[j];
+// 				if (!a.opponents.includes(b.userID)) {
+// 					pairs.push({ playerA: a.userID, playerB: b.userID });
+// 					bottom.splice(j, 1);
+// 					paired = true;
+// 					break;
+// 				}
+// 			}
+
+// 			if (!paired && bottom.length > 0) {
+// 				const b = bottom.shift()!;
+// 				pairs.push({ playerA: a.userID, playerB: b.userID });
+// 			}
+// 		}
+// 	}
+// 	for (const floater of floaters) {
+// 	// try to insert into the next-lower score group
+// 		let placed = false;
+// 		for (let i = groups.indexOf(floater.originalGroup!) + 1;
+// 				i < groups.length && !placed;
+// 				i++) {
+// 			const targetGroup = groups[i];
+// 			// if targetGroup now odd, pair floater with one of them
+// 			if (targetGroup.length % 2 === 1) {
+// 				const opponent = selectOpponentForFloater(floater, targetGroup);
+// 				pairs.push({ playerA: floater.userID, playerB: opponent.userID });
+// 				targetGroup.splice(targetGroup.indexOf(opponent), 1);
+// 				placed = true;
+// 			}
+// 		}
+// 		if (!placed) {
+// 			// give a bye
+// 			console.warn(`GIVING BYE to ${floater.player.userID!}`)
+// 			const tour = Tournament.MappedTour.get(floater.player.tournamentID!) 
+// 			tour!.giveBye(floater);
+// 		}
+// 	}
+
+// 	return pairs;
+// }
+ 
+
 function generateSwissPairings(
 	round: number,
 	members: Member[]
-	): { playerA: number, playerB: number }[] {
-		// compute Median Buchholz for all players
-	console.log(`Members before shuffles : `)
+): { playerA: number, playerB: number }[] {
+	console.log(`Members before shuffles : `);
 	console.log(members);
+
 	if (round === 1) {
-		// randomize initial pairing
 		members = shuffle(members);
 	} else {
 		computeMedianBuchholz(members);
 	}
-	console.log(`members after shuffle : `)
+
+	console.log(`members after shuffle : `);
 	console.log(members);
-	// sort by points desc, then by buchholz desc
+
 	members.sort((a, b) => {
-		if (b.points !== a.points) {
-			return b.points - a.points;
-		}
+		if (b.points !== a.points) return b.points - a.points;
 		const mbA = (a as any).buchholz as number;
 		const mbB = (b as any).buchholz as number;
 		return mbB - mbA;
 	});
 
-	// group by identical score
-	const groups = groupBy(members, m => m.points);
+	// Determine if we should allow rematches
+	let allowRematch = false;
+	const totalPossiblePairs = (members.length * (members.length - 1)) / 2;
+	let playedPairs = new Set<string>();
 
+	for (const m of members) {
+		for (const opp of m.opponents) {
+			const key = [m.userID, opp].sort().join("-");
+			playedPairs.add(key);
+		}
+	}
+
+	const tour = Tournament.MappedTour.get(members[0].player.tournamentID!)!;
+	if (playedPairs.size >= totalPossiblePairs && round <= tour.max_round) {
+		allowRematch = true;
+		console.warn(`[Pairing] All unique matchups exhausted — allowing rematches`);
+	}
+
+	const groups = groupBy(members, m => m.points);
 	const pairs: { playerA: number, playerB: number }[] = [];
 	const floaters: typeof members = [];
 
 	for (const group of groups) {
 		let pool = [...group];
 
-		// if odd, pull one floater to next group
 		if (pool.length % 2 === 1) {
-			const floater = selectFloater(pool, []);
-			floater.originalGroup = group;
-			floaters.push(floater);
-			pool = pool.filter(p => p !== floater); // REMOVE the floater from pool
+			let floater: Member | null = null;
+
+			if (!allowRematch) {
+				floater = selectFloater(pool, []);
+			} else {
+				// If rematches are allowed, float only if no one can be paired
+				for (const candidate of pool) {
+					const others = pool.filter(p => p !== candidate);
+					const canBePaired = others.some(
+						other => !candidate.opponents.includes(other.userID)
+					);
+					if (!canBePaired) {
+						floater = candidate;
+						break;
+					}
+				}
+			}
+
+			if (floater) {
+				floater.originalGroup = group;
+				floaters.push(floater);
+				pool = pool.filter(p => p !== floater);
+			}
 		}
-		// split and pair within group
+
 		const half = pool.length / 2;
 		const top = pool.slice(0, half);
 		let bottom = pool.slice(half);
@@ -457,7 +582,7 @@ function generateSwissPairings(
 
 			for (let j = 0; j < bottom.length; j++) {
 				const b = bottom[j];
-				if (!a.opponents.includes(b.userID)) {
+				if (allowRematch || !a.opponents.includes(b.userID)) {
 					pairs.push({ playerA: a.userID, playerB: b.userID });
 					bottom.splice(j, 1);
 					paired = true;
@@ -471,14 +596,11 @@ function generateSwissPairings(
 			}
 		}
 	}
+
 	for (const floater of floaters) {
-	// try to insert into the next-lower score group
 		let placed = false;
-		for (let i = groups.indexOf(floater.originalGroup!) + 1;
-				i < groups.length && !placed;
-				i++) {
+		for (let i = groups.indexOf(floater.originalGroup!) + 1; i < groups.length && !placed; i++) {
 			const targetGroup = groups[i];
-			// if targetGroup now odd, pair floater with one of them
 			if (targetGroup.length % 2 === 1) {
 				const opponent = selectOpponentForFloater(floater, targetGroup);
 				pairs.push({ playerA: floater.userID, playerB: opponent.userID });
@@ -487,15 +609,14 @@ function generateSwissPairings(
 			}
 		}
 		if (!placed) {
-			// give a bye
-			console.warn(`GIVING BYE to ${floater.player.userID!}`)
-			const tour = Tournament.MappedTour.get(floater.player.tournamentID!) 
-			tour!.giveBye(floater);
+			console.warn(`GIVING BYE to ${floater.player.userID!}`);
+			tour.giveBye(floater);
 		}
 	}
 
 	return pairs;
 }
+
 
 
 // shuffle an array in-place using Fisher-Yates algorithm

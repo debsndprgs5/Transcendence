@@ -181,7 +181,8 @@ export type SocketMessageMap = {
 						score:string;//To update positons before new match?
 	};
 	updateTourScore:{	type:'updateTourScore';
-						score:string;
+						tourID:number;
+						score:{ username: string; score: number }[];
 	};
 	matchFinish:{	type:'matchFinish';
 					tourID:number;

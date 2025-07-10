@@ -845,34 +845,59 @@ export function setupSetup2FAHandlers(): void {
 }
 
 export function setupVerify2FAHandlers(): void {
-	const form = document.getElementById('verifyForm') as HTMLFormElement | null;
-	if (!form) return;
-	form.onsubmit = async (e: Event) => {
-		e.preventDefault();
-		const code = (document.getElementById('2fa-code') as HTMLInputElement).value;
-		try {
-			const res = await fetch('/api/auth/2fa/verify', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `Bearer ${state.pendingToken}`
-				},
-				body: JSON.stringify({ code })
-			});
-			const json = await res.json() as any;
-			if (res.ok) {
-				localStorage.setItem('token', json.token);
-				state.authToken = json.token;
-				window.location.href = '/';
-			} else {
-				const err = document.getElementById('verify-error') as HTMLElement;
-				err.textContent = json.error;
-				err.classList.remove('hidden');
-			}
-		} catch {
-			showNotification({ message: 'Error during 2fa verification', type: 'error', duration: 5000 });
-		}
-	};
+  const form = document.getElementById('verifyForm') as HTMLFormElement | null;
+  if (!form) return;
+
+  // set up auto-tabbing on the OTP inputs
+  const inputs = Array.from(
+    form.querySelectorAll('.v2fa-input')
+  ) as HTMLInputElement[];
+
+  inputs.forEach((input, idx) => {
+    input.addEventListener('input', () => {
+      if (input.value.length === input.maxLength) {
+        const next = inputs[idx + 1];
+        if (next) next.focus();
+      }
+    });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && input.value === '') {
+        const prev = inputs[idx - 1];
+        if (prev) {
+          prev.focus();
+          prev.value = '';
+        }
+      }
+    });
+  });
+
+  form.onsubmit = async (e: Event) => {
+    e.preventDefault();
+    // gather the code from all inputs
+    const code = inputs.map(i => i.value).join('');
+    try {
+      const res = await fetch('/api/auth/2fa/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${state.pendingToken}`
+        },
+        body: JSON.stringify({ code })
+      });
+      const json = await res.json() as any;
+      if (res.ok) {
+        localStorage.setItem('token', json.token);
+        state.authToken = json.token;
+        window.location.href = '/';
+      } else {
+        const errEl = document.getElementById('verify-error') as HTMLElement;
+        errEl.textContent = json.error;
+        errEl.classList.remove('hidden');
+      }
+    } catch {
+      showNotification({ message: 'Error during 2fa verification', type: 'error', duration: 5000 });
+    }
+  };
 }
 
 

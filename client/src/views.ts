@@ -18,16 +18,7 @@ export function render(html: string): void {
 export function HomeView(): string {
     if (!isAuthenticated()) {
       return `
-        <main class="min-h-screen flex items-center justify-center px-4 py-8" style="background: linear-gradient(
-          90deg,
-          rgba(164,116,81,1)   0%,
-          rgba(156,152,129,1) 16.667%,
-          rgba(115,160,157,1) 33.333%,
-          rgba(59,137,154,1)  50.000%,
-          rgba(9,91,121,1)    66.667%,
-          rgba(0,40,71,1)     83.333%,
-          rgba(0,1,22,1)     100.000%
-        );">
+        <main class="min-h-screen flex items-center justify-center px-4 py-8">
           <section class="w-full max-w-6xl h-[80vh] mt-[-5vh] bg-white/5 rounded-2xl shadow-xl overflow-hidden md:flex backdrop-blur-md border border-white/10">
             <div class="p-10 md:w-1/2 text-white flex flex-col justify-center">
               <h1 class="text-4xl font-bold mb-4 text-indigo-100">Welcome to Transcendence</h1>
@@ -58,16 +49,7 @@ export function HomeView(): string {
 
   const userName = localStorage.getItem('username') || '';
   return `
-<main class="flex-grow w-full" style="background: linear-gradient(
-  90deg,
-  rgba(164,116,81,1)   0%,
-  rgba(156,152,129,1) 16.667%,
-  rgba(115,160,157,1) 33.333%,
-  rgba(59,137,154,1)  50.000%,
-  rgba(9,91,121,1)    66.667%,
-  rgba(0,40,71,1)     83.333%,
-  rgba(0,1,22,1)     100.000%
-);">
+	<main class="flex-grow w-full">
   <div class="pt-6 px-[4px] sm:px-[8px] lg:px-[12px] mx-auto w-[95vw] max-w-[1600px]">
     <h1 class="text-2xl font-semibold text-indigo-100 mb-4">
       Welcome, <strong>${userName}</strong>!
@@ -182,62 +164,91 @@ export function HomeView(): string {
  * Returns the HTML for the login view.
  */
 export function LoginView(): string {
-	return `
-		<div class="min-h-screen flex items-start justify-center pt-10 p-4">
-			<div class="bg-white rounded-xl shadow-xl overflow-hidden w-full max-w-md transform -translate-y-4">
-				<div class="px-8 py-6 bg-indigo-600 text-white text-center">
-					<h2 class="text-3xl font-bold">Log in</h2>
-					<p class="mt-2">Log in to your account</p>
-				</div>
-				<form id="loginForm" class="px-8 py-6 space-y-6 bg-white">
-					<div>
-						<label for="username" class="block text-sm font-medium text-gray-700">Username</label>
-						<input id="username" name="username" type="text" required class="mt-1 block w-full px-4 py-2 border-2 border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 transition" />
-					</div>
-					<div>
-						<label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-						<input id="password" name="password" type="password" required class="mt-1 block w-full px-4 py-2 border-2 border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 transition" />
-					</div>
-					<button type="submit" class="w-full py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition">Login</button>
-					<p id="login-error" class="text-red-500 text-sm text-center hidden"></p>
-				</form>
-				<div class="px-8 py-4 bg-gray-100 text-center">
-					<p class="text-sm text-gray-600">You don't have an account ? <a href="/register" data-link class="text-indigo-600 font-medium hover:underline">Register now</a></p>
-				</div>
-			</div>
-		</div>
-	`;
+  return `
+    <div id="Container" class="w-full h-full flex items-center justify-center">
+      <!-- this wrapper holds the form + rays + base -->
+      <div id="loginWrapper" class="relative inline-block">
+        
+        <!-- light rays cone -->
+        <div id="rays"></div>
+
+        <!-- glassy login form -->
+        <form id="loginForm" class="form">
+          <h2 id="login-lable">LOGIN</h2>
+          <input id="username" name="username" type="text" placeholder="Username" required class="form-content" />
+          <input id="password" name="password" type="password" placeholder="Password" required class="form-content" />
+          <button type="submit">LOGIN</button>
+          <p id="login-error" class="text-red-500 text-sm text-center hidden"></p>
+          <p class="text-white text-sm">
+            You don't have an account ?
+            <a href="/register" data-link class="underline font-medium">Register now</a>
+          </p>
+        </form>
+
+        <!-- the black base under the light -->
+        <div id="base"></div>
+
+      </div>
+    </div>
+  `;
 }
+
 
 /**
  * Returns the HTML for the register view.
  */
 export function RegisterView(): string {
-	return `
-		<div class="min-h-screen flex items-start justify-center pt-10 p-4">
-			<div class="bg-white rounded-xl shadow-xl overflow-hidden w-full max-w-md transform -translate-y-4">
-				<div class="px-8 py-6 bg-indigo-600 text-white text-center">
-					<h2 class="text-3xl font-bold">Register</h2>
-					<p class="mt-2">Create your account</p>
-				</div>
-				<form id="registerForm" class="px-8 py-6 space-y-6 bg-white">
-					<div>
-						<label for="username" class="block text-sm font-medium text-gray-700">Username</label>
-						<input id="username" name="username" type="text" required class="mt-1 block w-full px-4 py-2 border-2 border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 transition" />
-					</div>
-					<div>
-						<label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-						<input id="password" name="password" type="password" required class="mt-1 block w-full px-4 py-2 border-2 border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 transition" />
-					</div>
-					<button type="submit" class="w-full py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition">Create my account</button>
-					<p id="register-error" class="text-red-500 text-sm text-center hidden"></p>
-				</form>
-				<div class="px-8 py-4 bg-gray-100 text-center">
-					<p class="text-sm text-gray-600">Already have an account ? <a href="/login" data-link class="text-indigo-600 font-medium hover:underline">Log in</a></p>
-				</div>
-			</div>
-		</div>
-	`;
+  return `
+    <div id="Container" class="w-full h-full flex items-center justify-center">
+      <!-- wrapper identical to login -->
+      <div id="loginWrapper" class="relative inline-block">
+        
+        <!-- light rays cone -->
+        <div id="rays"></div>
+
+        <!-- glassy register form -->
+        <form id="registerForm" class="form">
+          <h2 id="login-lable">REGISTER</h2>
+
+          <!-- Username field -->
+          <input
+            id="username"
+            name="username"
+            type="text"
+            placeholder="Username"
+            required
+            class="form-content"
+          />
+
+          <!-- Password field -->
+          <input
+            id="password"
+            name="password"
+            type="password"
+            placeholder="Password"
+            required
+            class="form-content"
+          />
+
+          <!-- Submit button -->
+          <button type="submit">REGISTER</button>
+
+          <!-- Error message placeholder -->
+          <p id="register-error" class="text-red-500 text-sm text-center hidden"></p>
+
+          <!-- Link to login -->
+          <p class="text-white text-sm">
+            You already have an account ?
+            <a href="/login" data-link class="underline font-medium">Login here</a>
+          </p>
+        </form>
+
+        <!-- the black base under the light -->
+        <div id="base"></div>
+
+      </div>
+    </div>
+  `;
 }
 
 /**
@@ -271,21 +282,32 @@ export function Setup2FAView(otpauthUrl: string, base32: string): string {
  * Returns the HTML for the 2FA verification view.
  */
 export function Verify2FAView(): string {
-	return `
-		<div class="max-w-md mx-auto mt-12 bg-white shadow-lg rounded-lg overflow-hidden">
-			<div class="px-6 py-4 bg-yellow-50">
-				<h2 class="text-2xl font-bold text-yellow-700">Verify 2FA</h2>
-			</div>
-			<form id="verifyForm" class="px-6 py-4 space-y-4">
-				<div>
-					<label class="block text-sm font-medium text-gray-700">Code 2FA</label>
-					<input id="2fa-code" name="code" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-yellow-500 focus:border-yellow-500" />
-				</div>
-				<button type="submit" class="w-full py-2 px-4 bg-yellow-600 text-black font-semibold rounded-md hover:bg-yellow-700 transition">Verify</button>
-				<p id="verify-error" class="text-red-500 text-sm mt-2 hidden"></p>
-			</form>
-		</div>
-	`;
+  return `
+    <div id="Container" class="w-full h-full flex items-center justify-center">
+      <form id="verifyForm" class="v2fa-form">
+        <div class="v2fa-content">
+          <p align="center">OTP Verification</p>
+          <div class="v2fa-inp">
+            <input type="text" maxlength="1" required class="v2fa-input" />
+            <input type="text" maxlength="1" required class="v2fa-input" />
+            <input type="text" maxlength="1" required class="v2fa-input" />
+            <input type="text" maxlength="1" required class="v2fa-input" />
+            <input type="text" maxlength="1" required class="v2fa-input" />
+            <input type="text" maxlength="1" required class="v2fa-input" />
+          </div>
+          <button type="submit">Verify</button>
+          <svg class="v2fa-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <path
+              class="v2fa-path"
+              fill="#4073ff"
+              d="M56.8,-23.9C61.7,-3.2,45.7,18.8,26.5,31.7C7.2,44.6,-15.2,48.2,-35.5,36.5C-55.8,24.7,-73.9,-2.6,-67.6,-25.2C-61.3,-47.7,-30.6,-65.6,-2.4,-64.8C25.9,-64.1,51.8,-44.7,56.8,-23.9Z"
+              transform="translate(100 100)"
+            />
+          </svg>
+        </div>
+      </form>
+    </div>
+  `;
 }
 
 /**

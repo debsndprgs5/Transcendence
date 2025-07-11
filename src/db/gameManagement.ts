@@ -122,12 +122,13 @@ export const createTournament = (
 	status: string,
 	paddle_speed:number,
 	ball_speed:number,
-	limit:number
+	limit:number,
+	chatID:number
 ) => {
 	return run(
-		`INSERT INTO tournaments (name, createdBy, playersCount, status, paddle_speed, ball_speed, "limit")
-		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		[name, createdBy, playersCount, status, paddle_speed, ball_speed, limit]
+		`INSERT INTO tournaments (name, createdBy, playersCount, status, paddle_speed, ball_speed, "limit", chatID)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		[name, createdBy, playersCount, status, paddle_speed, ball_speed, limit, chatID]
 	);
 };
 
@@ -237,6 +238,12 @@ export const getAllMatches = (tournamentID: number) =>
 		[tournamentID]
 	);
 
+
+export const getChatIDbyTourID = (tournamentID:number) =>
+	get<{chatID:number}>(
+		`SELECT chatID FROM tournaments WHERE tournamentID = ?`,
+	[tournamentID]
+);
 
 
 // ############################

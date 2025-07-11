@@ -13,6 +13,7 @@ export async function tournamentRoutes(fastify: FastifyInstance) {
 				paddleSpeed:number;
 				ballSpeed:number;
 				limit:number;
+				chatID:number;
 			};
 
 			if (
@@ -32,7 +33,8 @@ export async function tournamentRoutes(fastify: FastifyInstance) {
 				body.status,
 				body.paddleSpeed,
 				body.ballSpeed,
-				body.limit
+				body.limit,
+				body.chatID
 			);
 			const newTournamentID = (result as any).lastID as number;
 
@@ -42,7 +44,8 @@ export async function tournamentRoutes(fastify: FastifyInstance) {
 					tournamentID: newTournamentID,
 					name: body.name,
 					createdBy: userID,
-					status: body.status
+					status: body.status,
+					chatID:body.chatID
 				}
 			});
 		} catch (error) {
@@ -252,4 +255,19 @@ export async function tournamentRoutes(fastify: FastifyInstance) {
 			return reply.code(500).send({ success: false, message: 'Server error' });
 		}
 	});
+	// Get the linked chat room ID of a tournament
+fastify.get('/tournaments/chat/:tournamentID', async (request, reply) => {
+	console.log('[TOURNAMENT][ROUTES][GET][GETCHATID]');
+	try {
+		const tournamentID = Number((request.params as any).tournamentID);
+		const tournament = await gameMgr.getChatIDbyTourID(tournamentID);
+		if (!tournament) {
+			return reply.code(404).send({ success: false, message: 'Tournament not found' });
+		}
+		return reply.send({ success: true, ID: tournament.chatID });
+	} catch (err) {
+		console.error('Error in GET /tournaments/chat/:tournamentID:', err);
+		return reply.code(500).send({ success: false, message: 'Server error' });
+	}
+});
 }

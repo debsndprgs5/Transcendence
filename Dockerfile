@@ -15,7 +15,7 @@ COPY shared ./client/src/shared
 COPY tailwind.config.js ./
 
 # 3) build CSS + JS client
-RUN npx tailwindcss -i client/src/input.css -o client/dist/output.css --minify
+RUN npx tailwindcss -i client/src/css/input.css -o client/dist/output.css --minify
 RUN npm run build:client
 RUN npm run bundle
 

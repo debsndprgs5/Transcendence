@@ -114,6 +114,44 @@ export class Tournament {
 		});
 	}
 
+public removeMemberFromTourID(userID: number): boolean {
+	const tour = Tournament.MappedTour.get(this.tourID);
+	if (!tour) {
+		console.warn(`[REMOVE] No tournament found for tourID=${this.tourID}`);
+		return false;
+	}
+
+	// 1. Remove from players list
+	const idx = tour.players.findIndex(p => p.userID === userID);
+	if (idx === -1) {
+		console.warn(`[REMOVE] userID=${userID} not found in tournament`);
+		return false;
+	}
+	const removedPlayer = tour.players.splice(idx, 1)[0];
+
+	// 2. Remove their metadata
+	tour.points.delete(userID);
+	tour.opponents.delete(userID);
+	tour.readyPlayers.delete(userID);
+
+	// 3. Remove from current playingPairs and waitingPairs
+	const cleanPairList = (list: [playerInterface, playerInterface][]) => {
+		return list.filter(([a, b]) => a.userID !== userID && b.userID !== userID);
+	};
+	tour.playingPairs = cleanPairList(tour.playingPairs);
+	tour.waitingPairs = cleanPairList(tour.waitingPairs);
+
+	// 4. Remove them from matchReports (if any)
+	for (const [key, reporters] of tour.matchReports.entries()) {
+		reporters.delete(userID);
+		if (reporters.size === 0) {
+			tour.matchReports.delete(key);
+		}
+	}
+	console.log(`[REMOVE] userID=${userID} successfully removed from tournament ${this.tourID}`);
+	return true;
+}
+
 public async onMatchFinished(
 	tourID: number,
 	playerA: number,
@@ -231,99 +269,6 @@ public async onMatchFinished(
 
 	if (!this.hasStarted) return;
 }
-
-// public async onMatchFinished(
-// 	tourID: number,
-// 	playerA: number,
-// 	playerB: number,
-// 	scoreA: number,
-// 	scoreB: number,
-// 	userID: number
-// ) {
-// 	if (userID !== playerA && userID !== playerB) {
-// 		console.warn(`WTF ?! userID ${userID} is not part of this match a: ${playerA}  b: ${playerB}`);
-// 		return;
-// 	}
-
-// 	const tour = Tournament.MappedTour.get(tourID)!;
-
-// 	// Ensure a matchReportMap is initialized
-// 	if (!tour.matchReports) tour.matchReports = new Map<string, Set<number>>();
-
-// 	// Use a consistent key
-// 	const matchKey = [playerA, playerB].sort((a, b) => a - b).join("-");
-
-// 	// Add reporter to the match report tracker
-// 	if (!tour.matchReports.has(matchKey)) {
-// 		tour.matchReports.set(matchKey, new Set());
-// 	}
-// 	const reporters = tour.matchReports.get(matchKey)!;
-// 	reporters.add(userID);
-
-// 	// Wait until both players have reported
-// 	if (reporters.size < 2) {
-// 		return; // wait for the other player to confirm
-// 	}
-
-// 	// Remove tracker — match is finalized
-// 	tour.matchReports.delete(matchKey);
-
-// 	// Award points
-// 	const winPoints = 10, drawPoints = 5, lossPoints = 0;
-
-// 	if (scoreA > scoreB) {
-// 		tour.points.set(playerA, (tour.points.get(playerA) ?? 0) + winPoints);
-// 		tour.points.set(playerB, (tour.points.get(playerB) ?? 0) + lossPoints);
-// 	} else if (scoreB > scoreA) {
-// 		tour.points.set(playerB, (tour.points.get(playerB) ?? 0) + winPoints);
-// 		tour.points.set(playerA, (tour.points.get(playerA) ?? 0) + lossPoints);
-// 	} else {
-// 		// draw
-// 		tour.points.set(playerA, (tour.points.get(playerA) ?? 0) + drawPoints);
-// 		tour.points.set(playerB, (tour.points.get(playerB) ?? 0) + drawPoints);
-// 	}
-// 	const scoreUpdates = await Promise.all(
-// 	  Array.from(tour.points.entries()).map(async ([playerId, pts]) => {
-// 	    const user = await getUnameByIndex(playerId);
-// 	    return {
-// 	      username: user!.username,
-// 	      score: pts
-// 	    };
-// 	  })
-// 	);
-
-// 	scoreUpdates.sort((a, b) => b.score - a.score);
-
-// 	// Prevent rematch
-// 	tour.opponents.get(playerA)!.add(playerB);
-// 	tour.opponents.get(playerB)!.add(playerA);
-
-// 	// Move to waitingPairs
-// 	const idx = tour.playingPairs.findIndex(
-// 		([a, b]) =>
-// 			(a.userID === playerA && b.userID === playerB) ||
-// 			(a.userID === playerB && b.userID === playerA)
-// 	);
-
-// 	if (idx !== -1) {
-// 		tour.waitingPairs.push(tour.playingPairs[idx]);
-// 		tour.playingPairs.splice(idx, 1);
-// 	}
-// 	for (const [pA, pB] of tour.waitingPairs) {
-// 	  // pA.typedSocket and pB.typedSocket both exist on playerInterface
-// 	  pA.typedSocket.send('updateTourScore', {
-// 	    tourID,
-// 	    score: scoreUpdates
-// 	  });
-// 	  pB.typedSocket.send('updateTourScore', {
-// 	    tourID,
-// 	    score: scoreUpdates
-// 	  });
-// 	}
-
-// 	// Restart next round if done
-// 	if (!this.hasStarted) return;
-// }
 
 public async isReadyForNextRound(userID: number) {
 	const tour = Tournament.MappedTour.get(this.tourID)!;

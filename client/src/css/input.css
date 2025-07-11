@@ -266,7 +266,7 @@
 }
 
 /* 
-Verify 2fa 
+  Verify 2fa 
 */
 
 .v2fa-form {
@@ -281,8 +281,8 @@ Verify 2fa
   backdrop-filter: blur(8.2px);
   -webkit-backdrop-filter: blur(8.2px);
   border: 1px solid #369eff66;
-  width: 14em;
-  height: 14em;
+  width: 25em;
+  height: 25em;
   position: relative;
   margin-top: 4rem;
 }
@@ -291,8 +291,7 @@ Verify 2fa
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-top: auto;
-  margin-bottom: auto;
+  margin: auto 0;
 }
 
 .v2fa-form p {
@@ -304,54 +303,58 @@ Verify 2fa
   fill: #369eff;
 }
 
+/* SVG background blur + enriched animation */
 .v2fa-svg {
   filter: blur(20px);
   z-index: -1;
   position: absolute;
-  opacity: 50%;
-  animation: v2fa-anim 3s infinite;
+  opacity: 0.5;
+  animation: v2fa-anim 4s ease-in-out infinite; /* increase duration for smoother effect */
 }
 
+/* Inputs plus grands */
 .v2fa-inp {
-  margin-left: auto;
-  margin-right: auto;
+  margin: 0 auto;
   white-space: 4px;
 }
 
 .v2fa-input + .v2fa-input {
-  margin-left: 0.3em;
+  margin-left: 0.5em;
 }
 
 .v2fa-input {
+  /* Adjust size for better usability */
   color: #fff;
-  height: 2em;
-  width: 2em;
+  height: 3em;               /* increased height */
+  width: 3em;                /* increased width */
+  font-size: 1.2em;          /* larger font */
+  line-height: 3em;          /* vertical centering */
   float: left;
   text-align: center;
-  background: #00000000;
+  background: transparent;
   outline: none;
-  border: 1px #369eff solid;
-  border-radius: 10px;
+  border: 2px solid #369eff; /* slightly thicker border */
+  border-radius: 12px;
   transition: all 0.6s ease;
 }
 
 .v2fa-input:focus {
   outline: none;
-  border: 1px #fff solid;
+  border-color: #fff;
 }
 
 .v2fa-input:not(:placeholder-shown) {
-  opacity: 40%;
+  opacity: 0.4;
 }
 
 .v2fa-form button {
-  margin-left: auto;
-  margin-right: auto;
-  background-color: #00000000;
+  margin: 0 auto;
+  background-color: transparent;
   color: #fff;
-  width: 8.5em;
-  height: 2.3em;
-  border: #369eff 0.2em solid;
+  width: 9em;
+  height: 2.8em;              /* adjusted for balance with inputs */
+  font-size: 1em;
+  border: 0.2em solid #369eff;
   border-radius: 11px;
   transition: all 0.5s ease;
 }
@@ -360,14 +363,17 @@ Verify 2fa
   background-color: #369eff;
 }
 
+/* Enriched keyframes: X and Y translate */
 @keyframes v2fa-anim {
-  0% {
-    transform: translateY(-70px);
-  }
-  50% {
-    transform: translateY(-19px);
-  }
-  100% {
-    transform: translateY(-70px);
-  }
+  0%   { transform: translate(   0px, -40px); } /* start shifted up */
+  25%  { transform: translate(  20px, -140px); } /* move right & up */
+  50%  { transform: translate( -20px, -19px); } /* move left & down */
+  75%  { transform: translate(  10px, -20px); } /* slight shift */
+  100% { transform: translate(   0px, -90px); } /* back above */
+  75%  { transform: translate(  10px, -30px); } /* slight shift */
+  50%  { transform: translate( -20px, -19px); } /* move left & down */
+  25%  { transform: translate(  20px, -140px); } /* move right & up */
+  0%   { transform: translate(   0px, -70px); } /* start shifted up */
+  25%  { transform: translate(  30px, -120px); } /* move right & up */
+
 }

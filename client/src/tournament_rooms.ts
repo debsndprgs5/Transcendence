@@ -99,8 +99,7 @@ export async function handleWaitingTournamentClick(
   if (!clickedBtn) return;
 
   if (clickedBtn.action === 'leaveTournament') {
-    await handleLeaveTournament(false);
-    showPongMenu();
+     handleLeaveTournament(false);
   }
   // Start tournament when creator clicks the button
   else if (clickedBtn.action === 'startTournament') {
@@ -238,7 +237,7 @@ export function handleTournamentRoundsClick(
     ) {
       switch (btn.action) {
         case 'leaveTournament':
-          const isLastRound = isLastTournamentRound(state.currentGameName!);
+          const isLastRound = isLastTournamentRound(localStorage.getItem(`gameName`)!);
           handleLeaveTournament(isLastRound);
           break;
         case 'ready':

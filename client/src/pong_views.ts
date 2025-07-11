@@ -582,6 +582,9 @@ export function drawWaitingTournamentView(
   (canvas as any)._waitingTournamentButtons = buttons;
 }
 
+
+
+
 export function drawWaitingRoundsTournamentView(
   canvas: HTMLCanvasElement,
   ctx: CanvasRenderingContext2D,

@@ -24,6 +24,8 @@ export class PongRenderer{
 	private scoreText!: GUI.TextBlock;
 	private avatarSquares!: GUI.AdvancedDynamicTexture; // Avatar near the name
 	private avatarCirles!: GUI.AdvancedDynamicTexture;  // Small avatars linked to paddles
+	
+
 
 	private playerCount: number;
 	private playerSide: 'left' | 'right' | 'top' | 'bottom';
@@ -43,6 +45,9 @@ export class PongRenderer{
 	private scoreTextBlocks: Partial<Record<'left' | 'right' | 'top' | 'bottom', GUI.TextBlock>> = {};
 	private inputState = { left: false, right: false };
 	private currentDir: 'left' | 'right' | 'stop' = 'stop';
+
+	private handleKeyDown!: (e: KeyboardEvent) => void;
+	private handleKeyUp!: (e: KeyboardEvent) => void;
 
 	constructor(
 	canvas: HTMLCanvasElement,
@@ -490,27 +495,62 @@ export class PongRenderer{
 		});
 	}
 
-	private initInputListeners() {
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowLeft')  this.inputState.left  = true;
-      if (e.key === 'ArrowRight') this.inputState.right = true;
-      // Prevent default scroll with arrows
-      if (e.key.startsWith('Arrow')) e.preventDefault();
-	  if(e.key === 'Escape' || e.key === 'Esc'){
-			if(state.playerInterface!.state === 'playing')
-				state.typedSocket.send('leaveGame',{
-					userID:state.userId!,
-					gameID:state.playerInterface!.gameID,
-					isLegit:false});
-				}
-    });
+private initInputListeners() {
+	this.handleKeyDown = (e: KeyboardEvent) => {
+		if (e.key === 'ArrowLeft') this.inputState.left = true;
+		if (e.key === 'ArrowRight') this.inputState.right = true;
 
-    window.addEventListener('keyup', (e) => {
-      if (e.key === 'ArrowLeft')  this.inputState.left  = false;
-      if (e.key === 'ArrowRight') this.inputState.right = false;
-      // no preventDefault needed here
-    });
-	}
+		if (e.key.startsWith('Arrow')) e.preventDefault();
+
+		// Handle Escape key logic here too
+		if (e.key === 'Escape' || e.key === 'Esc') {
+			const player = state.playerInterface;
+			if (player && player.state === 'playing') {
+				if (this.isPaused) return; // prevent spam
+
+				this.isPaused = true;
+
+				state.typedSocket.send('pause', {
+					userID: state.userId,
+					gameID: player.gameID
+				});
+
+				showNotification({
+					type: 'confirm',
+					message: 'Do you really want to leave the game?',
+					onConfirm: () => {
+						state.typedSocket.send('leaveGame', {
+							userID: state.userId!,
+							gameID: player.gameID,
+							isLegit: false,
+						});
+						if (state.currentTournamentID)
+							state.typedSocket.send('leaveTournament', {
+								userID: state.userId!,
+								tournamentID: state.currentTournamentID!,
+								islegit: false,
+							});
+					},
+					onCancel: () => {
+						state.typedSocket.send('resume', {
+							userID: state.userId,
+							gameID: player.gameID
+						});
+						this.isPaused = false;
+					},
+				});
+			}
+		}
+	};
+
+	this.handleKeyUp = (e: KeyboardEvent) => {
+		if (e.key === 'ArrowLeft') this.inputState.left = false;
+		if (e.key === 'ArrowRight') this.inputState.right = false;
+	};
+
+	window.addEventListener('keydown', this.handleKeyDown);
+	window.addEventListener('keyup', this.handleKeyUp);
+}
 
   private sendMove(direction: 'left' | 'right' | 'stop') {
     if (state.playerInterface?.gameID !== undefined && state.userId !== undefined) {
@@ -537,8 +577,12 @@ export class PongRenderer{
 	}
 
 	public dispose() {
-		console.warn(`DISPOSING RENDER`)
-			this.engine.stopRenderLoop();
-			this.engine.dispose();
-		}
+		console.warn(`DISPOSING RENDER`);
+		this.engine.stopRenderLoop();
+		this.engine.dispose();
+
+		window.removeEventListener('keydown', this.handleKeyDown);
+		window.removeEventListener('keyup', this.handleKeyUp);
+	}
+
 }

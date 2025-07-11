@@ -90,7 +90,9 @@ CREATE TABLE IF NOT EXISTS tournaments (
   paddle_speed 	 INTEGER NOT NULL,
   ball_speed 	   INTEGER NOT NULL,
   "limit" 		   INTEGER NOT NULL,
-  FOREIGN KEY(createdBy) REFERENCES users(our_index)
+  chatID         INTEGER NOT NULL,
+  FOREIGN KEY(createdBy) REFERENCES users(our_index),
+  FOREIGN KEY (chatID) REFERENCES chatRooms(roomID)
 );
 
 --  Register tournament players

@@ -137,6 +137,7 @@ export type SocketMessageMap = {
 		};
 	joinTournament:{	type:'joinTournament';
 						userID:number;
+						chatID?:number;
 						username?:string;
 						tournamentID:number;
 						tourName:string;
@@ -198,6 +199,14 @@ export type SocketMessageMap = {
 	}
 	healthcheck:{	type:'healthcheck';
 					token:string;
+	}
+	pause:{		type:'pause';
+				userID:number;
+				gameID:number;
+	}
+	resume:{	type:'resume';
+				userID:number;
+				gameID:number;
 	}
 };
 

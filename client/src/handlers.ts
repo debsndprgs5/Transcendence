@@ -437,32 +437,24 @@ export async function setupHomeHandlers(): Promise<void> {
 						type: 'confirm',
 						onConfirm: async () => {
 							try {
-								const response = await fetch('/api/auth/me', {
-									headers: { Authorization: `Bearer ${state.authToken}` }
-								});
-								if (!response.ok) throw new Error('Failed to get userId');
-								const data = await response.json();
-								const userIdLocal = data.userId;
 								const roomMembers = await apiFetch<{ userID: number }[]>(`/api/chat/rooms/${roomId}/members`);
-								await apiFetch(`/api/chat/rooms/${roomId}`, {
-									method: 'DELETE',
-									headers: { Authorization: `Bearer ${state.authToken}` }
-								});
-								for (const member of roomMembers) {
-									state.socket!.send(
-										JSON.stringify({
-											type: 'loadChatRooms',
-											roomID: roomId,
-											userID: userIdLocal,
-											newUser: member.userID
-										})
-									);
-								}
-								await loadRooms();
-							} catch (err) {
-								showNotification({ message: 'Error during delete.', type: 'error', duration: 5000 });
-							}
-						},
+                                await apiFetch(`/api/chat/rooms/${roomId}`, {
+                                    method: 'DELETE',
+                                    headers: { Authorization: `Bearer ${state.authToken}` }
+                                });
+                                for (const member of roomMembers) {
+                                    state.socket!.send(
+                                        JSON.stringify({
+                                            type: 'roomDeleted',
+                                            roomID: roomId,
+                                            targetUserID: member.userID
+                                        })
+                                    );
+                                }
+                            } catch (err) {
+                                showNotification({ message: 'Error during delete.', type: 'error', duration: 5000 });
+                            }
+                        },
 						onCancel: () => {
 							console.log('Room deletion cancelled');
 						}
@@ -614,6 +606,7 @@ export async function setupHomeHandlers(): Promise<void> {
 			}
 		}
 	}
+    state.selectRoom = selectRoom;
 
 	// Chat: form submission via WebSocket
 	const chatForm = document.getElementById('chatForm') as HTMLFormElement | null;

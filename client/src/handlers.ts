@@ -1069,6 +1069,38 @@ export function setupAccountHandlers(user: any, friends: User[] = []): void {
 		};
 	});
 
+	// Switch the history table mode to 2 players
+	document.querySelectorAll<HTMLButtonElement>('#button-2-p').forEach(btn => {
+		btn.onclick = async () => {
+			console.log("2p button clicked");
+			const twoPlayerTable = document.getElementById('tab-2-p');
+			const twoPlayerButton = document.getElementById("button-2-p");
+			const fourPlayerTable = document.getElementById('tab-4-p');
+			const fourPlayerButton = document.getElementById("button-4-p");
+
+			fourPlayerButton?.classList.remove('hidden');
+			fourPlayerTable?.classList.remove('hidden');
+    		twoPlayerButton?.classList.add('hidden');
+    		twoPlayerTable?.classList.add('hidden');
+		}
+	});
+
+	// Switch the history table mode to 4 players
+	document.querySelectorAll<HTMLButtonElement>('#button-4-p').forEach(btn => {
+		btn.onclick = async () => {
+			console.log("4p button clicked");
+			const fourPlayerTable = document.getElementById('tab-4-p');
+			const fourPlayerButton = document.getElementById("button-4-p");
+			const twoPlayerTable = document.getElementById('tab-2-p');
+			const twoPlayerButton = document.getElementById("button-2-p");
+
+			fourPlayerButton?.classList.add('hidden');
+    		fourPlayerTable?.classList.add('hidden');
+			twoPlayerButton?.classList.remove('hidden');
+    		twoPlayerTable?.classList.remove('hidden');
+		}
+	});
+
 	// Send friends status request
 	const friendsStatusList = friends.map(f => ({ friendID: f.our_index }));
 	if (state.socket && state.socket.readyState === WebSocket.OPEN && friendsStatusList.length) {
@@ -1137,6 +1169,38 @@ export function handleLogout(): void {
 function setupProfileHandlers(): void {
 	const backBtn = document.getElementById('backBtnProfile');
 	if (backBtn) backBtn.onclick = () => history.back();
+	
+	// Switch the history table mode to 2 players
+	document.querySelectorAll<HTMLButtonElement>('#button-2-p').forEach(btn => {
+		btn.onclick = async () => {
+			console.log("2p button clicked");
+			const twoPlayerTable = document.getElementById('tab-2-p');
+			const twoPlayerButton = document.getElementById("button-2-p");
+			const fourPlayerTable = document.getElementById('tab-4-p');
+			const fourPlayerButton = document.getElementById("button-4-p");
+
+			fourPlayerButton?.classList.remove('hidden');
+			fourPlayerTable?.classList.remove('hidden');
+    		twoPlayerButton?.classList.add('hidden');
+    		twoPlayerTable?.classList.add('hidden');
+		}
+	});
+
+	// Switch the history table mode to 4 players
+	document.querySelectorAll<HTMLButtonElement>('#button-4-p').forEach(btn => {
+		btn.onclick = async () => {
+			console.log("4p button clicked");
+			const fourPlayerTable = document.getElementById('tab-4-p');
+			const fourPlayerButton = document.getElementById("button-4-p");
+			const twoPlayerTable = document.getElementById('tab-2-p');
+			const twoPlayerButton = document.getElementById("button-2-p");
+
+			fourPlayerButton?.classList.add('hidden');
+    		fourPlayerTable?.classList.add('hidden');
+			twoPlayerButton?.classList.remove('hidden');
+    		twoPlayerTable?.classList.remove('hidden');
+		}
+	});
 }
 
 
@@ -1164,7 +1228,9 @@ export async function router(): Promise<void> {
 				`/api/users/username/${encodeURIComponent(username)}`,
 				{ headers: { Authorization: `Bearer ${state.authToken}` } }
 			);
-			render(ProfileView(profileUser));
+			const history2 = await apiFetch('/users/me/game_history2', { headers: { Authorization: `Bearer ${state.authToken}` } });
+			const history4 = await apiFetch('/users/me/game_history4', { headers: { Authorization: `Bearer ${state.authToken}` } });
+			render(ProfileView(profileUser, history2, history4)); // =================NEW HERE===========
 			setupProfileHandlers();
 		} catch (e: any) {
 			showNotification({ message: 'Error during profile loading: ' + e.message, type: 'error', duration: 5000 });
@@ -1206,7 +1272,9 @@ export async function router(): Promise<void> {
 				try {
 					const user = await apiFetch('/api/users/me', { headers: { Authorization: `Bearer ${state.authToken}` } });
 					const friends = await apiFetch('/api/friends', { headers: { Authorization: `Bearer ${state.authToken}` } });
-					render(AccountView(user, friends));
+					const history2 = await apiFetch('/users/me/game_history2', { headers: { Authorization: `Bearer ${state.authToken}` } });
+					const history4 = await apiFetch('/users/me/game_history4', { headers: { Authorization: `Bearer ${state.authToken}` } });
+					render(AccountView(user, friends, history2, history4)); //-------------------HERE-------------------
 					if (!state.socket || state.socket.readyState === WebSocket.CLOSED)
 						initWebSocket();
 					if (!state.playerInterface?.socket || state.playerInterface?.socket.readyState === WebSocket.CLOSED)

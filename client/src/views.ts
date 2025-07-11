@@ -314,7 +314,7 @@ export function Verify2FAView(): string {
  * Returns the HTML for the account view.
  */
 
-export function AccountView(user: any, friends: any[] = []): string {
+export function AccountView(user: any, friends: any[] = [], history2: any[] = [], history4: any[] = []): string {
 	const username = user.username || '';
 	const style = /^\d+$/.test(username)
     ? 'bottts'
@@ -328,7 +328,7 @@ export function AccountView(user: any, friends: any[] = []): string {
 
 	return `
 		<div class="min-h-screen flex items-center justify-center py-10">
-			<<div class="bg-white rounded-xl shadow-xl max-w-lg w-full">
+			<div class="bg-white rounded-xl shadow-xl max-w-lg w-full">
 				<div class="px-8 py-8 flex flex-col items-center bg-indigo-50 rounded-t-xl">
 					<img src="${avatar}" id="account-avatar" alt="Avatar" class="w-24 h-24 rounded-full shadow-lg border-4 border-indigo-200 mb-4 cursor-pointer">
 					<input type="file" id="avatarInput" class="hidden" accept="image/*">
@@ -349,7 +349,7 @@ export function AccountView(user: any, friends: any[] = []): string {
 					<ul id="friendsList" class="space-y-2">
 						${friends.map(friend => `
 							<li class="py-1 border-b flex justify-between items-center">
-								<span class="flex-1 truncate">
+								<span class="flex-1 text-clip">
 									${friend.username}
 									<span class="friend-status ml-2 text-xs align-middle" data-userid="${friend.our_index}"></span>
 								</span>
@@ -362,6 +362,67 @@ export function AccountView(user: any, friends: any[] = []): string {
 						`).join('')}
 					</ul>
 				</div>
+				<div class="px-8 py-4 border-t border-gray-200 ">
+					<div class="flex items-center justify-between mb-4">
+					  <h3 class="text-lg font-semibold text-indigo-700">Match history</h3>
+					  <div class="space-x-2">
+					    <button id="button-2-p" class="py-2 px-2 bg-yellow-500 border rounded-lg">Show Four Players History</button>
+					    <button id="button-4-p" class="py-2 px-2 bg-orange-500 hidden border rounded-lg">Show Two Players History</button>
+					  </div>
+					</div>
+					<table id="tab-2-p" class="text-sm h-full w-full justify-items-center table-auto px-10 py-4 border black-200">
+						<thead class="sticky top-0">
+							<tr class="table w-full table-fixed justify-between">
+								<th class="text-clip overflow-hidden border">Date</th>
+								<th class="text-clip overflow-hidden border">Player 1</th>
+								<th class="text-clip overflow-hidden border">Player 2</th>
+								<th class="text-clip overflow-hidden border">Score 1</th>
+								<th class="text-clip overflow-hidden border">Score 2</th>
+							</tr>
+						</thead>
+						<tbody class="block overflow-y-auto h-32">
+							${history2.map(history2 => `
+								<tr class="table w-full table-fixed">
+									<td class="text-clip overflow-hidden text-center border">${history2.played_at}</td>
+									<td class="text-clip overflow-hidden text-center border">${history2.playerA}</td>
+									<td class="text-clip overflow-hidden text-center border">${history2.playerB}</td>
+									<td class="text-clip overflow-hidden text-center border">${history2.scoreA}</td>
+									<td class="text-clip overflow-hidden text-center border">${history2.scoreB}</td>
+								</tr>
+							`).join('')}
+						</tbody>
+					</table>
+					<table id="tab-4-p" class="text-clip overflow-hidden text-sm tab-4-p h-full w-full justify-items-center table-auto px-10 py-4 border black-200 hidden">
+						<thead class="sticky top-0">
+							<tr class="table w-full table-fixed justify-between">
+								<th class="text-clip overflow-hidden border">Date</th>
+								<th class="text-clip overflow-hidden border">Player 1</th>
+								<th class="text-clip overflow-hidden border">Player 2</th>
+								<th class="text-clip overflow-hidden border">Player 3</th>
+								<th class="text-clip overflow-hidden border">Player 4</th>
+								<th class="text-clip overflow-hidden border">Score 1</th>
+								<th class="text-clip overflow-hidden border">Score 2</th>
+								<th class="text-clip overflow-hidden border">Score 3</th>
+								<th class="text-clip overflow-hidden border">Score 4</th>
+							</tr>
+						</thead>
+						<tbody class="block overflow-y-auto h-32">
+							${history4.map(history4 => `
+								<tr class="table w-full table-fixed">
+									<td class="text-clip overflow-hidden text-center border">${history4.played_at}</td>
+									<td class="text-clip overflow-hidden text-center border">${history4.playerA}</td>
+									<td class="text-clip overflow-hidden text-center border">${history4.playerB}</td>
+									<td class="text-clip overflow-hidden text-center border">${history4.playerC}</td>
+									<td class="text-clip overflow-hidden text-center border">${history4.playerD}</td>
+									<td class="text-clip overflow-hidden text-center border">${history4.scoreA}</td>
+									<td class="text-clip overflow-hidden text-center border">${history4.scoreB}</td>
+									<td class="text-clip overflow-hidden text-center border">${history4.scoreC}</td>
+									<td class="text-clip overflow-hidden text-center border">${history4.scoreD}</td>
+								</tr>
+							`).join('')}
+						</tbody>
+					</table>
+				</div>
 				<div class="px-8 pb-8">
 					<button id="backHomeBtn" class="mt-6 w-full py-2 px-4 bg-gray-200 text-indigo-700 rounded hover:bg-gray-300 transition">← Go back</button>
 				</div>
@@ -373,7 +434,7 @@ export function AccountView(user: any, friends: any[] = []): string {
 /**
  * Returns the HTML for the profile view.
  */
-export function ProfileView(profileUser: any): string {
+export function ProfileView(profileUser: any, history2: any[] = [], history4: any[] = []): string {
 	const username = profileUser.username || '';
 	const style = /^\d+$/.test(username)
     ? 'bottts'
@@ -398,10 +459,65 @@ export function ProfileView(profileUser: any): string {
 						<p class="text-gray-500">(Stats placeholder)</p>
 					</div>
 					<div id="game-history" class="mt-6">
-						<h3 class="text-lg font-semibold">Recent Games</h3>
-						<ul class="list-disc list-inside text-gray-500">
-							<li>Game history placeholder</li>
-						</ul>
+						<div class="flex items-center justify-between mb-4">
+						  <h3 class="text-lg font-semibold">Recent Games</h3>
+						    <div class="space-x-2">
+						      <button id="button-2-p" class="py-2 px-2 bg-yellow-500 border rounded-lg">Show Four Players History</button>
+						      <button id="button-4-p" class="py-2 px-2 bg-orange-500 hidden border rounded-lg">Show Two Players History</button>
+						    </div>
+						</div>
+						<table id="tab-2-p" class="text-sm h-full w-full justify-items-center table-auto px-10 py-4 border black-200">
+							<thead class="sticky top-0">
+								<tr class="table w-full table-fixed justify-between">
+									<th class="text-clip overflow-hidden border">Date</th>
+									<th class="text-clip overflow-hidden border">Player 1</th>
+									<th class="text-clip overflow-hidden border">Player 2</th>
+									<th class="text-clip overflow-hidden border">Score 1</th>
+									<th class="text-clip overflow-hidden border">Score 2</th>
+								</tr>
+							</thead>
+							<tbody class="block overflow-y-auto h-32">
+								${history2.map(history2 => `
+									<tr class="table w-full table-fixed">
+										<td class="text-clip overflow-hidden text-center border">${history2.played_at}</td>
+										<td class="text-clip overflow-hidden text-center border">${history2.playerA}</td>
+										<td class="text-clip overflow-hidden text-center border">${history2.playerB}</td>
+										<td class="text-clip overflow-hidden text-center border">${history2.scoreA}</td>
+										<td class="text-clip overflow-hidden text-center border">${history2.scoreB}</td>
+									</tr>
+								`).join('')}
+							</tbody>
+						</table>
+						<table id="tab-4-p" class="text-clip overflow-hidden text-sm tab-4-p h-full w-full justify-items-center table-auto px-10 py-4 border black-200 hidden">
+							<thead class="sticky top-0">
+								<tr class="table w-full table-fixed justify-between">
+									<th class="text-clip overflow-hidden border">Date</th>
+									<th class="text-clip overflow-hidden border">Player 1</th>
+									<th class="text-clip overflow-hidden border">Player 2</th>
+									<th class="text-clip overflow-hidden border">Player 3</th>
+									<th class="text-clip overflow-hidden border">Player 4</th>
+									<th class="text-clip overflow-hidden border">Score 1</th>
+									<th class="text-clip overflow-hidden border">Score 2</th>
+									<th class="text-clip overflow-hidden border">Score 3</th>
+									<th class="text-clip overflow-hidden border">Score 4</th>
+								</tr>
+							</thead>
+							<tbody class="block overflow-y-auto h-32">
+								${history4.map(history4 => `
+									<tr class="table w-full table-fixed">
+										<td class="text-clip overflow-hidden text-center border">${history4.played_at}</td>
+										<td class="text-clip overflow-hidden text-center border">${history4.playerA}</td>
+										<td class="text-clip overflow-hidden text-center border">${history4.playerB}</td>
+										<td class="text-clip overflow-hidden text-center border">${history4.playerC}</td>
+										<td class="text-clip overflow-hidden text-center border">${history4.playerD}</td>
+										<td class="text-clip overflow-hidden text-center border">${history4.scoreA}</td>
+										<td class="text-clip overflow-hidden text-center border">${history4.scoreB}</td>
+										<td class="text-clip overflow-hidden text-center border">${history4.scoreC}</td>
+										<td class="text-clip overflow-hidden text-center border">${history4.scoreD}</td>
+									</tr>
+								`).join('')}
+							</tbody>
+						</table>
 					</div>
 				</div>
 				<div class="px-8 pb-8">

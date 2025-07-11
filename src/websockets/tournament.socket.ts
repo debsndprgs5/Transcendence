@@ -62,12 +62,12 @@ export async function updateTourPlayerList(joiner: Interfaces.playerInterface, t
 
 export async function handleLeaveTournament(player: Interfaces.playerInterface, data: any) {
 	// Tournament ends cleanly: not user-triggered
-	if (data.isLegit) {
-		// Placeholder: tournament finished naturally (e.g., someone won)
-		// Kick all players, update DB, send score, broadcast final standings, etc.
-		// This logic will eventually call handleLeaveTournament for each player
-		return;
-	}
+	// if (data.isLegit) {
+	// 	// Placeholder: tournament finished naturally (e.g., someone won)
+	// 	// Kick all players, update DB, send score, broadcast final standings, etc.
+	// 	// This logic will eventually call handleLeaveTournament for each player
+	// 	return;
+	// }
 
 	// User clicked "Leave Tournament" button manually
 
@@ -78,14 +78,14 @@ export async function handleLeaveTournament(player: Interfaces.playerInterface, 
 	if (player.gameID) {
 		Helpers.kickFromGameRoom(player.gameID, player, `${player.username!} left the match`);
 	}
-
 	// 3. Clear tournament ID from player state
 	const leftTourID = player.tournamentID;
 	player.tournamentID = -1;
 	Helpers.updatePlayerState(player, 'init');
 	
 	//HERE -> call Tournament -> removeMember(userID)
-
+	const tour = Tournament.MappedTour.get(leftTourID!);
+	tour?.removeMemberFromTourID(player.userID!);
 	// 4. Get remaining members
 	const members = await getMembersByTourID(leftTourID!);
 

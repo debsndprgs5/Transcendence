@@ -313,7 +313,8 @@ export function resizePongCanvas(): void {
 // HANDLERS
 // =======================
 
-let loadRooms: () => Promise<void>;
+export let loadRooms: () => Promise<void>;
+export let selectRoom: (roomId: number) => Promise<void>;
 
 export async function setupHomeHandlers(): Promise<void> {
 	// Resize pong-canvas listener
@@ -580,7 +581,7 @@ export async function setupHomeHandlers(): Promise<void> {
 	}
 
 	// Chat: select room function (internal helper)
-	async function selectRoom(roomId: number): Promise<void> {
+	selectRoom= async function(roomId: number): Promise<void> {
 		try {
 			state.currentRoom = roomId;
 			localStorage.setItem('currentRoom', String(roomId));
@@ -674,6 +675,15 @@ export async function setupHomeHandlers(): Promise<void> {
 			state.socket!.send(JSON.stringify({ type: 'chatHistory', roomID: state.currentRoom, userID: state.userId, limit: 50 }));
 		};
 	}
+}
+export async function rmMemberFromRoom(roomID: number, userID: number) {
+	await apiFetch(`/api/chat/rooms/${roomID}/members/${userID}`, {
+		method: 'DELETE',
+		headers: {
+			Authorization: `Bearer ${state.authToken}` // if needed
+		}
+	});
+	await loadRooms();
 }
 
 // =======================

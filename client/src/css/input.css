@@ -2,6 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
+@import "./login_register_buttons.css";
 
 .user-action-bubble {
     position: absolute;
@@ -377,3 +378,5 @@
   25%  { transform: translate(  30px, -120px); } /* move right & up */
 
 }
+
+

@@ -1,6 +1,7 @@
 import { showNotification } from './notifications';
 import { isAuthenticated, apiFetch, initWebSocket, state } from './api';
 import { TypedSocket, SocketMessageMap} from './shared/gameTypes';
+import { rmMemberFromRoom } from './handlers'
 import * as BABYLON from '@babylonjs/core';
 import * as LIMIT from './shared/gameTypes';
 import * as GUI from '@babylonjs/gui';
@@ -518,18 +519,21 @@ private initInputListeners() {
 				showNotification({
 					type: 'confirm',
 					message: 'Do you really want to leave the game?',
-					onConfirm: () => {
+					onConfirm: async () => {
 						state.typedSocket.send('leaveGame', {
 							userID: state.userId!,
 							gameID: player.gameID,
 							isLegit: false,
 						});
-						if (state.currentTournamentID)
+						if (state.currentTournamentID){
 							state.typedSocket.send('leaveTournament', {
 								userID: state.userId!,
 								tournamentID: state.currentTournamentID!,
 								islegit: false,
 							});
+						const { chatID } = await apiFetch(`/api/tournaments/chat/${state.currentTournamentID}`);
+						await rmMemberFromRoom(chatID, state.userId!);
+						}
 					},
 					onCancel: () => {
 						state.typedSocket.send('resume', {

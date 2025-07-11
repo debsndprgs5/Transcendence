@@ -29,6 +29,9 @@ export class PongRoom {
 	private readonly HEIGHT: number
 	private readonly clock: number
 	private readonly baseSpeed: number
+	private pauseStartTime: number | null = null;
+	private totalPausedTime = 0;
+
 	private pauseState = {
         isPaused: false,
         pausedPlayers: new Set<number>(),        // Track all paused players
@@ -111,33 +114,48 @@ export class PongRoom {
 		PongRoom.rooms.delete(this.gameID)
 	}
 	/* Pause the loop */
-	pause(userID:number){
-		console.log(`PAUSE INITIALIAZED`)
-		//Game is pause so just add new paused players
-		if(this.pauseState.isPaused){
+	pause(userID: number) {
+		console.log(`PAUSE INITIALIAZED`);
+		if (this.pauseState.isPaused) {
 			this.pauseState.pausedPlayers.add(userID);
 			return;
 		}
+
 		this.pauseState = {
-			isPaused:true,
-			pausedPlayers:new Set([userID]),
-		}
+			isPaused: true,
+			pausedPlayers: new Set([userID]),
+		};
+
+		this.pauseStartTime = Date.now(); // Mark pause start time
+
 		if (this.loop) clearInterval(this.loop);
 		console.log(`Game paused due to disconnect: ${userID}`);
 	}
+
 	/*Resume the loop*/ 
-	resume(userID:number){
+	resume(userID: number) {
 		this.pauseState.pausedPlayers.delete(userID);
-		if(this.pauseState.isPaused === false){
+
+		if (!this.pauseState.isPaused) {
 			console.log(`RESUME CALLED ON A RUNNING GAME`);
 			return;
 		}
+
 		console.log(`RESUME CALLED !`);
-		if(this.pauseState.pausedPlayers.size === 0){
+
+		if (this.pauseState.pausedPlayers.size === 0) {
 			this.pauseState.isPaused = false;
-			this.loop = setInterval(() => this.frame(), 1000/60);
+
+			// Accumulate paused duration
+			if (this.pauseStartTime !== null) {
+				this.totalPausedTime += Date.now() - this.pauseStartTime;
+				this.pauseStartTime = null;
+			}
+
+			this.loop = setInterval(() => this.frame(), 1000 / 60);
 		}
 	}
+
 //PRIVATE METHODS 
 
 private frame() {
@@ -317,30 +335,37 @@ private  handleWallScore(sideHit: 'left'|'right'|'top'|'bottom', ball: ballClass
 
 	/** Send state to clients */
 	private broadcast() {
-		let elapsed = (Date.now()-this.clock)/1000
+		let rawElapsed = (Date.now() - this.clock - this.totalPausedTime) / 1000;
+		if (this.pauseState.isPaused && this.pauseStartTime !== null) {
+			rawElapsed -= (Date.now() - this.pauseStartTime) / 1000;
+		}
+
+		let elapsed = rawElapsed;
+
 		if (this.game.winCondition === 'time') {
-			elapsed = Math.max(0, this.game.limit - elapsed);
+			elapsed = Math.max(0, this.game.limit - rawElapsed);
 		}
+
 		const paddles: Record<number,{pos:number;side:G.playerInterface['playerSide'];score:number}> = {}
-		for (const p of this.players) {
-			const pad = this.paddles.get(p.userID)!.paddleInterface
-			paddles[p.userID] = {
-				pos: pad.type==='H' ? pad.y : pad.x,
-				side: p.playerSide,
-				score: this.scoreMap.get(p.userID)!,
+			for (const p of this.players) {
+				const pad = this.paddles.get(p.userID)!.paddleInterface
+				paddles[p.userID] = {
+					pos: pad.type==='H' ? pad.y : pad.x,
+					side: p.playerSide,
+					score: this.scoreMap.get(p.userID)!,
+				}
 			}
-		}
-		const isPaused = this.pauseState.isPaused;
-		const balls: Record<number,{x:number;y:number}> = {}
-		this.balls.forEach((b,i)=> balls[i]={x:b.x,y:b.y})
-		for (const p of this.players) {
-			p.typedSocket.send('renderData',{ paddles, balls, elapsed, isPaused })
-		}
+			const isPaused = this.pauseState.isPaused;
+			const balls: Record<number,{x:number;y:number}> = {}
+			this.balls.forEach((b,i)=> balls[i]={x:b.x,y:b.y})
+			for (const p of this.players) {
+				p.typedSocket.send('renderData',{ paddles, balls, elapsed, isPaused })
+			}
 	}
 
 	/** Check and trigger end */
 	private checkWinCondition(): boolean {
-		const elapsedMs = Date.now()-this.clock
+		const elapsedMs = Date.now() - this.clock - this.totalPausedTime;
 		if (this.game.winCondition==='time' && elapsedMs >= this.game.limit*1000) {
 			this.endCleanMatch(); return true
 		}

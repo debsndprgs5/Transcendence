@@ -1,8 +1,8 @@
+@import "./login_register_buttons.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import "./login_register_buttons.css";
 
 .user-action-bubble {
     position: absolute;

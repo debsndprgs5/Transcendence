@@ -261,3 +261,30 @@ export const sendGameResultFour = (gameID: number, userID: [number, number, numb
 		`INSERT INTO gameResultFour (gameID, winner, playerA, playerB, playerC, playerD, scoreA, scoreB, scoreC, scoreD, started_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		[gameID, winner, userID[0], userID[1], userID[2], userID[3], score[0], score[1], score[2], score[3], start]
 	);
+/*
+export interface history_two{
+	gameID:		number;
+	playerA:	number;
+	playerB:	number;
+	scoreA:		number;
+	scoreB:		number;
+	played_at:	string;
+}
+*/
+export const getPlayedGames2 = (userID: number) =>
+	getAll<{ gameID: number; winner:number; playerA:Number; playerB:Number; scoreA: number; scoreB: number; played_at: string}>(
+		`SELECT matchID, winner, playerA, playerB, scoreA, scoreB, played_at
+		 FROM tournamentMembers
+		 WHERE playerA = ? OR playerB = ?
+		 ORDER BY played_at`,
+		[userID, userID]
+	);
+
+export const getPlayedGames4 = (userID: number) =>
+	getAll<{ gameID: number; winner:number; playerA:Number; playerB:Number; playerC:number; playerD:number; scoreA: number; scoreB: number; scoreC: number; scoreD: number, played_at: string}>(
+		`SELECT matchID, winner, playerA, playerB, playerC, playerD, scroeA, scoreB, scoreC, scoreD, played_at
+		 FROM tournamentMembers
+		 WHERE playerA = ? OR playerB = ? OR playerC = ? OR playerD = ?
+		 ORDER BY played_at`,
+		[userID, userID]
+	);

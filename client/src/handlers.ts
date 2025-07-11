@@ -695,6 +695,7 @@ export async function rmMemberFromRoom(roomID: number, userID: number) {
 			Authorization: `Bearer ${state.authToken}` // if needed
 		}
 	});
+	selectRoom(0);
 	await loadRooms();
 }
 

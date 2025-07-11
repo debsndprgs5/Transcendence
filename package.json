@@ -4,8 +4,8 @@
   "description": "A Node.js + Typescript + Fastify + Tailwind CSS server",
   "scripts": {
     "dev": "ts-node src/main.ts",
-    "build:css": "tailwindcss -i client/src/css/*.css -o client/dist/output.css --minify",
-    "watch:css": "npx tailwindcss -i client/src/css/*.css -o client/dist/output.css --watch --poll",
+    "build:css": "tailwindcss -i client/src/css/input.css -o client/dist/output.css --minify",
+    "watch:css": "npx tailwindcss -i client/src/css/input.css -o client/dist/output.css --watch --poll",
     "build:client": "tsc -p tsconfig.client.json",
     "bundle": "esbuild client/src/app.ts --bundle --outfile=client/dist/app.js --platform=browser --format=esm --sourcemap",
     "watch:client": "tsc -p tsconfig.client.json --watch",

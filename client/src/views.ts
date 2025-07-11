@@ -18,16 +18,7 @@ export function render(html: string): void {
 export function HomeView(): string {
     if (!isAuthenticated()) {
       return `
-        <main class="min-h-screen flex items-center justify-center px-4 py-8" style="background: linear-gradient(
-          90deg,
-          rgba(164,116,81,1)   0%,
-          rgba(156,152,129,1) 16.667%,
-          rgba(115,160,157,1) 33.333%,
-          rgba(59,137,154,1)  50.000%,
-          rgba(9,91,121,1)    66.667%,
-          rgba(0,40,71,1)     83.333%,
-          rgba(0,1,22,1)     100.000%
-        );">
+        <main class="min-h-screen flex items-center justify-center px-4 py-8">
           <section class="w-full max-w-6xl h-[80vh] mt-[-5vh] bg-white/5 rounded-2xl shadow-xl overflow-hidden md:flex backdrop-blur-md border border-white/10">
             <div class="p-10 md:w-1/2 text-white flex flex-col justify-center">
               <h1 class="text-4xl font-bold mb-4 text-indigo-100">Welcome to Transcendence</h1>

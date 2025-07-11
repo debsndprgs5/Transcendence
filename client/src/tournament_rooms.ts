@@ -129,7 +129,7 @@ export async function handleCreateTournament(): Promise<void> {
           Authorization: `Bearer ${state.authToken}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ name: `Tournament: ${name}` })
+        body: JSON.stringify({ name: `Tournament: ${name}` , isTourLink:true})
       });
       await addMemberToRoom(newRoom.roomID, state.userId!);
       selectRoom(newRoom.roomID);
@@ -172,8 +172,8 @@ export async function handleJoinTournament(tourID: number): Promise<void> {
 	}
 	state.playerInterface!.typedSocket.send('joinTournament',  {userID:state.userId, tournamentID:tourID})
   //join linked chatRoom
-  const chatID = await apiFetch(`/api/tournaments/chat/${tourID}`);
-  await addMemberToRoom(chatID.ID, state.userId!);
+  const { chatID } = await apiFetch(`/api/tournaments/chat/${tourID}`);
+  await addMemberToRoom(chatID, state.userId!);
   selectRoom(chatID.ID);
   await loadRooms();
   state.isTournamentCreator = false;
@@ -182,7 +182,7 @@ export async function handleJoinTournament(tourID: number): Promise<void> {
 // Handles the "Leave Tournament" button action
 export async function handleLeaveTournament(islegit:boolean): Promise<void> {
   const tourID = state.currentTournamentID!;
-  const chatID = await apiFetch(`/api/tournaments/chat/${tourID}`);
+  const { chatID } = await apiFetch(`/api/tournaments/chat/${tourID}`);
   await rmMemberFromRoom(chatID, state.userId!);
   state.playerInterface!.typedSocket.send('leaveTournament', {
 	userID:state.playerInterface!.userID,

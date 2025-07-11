@@ -695,6 +695,7 @@ export async function rmMemberFromRoom(roomID: number, userID: number) {
 			Authorization: `Bearer ${state.authToken}` // if needed
 		}
 	});
+	console.log(`[rmFromChat].user[${userID}]chat[${roomID}]`);
 	selectRoom(0);
 	await loadRooms();
 }

@@ -264,7 +264,7 @@ fastify.get('/tournaments/chat/:tournamentID', async (request, reply) => {
 		if (!tournament) {
 			return reply.code(404).send({ success: false, message: 'Tournament not found' });
 		}
-		return reply.send({ success: true, ID: tournament.chatID });
+		return reply.send({ success: true, chatID: tournament.chatID });
 	} catch (err) {
 		console.error('Error in GET /tournaments/chat/:tournamentID:', err);
 		return reply.code(500).send({ success: false, message: 'Server error' });

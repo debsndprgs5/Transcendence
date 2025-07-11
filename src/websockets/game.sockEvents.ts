@@ -76,6 +76,14 @@ export function handleAllEvents(typedSocket:TypedSocket, player:Interfaces.playe
       return socket.close(1008, 'Invalid token');
     }
   });
+  typedSocket.on('pause', async(socket:WebSocket, data:Interfaces.SocketMessageMap['pause']) => {
+    const pongRoom = PongRoom.rooms.get(data.gameID);
+    pongRoom?.pause(data.userID);
+  });
+  typedSocket.on('resume', async(socket:WebSocket, data:Interfaces.SocketMessageMap['resume']) => {
+    const pongRoom = PongRoom.rooms.get(data.gameID);
+    pongRoom?.resume(data.userID);
+  });
 }
 
 

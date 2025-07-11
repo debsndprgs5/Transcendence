@@ -114,6 +114,44 @@ export class Tournament {
 		});
 	}
 
+public removeMemberFromTourID(userID: number): boolean {
+	const tour = Tournament.MappedTour.get(this.tourID);
+	if (!tour) {
+		console.warn(`[REMOVE] No tournament found for tourID=${this.tourID}`);
+		return false;
+	}
+
+	// 1. Remove from players list
+	const idx = tour.players.findIndex(p => p.userID === userID);
+	if (idx === -1) {
+		console.warn(`[REMOVE] userID=${userID} not found in tournament`);
+		return false;
+	}
+	const removedPlayer = tour.players.splice(idx, 1)[0];
+
+	// 2. Remove their metadata
+	tour.points.delete(userID);
+	tour.opponents.delete(userID);
+	tour.readyPlayers.delete(userID);
+
+	// 3. Remove from current playingPairs and waitingPairs
+	const cleanPairList = (list: [playerInterface, playerInterface][]) => {
+		return list.filter(([a, b]) => a.userID !== userID && b.userID !== userID);
+	};
+	tour.playingPairs = cleanPairList(tour.playingPairs);
+	tour.waitingPairs = cleanPairList(tour.waitingPairs);
+
+	// 4. Remove them from matchReports (if any)
+	for (const [key, reporters] of tour.matchReports.entries()) {
+		reporters.delete(userID);
+		if (reporters.size === 0) {
+			tour.matchReports.delete(key);
+		}
+	}
+	console.log(`[REMOVE] userID=${userID} successfully removed from tournament ${this.tourID}`);
+	return true;
+}
+
 public async onMatchFinished(
 	tourID: number,
 	playerA: number,

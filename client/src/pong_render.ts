@@ -489,27 +489,62 @@ export class PongRenderer{
 		});
 	}
 
-	private initInputListeners() {
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowLeft')  this.inputState.left  = true;
-      if (e.key === 'ArrowRight') this.inputState.right = true;
-      // Prevent default scroll with arrows
-      if (e.key.startsWith('Arrow')) e.preventDefault();
-	  if(e.key === 'Escape' || e.key === 'Esc'){
-			if(state.playerInterface!.state === 'playing')
-				state.typedSocket.send('leaveGame',{
-					userID:state.userId!,
-					gameID:state.playerInterface!.gameID,
-					isLegit:false});
-				}
-    });
+private initInputListeners() {
+	window.addEventListener('keydown', (e) => {
+		if (e.key === 'ArrowLeft') this.inputState.left = true;
+		if (e.key === 'ArrowRight') this.inputState.right = true;
 
-    window.addEventListener('keyup', (e) => {
-      if (e.key === 'ArrowLeft')  this.inputState.left  = false;
-      if (e.key === 'ArrowRight') this.inputState.right = false;
-      // no preventDefault needed here
-    });
-	}
+		// Prevent default scroll with arrows
+		if (e.key.startsWith('Arrow')) e.preventDefault();
+
+		if (e.key === 'Escape' || e.key === 'Esc') {
+			const player = state.playerInterface;
+			let hasClick=false;
+			if (player && player.state === 'playing' && hasClick === false) {
+				hasClick = true;
+				//Pause the game
+				state.typedSocket.send('pause',{
+					userID:state.userId,
+					gameID:player.gameID
+				}) ;
+				// Show confirmation dialog
+				showNotification({
+					type: 'confirm',
+					message: 'Do you really want to leave the game?',
+					onConfirm: () => {
+						// User confirmed: send leave request
+						state.typedSocket.send('leaveGame', {
+							userID: state.userId!,
+							gameID: player.gameID,
+							isLegit: false,
+						});
+						if(state.currentTournamentID)
+							state.typedSocket.send('leaveTournament', {
+								userID:state.userId!,
+								tournamentID:state.currentTournamentID!,
+								islegit:false
+							});
+						hasClick = false;
+					},
+					onCancel: () => {
+						// User cancelled: resume game (if needed)
+						state.typedSocket.send('resume',{
+							userID:state.userId,
+							gameID:player.gameID
+						}) ;
+						hasClick = false;
+					},
+				});
+			}
+		}
+	});
+
+	window.addEventListener('keyup', (e) => {
+		if (e.key === 'ArrowLeft') this.inputState.left = false;
+		if (e.key === 'ArrowRight') this.inputState.right = false;
+	});
+}
+
 
   private sendMove(direction: 'left' | 'right' | 'stop') {
     if (state.playerInterface?.gameID !== undefined && state.userId !== undefined) {

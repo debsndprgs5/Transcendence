@@ -470,7 +470,8 @@ export class PongRenderer{
 	private processInput() {
 	  // Determine raw direction
 	  let dir: 'left'|'right'|'stop' = 'stop';
-	  if (this.inputState.left)  dir = 'left';
+	  if (this.inputState.left && this.inputState.right) dir = 'stop';
+	  else if (this.inputState.left)  dir = 'left';
 	  else if (this.inputState.right) dir = 'right';
 
 	  // Swap for left view

@@ -1,4 +1,5 @@
 import { handleLogout } from './handlers';
+import { showNotification } from './notifications';
 import * as Interfaces from './shared/gameTypes';
 import { TypedSocket } from './shared/gameTypes';
 //import { WebSocket } from 'ws';
@@ -22,6 +23,7 @@ export interface AppState {
 	currentPlayers?: string[];
 	friendsStatusList: { friendID: number }[];
 	loadRooms?: () => void;
+	selectRoom?: (roomId: number) => Promise<void>;
 	playerInterface?:Interfaces.playerInterface,
 	paddleInterface?:Interfaces.paddleInterface,
 	gameInterface?:Interfaces.gameRoomInterface
@@ -231,12 +233,12 @@ export async function initWebSocket(): Promise<void> {
 				resolve(); // Resolve when ready to use
 			};
 
-			state.socket!.onmessage = (event: MessageEvent) => {
+			state.socket!.onmessage = async (event: MessageEvent) => {
 				console.log('Raw msg from websocket : ', event.data);
 				try {
 					const parsed = JSON.parse(event.data);
 					console.log('Parsed WS message:', parsed);
-					handleWebSocketMessage(parsed);
+					await handleWebSocketMessage(parsed);
 				} catch (e) {
 					console.error('WebSocket message parsing error:', e);
 				}
@@ -267,7 +269,7 @@ export interface WebSocketMsg {
 /**
  * Handles incoming WebSocket messages and routes them by type.
  */
-export function handleWebSocketMessage(msg: WebSocketMsg): void {
+export async function handleWebSocketMessage(msg: WebSocketMsg): Promise<void> {
 	const MESSAGE_LIMIT = 15;
 	
 	switch (msg.type) {
@@ -338,9 +340,28 @@ export function handleWebSocketMessage(msg: WebSocketMsg): void {
 			break;
 		}
 
+		case 'roomDeleted': {
+			const wasInDeletedRoom = state.currentRoom === msg.roomID;
+			// console.log(`[CHAT] currentRoom: ${state.currentRoom}, msg.roomID: ${msg.roomID}`);
+			if (state.loadRooms) {
+				await state.loadRooms();
+			}
+			if (wasInDeletedRoom && state.selectRoom) {
+			// if (state.selectRoom) {
+				console.log(`[CHAT] Room ${msg.roomID} deleted, switching to general chat.`);
+				await state.selectRoom(0);
+				showNotification({ message: 'The room you were in was deleted. Moved to general chat.', type: 'info' });
+			} else {
+				console.log(`[CHAT] Room ${msg.roomID} deleted, but not in it.`);
+			}
+			break;
+		}
+
 		case 'chatHistory': {
 			const chatDiv = document.getElementById('chat');
+			// console.log(`[CHAT] msg.roomID: ${msg.roomID}, state.currentRoom: ${state.currentRoom}`);
 			if (chatDiv && msg.roomID === state.currentRoom && Array.isArray(msg.messages)) {
+				// console.log(`[CHAT] Loading chat history for room ${msg.roomID}`);
 				chatDiv.innerHTML = '';
 				const recent = msg.messages.slice(-MESSAGE_LIMIT);
 				recent.forEach((historyMsg: any) => {

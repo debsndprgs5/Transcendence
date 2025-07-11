@@ -192,7 +192,17 @@ async function handleConnection(ws: WebSocket, request: any) {
 					}
 					break;
 				}
-			 case 'loadChatRooms': {
+
+                case 'roomDeleted': {
+                    const { roomID, targetUserID } = parsed;
+                    const socket = MappedClients.get(targetUserID);
+                    if (socket) {
+                        socket.send(JSON.stringify({ type: 'roomDeleted', roomID: roomID }));
+                    }
+                    break;
+                }
+
+             	case 'loadChatRooms': {
 				const { roomID , userID , newUser } = parsed
 				try{
 					const socket = MappedClients.get(newUser);

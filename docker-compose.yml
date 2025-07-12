@@ -1,9 +1,40 @@
 services:
+  dev:
+    build:
+      context: .
+      target: builder-front
+    image: transcendence-dev
+    command:
+      - sh
+      - -c
+      - |
+        # watch CSS in background
+        npx tailwindcss -i client/src/css/input.css \
+          -o client/dist/output.css --watch &
+        # then watch & bundle JS forever
+        npx esbuild client/src/app.ts \
+          --bundle \
+          --outfile=client/dist/app.js \
+          --platform=browser \
+          --format=esm \
+          --sourcemap \
+          --watch=forever
+    volumes:
+      - ./client/src:/app/client/src
+      - ./shared:/app/client/src/shared
+      - ./tailwind.config.js:/app/tailwind.config.js
+      - ./client/dist:/app/client/dist
+    stdin_open: true
+    tty: true
+
   app:
     build: .
     image: transcendence:latest
+    depends_on:
+      - dev
     volumes:
       - ./client/src:/app/client/src
+      - ./client/dist:/app/client/dist
       - ./src:/app/src
       - transcendence_volume:/app/runtime
       - db_volume:/app/db

@@ -9,8 +9,10 @@ services:
       - -c
       - |
         # watch CSS in background
-        npx tailwindcss -i client/src/css/input.css \
-          -o client/dist/output.css --watch &
+        npx postcss client/src/css/input.css \
+          --output client/dist/output.css \
+          --watch
+
         # then watch & bundle JS forever
         npx esbuild client/src/app.ts \
           --bundle \
@@ -23,7 +25,8 @@ services:
       - ./client/src:/app/client/src
       - ./shared:/app/client/src/shared
       - ./tailwind.config.js:/app/tailwind.config.js
-      - ./client/dist:/app/client/dist
+      -  dist_volume:/app/client/dist
+      - ./postcss.config.js:/app/postcss.config.js
     stdin_open: true
     tty: true
 
@@ -34,7 +37,7 @@ services:
       - dev
     volumes:
       - ./client/src:/app/client/src
-      - ./client/dist:/app/client/dist
+      - dist_volume:/app/client/dist
       - ./src:/app/src
       - transcendence_volume:/app/runtime
       - db_volume:/app/db
@@ -66,6 +69,7 @@ services:
       - transcendence_net
 
 volumes:
+  dist_volume: {}
   transcendence_volume:
     name: transcendence_volume
     driver: local

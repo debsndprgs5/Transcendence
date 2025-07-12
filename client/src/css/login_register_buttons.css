@@ -1,160 +1,180 @@
+/* From Uiverse.io by rubyreapergaming */
+@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&display=swap");
 
-/* Navbar buttons adapted from MuhammadHasann, prefixed */
-.login-button,
-.register-button,
-.account-button,
-.logout-button {
-  --black-700: hsla(0 0% 12% / 1);
-  --border_radius: 9999px;
-  --transtion: 0.3s ease-in-out;
-  --offset: 2px;
-  cursor: pointer;
-  position: relative;
+/* ----------------------------
+   BOUTON PRINCIPAL (.nav-btn)
+   ---------------------------- */
+.nav-btn {
   display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 0.5rem;
-  transform-origin: center;
-  padding: 0.5rem 1rem; /* ajusté pour navbar */
-  background-color: transparent;
-  border: none;
-  border-radius: var(--border_radius);
-  transform: scale(calc(1 + (var(--active, 0) * 0.05)));
-  transition: transform var(--transtion);
+  width: 13rem;
+  height: 3rem;
+  overflow: hidden;
+  backdrop-filter: blur(1rem);
+  border-radius: 5rem;
+  border: double 4px transparent;
+  background-size: 300% 300%;
+  background-image:
+    linear-gradient(#161a25, #161a25),
+    linear-gradient(
+      137.48deg,
+      #f5434f 10%,
+      #631e29 45%,
+      #000000 67%,
+      #161a25 87%
+    );
+  background-origin: border-box;
+  background-clip: content-box, border-box;
+  font-family: "Orbitron", sans-serif;
+  transition: 0.5s;
+  animation: gradient_301 5s ease infinite;
+  position: relative;
+  z-index: 1;
 }
 
-.login-button::before,
-.register-button::before,
-.account-button::before,
-.logout-button::before {
+/* ----------------------------
+   WRAPPER QUI CLIPPE (.nav-stars)
+   ---------------------------- */
+.nav-stars {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  backdrop-filter: blur(1rem);
+  border-radius: 5rem;
+}
+
+/* ----------------------------
+   L’ÉLÉMENT INTERNE QUI A LES PSEUDO-ÉLÉMENTS
+   ---------------------------- */
+.stars {
+  position: relative;
+  width: 200rem;
+  height: 200rem;
+}
+
+/* nappe qui défile verticalement */
+.stars::before {
   content: "";
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  top: 0; left: -50%;
+  width: 200%;
+  height: 500%;
+  background-image: radial-gradient(#ffffff 1px, transparent 1%);
+  background-size: 50px 50px;
+  animation: animStar 60s linear infinite;
+  opacity: 0.5;
+}
+
+/* nappe qui tourne sur elle-même */
+.stars::after {
+  content: "";
+  position: absolute;
+  top: -10rem; left: -100rem;
   width: 100%;
   height: 100%;
-  background-color: var(--black-700);
-  border-radius: var(--border_radius);
-  box-shadow:
-    inset 0 0.5px hsl(0,0%,100%),
-    inset 0 -1px 2px 0 hsl(0,0%,0%),
-    0 4px 10px -4px hsla(0 0% 0% / calc(1 - var(--active,0))),
-    0 0 0 calc(var(--active,0) * 0.25rem) hsl(260 97% 50% / 0.75);
-  transition: all var(--transtion);
+  background-image: radial-gradient(#ffffff 1px, transparent 1%);
+  background-size: 50px 50px;
+  animation: animStarRotate 90s linear infinite;
+}
+
+/* ----------------------------
+   HALOS CIRCULAIRES (.nav-halo / .nav-circle)
+   ---------------------------- */
+.nav-halo {
+  position: absolute;
+  display: flex;
+  width: 12rem;
+  height: 100%;
   z-index: 0;
 }
 
-.login-button::after,
-.register-button::after,
-.account-button::after,
-.logout-button::after {
-  content: "";
+.nav-circle {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 100%;
-  height: 100%;
-  background-color: hsla(260 97% 61% / 0.75);
-  background-image:
-    radial-gradient(at 51% 89%, hsla(266,45%,74%,1) 0, transparent 50%),
-    radial-gradient(at 100%100%, hsla(266,36%,60%,1) 0, transparent 50%),
-    radial-gradient(at 22%91%, hsla(266,36%,60%,1) 0, transparent 50%);
-  opacity: var(--active, 0);
-  border-radius: var(--border_radius);
-  transition: opacity var(--transtion);
-  z-index: 2;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  filter: blur(2rem);
 }
 
-.login-button:is(:hover,:focus-visible),
-.register-button:is(:hover,:focus-visible),
-.account-button:is(:hover,:focus-visible),
-.logout-button:is(:hover,:focus-visible) {
-  --active: 1;
+.nav-circle:nth-of-type(1) {
+  background: rgba(245, 67, 79, 0.636);
+  animation: orbit 8s linear infinite;
 }
 
-.login-button:active,
-.register-button:active,
-.account-button:active,
-.logout-button:active {
-  transform: scale(1);
+.nav-circle:nth-of-type(2) {
+  background: rgba(99, 30, 41, 0.704);
+  animation: orbit 10s linear infinite reverse;
 }
 
-.login-button .dots_border,
-.register-button .dots_border,
-.account-button .dots_border,
-.logout-button .dots_border {
-  --size_border: calc(100% + 2px);
-  overflow: hidden;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: var(--size_border);
-  height: var(--size_border);
-  background-color: transparent;
-  border-radius: var(--border_radius);
-  z-index: -10;
+/* ----------------------------
+   INTERACTIONS
+   ---------------------------- */
+.nav-btn:hover .nav-stars {
+  background-color: #161a25;
+  z-index: 0;
+}
+.nav-btn:hover {
+  transform: scale(1.1);
+}
+.nav-btn:active {
+  border: double 4px #631e29;
+  background-origin: border-box;
+  background-clip: content-box, border-box;
+  animation: none;
+}
+.nav-btn:active .nav-circle {
+  background: #631e29;
 }
 
-.login-button .dots_border::before,
-.register-button .dots_border::before,
-.account-button .dots_border::before,
-.logout-button .dots_border::before {
-  content: "";
-  position: absolute;
-  top: 30%;
-  left: 50%;
-  transform: translate(-50%, -50%) rotate(0deg);
-  transform-origin: left;
-  width: 100%;
-  height: 1rem;
-  background-color: white;
-  mask: linear-gradient(transparent 0%, white 120%);
-  animation: rotate 2s linear infinite;
-}
-
-@keyframes rotate {
-  to { transform: rotate(360deg); }
-}
-
-.login-button .sparkle .path,
-.register-button .sparkle .path,
-.account-button .sparkle .path,
-.logout-button .sparkle .path {
-  fill: currentColor;
-  stroke: currentColor;
-  transform-origin: center;
-  color: hsl(0,0%,100%);
-}
-
-.login-button:is(:hover,:focus) .sparkle .path,
-.register-button:is(:hover,:focus) .sparkle .path,
-.account-button:is(:hover,:focus) .sparkle .path,
-.logout-button:is(:hover,:focus) .sparkle .path {
-  animation: path 1.5s linear 0.5s infinite;
-}
-
-.login-button .sparkle .path:nth-child(1) { --scale_path_1:1.2; }
-.login-button .sparkle .path:nth-child(2) { --scale_path_2:1.2; }
-.login-button .sparkle .path:nth-child(3) { --scale_path_3:1.2; }
-
-/* same for other btn types if you need custom scales */
-@keyframes path {
-  0%,34%,71%,100% { transform: scale(1); }
-  17% { transform: scale(var(--scale_path_1,1)); }
-  49% { transform: scale(var(--scale_path_2,1)); }
-  83% { transform: scale(var(--scale_path_3,1)); }
-}
-
-.login-button .text_button,
-.register-button .text_button,
-.account-button .text_button,
-.logout-button .text_button {
+/* ----------------------------
+   TEXTE
+   ---------------------------- */
+.nav-btn strong {
   position: relative;
-  z-index: 10;
-  background-image: linear-gradient(90deg, hsla(0,0%,100%,1) 0%, hsla(0,0%,100%,var(--active,0)) 120%);
-  background-clip: text;
-  font-size: 0.875rem;
-  color: transparent;
+  z-index: 2;
+  font-size: 12px;
+  letter-spacing: 5px;
+  color: #ffffff;
+  text-shadow: 0 0 4px white;
+  text-transform: uppercase;
 }
+
+/* ----------------------------
+   KEYFRAMES
+   ---------------------------- */
+@keyframes orbit {
+  from { transform: rotate(0deg) translateX(100px) rotate(0deg); }
+  to   { transform: rotate(360deg) translateX(100px) rotate(-360deg); }
+}
+
+@keyframes animStar {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-135rem); }
+}
+
+@keyframes animStarRotate {
+  from { transform: rotate(360deg); }
+  to   { transform: rotate(0deg); }
+}
+
+@keyframes gradient_301 {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes pulse_3011 {
+  0%   { transform: scale(0.75); box-shadow: 0 0 0 0 rgba(0,0,0,0.7); }
+  70%  { transform: scale(1);    box-shadow: 0 0 0 10px rgba(0,0,0,0); }
+  100% { transform: scale(0.75); box-shadow: 0 0 0 0 rgba(0,0,0,0); }
+}
+
+/* ----------------------------
+   VARIANTES PAR COULEUR
+   ---------------------------- */
+.login-btn    .nav-circle:nth-of-type(1) { background: rgba(0,145,255,0.6); }
+.register-btn .nav-circle:nth-of-type(1) { background: rgba(0,255,145,0.6); }
+.account-btn  .nav-circle:nth-of-type(1) { background: rgba(255,205,0,0.6); }
+.logout-btn   .nav-circle:nth-of-type(1) { background: rgba(255,60,0,0.6); }

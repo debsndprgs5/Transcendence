@@ -2,7 +2,7 @@ import { user } from '../types/user';
 import * as UserManagement from '../db/userManagement';
 import { getChatRoomMembers } from '../db/chatManagement';
 import * as chatManagement from '../db/chatManagement';
-import { getPlayerState } from './game.socket';
+import { getMembersByTourID, getPlayerState } from './game.socket';
 import { playerInterface } from '../shared/gameTypes';
 import fp from 'fastify-plugin';
 import * as dotenv from 'dotenv';
@@ -38,6 +38,22 @@ async function getRightSockets(authorID: number): Promise<Map<number, WebSocket>
 	return filtered;
 }
 
+export async function sendSystemMessage(chatRoomID:number, content:string){
+	if(chatRoomID <= 0 || !chatRoomID){
+		SendGeneralMessage(0, content); //A VOIR SI CA MARCHE CA MAIS TFACON ON ENVOYE R EN GENERALE JE PENSE
+		return ;
+	}
+	const members = await getChatRoomMembers(chatRoomID);
+	const membersID = members.map(m => m.userID);
+	for(const m of membersID){
+		const payload = JSON.stringify({
+			type: 'system',
+			roomID:chatRoomID,
+			content,
+		});
+	}
+		
+}
 
 async function SendGeneralMessage(authorID: number, message: string) {
 	for (const [clientID, socket] of MappedClients.entries()) {
@@ -138,6 +154,11 @@ async function handleConnection(ws: WebSocket, request: any) {
 	
 			// --- Handle message types ---
 			switch (parsed.type) {
+				case 'systemMessage':{
+					const{ chatRoomID, content} = parsed;
+					await sendSystemMessage(chatRoomID, content);
+					break;
+				}
 				case 'chatRoomMessage': {
 					const { chatRoomID, userID, content } = parsed;
 	

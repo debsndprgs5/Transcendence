@@ -278,7 +278,7 @@ export async function handleWebSocketMessage(msg: WebSocketMsg): Promise<void> {
 			if (chatDiv) {
 				const systemMsg = document.createElement('p');
 				systemMsg.className = 'italic text-gray-500';
-				systemMsg.textContent = msg.message;
+				systemMsg.textContent = msg.content;
 				chatDiv.appendChild(systemMsg);
 			}
 			break;

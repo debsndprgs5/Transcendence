@@ -11,7 +11,7 @@ services:
         # watch CSS in background
         npx postcss client/src/css/input.css \
           --output client/dist/output.css \
-          --watch
+          --watch &
 
         # then watch & bundle JS forever
         npx esbuild client/src/app.ts \

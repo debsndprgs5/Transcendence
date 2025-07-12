@@ -135,7 +135,7 @@ export async function handleCreateTournament(): Promise<void> {
           state.socket?.send(JSON.stringify({
       type:'systemMessage',
       chatRoomID:newRoom.roomID,
-      content: `${state.playerInterface!.username} just created tournament !`
+      content: `${localStorage.getItem('username')} just created tournament !`
     }));
     // POST to create tournament
    const reply =  await apiFetch(`/api/tournament/${state.userId}`, {
@@ -182,7 +182,7 @@ export async function handleJoinTournament(tourID: number): Promise<void> {
   state.socket?.send(JSON.stringify({
     type:'systemMessage',
     chatRoomID:chatID,
-    content: `${state.playerInterface!.username} just join tournament !`
+    content: `${localStorage.getItem('username')} just join tournament !`
   }));
   state.isTournamentCreator = false;
 }
@@ -194,7 +194,7 @@ export async function handleLeaveTournament(islegit:boolean): Promise<void> {
     state.socket?.send(JSON.stringify({
     type:'systemMessage',
     chatRoomID:chatID,
-    content: `${state.playerInterface!.username} just left tournament !`
+    content: `${localStorage.getItem('username')} just left tournament !`
   }));
   await rmMemberFromRoom(chatID, state.userId!);
   state.playerInterface!.typedSocket.send('leaveTournament', {

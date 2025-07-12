@@ -39,6 +39,7 @@ async function getRightSockets(authorID: number): Promise<Map<number, WebSocket>
 }
 
 export async function sendSystemMessage(chatRoomID:number, content:string){
+	console.log(`[BACK][Stsm] ${content}`)
 	if(chatRoomID <= 0 || !chatRoomID){
 		SendGeneralMessage(0, content); //A VOIR SI CA MARCHE CA MAIS TFACON ON ENVOYE R EN GENERALE JE PENSE
 		return ;
@@ -51,6 +52,9 @@ export async function sendSystemMessage(chatRoomID:number, content:string){
 			roomID:chatRoomID,
 			content,
 		});
+		const socket =  MappedClients.get(m);
+		if(!socket)continue;
+		socket.send(payload);
 	}
 		
 }

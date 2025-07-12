@@ -526,9 +526,11 @@ private initInputListeners() {
 							isLegit: false,
 						});
 						if (state.currentTournamentID){
+							const tourID = state.currentTournamentID;
+							state.currentTournamentID = -1;
 							state.typedSocket.send('leaveTournament', {
 								userID: state.userId!,
-								tournamentID: state.currentTournamentID!,
+								tournamentID: tourID,
 								islegit: false,
 							});
 						const { chatID } = await apiFetch(`/api/tournaments/chat/${state.currentTournamentID}`);

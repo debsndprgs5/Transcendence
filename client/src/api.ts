@@ -287,7 +287,7 @@ export async function handleWebSocketMessage(msg: WebSocketMsg): Promise<void> {
 				// 		name: 'System:',
 				// 		content: msg.content,
 				// });
-				}
+				//}
 			}
 			break;
 		}

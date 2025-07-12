@@ -496,9 +496,15 @@ export async function handleKicked(data: Interfaces.SocketMessageMap['kicked']) 
 	if (state.playerInterface) {
 	state.playerInterface.gameID = -1;
 	}
-	state.canvasViewState = 'mainMenu';
-	localStorage.setItem('pong_view', 'mainMenu');
-	localStorage.setItem('pong_view', 'mainMenu');
+	if(!state.currentTournamentID){
+		state.canvasViewState = 'mainMenu';
+		localStorage.setItem('pong_view', 'mainMenu');
+		localStorage.setItem('pong_view', 'mainMenu');
+	}
+	else{
+		state.canvasViewState = 'waitingTournamentRounds';
+		localStorage.setItem('pong_view','waitingTournamentRounds');
+	}
 	showPongMenu();
 }
 

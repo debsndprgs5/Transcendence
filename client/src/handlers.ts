@@ -53,7 +53,6 @@ export function updateNav(): void {
   const authNav = document.getElementById('auth-nav');
   if (!authNav) return;
 
-  // sous-structure réutilisable
   const galaxyBtn = (label: string, extraClass: string, hrefOrId: string, isLink = true) => `
     ${isLink
       ? `<a href="${hrefOrId}" data-link class="nav-btn ${extraClass}">`
@@ -61,10 +60,9 @@ export function updateNav(): void {
     }
       <strong>${label.toUpperCase()}</strong>
 
-			<div class="nav-stars">
-			  <div class="stars"></div>
-			</div>
-      
+      <div class="nav-stars">
+        <div class="stars"></div>
+      </div>
       <div class="nav-halo">
         <div class="nav-circle"></div>
         <div class="nav-circle"></div>
@@ -74,13 +72,13 @@ export function updateNav(): void {
 
   if (!isAuthenticated()) {
     authNav.innerHTML = `
-      ${galaxyBtn('Register',  'register-btn', '/register')}
-      ${galaxyBtn('Login',     'login-btn',    '/login')}
+      ${galaxyBtn('Register', 'register-btn', '/register')}
+      ${galaxyBtn('Login',    'login-btn',    '/login')}
     `;
   } else {
     authNav.innerHTML = `
-      ${galaxyBtn('Account',   'account-btn',  '/account')}
-      ${galaxyBtn('Logout',    'logout-btn',   'logoutNavBtn', false)}
+      ${galaxyBtn('Account', 'account-btn', '/account')}
+      ${galaxyBtn('Logout',  'logout-btn',  'logoutNavBtn', false)}
     `;
 
     document.getElementById('logoutNavBtn')!

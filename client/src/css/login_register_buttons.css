@@ -1,180 +1,141 @@
-/* From Uiverse.io by rubyreapergaming */
-@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&display=swap");
-
-/* ----------------------------
-   BOUTON PRINCIPAL (.nav-btn)
-   ---------------------------- */
+/* From Uiverse.io by StealthWorm */
 .nav-btn {
   display: flex;
   justify-content: center;
   align-items: center;
   width: 13rem;
-  height: 3rem;
   overflow: hidden;
+  height: 3rem;
+  background-size: 300% 300%;
+  cursor: pointer;
   backdrop-filter: blur(1rem);
   border-radius: 5rem;
+  transition: 0.5s;
+  animation: navGradient 5s ease infinite;
   border: double 4px transparent;
-  background-size: 300% 300%;
-  background-image:
-    linear-gradient(#161a25, #161a25),
+  background-image: linear-gradient(#212121, #212121),
     linear-gradient(
       137.48deg,
-      #f5434f 10%,
-      #631e29 45%,
-      #000000 67%,
-      #161a25 87%
+      #ffdb3b 10%,
+      #fe53bb 45%,
+      #8f51ea 67%,
+      #0044ff 87%
     );
   background-origin: border-box;
   background-clip: content-box, border-box;
-  font-family: "Orbitron", sans-serif;
-  transition: 0.5s;
-  animation: gradient_301 5s ease infinite;
-  position: relative;
-  z-index: 1;
 }
 
-/* ----------------------------
-   WRAPPER QUI CLIPPE (.nav-stars)
-   ---------------------------- */
+/* wrapper for the little stars behind the text */
 .nav-stars {
   position: absolute;
-  inset: 0;
   z-index: -1;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
+  transition: 0.5s;
   backdrop-filter: blur(1rem);
   border-radius: 5rem;
 }
 
-/* ----------------------------
-   L’ÉLÉMENT INTERNE QUI A LES PSEUDO-ÉLÉMENTS
-   ---------------------------- */
-.stars {
-  position: relative;
-  width: 200rem;
-  height: 200rem;
-}
-
-/* nappe qui défile verticalement */
-.stars::before {
-  content: "";
-  position: absolute;
-  top: 0; left: -50%;
-  width: 200%;
-  height: 500%;
-  background-image: radial-gradient(#ffffff 1px, transparent 1%);
-  background-size: 50px 50px;
-  animation: animStar 60s linear infinite;
-  opacity: 0.5;
-}
-
-/* nappe qui tourne sur elle-même */
-.stars::after {
-  content: "";
-  position: absolute;
-  top: -10rem; left: -100rem;
-  width: 100%;
-  height: 100%;
-  background-image: radial-gradient(#ffffff 1px, transparent 1%);
-  background-size: 50px 50px;
-  animation: animStarRotate 90s linear infinite;
-}
-
-/* ----------------------------
-   HALOS CIRCULAIRES (.nav-halo / .nav-circle)
-   ---------------------------- */
-.nav-halo {
-  position: absolute;
-  display: flex;
-  width: 12rem;
-  height: 100%;
-  z-index: 0;
-}
-
-.nav-circle {
-  position: absolute;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  filter: blur(2rem);
-}
-
-.nav-circle:nth-of-type(1) {
-  background: rgba(245, 67, 79, 0.636);
-  animation: orbit 8s linear infinite;
-}
-
-.nav-circle:nth-of-type(2) {
-  background: rgba(99, 30, 41, 0.704);
-  animation: orbit 10s linear infinite reverse;
-}
-
-/* ----------------------------
-   INTERACTIONS
-   ---------------------------- */
-.nav-btn:hover .nav-stars {
-  background-color: #161a25;
-  z-index: 0;
-}
-.nav-btn:hover {
-  transform: scale(1.1);
-}
-.nav-btn:active {
-  border: double 4px #631e29;
-  background-origin: border-box;
-  background-clip: content-box, border-box;
-  animation: none;
-}
-.nav-btn:active .nav-circle {
-  background: #631e29;
-}
-
-/* ----------------------------
-   TEXTE
-   ---------------------------- */
+/* scoped strong to avoid global override */
 .nav-btn strong {
-  position: relative;
   z-index: 2;
+  font-family: "Avalors Personal Use";
   font-size: 12px;
   letter-spacing: 5px;
   color: #ffffff;
   text-shadow: 0 0 4px white;
-  text-transform: uppercase;
 }
 
-/* ----------------------------
-   KEYFRAMES
-   ---------------------------- */
-@keyframes orbit {
-  from { transform: rotate(0deg) translateX(100px) rotate(0deg); }
-  to   { transform: rotate(360deg) translateX(100px) rotate(-360deg); }
+/* the outer glow container */
+.nav-halo {
+  position: absolute;
+  display: flex;
+  width: 12rem;
 }
 
-@keyframes animStar {
+/* each glow circle */
+.nav-circle {
+  width: 100%;
+  height: 30px;
+  filter: blur(2rem);
+  animation: navPulse 4s infinite;
+  z-index: -1;
+}
+
+.nav-circle:nth-of-type(1) {
+  background: rgba(254, 83, 186, 0.636);
+}
+
+.nav-circle:nth-of-type(2) {
+  background: rgba(142, 81, 234, 0.704);
+}
+
+/* hover brings stars to front */
+.nav-btn:hover .nav-stars {
+  z-index: 1;
+  background-color: #212121;
+}
+
+/* hover scale */
+.nav-btn:hover {
+  transform: scale(1.1);
+}
+
+/* active border tweak */
+.nav-btn:active {
+  border: double 4px #fe53bb;
+  background-origin: border-box;
+  background-clip: content-box, border-box;
+  animation: none;
+}
+
+/* active glow color */
+.nav-btn:active .nav-circle {
+  background: #fe53bb;
+}
+
+/* the infinite starfield */
+.stars {
+  position: relative;
+  background: transparent;
+  width: 200rem;
+  height: 200rem;
+}
+
+.stars::after {
+  content: "";
+  position: absolute;
+  top: -10rem;
+  left: -100rem;
+  width: 100%;
+  height: 100%;
+  animation: navAnimStarRotate 90s linear infinite;
+  background-image: radial-gradient(#ffffff 1px, transparent 1%);
+  background-size: 50px 50px;
+}
+
+.stars::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -50%;
+  width: 170%;
+  height: 500%;
+  animation: navAnimStar 60s linear infinite;
+  background-image: radial-gradient(#ffffff 1px, transparent 1%);
+  background-size: 50px 50px;
+  opacity: 0.5;
+}
+
+/* keyframes for vertical translation */
+@keyframes navAnimStar {
   from { transform: translateY(0); }
   to   { transform: translateY(-135rem); }
 }
 
-@keyframes animStarRotate {
+/* keyframes for rotation */
+@keyframes navAnimStarRotate {
   from { transform: rotate(360deg); }
-  to   { transform: rotate(0deg); }
+  to   { transform: rotate(0); }
 }
-
-@keyframes gradient_301 {
-  0%   { background-position: 0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-@keyframes pulse_3011 {
-  0%   { transform: scale(0.75); box-shadow: 0 0 0 0 rgba(0,0,0,0.7); }
-  70%  { transform: scale(1);    box-shadow: 0 0 0 10px rgba(0,0,0,0); }
-  100% { transform: scale(0.75); box-shadow: 0 0 0 0 rgba(0,0,0,0); }
-}
-
-/* ----------------------------
-   VARIANTES PAR COULEUR
-   ---------------------------- */
-.login-btn    .nav-circle:nth-of-type(1) { background: rgba(0,145,255,0.6); }
-.register-btn .nav-circle:nth-of-type(1) { background: rgba(0,255,145,0.6); }
-.account-btn  .nav-circle:nth-of-type(1) { background: rgba(255,205,0,0.6); }
-.logout-btn   .nav-circle:nth-of-type(1) { background: rgba(255,60,0,0.6); }

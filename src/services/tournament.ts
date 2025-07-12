@@ -1,6 +1,7 @@
 import { playerInterface } from '../shared/gameTypes'
 import * as gameMgr from '../db/gameManagement'
 import { getUnameByIndex } from '../db/userManagement'
+import { sendSystemMessage } from '../websockets/chat.socket'
 
 type Member = {
 	player: playerInterface;
@@ -73,8 +74,9 @@ export class Tournament {
 		console.log(`[ROUND ${this.current_round}] Round pairing started.`);
 		console.log(`[ROUND ${this.current_round}] All participant IDs:`, this.players.map(p => p.userID));
 		console.log(`[ROUND ${this.current_round}] Already matched player sets:`, this.opponents);
-
-
+		
+		const chat = await gameMgr.getChatIDbyTourID(this.tourID);
+		sendSystemMessage( chat!.chatID , `Round ${this.current_round}/${this.max_round}: is about to start`);
 		const baseRules = JSON.parse(this.rules);
 		// Inject the tournament's win_condition
 		const extendedRules = {
@@ -307,7 +309,7 @@ public async isReadyForNextRound(userID: number) {
 
 
 
-private endTournament() {
+private async endTournament() {
 	// process final ranking
 	const standings = [...this.players]
 		.sort((a, b) => this.points.get(b.userID)! - this.points.get(a.userID)!);
@@ -322,7 +324,10 @@ private endTournament() {
 			}))
 		});
 	}
+	const chat = await gameMgr.getChatIDbyTourID(this.tourID);
+	sendSystemMessage(chat!.chatID , `Tournament is over now, who's the boss ? `)
 	Tournament.MappedTour.delete(this.tourID);
+
 }
 
 public giveBye(member: Member) {

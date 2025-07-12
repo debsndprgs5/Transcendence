@@ -2,9 +2,8 @@ import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import * as chatMgr from '../db/chatManagement';
 import * as UserManagement from '../db/userManagement';
 
-
 // Helper to extract and validate signed userId cookie
-export function getUserId(request: FastifyRequest, reply: FastifyReply): number | undefined {
+function getUserId(request: FastifyRequest, reply: FastifyReply): number | undefined {
 	const raw = request.cookies?.userId;
 	if (!raw) {
 		reply.code(401).send({ error: 'Missing userId cookie' });

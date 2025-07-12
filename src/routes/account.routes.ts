@@ -5,8 +5,6 @@ import sharp from 'sharp';
 import fs from 'fs/promises';
 import path from 'path';
 import * as UserManagement from '../db/userManagement';
-import * as gameManagement from '../db/gameManagement';
-import * as getId from './chat.routes'
 
 import jwt from 'jsonwebtoken';
 const JWT_SECRET = process.env.JWT_SECRET!;
@@ -67,16 +65,6 @@ export default async function accountRoutes(fastify: FastifyInstance) {
 		}
 	});
 
-	/*
-	fastify.get('/friends', async (request, reply) => {
-			const currentUserId = getUserId(request, reply);
-			if (currentUserId === undefined) return;
-			const friends = await chatMgr.getFriends(currentUserId);
-			return reply.send(friends);
-		});
-	*/
-
-
 // get other people's profile
 
 	fastify.get('/users/username/:username', async (request, reply) => {
@@ -99,63 +87,5 @@ export default async function accountRoutes(fastify: FastifyInstance) {
 		console.error('Error in /users/username/:username:', error);
 		return reply.code(500).send({ error: 'Internal server error' });
 	  }
-	});
-
-	fastify.get('/users/me/game_history2', async (request, reply) => {
-		const currentUserId = getId.getUserId(request, reply);
-		if (currentUserId === undefined) return;
-		//const matchHistoryTwo = await gameManagement.getPlayedGames2(currentUserId); A uncomment quand fin de game fini
-		return reply.send([
-			{
-			  played_at: "2025-07-04T12:00:00Z",
-			  playerA: "Alice",
-			  playerB: "Bob",
-			  scoreA: 10,
-			  scoreB: 8
-			}
-		  ]);
-		// return reply.send(matchHistoryTwo); A uncomment quand fin de game fini
-	});
-
-	fastify.get('/users/me/game_history4', async (request, reply) => {
-		const currentUserId = getId.getUserId(request, reply);
-		if (currentUserId === undefined) return;
-		//const matchHistoryFour = await gameManagement.getPlayedGames4(currentUserId); A uncomment quand fin de game fini
-		return reply.send([
-			{
-			  played_at: "2025-07-04T12:00:00Z",
-			  playerA: "Alice",
-			  playerB: "Bob",
-			  playerC: "Kirikou",
-			  playerD: "Karaba",
-			  scoreA: 10,
-			  scoreB: 8,
-			  scoreC: 4,
-			  scoreD: 9
-			},
-			{
-				played_at: "demain",
-				playerA: "truc",
-				playerB: "ton pere",
-				playerC: "lui",
-				playerD: "elle",
-				scoreA: 0,
-				scoreB: 1953,
-				scoreC: 8,
-				scoreD: 9
-			},
-			{
-				played_at: "le commencent",
-				playerA: "JC",
-				playerB: "JCVD",
-				playerC: "L'autre la",
-				playerD: "Christophe",
-				scoreA: 4,
-				scoreB: 300000000,
-				scoreC: -1,
-				scoreD: 1
-			}
-		  ]);
-		// return reply.send(matchHistoryFour); A uncomment quand fin de game fini
 	});
 }

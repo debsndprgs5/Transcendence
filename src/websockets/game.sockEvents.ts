@@ -6,6 +6,13 @@ import { TypedSocket } from '../shared/gameTypes';
 import {getPlayerBySocket, getPlayerByUserID, getAllMembersFromGameID, delPlayer} from './game.socket'
 import { playerMove } from '../services/pong'
 import { PongRoom } from '../services/PongRoom';
+import jwt, { JwtPayload } from 'jsonwebtoken';
+
+
+const jwtSecret = process.env.JWT_SECRET!;
+if (!jwtSecret) {
+  throw new Error("JWT_SECRET environment variable is not defined");
+}
 
 // import{stopMockGameLoop, startMockGameLoop, playerMove} from '../services/pong'
 
@@ -27,6 +34,15 @@ export function handleAllEvents(typedSocket:TypedSocket, player:Interfaces.playe
   typedSocket.on('leaveTournament', async (socket:WebSocket, data:Interfaces.SocketMessageMap['leaveTournament']) => {
     Tournament.handleLeaveTournament(player, data);
   });
+  typedSocket.on('startTournament', async (socket:WebSocket, data:Interfaces.SocketMessageMap['startTournament']) => {
+    Tournament.handleStartTournament(data);
+  });
+  typedSocket.on('matchFinish', async(socket:WebSocket, data:Interfaces.SocketMessageMap['matchFinish']) => {
+    Tournament.handleMatchFinish(data);
+  });
+  typedSocket.on('readyNextRound', async(socket:WebSocket, data:Interfaces.SocketMessageMap['readyNextRound']) => {
+    Tournament.handleReadyNextRound(data);
+  });
   typedSocket.on('invite', async (socket:WebSocket, data:Interfaces.SocketMessageMap['invite']) => {
     handleInvite(data, player);
   });
@@ -44,12 +60,30 @@ export function handleAllEvents(typedSocket:TypedSocket, player:Interfaces.playe
   typedSocket.on('disconnected', ()=>{
     handleDisconnect(player);
   });
-  // if ('on' in typedSocket.socket) {
-  // typedSocket.socket.on('close', () => {
-  //   const player = getPlayerBySocket(typedSocket.socket as any);
-  //   handleDisconnect(player);
-  // });
-  // }
+  typedSocket.on('healthcheck', async (socket:WebSocket, data:Interfaces.SocketMessageMap['healthcheck']) => { 
+    const token = data.token
+
+    if (!token) {
+      console.log('Connection rejected: No token provided');
+      return socket.close(1008, 'No token');
+    }
+
+    let payload: JwtPayload;
+    try {
+      payload = jwt.verify(token, jwtSecret) as JwtPayload;
+    } catch (error) {
+      console.log('Connection rejected: Invalid token', error);
+      return socket.close(1008, 'Invalid token');
+    }
+  });
+  typedSocket.on('pause', async(socket:WebSocket, data:Interfaces.SocketMessageMap['pause']) => {
+    const pongRoom = PongRoom.rooms.get(data.gameID);
+    pongRoom?.pause(data.userID);
+  });
+  typedSocket.on('resume', async(socket:WebSocket, data:Interfaces.SocketMessageMap['resume']) => {
+    const pongRoom = PongRoom.rooms.get(data.gameID);
+    pongRoom?.resume(data.userID);
+  });
 }
 
 
@@ -74,8 +108,8 @@ export async function handleJoin(
     player: Interfaces.playerInterface) {
   const { userID, gameName, gameID } = parsed;
 
-
-  if (player.state !== 'init') {
+      //DANGEREUX MOVE HERE -> ENTRE 2 match de tournoi on reste en playing
+  if (player.state !== 'init' && !player.tournamentID) {
     player.typedSocket.send('joinGame', {
       success: false,
       reason: `you are in ${player.state} mode`,

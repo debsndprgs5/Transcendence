@@ -39,7 +39,7 @@ export function startTokenValidation(): void {
 				handleLogout();
 			}
 		}
-	}, 180_000); // Check every minute
+	}, 30_000); // Check every 30s
 }
 
 // =======================
@@ -50,40 +50,45 @@ export function startTokenValidation(): void {
  * Renders the top‐right navigation links depending on auth state.
  */
 export function updateNav(): void {
-	const authNav = document.getElementById('auth-nav');
-	if (!authNav) return;
+  const authNav = document.getElementById('auth-nav');
+  if (!authNav) return;
 
-	if (!isAuthenticated()) {
-		authNav.innerHTML = `
-			<a href="/register" data-link
-				 class="px-4 py-2 border border-indigo-600 text-indigo-600 rounded hover:bg-indigo-50 transition">
-				Register
-			</a>
-			<a href="/login" data-link
-				 class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition">
-				Login
-			</a>
-		`;
-	} else {
-		authNav.innerHTML = `
-			<a href="/account" data-link
-				 class="px-4 py-2 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 transition font-semibold mr-2">
-				Account
-			</a>
-			<button id="logoutNavBtn"
-							class="px-4 py-2 bg-red-500 text-black rounded hover:bg-red-600 transition">
-				Disconnect
-			</button>
-		`;
-		document
-			.getElementById('logoutNavBtn')!
-			.addEventListener('click', () => {
-				localStorage.removeItem('token');
-				localStorage.removeItem('username');
-				history.pushState(null, '', '/');
-				router();
-			});
-	}
+  const galaxyBtn = (label: string, extraClass: string, hrefOrId: string, isLink = true) => `
+    ${isLink
+      ? `<a href="${hrefOrId}" data-link class="nav-btn ${extraClass}">`
+      : `<button id="${hrefOrId}" class="nav-btn ${extraClass}">`
+    }
+      <strong>${label.toUpperCase()}</strong>
+
+      <div class="nav-stars">
+        <div class="stars"></div>
+      </div>
+      <div class="nav-halo">
+        <div class="nav-circle"></div>
+        <div class="nav-circle"></div>
+      </div>
+    ${isLink ? '</a>' : '</button>'}
+  `;
+
+  if (!isAuthenticated()) {
+    authNav.innerHTML = `
+      ${galaxyBtn('Register', 'register-btn', '/register')}
+      ${galaxyBtn('Login',    'login-btn',    '/login')}
+    `;
+  } else {
+    authNav.innerHTML = `
+      ${galaxyBtn('Account', 'account-btn', '/account')}
+      ${galaxyBtn('Logout',  'logout-btn',  'logoutNavBtn', false)}
+    `;
+
+    document.getElementById('logoutNavBtn')!
+      .addEventListener('click', () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('username');
+        history.pushState(null, '', '/');
+        router();
+      });
+  }
 }
 
 // =======================
@@ -313,7 +318,8 @@ export function resizePongCanvas(): void {
 // HANDLERS
 // =======================
 
-let loadRooms: () => Promise<void>;
+export let loadRooms: () => Promise<void>;
+export let selectRoom: (roomId: number) => Promise<void>;
 
 export async function setupHomeHandlers(): Promise<void> {
 	// Resize pong-canvas listener
@@ -437,32 +443,24 @@ export async function setupHomeHandlers(): Promise<void> {
 						type: 'confirm',
 						onConfirm: async () => {
 							try {
-								const response = await fetch('/api/auth/me', {
-									headers: { Authorization: `Bearer ${state.authToken}` }
-								});
-								if (!response.ok) throw new Error('Failed to get userId');
-								const data = await response.json();
-								const userIdLocal = data.userId;
 								const roomMembers = await apiFetch<{ userID: number }[]>(`/api/chat/rooms/${roomId}/members`);
-								await apiFetch(`/api/chat/rooms/${roomId}`, {
-									method: 'DELETE',
-									headers: { Authorization: `Bearer ${state.authToken}` }
-								});
-								for (const member of roomMembers) {
-									state.socket!.send(
-										JSON.stringify({
-											type: 'loadChatRooms',
-											roomID: roomId,
-											userID: userIdLocal,
-											newUser: member.userID
-										})
-									);
-								}
-								await loadRooms();
-							} catch (err) {
-								showNotification({ message: 'Error during delete.', type: 'error', duration: 5000 });
-							}
-						},
+                                await apiFetch(`/api/chat/rooms/${roomId}`, {
+                                    method: 'DELETE',
+                                    headers: { Authorization: `Bearer ${state.authToken}` }
+                                });
+                                for (const member of roomMembers) {
+                                    state.socket!.send(
+                                        JSON.stringify({
+                                            type: 'roomDeleted',
+                                            roomID: roomId,
+                                            targetUserID: member.userID
+                                        })
+                                    );
+                                }
+                            } catch (err) {
+                                showNotification({ message: 'Error during delete.', type: 'error', duration: 5000 });
+                            }
+                        },
 						onCancel: () => {
 							console.log('Room deletion cancelled');
 						}
@@ -580,7 +578,7 @@ export async function setupHomeHandlers(): Promise<void> {
 	}
 
 	// Chat: select room function (internal helper)
-	async function selectRoom(roomId: number): Promise<void> {
+	selectRoom= async function(roomId: number): Promise<void> {
 		try {
 			state.currentRoom = roomId;
 			localStorage.setItem('currentRoom', String(roomId));
@@ -614,6 +612,7 @@ export async function setupHomeHandlers(): Promise<void> {
 			}
 		}
 	}
+    state.selectRoom = selectRoom;
 
 	// Chat: form submission via WebSocket
 	const chatForm = document.getElementById('chatForm') as HTMLFormElement | null;
@@ -674,6 +673,17 @@ export async function setupHomeHandlers(): Promise<void> {
 			state.socket!.send(JSON.stringify({ type: 'chatHistory', roomID: state.currentRoom, userID: state.userId, limit: 50 }));
 		};
 	}
+}
+export async function rmMemberFromRoom(roomID: number, userID: number) {
+	await apiFetch(`/api/chat/rooms/${roomID}/members/${userID}`, {
+		method: 'DELETE',
+		headers: {
+			Authorization: `Bearer ${state.authToken}` // if needed
+		}
+	});
+	console.log(`[rmFromChat].user[${userID}]chat[${roomID}]`);
+	selectRoom(0);
+	await loadRooms();
 }
 
 // =======================
@@ -845,34 +855,59 @@ export function setupSetup2FAHandlers(): void {
 }
 
 export function setupVerify2FAHandlers(): void {
-	const form = document.getElementById('verifyForm') as HTMLFormElement | null;
-	if (!form) return;
-	form.onsubmit = async (e: Event) => {
-		e.preventDefault();
-		const code = (document.getElementById('2fa-code') as HTMLInputElement).value;
-		try {
-			const res = await fetch('/api/auth/2fa/verify', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `Bearer ${state.pendingToken}`
-				},
-				body: JSON.stringify({ code })
-			});
-			const json = await res.json() as any;
-			if (res.ok) {
-				localStorage.setItem('token', json.token);
-				state.authToken = json.token;
-				window.location.href = '/';
-			} else {
-				const err = document.getElementById('verify-error') as HTMLElement;
-				err.textContent = json.error;
-				err.classList.remove('hidden');
-			}
-		} catch {
-			showNotification({ message: 'Error during 2fa verification', type: 'error', duration: 5000 });
-		}
-	};
+  const form = document.getElementById('verifyForm') as HTMLFormElement | null;
+  if (!form) return;
+
+  // set up auto-tabbing on the OTP inputs
+  const inputs = Array.from(
+    form.querySelectorAll('.v2fa-input')
+  ) as HTMLInputElement[];
+
+  inputs.forEach((input, idx) => {
+    input.addEventListener('input', () => {
+      if (input.value.length === input.maxLength) {
+        const next = inputs[idx + 1];
+        if (next) next.focus();
+      }
+    });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && input.value === '') {
+        const prev = inputs[idx - 1];
+        if (prev) {
+          prev.focus();
+          prev.value = '';
+        }
+      }
+    });
+  });
+
+  form.onsubmit = async (e: Event) => {
+    e.preventDefault();
+    // gather the code from all inputs
+    const code = inputs.map(i => i.value).join('');
+    try {
+      const res = await fetch('/api/auth/2fa/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${state.pendingToken}`
+        },
+        body: JSON.stringify({ code })
+      });
+      const json = await res.json() as any;
+      if (res.ok) {
+        localStorage.setItem('token', json.token);
+        state.authToken = json.token;
+        window.location.href = '/';
+      } else {
+        const errEl = document.getElementById('verify-error') as HTMLElement;
+        errEl.textContent = json.error;
+        errEl.classList.remove('hidden');
+      }
+    } catch {
+      showNotification({ message: 'Error during 2fa verification', type: 'error', duration: 5000 });
+    }
+  };
 }
 
 
@@ -1027,6 +1062,38 @@ export function setupAccountHandlers(user: any, friends: User[] = []): void {
 		};
 	});
 
+	// Switch the history table mode to 2 players
+	document.querySelectorAll<HTMLButtonElement>('#button-2-p').forEach(btn => {
+		btn.onclick = async () => {
+			console.log("2p button clicked");
+			const twoPlayerTable = document.getElementById('tab-2-p');
+			const twoPlayerButton = document.getElementById("button-2-p");
+			const fourPlayerTable = document.getElementById('tab-4-p');
+			const fourPlayerButton = document.getElementById("button-4-p");
+
+			fourPlayerButton?.classList.remove('hidden');
+			fourPlayerTable?.classList.remove('hidden');
+    		twoPlayerButton?.classList.add('hidden');
+    		twoPlayerTable?.classList.add('hidden');
+		}
+	});
+
+	// Switch the history table mode to 4 players
+	document.querySelectorAll<HTMLButtonElement>('#button-4-p').forEach(btn => {
+		btn.onclick = async () => {
+			console.log("4p button clicked");
+			const fourPlayerTable = document.getElementById('tab-4-p');
+			const fourPlayerButton = document.getElementById("button-4-p");
+			const twoPlayerTable = document.getElementById('tab-2-p');
+			const twoPlayerButton = document.getElementById("button-2-p");
+
+			fourPlayerButton?.classList.add('hidden');
+    		fourPlayerTable?.classList.add('hidden');
+			twoPlayerButton?.classList.remove('hidden');
+    		twoPlayerTable?.classList.remove('hidden');
+		}
+	});
+
 	// Send friends status request
 	const friendsStatusList = friends.map(f => ({ friendID: f.our_index }));
 	if (state.socket && state.socket.readyState === WebSocket.OPEN && friendsStatusList.length) {
@@ -1054,19 +1121,17 @@ window.addEventListener('storage', (event: StorageEvent) => {
  * Clears all auth state, closes socket and renders Home.
  */
 export function handleLogout(): void {
-	
-
 	// Notify server about game leave (only if socket is open)
-	//if (state.playerInterface?.gameID && state.playerInterface?.socket?.readyState === WebSocket.OPEN) {
+	if (state.playerInterface?.gameID && state.playerInterface?.socket?.readyState === WebSocket.OPEN) {
 		state.playerInterface!.typedSocket.send('leaveGame', {
 			userID: state.playerInterface!.userID,
 			gameID: state.playerInterface!.gameID,
 			islegit: false
 		});
-//	}
+	}
 
 	// Send offline status via friend socket (if open)
-//	if (state.socket?.readyState === WebSocket.OPEN) {
+	if (state.socket?.readyState === WebSocket.OPEN) {
 		console.warn(`CLOSING CHAT socket`)
 		state.socket?.send(JSON.stringify({
 			type: 'friendStatus',
@@ -1075,20 +1140,20 @@ export function handleLogout(): void {
 			userID: state.userId,
 		}));
 		state.socket?.close();
-//	}
+	}
 
 	// Close game socket
-	//if (state.playerInterface?.socket?.readyState === WebSocket.OPEN) {
+	if (state.playerInterface?.socket?.readyState === WebSocket.OPEN) {
 		console.warn(`[GAMESOCKET] Closing for ${state.userId}`);
 		state.playerInterface!.socket?.close();
-//	}
+	}
 
 	// Clear runtime 
 	resetState();
 	localStorage.clear();
 
 	updateNav();
-	render(HomeView());
+	window.location.href = '/';
 }
 /**
  * Sets up the back button on profile view.
@@ -1096,6 +1161,38 @@ export function handleLogout(): void {
 function setupProfileHandlers(): void {
 	const backBtn = document.getElementById('backBtnProfile');
 	if (backBtn) backBtn.onclick = () => history.back();
+	
+	// Switch the history table mode to 2 players
+	document.querySelectorAll<HTMLButtonElement>('#button-2-p').forEach(btn => {
+		btn.onclick = async () => {
+			console.log("2p button clicked");
+			const twoPlayerTable = document.getElementById('tab-2-p');
+			const twoPlayerButton = document.getElementById("button-2-p");
+			const fourPlayerTable = document.getElementById('tab-4-p');
+			const fourPlayerButton = document.getElementById("button-4-p");
+
+			fourPlayerButton?.classList.remove('hidden');
+			fourPlayerTable?.classList.remove('hidden');
+    		twoPlayerButton?.classList.add('hidden');
+    		twoPlayerTable?.classList.add('hidden');
+		}
+	});
+
+	// Switch the history table mode to 4 players
+	document.querySelectorAll<HTMLButtonElement>('#button-4-p').forEach(btn => {
+		btn.onclick = async () => {
+			console.log("4p button clicked");
+			const fourPlayerTable = document.getElementById('tab-4-p');
+			const fourPlayerButton = document.getElementById("button-4-p");
+			const twoPlayerTable = document.getElementById('tab-2-p');
+			const twoPlayerButton = document.getElementById("button-2-p");
+
+			fourPlayerButton?.classList.add('hidden');
+    		fourPlayerTable?.classList.add('hidden');
+			twoPlayerButton?.classList.remove('hidden');
+    		twoPlayerTable?.classList.remove('hidden');
+		}
+	});
 }
 
 
@@ -1123,7 +1220,9 @@ export async function router(): Promise<void> {
 				`/api/users/username/${encodeURIComponent(username)}`,
 				{ headers: { Authorization: `Bearer ${state.authToken}` } }
 			);
-			render(ProfileView(profileUser));
+			const history2 = await apiFetch('/users/me/game_history2', { headers: { Authorization: `Bearer ${state.authToken}` } });
+			const history4 = await apiFetch('/users/me/game_history4', { headers: { Authorization: `Bearer ${state.authToken}` } });
+			render(ProfileView(profileUser, history2, history4)); // =================NEW HERE===========
 			setupProfileHandlers();
 		} catch (e: any) {
 			showNotification({ message: 'Error during profile loading: ' + e.message, type: 'error', duration: 5000 });
@@ -1165,7 +1264,9 @@ export async function router(): Promise<void> {
 				try {
 					const user = await apiFetch('/api/users/me', { headers: { Authorization: `Bearer ${state.authToken}` } });
 					const friends = await apiFetch('/api/friends', { headers: { Authorization: `Bearer ${state.authToken}` } });
-					render(AccountView(user, friends));
+					const history2 = await apiFetch('/users/me/game_history2', { headers: { Authorization: `Bearer ${state.authToken}` } });
+					const history4 = await apiFetch('/users/me/game_history4', { headers: { Authorization: `Bearer ${state.authToken}` } });
+					render(AccountView(user, friends, history2, history4)); //-------------------HERE-------------------
 					if (!state.socket || state.socket.readyState === WebSocket.CLOSED)
 						initWebSocket();
 					if (!state.playerInterface?.socket || state.playerInterface?.socket.readyState === WebSocket.CLOSED)

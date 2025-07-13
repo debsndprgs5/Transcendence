@@ -53,6 +53,12 @@ export const getAllPublicGames = () =>
 export const getModePerGameID = (gameID:number) =>
   get<{mode:string}>(
     `SELECT mode FROM gameRooms WHERE gameID = ?`, [gameID]);
+
+//get name for gameID
+export const getNamePerGameID = (gameID:number) => 
+	get<{name:string}>(
+		`SELECT name FROM gameRooms WHERE gameID=?`, [gameID]
+	);
 export const setStateforGameID = (gameID:number, state:string)=>
   run(`UPDATE gameRooms SET state = ? where gameID = ?`, [state, gameID])
 
@@ -112,41 +118,79 @@ export const getLastAddedToRoom = (gameID:number) =>
 export const createTournament = (
 	name: string,
 	createdBy: number,
-	maxPlayers: number,
-	status: string
+	playersCount: number,
+	status: string,
+	paddle_speed:number,
+	ball_speed:number,
+	limit:number,
+	chatID:number
 ) => {
 	return run(
-		`INSERT INTO tournaments (name, createdBy, maxPlayers, status)
-		 VALUES (?, ?, ?, ?)`,
-		[name, createdBy, maxPlayers, status]
+		`INSERT INTO tournaments (name, createdBy, playersCount, status, paddle_speed, ball_speed, "limit", chatID)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		[name, createdBy, playersCount, status, paddle_speed, ball_speed, limit, chatID]
 	);
 };
+
+
+export const setStateforTourID = (tournamentID:number, state:string)=>
+  run(`UPDATE tournaments SET status = ? where tournamentID = ?`, [state, tournamentID])
+
+
 
 export const delTournament = (tournamentID: number) =>
 	run(`DELETE FROM tournaments WHERE tournamentID = ?`, [tournamentID]);
 
 export const getTournamentById = (tournamentID: number) =>
-	get<{ tournamentID: number; name: string; createdBy: number; maxPlayers: number; status: string; created_at: string }>(
+	get<{	tournamentID: number;
+			name: string;
+			createdBy: number;
+			playersCount: number;
+			status: string;
+			created_at: string;
+			paddle_speed: number;
+			ball_speed: number;
+			limit: number
+		}>(
 		`SELECT * FROM tournaments WHERE tournamentID = ?`,
 		[tournamentID]
 	);
 
 export const getAllTournaments = () =>
-	getAll<{ tournamentID: number; name: string; createdBy: number; maxPlayers: number; status: string }>(
-		`SELECT tournamentID, name, createdBy, maxPlayers, status FROM tournaments`
+	getAll<{ tournamentID: number; name: string; createdBy: number; playersCount: number; status: string }>(
+		`SELECT tournamentID, name, createdBy, playersCount, status FROM tournaments WHERE status='waiting'`
 	);
 
-// Add a member to a tournament
-export const addMemberToTournament = (tournamentID: number, userID: number) =>
-	run(
-		`INSERT INTO tournamentMembers (tournamentID, userID, points, matchesPlayed)
+export const addMemberToTournament = async (tournamentID: number, userID: number) => {
+	await run(
+		`INSERT OR IGNORE INTO tournamentMembers (tournamentID, userID, points, matchesPlayed)
 		 VALUES (?, ?, 0, 0)`,
 		[tournamentID, userID]
 	);
+	await run(
+		`UPDATE tournaments SET playersCount = playersCount + 1 WHERE tournamentID = ?`,
+		[tournamentID]
+	);
+};
 
-// Eventually remove a member from a tournament
-export const delMemberFromTournament = (tournamentID: number, userID: number) =>
-	run(`DELETE FROM tournamentMembers WHERE tournamentID = ? AND userID = ?`, [tournamentID, userID]);
+export const delMemberFromTournament = async (tournamentID: number, userID: number) => {
+	await run(
+		`DELETE FROM tournamentMembers WHERE tournamentID = ? AND userID = ?`,
+		[tournamentID, userID]
+	);
+	await run(
+		`UPDATE tournaments SET playersCount = playersCount - 1 WHERE tournamentID = ?`,
+		[tournamentID]
+	);
+};
+
+export const getRulesForTourID = (tournamentID:number) =>
+	getAll<{paddle_speed:number; ball_speed:number; limit:number; win_condition:'time'}>(
+		`SELECT paddle_speed, ball_speed, "limit"
+		 FROM tournaments
+		 WHERE tournamentID = ?`,
+		 [tournamentID]
+	);
 
 // Get all members from a tournament
 export const getAllTournamentMembers = (tournamentID: number) =>
@@ -195,6 +239,12 @@ export const getAllMatches = (tournamentID: number) =>
 	);
 
 
+export const getChatIDbyTourID = (tournamentID:number) =>
+	get<{chatID:number}>(
+		`SELECT chatID FROM tournaments WHERE tournamentID = ?`,
+	[tournamentID]
+);
+
 
 // ############################
 // #       Match Result       #
@@ -220,6 +270,23 @@ export const getAllPref = (userID: number): Promise<PreferencesRow | null> => {
 	return get<PreferencesRow>(
 		`SELECT * FROM user_preferences WHERE userID = ?`,
 		[userID]
+/*
+export interface history_two{
+	gameID:		number;
+	playerA:	number;
+	playerB:	number;
+	scoreA:		number;
+	scoreB:		number;
+	played_at:	string;
+}
+*/
+export const getPlayedGames2 = (userID: number) =>
+	getAll<{ gameID: number; winner:number; playerA:Number; playerB:Number; scoreA: number; scoreB: number; played_at: string}>(
+		`SELECT matchID, winner, playerA, playerB, scoreA, scoreB, played_at
+		 FROM tournamentMembers
+		 WHERE playerA = ? OR playerB = ?
+		 ORDER BY played_at`,
+		[userID, userID]
 	);
 };
 
@@ -233,6 +300,13 @@ export const setAllPref = async (userID: number, data: Partial<PreferencesRow>) 
 	await run(
 		`UPDATE user_preferences SET ${setClause} WHERE userID = ?`,
 		[...values, userID]
+export const getPlayedGames4 = (userID: number) =>
+	getAll<{ gameID: number; winner:number; playerA:Number; playerB:Number; playerC:number; playerD:number; scoreA: number; scoreB: number; scoreC: number; scoreD: number, played_at: string}>(
+		`SELECT matchID, winner, playerA, playerB, playerC, playerD, scroeA, scoreB, scoreC, scoreD, played_at
+		 FROM tournamentMembers
+		 WHERE playerA = ? OR playerB = ? OR playerC = ? OR playerD = ?
+		 ORDER BY played_at`,
+		[userID, userID]
 	);
 };
 

@@ -10,11 +10,13 @@ import { PongRenderer } from './pong_render'
 import { TypedSocket } from './shared/gameTypes';
 import { resizePongCanvas } from './handlers';
 import { PongButton, showPongMenu } from './pong_rooms';
+import { addMemberToRoom, loadRooms, selectRoom, rmMemberFromRoom } from './handlers';
 
 export const createTournamentFormData = {
   tournamentName: null as string | null,
   ballSpeed: 50,
-  paddleSpeed: 50
+  paddleSpeed: 50,
+  limit:20
 };
 
 export async function fetchOpenTournaments(): Promise<{ tournamentID: number; name: string }[]> {
@@ -75,26 +77,35 @@ export async function handleTournamentClick(canvas: HTMLCanvasElement, x: number
         await handleJoinTournament(tourID);
       }
 			else if (clickedBtn.action === 'leaveTournament') {
-				return handleLeaveTournament();
+				return handleLeaveTournament(false);
 			}
       break;
 	}
 }
 
 // Handle clicks in the Waiting Tournament view
-export async function handleWaitingTournamentClick(canvas: HTMLCanvasElement, x: number, y: number): Promise<void> {
-	const btns = (canvas as any)._waitingTournamentButtons as PongButton[] | undefined;
-	if (!btns) return;
+export async function handleWaitingTournamentClick(
+  canvas: HTMLCanvasElement,
+  x: number,
+  y: number
+): Promise<void> {
+  const btns = (canvas as any)._waitingTournamentButtons as PongButton[] | undefined;
+  if (!btns) return;
 
-	const clickedBtn = btns.find((b: PongButton) =>
-		x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h
-	);
-	if (!clickedBtn) return;
+  const clickedBtn = btns.find((b: PongButton) =>
+    x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h
+  );
+  if (!clickedBtn) return;
 
-	if (clickedBtn.action === 'leaveTournament') {
-		await handleLeaveTournament();
-		showPongMenu();
-	}
+  if (clickedBtn.action === 'leaveTournament') {
+     handleLeaveTournament(false);
+  }
+  // Start tournament when creator clicks the button
+  else if (clickedBtn.action === 'startTournament') {
+    // await startTournament();
+    showNotification({message:`Tournament Starting now !`, type:'success'});
+    state.playerInterface!.typedSocket.send('startTournament', {userID:state.userId, tournamentID:state.currentTournamentID})
+  }
 }
 
 export async function handleCreateTournament(): Promise<void> {
@@ -109,6 +120,23 @@ export async function handleCreateTournament(): Promise<void> {
   }
 
   try {
+    //Create and Join chatRoom of tournament
+      const newRoom = await apiFetch<{ roomID: number }>('/api/chat/rooms', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${state.authToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name: `Tournament: ${name}` , isTourLink:true})
+      });
+      await addMemberToRoom(newRoom.roomID, state.userId!);
+      selectRoom(newRoom.roomID);
+      await loadRooms();
+          state.socket?.send(JSON.stringify({
+      type:'systemMessage',
+      chatRoomID:newRoom.roomID,
+      content: `${localStorage.getItem('username')} just created tournament !`
+    }));
     // POST to create tournament
    const reply =  await apiFetch(`/api/tournament/${state.userId}`, {
       method: 'POST',
@@ -118,15 +146,20 @@ export async function handleCreateTournament(): Promise<void> {
       },
       body: JSON.stringify({
         name,
-        maxPlayers: 16,
-        status: 'open'
+        status: 'waiting',
+        paddleSpeed: createTournamentFormData.paddleSpeed,
+        ballSpeed: createTournamentFormData.ballSpeed,
+        limit: createTournamentFormData.limit,
+        chatID:newRoom.roomID
       })
     });
     showNotification({ message: `Tournament "${name}" created`, type: 'success' });
 	
 	//send joinTournament request to backend 
-	state.playerInterface!.typedSocket.send('joinTournament', {userID:state.userId, tournamentID:reply.tournament.tournamentID});
-
+	state.playerInterface!.typedSocket.send('joinTournament', {userID:state.userId, tournamentID:reply.tournament.tournamentID, chatID:newRoom.roomID});
+  
+  // notify that this user is the tournament's creator
+  state.isTournamentCreator = true;
   } catch (err) {
     console.error('Error creating tournament:', err);
     showNotification({ message: 'Failed to create', type: 'error' });
@@ -141,20 +174,39 @@ export async function handleJoinTournament(tourID: number): Promise<void> {
 		return;
 	}
 	state.playerInterface!.typedSocket.send('joinTournament',  {userID:state.userId, tournamentID:tourID})
+  //join linked chatRoom
+  const { chatID } = await apiFetch(`/api/tournaments/chat/${tourID}`);
+  await addMemberToRoom(chatID, state.userId!);
+  selectRoom(chatID.ID);
+  await loadRooms();
+  state.socket?.send(JSON.stringify({
+    type:'systemMessage',
+    chatRoomID:chatID,
+    content: `${localStorage.getItem('username')} just join tournament !`
+  }));
+  state.isTournamentCreator = false;
 }
 
 // Handles the "Leave Tournament" button action
-export async function handleLeaveTournament(): Promise<void> {
+export async function handleLeaveTournament(islegit:boolean): Promise<void> {
   const tourID = state.currentTournamentID!;
+  const { chatID } = await apiFetch(`/api/tournaments/chat/${tourID}`);
+    state.socket?.send(JSON.stringify({
+    type:'systemMessage',
+    chatRoomID:chatID,
+    content: `${localStorage.getItem('username')} just left tournament !`
+  }));
+  await rmMemberFromRoom(chatID, state.userId!);
   state.playerInterface!.typedSocket.send('leaveTournament', {
 	userID:state.playerInterface!.userID,
 	tournamentID:tourID,
-	islegit:false
+	islegit
   });
 
   // clean up state & storage
   state.currentTournamentName    = undefined;
   state.currentTournamentPlayers = undefined;
+  state.isTournamentCreator = false;
   delete state.currentTournamentID;
 
   localStorage.removeItem('tournament_view');
@@ -164,4 +216,55 @@ export async function handleLeaveTournament(): Promise<void> {
 
   state.canvasViewState = 'mainMenu';
   showPongMenu();
+}
+
+
+function isLastTournamentRound(gameName: string): boolean {
+	const match = gameName.match(/Round (\d+)\/(\d+)/);
+	if (!match) return false;
+
+	const current = parseInt(match[1], 10);
+	const max = parseInt(match[2], 10);
+
+	return current === max;
+}
+
+
+export function handleTournamentRoundsClick(
+  canvas: HTMLCanvasElement,
+  x: number,
+  y: number
+): void {
+  const rect = canvas.getBoundingClientRect();
+
+  const buttons = (canvas as any)._waitingTournamentButtons as {
+    x: number; y: number; w: number; h: number; action: string;
+  }[] | undefined;
+  if (!buttons) return;
+  let isReady=false;
+  for (const btn of buttons) {
+    if (
+      x >= btn.x &&
+      x <= btn.x + btn.w &&
+      y >= btn.y &&
+      y <= btn.y + btn.h
+    ) {
+      switch (btn.action) {
+        case 'leaveTournament':
+          const isLastRound = isLastTournamentRound(localStorage.getItem(`gameName`)!);
+          handleLeaveTournament(isLastRound);
+          break;
+        case 'ready':
+          if(isReady === false){
+            state.playerInterface!.typedSocket.send('readyNextRound', {
+              tourID:state.playerInterface!.tournamentID,
+              userID:state.userId!
+            });
+            isReady = true;
+          }
+          break;
+      }
+      break;
+    }
+  }
 }

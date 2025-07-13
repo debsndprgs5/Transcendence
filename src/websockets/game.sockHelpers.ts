@@ -105,6 +105,11 @@ export async function createQuickGameAndAddPlayers(inviterID: number, inviteeID:
   await GameManagement.addMemberToGameRoom(quickRoomID, inviterID);
   await GameManagement.addMemberToGameRoom(quickRoomID, inviteeID);
 
+  const inviter = getPlayerByUserID(inviterID);
+  inviter!.gameID = quickRoomID;
+  const invitee = getPlayerByUserID(inviteeID);
+  invitee!.gameID = quickRoomID;
+
   return quickRoomID;
 }
 
@@ -117,7 +122,7 @@ export async function beginGame(gameID: number, players: Interfaces.playerInterf
     console.error(`[beginGame] GameID ${gameID} expected ${expectedCount} players for mode '${mode}'`);
     return;
   }
-
+  console.warn('bleep bloop bleep bloopbleep bloop bleep bloopbleep bloop bleep bloopbleep bloop bleep bloopbleep bloop bleep bloop');
   const shuffled = [...players].sort(() => Math.random() - 0.5);
   const sides = mode === 'quator'
     ? ['left', 'right', 'top', 'bottom'] as const
@@ -161,13 +166,16 @@ export async function beginGame(gameID: number, players: Interfaces.playerInterf
     };
     player.typedSocket.send('giveSide', sideMsg);
   });
-
+  let gameName = await GameManagement.getNamePerGameID(gameID);
+  if(!gameName!.name)
+      gameName!.name = `WE COULD PUT "EASTER EGG" HERE`;
   // Send startGame message after sideToUsername is fully built
   shuffled.forEach((player) => {
     const startMsg: Interfaces.SocketMessageMap['startGame'] = {
       type: 'startGame',
       userID: player.userID,
       gameID,
+      gameName:gameName!.name,
       win_condition: gameDesc.winCondition,
       limit: gameDesc.limit,
       usernames: sideToUsername,
@@ -175,7 +183,9 @@ export async function beginGame(gameID: number, players: Interfaces.playerInterf
     player.typedSocket.send('startGame', startMsg);
   });
 
-  new PongRoom(gameDesc, shuffled);
+  const existingGame = PongRoom.rooms.get(gameID)
+  if(!existingGame)
+    new PongRoom(gameDesc, shuffled);
 }
 
 
@@ -203,6 +213,7 @@ export async function tryStartGameIfReady(gameID: number) {
   }
 
   const playersInGameRoom = getAllMembersFromGameID(gameID) ?? [];
+  console.log(playersInGameRoom);
 
   if (playersInGameRoom.length > maxPlayers) {
     const playerToKick = await GameManagement.getLastAddedToRoom(gameID);
@@ -217,14 +228,14 @@ export async function tryStartGameIfReady(gameID: number) {
 
   if (playersInGameRoom.length === maxPlayers) {
     const playerObjs = playersInGameRoom
-      .map(p => getPlayerByUserID(p.userID))//same HERE
+      .map(p => getPlayerByUserID(p.userID))
       .filter((p): p is Interfaces.playerInterface => !!p);
 
     if (playerObjs.length === maxPlayers) {
       playerObjs.forEach(p => {
         updatePlayerState(p, 'playing');  // Event-driven status update
       });
-
+      console.log(`[TryStartGameIfReady] calling beginGame on gameID ${gameID}`);
       // start the game (send first render and start game loop)
       beginGame(gameID, playerObjs);
     }

@@ -1,6 +1,7 @@
 import { showNotification } from './notifications';
 import { isAuthenticated, apiFetch, initWebSocket, state } from './api';
 import { TypedSocket, SocketMessageMap} from './shared/gameTypes';
+import { rmMemberFromRoom } from './handlers'
 import * as BABYLON from '@babylonjs/core';
 import * as LIMIT from './shared/gameTypes';
 import * as GUI from '@babylonjs/gui';
@@ -24,7 +25,6 @@ export class PongRenderer{
 	private scoreText!: GUI.TextBlock;
 	private avatarSquares!: GUI.AdvancedDynamicTexture; // Avatar near the name
 	private avatarCirles!: GUI.AdvancedDynamicTexture;  // Small avatars linked to paddles
-
 	private playerCount: number;
 	private playerSide: 'left' | 'right' | 'top' | 'bottom';
 	private playersInfo: Record<'left' | 'right' | 'top' | 'bottom', string> = {
@@ -44,10 +44,14 @@ export class PongRenderer{
 	private inputState = { left: false, right: false };
 	private currentDir: 'left' | 'right' | 'stop' = 'stop';
 
+	private handleKeyDown!: (e: KeyboardEvent) => void;
+	private handleKeyUp!: (e: KeyboardEvent) => void;
+
 	constructor(
 	canvas: HTMLCanvasElement,
 	typedSocket: TypedSocket,
 	playerCount: number,
+	gameName:string,
 	playerSide: 'left' | 'right' | 'top' | 'bottom',
 	usernames: Record<'left' | 'right' | 'top' | 'bottom', string>
 	) {
@@ -60,9 +64,9 @@ export class PongRenderer{
 		localStorage.setItem('playerCount', playerCount.toString());
 		localStorage.setItem('playerSide', playerSide);
 		localStorage.setItem('usernames', JSON.stringify(usernames));
-		if(state.currentGameName !== undefined)
-			localStorage.setItem('gameName', state.currentGameName!);
-
+		if(gameName !== undefined)
+			localStorage.setItem('gameName', gameName);
+		
 		this.engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: false, stencil: true });
 		this.scene = new BABYLON.Scene(this.engine);
 		this.setupGUI();
@@ -177,7 +181,16 @@ export class PongRenderer{
 			}
 
 			if (!leftAvatarurl) {
-				leftAvatarurl = `https://ui-avatars.com/api/?name=${encodeURIComponent(leftUsername)}&background=6d28d9&color=fff&rounded=true`;
+				const lstyle = /^\d+$/.test(leftUsername)
+				? 'bottts'
+				: 'initials';
+
+				leftAvatarurl = `https://api.dicebear.com/9.x/${lstyle}/svg`
+								    + `?seed=${encodeURIComponent(leftUsername)}`
+									+ `&backgroundType=gradientLinear`
+  									+ `&backgroundColor=919bff,133a94`  
+  								    + `&size=64`
+								    + `&radius=50`
 			}
 
 			const leftAvatarImage = new GUI.Image("leftAvatar", leftAvatarurl);
@@ -200,7 +213,16 @@ export class PongRenderer{
 			}
 
 			if (!rightAvatarurl) {
-				rightAvatarurl = `https://ui-avatars.com/api/?name=${encodeURIComponent(rightUsername)}&background=6d28d9&color=fff&rounded=true`;
+				const rstyle = /^\d+$/.test(rightUsername)
+				? 'bottts'
+				: 'initials';
+
+				rightAvatarurl = `https://api.dicebear.com/9.x/${rstyle}/svg`
+								    + `?seed=${encodeURIComponent(rightUsername)}`
+									+ `&backgroundType=gradientLinear`
+  									+ `&backgroundColor=919bff,133a94`  
+  								    + `&size=64`
+								    + `&radius=50`
 			}
 
 			const rightAvatarImage = new GUI.Image("rightAvatar", rightAvatarurl);
@@ -446,7 +468,8 @@ export class PongRenderer{
 	private processInput() {
 	  // Determine raw direction
 	  let dir: 'left'|'right'|'stop' = 'stop';
-	  if (this.inputState.left)  dir = 'left';
+	  if (this.inputState.left && this.inputState.right) dir = 'stop';
+	  else if (this.inputState.left)  dir = 'left';
 	  else if (this.inputState.right) dir = 'right';
 
 	  // Swap for left view
@@ -470,27 +493,67 @@ export class PongRenderer{
 		});
 	}
 
-	private initInputListeners() {
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowLeft')  this.inputState.left  = true;
-      if (e.key === 'ArrowRight') this.inputState.right = true;
-      // Prevent default scroll with arrows
-      if (e.key.startsWith('Arrow')) e.preventDefault();
-	  if(e.key === 'Escape' || e.key === 'Esc'){
-			if(state.playerInterface!.state === 'playing')
-				state.typedSocket.send('leaveGame',{
-					userID:state.userId!,
-					gameID:state.playerInterface!.gameID,
-					isLegit:false});
-				}
-    });
+private initInputListeners() {
+	this.handleKeyDown = (e: KeyboardEvent) => {
+		if (e.key === 'ArrowLeft') this.inputState.left = true;
+		if (e.key === 'ArrowRight') this.inputState.right = true;
 
-    window.addEventListener('keyup', (e) => {
-      if (e.key === 'ArrowLeft')  this.inputState.left  = false;
-      if (e.key === 'ArrowRight') this.inputState.right = false;
-      // no preventDefault needed here
-    });
-	}
+		if (e.key.startsWith('Arrow')) e.preventDefault();
+
+		// Handle Escape key logic here too
+		if (e.key === 'Escape' || e.key === 'Esc') {
+			const player = state.playerInterface;
+			if (player && player.state === 'playing') {
+				if (this.isPaused) return; // prevent spam
+
+				this.isPaused = true;
+
+				state.typedSocket.send('pause', {
+					userID: state.userId,
+					gameID: player.gameID
+				});
+
+				showNotification({
+					type: 'confirm',
+					message: 'Do you really want to leave the game?',
+					onConfirm: async () => {
+						state.typedSocket.send('leaveGame', {
+							userID: state.userId!,
+							gameID: player.gameID,
+							isLegit: false,
+						});
+						if (state.currentTournamentID){
+							const tourID = state.currentTournamentID;
+							state.currentTournamentID = -1;
+							state.typedSocket.send('leaveTournament', {
+								userID: state.userId!,
+								tournamentID: tourID,
+								islegit: false,
+							});
+						const { chatID } = await apiFetch(`/api/tournaments/chat/${state.currentTournamentID}`);
+						await rmMemberFromRoom(chatID, state.userId!);
+						}
+					},
+					onCancel: () => {
+						state.typedSocket.send('resume', {
+							userID: state.userId,
+							gameID: player.gameID
+						});
+						this.isPaused = false;
+					},
+				});
+			}
+		}
+	};
+
+	this.handleKeyUp = (e: KeyboardEvent) => {
+		if (e.key === 'ArrowLeft') this.inputState.left = false;
+		if (e.key === 'ArrowRight') this.inputState.right = false;
+	};
+
+	window.addEventListener('keydown', this.handleKeyDown);
+	window.addEventListener('keyup', this.handleKeyUp);
+}
 
   private sendMove(direction: 'left' | 'right' | 'stop') {
     if (state.playerInterface?.gameID !== undefined && state.userId !== undefined) {
@@ -517,8 +580,12 @@ export class PongRenderer{
 	}
 
 	public dispose() {
-		console.warn(`DISPOSING RENDER`)
-			this.engine.stopRenderLoop();
-			this.engine.dispose();
-		}
+		console.warn(`DISPOSING RENDER`);
+		this.engine.stopRenderLoop();
+		this.engine.dispose();
+
+		window.removeEventListener('keydown', this.handleKeyDown);
+		window.removeEventListener('keyup', this.handleKeyUp);
+	}
+
 }

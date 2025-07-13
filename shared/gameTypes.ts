@@ -5,7 +5,7 @@ export type TypedSocket = ReturnType<typeof createTypedEventSocket>;
 
 export interface tournamentInterface{
 	tourID:number,
-	maxPlayers:number,
+	playerCount:number,
 	currentRound:number,
 	maxRound:number,
 	//score:string{pos:1{username: , userID: , score: } pos:2{}....}
@@ -70,7 +70,11 @@ export interface playerInterface<SocketType= any>{
 	disconnectTimeOut?:NodeJS.Timeout,
 	state:string, // 'init'|'waiting'| 'playing'| 'tournamentWait' | 'tournamentPlay'
 	playerSide?:"left" | "right"| "top" | "bottom",
-	playerPos?:number
+	playerPos?:number,
+	a_ID?:number,
+	b_ID?:number,
+	a_score?:number,
+	b_score?:number
 }
 
 export interface paddleInterface{
@@ -126,6 +130,7 @@ export type SocketMessageMap = {
 	startGame:{	type:'startGame';
 				userID:number;
 				gameID:number;
+				gameName:string;
 				win_condition:string;
 				limit:number; 
 				usernames: Record<'left' | 'right' | 'top' | 'bottom', string>; 
@@ -148,6 +153,10 @@ export type SocketMessageMap = {
 	endMatch:{	type:'endMatch';
 				iswinner: boolean;
 				playerScores: Record<string, number>;
+				a_ID?:number;
+				b_ID?:number;
+				a_score?:number;
+				b_score?:number;
 			};
 	reconnected:{	type:'reconnected';
 					userID:number;
@@ -173,6 +182,7 @@ export type SocketMessageMap = {
 		};
 	joinTournament:{	type:'joinTournament';
 						userID:number;
+						chatID?:number;
 						username?:string;
 						tournamentID:number;
 						tourName:string;
@@ -195,6 +205,54 @@ export type SocketMessageMap = {
 								status:string}[];
 
 	};
+	//IF MORE STUFF NEEDED ADD HERE
+	startTournament:{	type:'startTournament';
+						userID:number;
+						tournamentID:number;
+	};
+	endTournament:{		type: 'endTournament';
+						tourID: number;
+						standings: {
+							userID: number;
+							username: string;
+							score: number;
+						}[];
+	};
+	//When front recived this, send back joinGame with given data
+	startNextRound:{	type:'startNextRound';
+						currentRound:number;
+						tournamentID:number;
+						gameID:number;
+						gameName:string;
+						score:string;//To update positons before new match?
+	};
+	updateTourScore:{	type:'updateTourScore';
+						tourID:number;
+						score:{ username: string; score: number }[];
+	};
+	matchFinish:{	type:'matchFinish';
+					tourID:number;
+					userID:number;
+					a_ID:number;
+					b_ID:number;
+					a_score:number;
+					b_score:number;
+	}
+	readyNextRound:{	type:'readyNextRound';
+						tourID:number;
+						userID:number;
+	}
+	healthcheck:{	type:'healthcheck';
+					token:string;
+	}
+	pause:{		type:'pause';
+				userID:number;
+				gameID:number;
+	}
+	resume:{	type:'resume';
+				userID:number;
+				gameID:number;
+	}
 };
 
 export type SocketMessage = SocketMessageMap[keyof SocketMessageMap];

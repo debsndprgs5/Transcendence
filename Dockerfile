@@ -13,9 +13,10 @@ RUN npm install --prefer-offline --no-audit --progress=false
 COPY client ./client
 COPY shared ./client/src/shared
 COPY tailwind.config.js ./
+COPY postcss.config.js ./
 
 # 3) build CSS + JS client
-RUN npx tailwindcss -i client/src/input.css -o client/dist/output.css --minify
+RUN npx tailwindcss --postcss -i client/src/css/input.css -o client/dist/output.css --minify
 RUN npm run build:client
 RUN npm run bundle
 
@@ -30,6 +31,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN apk add --no-cache python3 make g++ \
  && ln -sf python3 /usr/bin/python \
+#  && npm install \
  && npm install --prefer-offline --no-audit --progress=false \
  && apk del python3 make g++
 

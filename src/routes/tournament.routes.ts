@@ -9,14 +9,19 @@ export async function tournamentRoutes(fastify: FastifyInstance) {
 			const userID = Number((request.params as any).userID);
 			const body = request.body as {
 				name: string;
-				maxPlayers: number;
-				status: 'open' | 'ongoing' | 'finished';
+				status:string;
+				paddleSpeed:number;
+				ballSpeed:number;
+				limit:number;
+				chatID:number;
 			};
 
 			if (
 				typeof body.name !== 'string' ||
-				typeof body.maxPlayers !== 'number' ||
-				(body.status !== 'open' && body.status !== 'ongoing' && body.status !== 'finished')
+				typeof body.paddleSpeed !== 'number' ||
+				typeof body.ballSpeed !== 'number' ||
+				typeof body.limit !== 'number' ||
+				(body.status !== 'waiting')
 			) {
 				return reply.code(400).send({ success: false, message: 'Invalid payload' });
 			}
@@ -24,8 +29,12 @@ export async function tournamentRoutes(fastify: FastifyInstance) {
 			const result = await gameMgr.createTournament(
 				body.name,
 				userID,
-				body.maxPlayers,
-				body.status
+				0,
+				body.status,
+				body.paddleSpeed,
+				body.ballSpeed,
+				body.limit,
+				body.chatID
 			);
 			const newTournamentID = (result as any).lastID as number;
 
@@ -35,8 +44,8 @@ export async function tournamentRoutes(fastify: FastifyInstance) {
 					tournamentID: newTournamentID,
 					name: body.name,
 					createdBy: userID,
-					maxPlayers: body.maxPlayers,
-					status: body.status
+					status: body.status,
+					chatID:body.chatID
 				}
 			});
 		} catch (error) {
@@ -56,13 +65,11 @@ export async function tournamentRoutes(fastify: FastifyInstance) {
 					tournamentID: number;
 					name: string;
 					createdBy: number;
-					maxPlayers: number;
 					status: string;
 				}[]).map(t => ({
 					tournamentID: t.tournamentID,
 					name: t.name,
 					createdBy: t.createdBy,
-					maxPlayers: t.maxPlayers,
 					status: t.status
 				}))
 			});
@@ -92,7 +99,6 @@ export async function tournamentRoutes(fastify: FastifyInstance) {
 					tournamentID: info.tournamentID,
 					name: info.name,
 					createdBy: info.createdBy,
-					maxPlayers: info.maxPlayers,
 					status: info.status,
 					created_at: info.created_at,
 					members, // array { userID, points, matchesPlayed }
@@ -249,4 +255,19 @@ export async function tournamentRoutes(fastify: FastifyInstance) {
 			return reply.code(500).send({ success: false, message: 'Server error' });
 		}
 	});
+	// Get the linked chat room ID of a tournament
+fastify.get('/tournaments/chat/:tournamentID', async (request, reply) => {
+	console.log('[TOURNAMENT][ROUTES][GET][GETCHATID]');
+	try {
+		const tournamentID = Number((request.params as any).tournamentID);
+		const tournament = await gameMgr.getChatIDbyTourID(tournamentID);
+		if (!tournament) {
+			return reply.code(404).send({ success: false, message: 'Tournament not found' });
+		}
+		return reply.send({ success: true, chatID: tournament.chatID });
+	} catch (err) {
+		console.error('Error in GET /tournaments/chat/:tournamentID:', err);
+		return reply.code(500).send({ success: false, message: 'Server error' });
+	}
+});
 }

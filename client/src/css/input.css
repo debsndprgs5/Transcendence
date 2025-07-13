@@ -1,0 +1,382 @@
+@import "./login_register_buttons.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.user-action-bubble {
+    position: absolute;
+    z-index: 9999;
+    min-width: 160px;
+    background: #fff;
+    border: 1.5px solid #a5b4fc; /* Indigo-200 */
+    box-shadow: 0 8px 32px rgba(80, 75, 120, 0.14), 0 2px 10px rgba(80, 80, 80, 0.09);
+    border-radius: 1.25rem; /* 2xl */
+    padding: 0.5rem 0;
+    animation: bubbleAppear 0.17s cubic-bezier(.4,2,.6,1) backwards;
+    transition: box-shadow 0.12s;
+}
+@keyframes bubbleAppear {
+    0% { transform: scale(.96) translateY(16px); opacity: 0; }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+.user-action-bubble button {
+    background: none;
+    border: none;
+    outline: none;
+    font-size: 1rem;
+    color: #444;
+    transition: background 0.13s, color 0.13s;
+    padding: 0.55rem 1.1rem;
+    border-radius: 0.7rem;
+    cursor: pointer;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+}
+.user-action-bubble button:hover:not([disabled]) {
+    background: #eef2ff; /* Indigo-50 */
+    color: #312e81;      /* Indigo-900 */
+}
+.user-action-bubble button:disabled {
+    color: #bbb !important;
+    opacity: .7;
+    cursor: not-allowed;
+}
+.user-action-bubble__arrow {
+    position: absolute;
+    left: 30px; /* Will be set inline */
+    top: -11px;
+    width: 28px; height: 13px;
+    pointer-events: none;
+}
+
+#pong-canvas, #babylon-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.game-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+#Container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+}
+
+#rays {
+  z-index: 2;
+  position: relative;
+  bottom: -1.5em;
+  animation: rays 2s ease-in-out infinite;
+}
+
+.form {
+  position: relative;
+  top: 5em;
+  padding: 4%;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  border-radius: 0.5rem;
+  border: 4px solid #fff;
+  background: rgba(0, 255, 240, 0.52);
+  box-shadow: 0px 0px 64px 0px #82e1ff inset, 0px 0px 16px #a8fffaa6;
+  backdrop-filter: blur(3.5px);
+  gap: 1em;
+  animation: float 2s ease-in-out infinite;
+}
+
+#login-lable {
+  text-align: center;
+  color: white;
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: 8px;
+  text-shadow: 0px 0px 16px rgb(243, 243, 243);
+}
+
+.form-content {
+  height: 3em;
+  padding: 1px 8px;
+  color: white;
+  text-decoration: none;
+  letter-spacing: 1px;
+  font-weight: bold;
+  border-radius: 6px;
+  border: 2px solid #fff;
+  background: rgba(139, 255, 247, 0.486);
+  box-shadow: 0px 0px 1px 3px #9ee5e3 inset, 0px 4px 4px 0px #181a6040;
+  text-shadow: 0px 1px 4px rgb(243, 243, 243);
+}
+
+.form-content:focus-visible {
+  outline: none;
+  background: rgba(139, 189, 255, 0.59);
+  box-shadow: 0px 0px 1px 4px #9ee5e3;
+}
+
+.form-content:hover {
+  background: rgba(139, 189, 255, 0.59);
+}
+
+::placeholder {
+  font-weight: 300;
+  color: white;
+  letter-spacing: 0.1rem;
+  text-shadow: 0px 1px 5px rgb(66, 66, 66);
+}
+
+.form button {
+  cursor: pointer;
+  height: 3.5rem;
+  padding: 0;
+  color: white;
+  font-size: 1.5em;
+  letter-spacing: 0.3rem;
+  border: 2px solid white;
+  background: linear-gradient(144deg, #9c11ffce, #2000eeb6 50%, #15efffbb);
+}
+
+.form button:hover {
+  position: relative;
+  bottom: 4px;
+  background: linear-gradient(144deg, #9c11ff, #2000ee 50%, #15fff3);
+  box-shadow: 0px 0px 2px 2px #ffffff;
+}
+
+#Container {
+  @apply w-full h-full flex items-center justify-center;
+  /* plus de position:relative ici */
+}
+
+/* wrapper qui entoure form + rays + base */
+#loginWrapper {
+  position: relative;
+  display: inline-block;
+}
+
+/* rayons absolument placés *par rapport* à loginWrapper */
+#rays {
+  position: absolute;
+  top: 360px;        /* hauteur du cône */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  animation: rays 2s ease-in-out infinite;
+}
+/* cône */
+#rays::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 150px solid transparent;
+  border-right: 150px solid transparent;
+  border-top: 200px solid rgba(0,255,240,0.3);
+}
+/* halo */
+#rays::after {
+  content: '';
+  position: absolute;
+  top: 10px;          /* lègère descente du halo */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #0ff, transparent);
+  filter: blur(15px);
+}
+
+/* votre formGlass un peu plus bas que le top du wrapper */
+.form {
+  @apply flex flex-col gap-4 p-4 rounded-md border-4 bg-[#00FFF088] shadow-inner;
+  position: relative;
+  z-index: 3;
+  /* pas besoin de top ici : le wrapper est inline-block, 
+     le form est naturellement en bas du wrapper */
+}
+
+/* base noire absolument placée sous le form */
+#base {
+  position: absolute;
+  bottom: -260px;      /* sous le form, selon ta position */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 150px;
+  height: 30px;
+  /* lateral face gradient to simulate cylinder wall */
+  background: linear-gradient(
+    to bottom,
+    #333 0%,    /* top of wall slightly lighter */
+    #111 50%,   /* middle darker */
+    #000 100%   /* bottom very dark */
+  );
+  border-radius: 50% / 20%;  /* flatten vertically */
+  /* inner teal glow + subtle outer cyan halo */
+  box-shadow:
+    inset 0 4px 12px rgba(0, 255, 240, 0.5),
+    0 0 10px rgba(0, 255, 240, 0.2);
+}
+
+/* top face light reflection */
+#base::before {
+  content: '';
+  position: absolute;
+  top: 0px;                /* push down from top edge */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;             /* diameter of glowing disc */
+  height: 13px;            /* thickness of the glow */
+  background: radial-gradient(
+    circle at center,
+    rgba(0,255,240,0.8) 0%,
+    rgba(0,255,240,0.3) 60%,
+    transparent 80%
+  );
+  border-radius: 50%;
+}
+
+/* animations */
+@keyframes float {
+  0%   { transform: translateY(0); }
+  50%  { transform: translateY(-15px); }
+  100% { transform: translateY(0); }
+}
+@keyframes rays {
+  0%   { opacity: 0.6; }
+  50%  { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+/* appliquer float sur le form */
+.form {
+  animation: float 2s ease-in-out infinite;
+}
+
+/* 
+  Verify 2fa 
+*/
+
+.v2fa-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #141E30;  /* fallback */
+  background: -webkit-linear-gradient(to right, #243B55, #141E30);
+  background: linear-gradient(to right, #243B55, #141E30);
+  border-radius: 16px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(8.2px);
+  -webkit-backdrop-filter: blur(8.2px);
+  border: 1px solid #369eff66;
+  width: 25em;
+  height: 25em;
+  position: relative;
+  margin-top: 4rem;
+}
+
+.v2fa-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: auto 0;
+}
+
+.v2fa-form p {
+  color: #fff;
+  font-weight: bolder;
+}
+
+.v2fa-path {
+  fill: #369eff;
+}
+
+/* SVG background blur + enriched animation */
+.v2fa-svg {
+  filter: blur(20px);
+  z-index: -1;
+  position: absolute;
+  opacity: 0.5;
+  animation: v2fa-anim 4s ease-in-out infinite; /* increase duration for smoother effect */
+}
+
+/* Inputs plus grands */
+.v2fa-inp {
+  margin: 0 auto;
+  white-space: 4px;
+}
+
+.v2fa-input + .v2fa-input {
+  margin-left: 0.5em;
+}
+
+.v2fa-input {
+  /* Adjust size for better usability */
+  color: #fff;
+  height: 3em;               /* increased height */
+  width: 3em;                /* increased width */
+  font-size: 1.2em;          /* larger font */
+  line-height: 3em;          /* vertical centering */
+  float: left;
+  text-align: center;
+  background: transparent;
+  outline: none;
+  border: 2px solid #369eff; /* slightly thicker border */
+  border-radius: 12px;
+  transition: all 0.6s ease;
+}
+
+.v2fa-input:focus {
+  outline: none;
+  border-color: #fff;
+}
+
+.v2fa-input:not(:placeholder-shown) {
+  opacity: 0.4;
+}
+
+.v2fa-form button {
+  margin: 0 auto;
+  background-color: transparent;
+  color: #fff;
+  width: 9em;
+  height: 2.8em;              /* adjusted for balance with inputs */
+  font-size: 1em;
+  border: 0.2em solid #369eff;
+  border-radius: 11px;
+  transition: all 0.5s ease;
+}
+
+.v2fa-form button:hover {
+  background-color: #369eff;
+}
+
+/* Enriched keyframes: X and Y translate */
+@keyframes v2fa-anim {
+  0%   { transform: translate(   0px, -40px); } /* start shifted up */
+  25%  { transform: translate(  20px, -140px); } /* move right & up */
+  50%  { transform: translate( -20px, -19px); } /* move left & down */
+  75%  { transform: translate(  10px, -20px); } /* slight shift */
+  100% { transform: translate(   0px, -90px); } /* back above */
+  75%  { transform: translate(  10px, -30px); } /* slight shift */
+  50%  { transform: translate( -20px, -19px); } /* move left & down */
+  25%  { transform: translate(  20px, -140px); } /* move right & up */
+  0%   { transform: translate(   0px, -70px); } /* start shifted up */
+  25%  { transform: translate(  30px, -120px); } /* move right & up */
+
+}
+
+

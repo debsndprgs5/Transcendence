@@ -1,63 +1,59 @@
 services:
+  dev:
+    build:
+      context: .
+      target: builder-front
+    image: transcendence-dev
+    command:
+      - sh
+      - -c
+      - |
+        # watch CSS in background
+        npx postcss client/src/css/input.css \
+          --output client/dist/output.css \
+          --watch &
+
+        # then watch & bundle JS forever
+        npx esbuild client/src/app.ts \
+          --bundle \
+          --outfile=client/dist/app.js \
+          --platform=browser \
+          --format=esm \
+          --sourcemap \
+          --watch=forever
+    volumes:
+      - ./client/src:/app/client/src
+      - ./shared:/app/client/src/shared
+      - ./tailwind.config.js:/app/tailwind.config.js
+      -  dist_volume:/app/client/dist
+      - ./postcss.config.js:/app/postcss.config.js
+    stdin_open: true
+    tty: true
+
   app:
     build: .
     image: transcendence:latest
     depends_on:
-      vault-init:
-        condition: service_completed_successfully
-    env_file:
-      - .env
-      # - .env.vault
-    environment:
-      - VAULT_ADDR=http://vault:8200
-      # decommente pour mettre ces vars d'env classiques
-      # - NODE_ENV=production
-      # - PORT=${PORT}
-      # - WORK_DIR=${WORK_DIR}
-      # - USER=${USER}
-      # - SESSION_MANAGER=${SESSION_MANAGER}
-    networks:
-      - transcendence_net
+      - dev
     volumes:
-      - ./.env.vault:/app/.env.vault:ro
       - ./client/src:/app/client/src
+      - dist_volume:/app/client/dist
       - ./src:/app/src
       - transcendence_volume:/app/runtime
       - db_volume:/app/db
       - avatars_volume:/app/client/avatars
       - shared_volume:/app/client/shared
     restart: always
-
-  vault:
-    image: hashicorp/vault:1.19
-    container_name: vault
-    ports:
-      - "8200:8200"
+    env_file:
+      - .env
     environment:
-      VAULT_ADDR: 'http://127.0.0.1:8200'
-    volumes:
-      - ./vault/config:/vault/config
-      - ./vault_data_local:/vault/file
-    cap_add:
-      - IPC_LOCK
-    command: server
+      - NODE_ENV=production
+      - PORT=${PORT}
+      - WORK_DIR=${WORK_DIR}
+      - USER=${USER}
+      - SESSION_MANAGER=${SESSION_MANAGER}
     networks:
       - transcendence_net
-
-  vault-init:
-    image: hashicorp/vault:1.19
-    container_name: vault-init
-    depends_on:
-      - vault
-    volumes:
-      - ./:/app
-    working_dir: /app
-    entrypoint: /bin/sh
-    command: -c "apk add --no-cache bash netcat-openbsd jq && ./vault/init-vault.sh && ./vault/init-value.sh"
-    networks:
-      - transcendence_net
-    environment:
-      - VAULT_ADDR=http://vault:8200
 
   waf:
     build:
@@ -69,13 +65,11 @@ services:
       - "1800:1800"
     depends_on:
       - app
-      # - vault   # a check
-    volumes:
-      - ./src/WAF/logs:/var/log/nginx
     networks:
       - transcendence_net
 
 volumes:
+  dist_volume: {}
   transcendence_volume:
     name: transcendence_volume
     driver: local

@@ -22,7 +22,10 @@ dotenv.config({
 	path: path.resolve(process.cwd(), '.env'),
 }); // get env
 
-let jwtSecret: string;
+const jwtSecret = process.env.JWT_SECRET!;
+if (!jwtSecret) {
+	throw new Error("JWT_SECRET environment variable is not defined");
+}
 
 export async function initGameSocket(ws: WebSocket, request: any) {
 	const result = await verifyAndExtractUser(ws, request).catch(e => {
@@ -100,10 +103,6 @@ export async function initGameSocket(ws: WebSocket, request: any) {
 
 
 export default fp(async (fastify) => {
-  jwtSecret = fastify.vault.jwt;
-  if (!jwtSecret) {
-    throw new Error("JWT_SECRET was not loaded from Vault. Game socket cannot start.");
-  }
   const wss = new WebSocketServer({ noServer: true });
 
   fastify.server.on('upgrade', (request, socket, head) => {

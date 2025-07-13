@@ -2,7 +2,7 @@ import { user } from '../types/user';
 import * as UserManagement from '../db/userManagement';
 import { getChatRoomMembers } from '../db/chatManagement';
 import * as chatManagement from '../db/chatManagement';
-import { getPlayerState } from './game.socket';
+import { getMembersByTourID, getPlayerState } from './game.socket';
 import { playerInterface } from '../shared/gameTypes';
 import fp from 'fastify-plugin';
 import * as dotenv from 'dotenv';
@@ -32,6 +32,26 @@ async function getRightSockets(authorID: number): Promise<Map<number, WebSocket>
 	return filtered;
 }
 
+export async function sendSystemMessage(chatRoomID:number, content:string){
+	console.log(`[BACK][Stsm] ${content}`)
+	if(chatRoomID <= 0 || !chatRoomID){
+		SendGeneralMessage(0, content); //A VOIR SI CA MARCHE CA MAIS TFACON ON ENVOYE R EN GENERALE JE PENSE
+		return ;
+	}
+	const members = await getChatRoomMembers(chatRoomID);
+	const membersID = members.map(m => m.userID);
+	for(const m of membersID){
+		const payload = JSON.stringify({
+			type: 'system',
+			roomID:chatRoomID,
+			content,
+		});
+		const socket =  MappedClients.get(m);
+		if(!socket)continue;
+		socket.send(payload);
+	}
+		
+}
 
 async function SendGeneralMessage(authorID: number, message: string) {
 	for (const [clientID, socket] of MappedClients.entries()) {
@@ -131,6 +151,11 @@ async function handleConnection(ws: WebSocket, request: any) {
 	
 			// --- Handle message types ---
 			switch (parsed.type) {
+				case 'systemMessage':{
+					const{ chatRoomID, content} = parsed;
+					await sendSystemMessage(chatRoomID, content);
+					break;
+				}
 				case 'chatRoomMessage': {
 					const { chatRoomID, userID, content } = parsed;
 	
@@ -185,7 +210,17 @@ async function handleConnection(ws: WebSocket, request: any) {
 					}
 					break;
 				}
-			 case 'loadChatRooms': {
+
+                case 'roomDeleted': {
+                    const { roomID, targetUserID } = parsed;
+                    const socket = MappedClients.get(targetUserID);
+                    if (socket) {
+                        socket.send(JSON.stringify({ type: 'roomDeleted', roomID: roomID }));
+                    }
+                    break;
+                }
+
+             	case 'loadChatRooms': {
 				const { roomID , userID , newUser } = parsed
 				try{
 					const socket = MappedClients.get(newUser);
@@ -244,14 +279,17 @@ async function  handleFriendStatus(parsed:any, ws:WebSocket){
 		// 	ws.send(JSON.stringify({ error: 'Invalid update data' }));
 		// 	return;
 		// }
+		console.log(`[CHAT][PLAYERUPDATE] data.state : ${parsed.state}`)
 		try {
 			// 1) Get all user-IDs who have 'userID' as a friend
 			const relatedFriends = await chatManagement.getAllUsersWhoHaveMeAsFriend(userID) ?? [];
 
 			// 2) For each friend, if they have a connected socket, send them the update
 			for (const friendID of relatedFriends) {
+				console.log(`friend ID:${friendID} found to friend woth userID:${userID}`)
 				const friendSocket = MappedClients.get(friendID);
 				if (friendSocket) {
+					console.log(`friendSocket FOUND sending state updated`)
 					friendSocket.send(JSON.stringify({
 					type: 'friendStatus',
 					action: 'updateStatus',
@@ -260,6 +298,7 @@ async function  handleFriendStatus(parsed:any, ws:WebSocket){
 					status:cleanState(parsed.state)
 					}));
 				}
+				console.log(`NO SOCKET FOUND FOR FRIEND`)
 			}
 		} catch (err) {
 			console.error('Failed to update friend status:', err);
@@ -273,11 +312,12 @@ async function  handleFriendStatus(parsed:any, ws:WebSocket){
 
 function cleanState(OgState:string):'online'|'offline'|'in-game'{
 
+	if(!OgState || OgState === undefined || OgState === 'offline')
+		return('offline');
 	if(OgState === 'init' || OgState === 'online')
 		return ('online')
-	if(OgState === 'playing' || OgState === 'waiting' || OgState === 'waitingTournament' || OgState === 'invite')//Add any game related state here
-		return ('in-game')
-	return('offline')
+	return ('in-game')
+	
 }
 
 function handleDisconnect(userId: number, username: string, ws: WebSocket) {

@@ -3,14 +3,21 @@ import { drawCreateGameView,
 		drawWaitingGameView,
 		drawJoinGameView,
 		drawTournamentView,
-		drawWaitingTournamentView } from './pong_views';
+		drawWaitingTournamentView,
+		drawWaitingRoundsTournamentView } from './pong_views';
 import { showNotification } from './notifications';
 import { pongState } from './pong_socket';
 import { PongRenderer } from './pong_render'
 import { settingsRenderer } from './settings_render';
 import { TypedSocket } from './shared/gameTypes';
 import { resizePongCanvas } from './handlers';
-import { handleTournamentClick, handleWaitingTournamentClick, handleCreateTournament, handleJoinTournament, handleLeaveTournament, fetchOpenTournaments } from './tournament_rooms';
+import { handleTournamentClick, 
+		handleWaitingTournamentClick, 
+		handleCreateTournament, 
+		handleJoinTournament, 
+		handleLeaveTournament, 
+		fetchOpenTournaments,
+		handleTournamentRoundsClick } from './tournament_rooms';
 
 export interface PongButton {
 	x: number;
@@ -97,15 +104,11 @@ export function showPongMenu(): void {
 			canvas.style.display        = 'block';
 		}
 
-		//Dispose render to avoid using one in use
-		if (state.canvasViewState !== 'playingGame' && pongState.pongRenderer) {
-			pongState.pongRenderer.dispose();
-			pongState.pongRenderer = null;
-		}
-		if (state.canvasViewState !== 'settings' && pongState.settingsRenderer) {
-			pongState.settingsRenderer.dispose();
-			pongState.settingsRenderer = null;
-		}
+		// Dispose of pongRenderer if exists but not in 'playingGame' state
+		// if (state.canvasViewState !== 'playingGame' && pongState.pongRenderer) {
+		// 		pongState.pongRenderer.dispose();
+		// 		pongState.pongRenderer = null;
+		// }
 		console.log('state.canvasViewState = ', state.canvasViewState);
 
 		// Handle different view states
@@ -142,7 +145,15 @@ export function showPongMenu(): void {
 						state.currentTournamentPlayers || []
 					);
 					break;
-
+				case 'waitingTournamentRounds':
+					drawWaitingRoundsTournamentView(
+					  canvas,
+					  ctx,
+					  state.currentTournamentName || 'Unnamed Tournament',
+					  state.currentTournamentPlayers || [],
+					  state.currentGameName || 'Unknown game room',
+					);
+					break;
 				case 'joinGame':
 						drawJoinGameView(
 								canvas,
@@ -284,6 +295,8 @@ async function handlePongMenuClick(e: MouseEvent): Promise<void> {
 			await handleWaitingTournamentClick(canvas, x, y);
 			break;
 
+		case 'waitingTournamentRounds':
+			await handleTournamentRoundsClick(canvas, x, y);
 		default:
 			break;
 	}

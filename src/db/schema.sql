@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS chatRooms (
   roomID     INTEGER PRIMARY KEY AUTOINCREMENT,
   ownerID    INTEGER NOT NULL,
-  name       TEXT    NOT NULL DEFAULT 'Room',
+  "name"       TEXT    NOT NULL DEFAULT 'Room',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY(ownerID) REFERENCES users(our_index) ON DELETE CASCADE
 );
@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS user_relationships (
   id               INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id          INTEGER NOT NULL,
   related_user_id  INTEGER NOT NULL,
-  type             TEXT    NOT NULL CHECK(type IN ('friend','block')),
+  "type"             TEXT    NOT NULL CHECK(type IN ('friend','block')),
   created_at       DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY(user_id)         REFERENCES users(our_index) ON DELETE CASCADE,
   FOREIGN KEY(related_user_id) REFERENCES users(our_index) ON DELETE CASCADE,
@@ -56,10 +56,10 @@ CREATE TABLE IF NOT EXISTS user_relationships (
 
 CREATE TABLE IF NOT EXISTS gameRooms(
 	gameID 						INTEGER PRIMARY KEY AUTOINCREMENT,
- 	name 						TEXT,
+ 	"name" 						TEXT,
 	tournamentID 				INTEGER,
  	gameType					TEXT, -- public | private 
- 	state						TEXT, -- waiting| playing
+ 	"state"						TEXT, -- waiting| playing
 	mode 						TEXT,
 	rules						TEXT,
 	createdBy					INTEGER,
@@ -82,12 +82,17 @@ CREATE TABLE IF NOT EXISTS gameMembers(
 --  Main Tournament table
 CREATE TABLE IF NOT EXISTS tournaments (
   tournamentID   INTEGER PRIMARY KEY AUTOINCREMENT,
-  name           TEXT    NOT NULL,
+  "name"         TEXT    NOT NULL,
   createdBy      INTEGER NOT NULL,  -- owner userID
-  maxPlayers     INTEGER NOT NULL,  -- max players in tournament
-  status         TEXT    NOT NULL,  -- 'open' | 'ongoing' | 'finished'
+  playersCount   INTEGER ,  -- players in tournament
+  "status"       TEXT    NOT NULL,  -- 'waiting' | 'playing' | 'closed'
   created_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY(createdBy) REFERENCES users(our_index)
+  paddle_speed 	 INTEGER NOT NULL,
+  ball_speed 	   INTEGER NOT NULL,
+  "limit" 		   INTEGER NOT NULL,
+  chatID         INTEGER NOT NULL,
+  FOREIGN KEY(createdBy) REFERENCES users(our_index),
+  FOREIGN KEY (chatID) REFERENCES chatRooms(roomID)
 );
 
 --  Register tournament players

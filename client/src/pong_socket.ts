@@ -9,9 +9,25 @@ import { TypedSocket } from './shared/gameTypes';
 import * as GUI from "@babylonjs/gui";
 import * as BABYLON from "@babylonjs/core";
 import * as Tournament from './tournament_socket'
-
+import { handleLogout } from './handlers'
 
 export const pongState = {
+	pongRenderer: null as PongRenderer | null,
+};
+
+// export async function initGameSocket(): Promise<void>
+// {
+// 	if (!state.authToken) return;
+
+// 	// CLEANUP before reinitializing
+// 	if (state.typedSocket) {
+// 		console.log('[GAME] Cleaning up previous typed socket...');
+// 		state.typedSocket.cleanup?.();
+// 		state.typedSocket.removeAllListeners?.();
+// 	}
+
+export const pongState = 
+{
 	pongRenderer: null as PongRenderer | null,
 	settingsRenderer: null as settingsRenderer|null
 };
@@ -86,6 +102,10 @@ export async function initGameSocket(): Promise<void> {
 				console.warn(`[GAME] WebSocket closed — code=${ev.code}, reason="${ev.reason}"`);
 				if (state.gameSocket?.readyState === WebSocket.OPEN)
 					state.typedSocket?.send('disconnected', {});
+				if (ev.code === 1008) {
+				  //Unauthorized or invalid token
+				  handleLogout();
+				}
 			} catch (err) {
 				console.warn('Cannot send disconnected message: ', err);
 			}
@@ -118,6 +138,15 @@ async function handleEvents(
 	});
 	typedSocket.on('updateTourList',async(socket:WebSocket, data:Interfaces.SocketMessageMap['updateTourList'])=>{
 		Tournament.handleUpdateTournamentList(data);
+	});
+	typedSocket.on('updateTourScore', async(socket:WebSocket, data:Interfaces.SocketMessageMap['updateTourScore'])=>{
+		 Tournament.handleUpdateTourScore(data);
+	});
+	typedSocket.on('endTournament', async(socket:WebSocket, data:Interfaces.SocketMessageMap['endTournament'])=>{
+		 Tournament.handleEndTournament(data);
+	});
+	typedSocket.on('startNextRound', async(socket:WebSocket, data:Interfaces.SocketMessageMap['startNextRound'])=>{
+		 Tournament.handleStartNextRound(data);
 	});
 	typedSocket.on('invite', async(socket:WebSocket, data:Interfaces.SocketMessageMap['invite'])=>{
 		await handleInvite(data);
@@ -337,7 +366,15 @@ export async function addAvatarPanel(
 	}
 
 	if (!url) {
-		url = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.username)}&background=6d28d9&color=fff&rounded=true`;
+		const style = /^\d+$/.test(data.username)
+		? 'bottts'
+		: 'initials';
+		url = `https://api.dicebear.com/9.x/${style}/svg`
+								    + `?seed=${encodeURIComponent(data.username)}`
+									+ `&backgroundType=gradientLinear`
+  									+ `&backgroundColor=919bff,133a94`  
+  								    + `&size=64`
+								    + `&radius=50`
 	}
 
 	const avatar = new GUI.Image("avatar_" + data.username, url);
@@ -369,7 +406,7 @@ export async function handleStartGame(data: Interfaces.SocketMessageMap['startGa
 	console.log(`USERSTATE:${state.playerInterface.state}| Uname: ${state.playerInterface.username}`)
 	const count = Object.keys(data.usernames).length
 	pongState.pongRenderer = new PongRenderer(canvas, state.typedSocket,
-		count, state.playerInterface.playerSide!, data.usernames);
+		count, data.gameName,state.playerInterface.playerSide!, data.usernames);
 	state.playerInterface.gameID = data.gameID;
 	showPongMenu();
 	}
@@ -421,11 +458,32 @@ export async function handleEndMatch(
 		{ username: winnerName, score: winnerScore },
 		{ username: loserName,  score: loserScore  },
 		() => {
-			renderer.dispose();
-			pongState.pongRenderer = null;
-			state.canvasViewState = 'mainMenu';
-			localStorage.setItem('pong_view','mainMenu');
-			showPongMenu();
+			if (state.playerInterface!.tournamentID) {
+				renderer.dispose();
+				pongState.pongRenderer = null;
+				state.playerInterface!.a_ID = data.a_ID
+				state.playerInterface!.b_ID = data.b_ID
+				state.playerInterface!.a_score = data.a_score
+				state.playerInterface!.b_score = data.b_score
+				state.playerInterface!.typedSocket.send('matchFinish', {
+					tourID:state.playerInterface!.tournamentID!,
+					userID:state.userId!,
+					a_ID: data.a_ID,
+					b_ID: data.b_ID,
+					a_score: data.a_score,
+					b_score: data.b_score
+				});
+				state.canvasViewState = 'waitingTournamentRounds';
+				localStorage.setItem('pong_view','waitingTournamentRounds');
+				showPongMenu();
+			}
+			else {
+				renderer.dispose();
+				pongState.pongRenderer = null;
+				state.canvasViewState = 'mainMenu';
+				localStorage.setItem('pong_view','mainMenu');
+				showPongMenu();
+			}
 		}
 	);
 
@@ -456,9 +514,15 @@ export async function handleKicked(data: Interfaces.SocketMessageMap['kicked']) 
 	if (state.playerInterface) {
 	state.playerInterface.gameID = -1;
 	}
-	state.canvasViewState = 'mainMenu';
-	localStorage.setItem('pong_view', 'mainMenu');
-	localStorage.setItem('pong_view', 'mainMenu');
+	if(!state.currentTournamentID){
+		state.canvasViewState = 'mainMenu';
+		localStorage.setItem('pong_view', 'mainMenu');
+		localStorage.setItem('pong_view', 'mainMenu');
+	}
+	else{
+		state.canvasViewState = 'waitingTournamentRounds';
+		localStorage.setItem('pong_view','waitingTournamentRounds');
+	}
 	showPongMenu();
 }
 
@@ -517,8 +581,10 @@ export async function handleReconnection(socket:WebSocket, typedSocket:TypedSock
 			console.error('Canvas element not found or not a valid canvas.');
 			return;
 		}
-
-		pongState.pongRenderer = new PongRenderer(canvas, state.typedSocket, playerCount, side, usernames);
+		let oldGameName = localStorage.getItem('gameName');
+		if(!oldGameName)
+			oldGameName = 'Name was lost during reconnection'
+		pongState.pongRenderer = new PongRenderer(canvas, state.typedSocket, playerCount, oldGameName! ,side, usernames);
 		state.canvasViewState = 'playingGame';
 		showPongMenu();
 
@@ -537,7 +603,3 @@ export async function handleReconnection(socket:WebSocket, typedSocket:TypedSock
 		});
 	}
 }
-
-
-
-

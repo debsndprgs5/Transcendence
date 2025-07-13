@@ -11,21 +11,6 @@ import * as BABYLON from "@babylonjs/core";
 import * as Tournament from './tournament_socket'
 import { handleLogout } from './handlers'
 
-export const pongState = {
-	pongRenderer: null as PongRenderer | null,
-};
-
-// export async function initGameSocket(): Promise<void>
-// {
-// 	if (!state.authToken) return;
-
-// 	// CLEANUP before reinitializing
-// 	if (state.typedSocket) {
-// 		console.log('[GAME] Cleaning up previous typed socket...');
-// 		state.typedSocket.cleanup?.();
-// 		state.typedSocket.removeAllListeners?.();
-// 	}
-
 export const pongState = 
 {
 	pongRenderer: null as PongRenderer | null,

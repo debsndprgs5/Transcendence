@@ -270,16 +270,8 @@ export const getAllPref = (userID: number): Promise<PreferencesRow | null> => {
 	return get<PreferencesRow>(
 		`SELECT * FROM user_preferences WHERE userID = ?`,
 		[userID]
-/*
-export interface history_two{
-	gameID:		number;
-	playerA:	number;
-	playerB:	number;
-	scoreA:		number;
-	scoreB:		number;
-	played_at:	string;
+	)
 }
-*/
 export const getPlayedGames2 = (userID: number) =>
 	getAll<{ gameID: number; winner:number; playerA:Number; playerB:Number; scoreA: number; scoreB: number; played_at: string}>(
 		`SELECT matchID, winner, playerA, playerB, scoreA, scoreB, played_at
@@ -288,7 +280,6 @@ export const getPlayedGames2 = (userID: number) =>
 		 ORDER BY played_at`,
 		[userID, userID]
 	);
-};
 
 export const setAllPref = async (userID: number, data: Partial<PreferencesRow>) => {
 	if (Object.keys(data).length === 0) return;
@@ -300,15 +291,9 @@ export const setAllPref = async (userID: number, data: Partial<PreferencesRow>) 
 	await run(
 		`UPDATE user_preferences SET ${setClause} WHERE userID = ?`,
 		[...values, userID]
-export const getPlayedGames4 = (userID: number) =>
-	getAll<{ gameID: number; winner:number; playerA:Number; playerB:Number; playerC:number; playerD:number; scoreA: number; scoreB: number; scoreC: number; scoreD: number, played_at: string}>(
-		`SELECT matchID, winner, playerA, playerB, playerC, playerD, scroeA, scoreB, scoreC, scoreD, played_at
-		 FROM tournamentMembers
-		 WHERE playerA = ? OR playerB = ? OR playerC = ? OR playerD = ?
-		 ORDER BY played_at`,
-		[userID, userID]
-	);
-};
+	)
+}
+
 
 export const setBackDefPref = async (userID: number) => {
 	await run(`DELETE FROM user_preferences WHERE userID = ?`, [userID]);
@@ -318,3 +303,13 @@ export const setBackDefPref = async (userID: number) => {
 export const createDefaultPref = async (userID: number) => {
 	await run(`INSERT INTO user_preferences (userID) VALUES (?)`, [userID]);
 };
+
+
+export const getPlayedGames4 = (userID: number) =>
+	getAll<{ gameID: number; winner:number; playerA:Number; playerB:Number; playerC:number; playerD:number; scoreA: number; scoreB: number; scoreC: number; scoreD: number, played_at: string}>(
+		`SELECT matchID, winner, playerA, playerB, playerC, playerD, scroeA, scoreB, scoreC, scoreD, played_at
+		 FROM tournamentMembers
+		 WHERE playerA = ? OR playerB = ? OR playerC = ? OR playerD = ?
+		 ORDER BY played_at`,
+		[userID, userID]
+	);

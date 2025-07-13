@@ -15,6 +15,7 @@ set-env:
 	  echo "PORT=$(PORT)" >> .env; \
 	fi
 myexport-env:
+	@touch .env.vault 
 	@mkdir -p /goinfre/${USER}/transcendence
 	@for VAR in USER SESSION_MANAGER; do \
 	  if printenv $$VAR >/dev/null; then \

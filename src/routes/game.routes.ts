@@ -3,8 +3,7 @@ import * as chatMgr from '../db/chatManagement';
 import * as UserManagement from '../db/userManagement';
 import * as gameMgr from '../db/gameManagement';
 import * as Interfaces from '../shared/gameTypes';
-// import MappedPlayers from '../websockets/game.socket';
-//import MappedClient from '../websockets/chat.socket'
+
 
 export async function gameRoutes(fastify: FastifyInstance) {
 

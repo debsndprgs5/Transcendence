@@ -70,8 +70,10 @@ services:
      environment:
       VAULT_ADDR: 'http://127.0.0.1:8200'
      volumes:
+      - vault_data:/vault/file
       - ./vault/config:/vault/config
-      - ./vault_data_local:/vault/file
+      # - ./vault/policies:/vault/policies
+      # - ./vault/init-vault.sh:/usr/local/bin/init-vault.sh
      cap_add:
       - IPC_LOCK
      command: server
@@ -138,6 +140,7 @@ volumes:
     type: none
     device: ./shared
     o: bind
+  vault_data:
 
 networks:
   transcendence_net:

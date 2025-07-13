@@ -4,3 +4,5 @@ node_modules
 .gitignore
 dist
 .vscode
+.env.vault
+.vault_data_local

@@ -40,7 +40,6 @@ services:
         condition: service_started
     
     volumes:
-      - .env.vault:/app/.env.vault
       - ./client/src:/app/client/src
       - dist_volume:/app/client/dist
       - ./src:/app/src
@@ -48,6 +47,7 @@ services:
       - db_volume:/app/db
       - avatars_volume:/app/client/avatars
       - shared_volume:/app/client/shared
+      - vault_secrets:/app/vault # MODIFIÉ: Utiliser un volume nommé
     restart: always
     env_file:
       - .env
@@ -86,10 +86,11 @@ services:
     depends_on:
       - vault
     volumes:
-      - ./:/app
-    working_dir: /app
+      - ./vault:/vault/scripts
+      - vault_secrets:/vault/data
+    working_dir: /vault/scripts
     entrypoint: /bin/sh
-    command: -c "apk add --no-cache bash netcat-openbsd jq && ./vault/init-vault.sh && ./vault/init-value.sh"
+    command: -c "apk add --no-cache bash netcat-openbsd jq && ./init-vault.sh && ./init-value.sh"
     networks:
       - transcendence_net
     environment:
@@ -111,6 +112,7 @@ services:
       - transcendence_net
 
 volumes:
+  vault_secrets: {} # AJOUTÉ: Déclarer le nouveau volume
   dist_volume: {}
   transcendence_volume:
     name: transcendence_volume

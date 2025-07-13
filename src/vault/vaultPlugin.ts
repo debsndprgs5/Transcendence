@@ -1,72 +1,64 @@
 import { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
-import path from 'path';
-import fs from 'fs';
-import dotenv from 'dotenv';
-import * as vault from 'node-vault';
+import vaultClient from 'node-vault';
 
-// struct
-export interface AppConfig {
-  jwt: string;
-  cookie: string;
-}
-
-// decorateur
+// Déclare les types pour les secrets que nous allons ajouter à Fastify
 declare module 'fastify' {
   interface FastifyInstance {
-    vault: AppConfig;
+    vault: {
+      jwt: string;
+      cookie: string;
+    };
   }
 }
 
-// get les secrets
-async function loadConfigFromVault(): Promise<AppConfig> {
-  // const secret_tmp: AppConfig = {
-  //   jwt: 'JnDy&cdiQ*O&NV0vUb*Yve%5#qW3^wPMXWdxQI!P4bC*L6de34',
-  //   cookie: '&hotzBs@bziCO$oy2xTY0pq7QiBJ9Jz4Clgb$@od0MWzuU*ybL'
-  // };
-  // return secret_tmp;
-
-  const vaultEnvPath = path.resolve(process.cwd(), '.env.vault');
-  if (fs.existsSync(vaultEnvPath)) {
-    dotenv.config({ path: vaultEnvPath });
-  } else {
-    throw new Error('.env.vault file not found. Vault initialization may have failed.');
-  }
-
-  try {
-    const options = {
-      apiVersion: 'v1',
-      endpoint: process.env.VAULT_ADDR,
-      token: process.env.VAULT_ROOT_TOKEN,
-    };
-    const vaultClient = vault.default(options);
-    console.log("Fetching secrets from vault...");
-    
-    const secretPath = 'kv/data/transcendence';
-    const { data } = await vaultClient.read(secretPath);
-
-    if (!data || !data.data || !data.data.JWT_SECRET) {
-      throw new Error(`JWT_SECRET not found in Vault at path: ${secretPath}`);
-    }
-    
-    const secrets: AppConfig = {
-      jwt: data.data.JWT_SECRET,
-      cookie: data.data.COOKIE_SECRET,
-    };
-
-    console.log('Secrets successfully fetched from Vault.');
-    return secrets;
-  } catch (error) {
-    console.error('FATAL: Could not fetch secrets from Vault. Shutting down.', error);
-    process.exit(1);
-  }
-}
-
-// cree le plugin
+// La fonction du plugin
 async function configPlugin(fastify: FastifyInstance) {
-  const config = await loadConfigFromVault();
-  fastify.decorate('vault', config);
+  try {
+    fastify.log.info('Initializing Vault client...');
+
+    const vaultAddr = process.env.VAULT_ADDR || 'http://vault:8200';
+    const rootToken = process.env.VAULT_ROOT_TOKEN;
+
+    if (!rootToken) {
+      throw new Error('VAULT_ROOT_TOKEN is not set. Check if main.ts loads .env.vault correctly.');
+    }
+
+    const vault = vaultClient({
+      apiVersion: 'v1',
+      endpoint: vaultAddr,
+      token: rootToken,
+    });
+
+    fastify.log.info('Fetching secrets from Vault at kv/transcendence...');
+    
+    // Pour la version 2 du KV store, le chemin de lecture est "kv/data/..."
+    const response = await vault.read('kv/data/transcendence');
+
+    if (!response || !response.data || !response.data.data) {
+      throw new Error('Could not fetch secrets from Vault or path is empty.');
+    }
+
+    const jwtSecret = response.data.data.JWT_SECRET;
+    const cookieSecret = response.data.data.COOKIE_SECRET;
+
+    if (!jwtSecret || !cookieSecret) {
+      throw new Error('JWT_SECRET or COOKIE_SECRET missing from Vault response.');
+    }
+
+    // On "décore" l'instance de Fastify avec les secrets
+    fastify.decorate('vault', {
+      jwt: jwtSecret,
+      cookie: cookieSecret,
+    });
+
+    fastify.log.info('Vault secrets loaded and attached to Fastify instance.');
+
+  } catch (err) {
+    fastify.log.error('Failed to load secrets from Vault:', err);
+    // On relance l'erreur pour empêcher le serveur de démarrer en cas de problème
+    throw err;
+  }
 }
 
-// jsp 
 export default fp(configPlugin);

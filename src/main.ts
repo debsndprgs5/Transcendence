@@ -1,6 +1,23 @@
-import path from 'path'
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+import * as fs from 'fs';
+
+// Charger les variables depuis le fichier créé par vault-init
+const vaultEnvPath = path.resolve('/app', 'vault', '.env.vault'); // MODIFIÉ: Chemin absolu dans le conteneur
+if (fs.existsSync(vaultEnvPath)) {
+  const vaultEnv = fs.readFileSync(vaultEnvPath, 'utf8');
+  const parsed = dotenv.parse(vaultEnv);
+  for (const key in parsed) {
+    process.env[key] = parsed[key];
+  }
+  console.log('Successfully loaded secrets from .env.vault');
+} else {
+  console.error('FATAL: .env.vault file not found at:', vaultEnvPath);
+  // En production, il est souvent préférable de quitter si les secrets ne sont pas trouvés.
+  // process.exit(1); 
+}
+
 import Fastify from 'fastify'
-import fs from 'fs'
 import fastifyStatic from '@fastify/static'
 import { authRoutes } from './routes/auth.routes'
 import chatRoutes from './routes/chat.routes'
@@ -8,15 +25,11 @@ import accountRoutes from './routes/account.routes'
 import cookie from '@fastify/cookie';
 import wsPlugin from './websockets/chat.socket';
 import gamePlugin from './websockets/game.socket';
-import * as dotenv from 'dotenv';
+
 import dbPlugin from './db/db';
 import { gameRoutes } from './routes/game.routes'
 import { tournamentRoutes } from './routes/tournament.routes'
 import vaultPlugin from './vault/vaultPlugin';
-
-dotenv.config({
-  path: path.resolve(process.cwd(), '.env'),
-});
 
 function extractHostFromSessionManager(session: string | undefined): string | null {
   if (!session) return null;

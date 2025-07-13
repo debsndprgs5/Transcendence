@@ -4,22 +4,75 @@
   <meta charset="UTF-8" />
   <title>Transcendence SPA</title>
   <link rel="stylesheet" href="/dist/output.css" />
+
+  <style>
+    /* comments in English */
+    /* Make sure body doesn’t scroll the video */
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    /* comments in English */
+    /* Fullscreen background video */
+    #bg-video {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+      z-index: 0;
+      pointer-events: none; /* allow clicks through */
+    }
+
+    /* comments in English */
+    /* Dark overlay to keep text readable */
+    #bg-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* comments in English */
+    /* All your real content goes above the overlay */
+    #root,
+    nav,
+    main,
+    footer {
+      position: relative;
+      z-index: 2;
+    }
+
+    /* Optional: ensure your SPA container fills the space */
+    #root {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
 </head>
-<body
-  class="min-h-screen flex flex-col"
-  style="
-  background: linear-gradient(
-    90deg,
-    rgba(86,117,131,1)   0%,    /* #567583 */
-    rgba(77, 97,105,1)   50%,   /* #4D6169 */
-    rgba(63, 77, 82,1)   100%   /* #3F4D52 */
-  );
-  "
->
+<body>
+  <!-- Background video -->
+  <video
+    id="bg-video"
+    src="./starry-sky.mkv"
+    autoplay
+    muted
+    loop
+    playsinline
+  ></video>
+
+  <!-- Dark overlay -->
+  <div id="bg-overlay"></div>
+
   <!-- NAVBAR -->
   <nav class="shadow-md"
        style="
-         background: #0F2027; 
+         background: #0F2027;
          background: -webkit-linear-gradient(to right, #2C5364, #203A43, #0F2027);
          background: linear-gradient(to right, #2C5364, #203A43, #0F2027);
        ">
@@ -30,13 +83,13 @@
   </nav>
 
   <!-- CONTENU PRINCIPAL -->
-   <main id="app" class="flex-grow"></main>
-    <!--<canvas id="renderCanvas" style="width: 100%; height: 100vh; display: block;"></canvas>-->
+  <main id="app" class="flex-grow"></main>
+  <!-- <canvas id="renderCanvas" style="width: 100%; height: 100vh; display: block;"></canvas> -->
 
-<footer>
-    &copy; 2025 Transcendence. Aucuns droits réservés. Credits : zfavere - ysebban - dferjul - afont - tgryzka
-</footer>
-  <link rel="stylesheet" href="/dist/output.css">
+  <footer>
+    &copy; 2025 Transcendence. Aucuns droits réservés. Credits : zfavere – ysebban – dferjul – afont – tgryzka
+  </footer>
+
   <script type="module" src="/dist/app.js"></script>
 </body>
 </html>

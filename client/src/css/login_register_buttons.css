@@ -13,13 +13,14 @@
   transition: 0.5s;
   animation: navGradient 5s ease infinite;
   border: double 4px transparent;
+  /* main gradient updated to cyan / light-blue */
   background-image: linear-gradient(#212121, #212121),
     linear-gradient(
       137.48deg,
-      #ffdb3b 10%,
-      #fe53bb 45%,
-      #8f51ea 67%,
-      #0044ff 87%
+      #00ffff 10%,   /* cyan */
+      #00bfff 45%,   /* deep sky blue */
+      #87cefa 67%,   /* light sky blue */
+      #add8e6 87%    /* light blue */
     );
   background-origin: border-box;
   background-clip: content-box, border-box;
@@ -63,12 +64,13 @@
   z-index: -1;
 }
 
+/* glow colors updated to match cyan theme */
 .nav-circle:nth-of-type(1) {
-  background: rgba(254, 83, 186, 0.636);
+  background: rgba(0, 255, 255, 0.6);   /* cyan glow */
 }
 
 .nav-circle:nth-of-type(2) {
-  background: rgba(142, 81, 234, 0.704);
+  background: rgba(135, 206, 250, 0.7); /* light sky blue glow */
 }
 
 /* hover brings stars to front */
@@ -82,9 +84,9 @@
   transform: scale(1.1);
 }
 
-/* active border tweak */
+/* active border tweak with cyan */
 .nav-btn:active {
-  border: double 4px #fe53bb;
+  border: double 4px #00ffff;
   background-origin: border-box;
   background-clip: content-box, border-box;
   animation: none;
@@ -92,7 +94,7 @@
 
 /* active glow color */
 .nav-btn:active .nav-circle {
-  background: #fe53bb;
+  background: #00bfff;
 }
 
 /* the infinite starfield */
@@ -138,4 +140,27 @@
 @keyframes navAnimStarRotate {
   from { transform: rotate(360deg); }
   to   { transform: rotate(0); }
+}
+
+/* gradient animation keyframes */
+@keyframes navGradient {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* pulse animation for glow circles */
+@keyframes navPulse {
+  0% {
+    transform: scale(0.75);
+    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 10px rgba(0, 0, 0, 0);
+  }
+  100% {
+    transform: scale(0.75);
+    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+  }
 }

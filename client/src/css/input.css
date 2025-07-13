@@ -1,4 +1,5 @@
 @import "./login_register_buttons.css";
+@import "./general_bg.css";
 
 @tailwind base;
 @tailwind components;

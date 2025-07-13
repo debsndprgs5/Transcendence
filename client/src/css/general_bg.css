@@ -2,7 +2,7 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background-image: url('./starry-sky.mkv');
+  background-image: url('https://res.cloudinary.com/dqjgvbizn/video/upload/f_webm/v1752424323/starry-sky_yozk4e');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;

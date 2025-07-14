@@ -100,59 +100,67 @@ export function HomeView(): string {
         </div>
       </div>
 
-      <!-- Colonne Chat -->
-      <div class="p-4 sm:p-6 rounded-lg shadow-lg flex flex-col"
-           style="background: conic-gradient(
-             from 90deg,
-             rgba(187,119,2,1)    0deg,
-             rgba(187,119,2,1)   27.692deg,
-             rgba(202,134,27,1)  27.692deg,
-             rgba(202,134,27,1)  55.385deg,
-             rgba(210,147,54,1)  55.385deg,
-             rgba(210,147,54,1)  83.077deg,
-             rgba(210,158,79,1)  83.077deg,
-             rgba(210,158,79,1) 110.769deg,
-             rgba(203,165,102,1)110.769deg,
-             rgba(188,169,121,1)138.462deg,
-             rgba(188,169,121,1)166.154deg,
-             rgba(168,170,136,1)166.154deg,
-             rgba(168,170,136,1)193.846deg,
-             rgba(146,166,144,1)193.846deg,
-             rgba(146,166,144,1)221.538deg,
-             rgba(123,159,146,1)221.538deg,
-             rgba(123,159,146,1)249.231deg,
-             rgba(103,148,141,1)249.231deg,
-             rgba(103,148,141,1)276.923deg,
-             rgba( 88,135,130,1)276.923deg,
-             rgba( 88,135,130,1)304.615deg,
-             rgba( 79,120,113,1)304.615deg,
-             rgba( 79,120,113,1)332.308deg,
-             rgba( 79,105, 92,1)332.308deg 360deg
-           );">
-        <h2 class="text-2xl font-semibold text-gray-900 mb-4 flex justify-between items-center">
-          <button id="generalChatBtn" class="text-gray-900 hover:text-gray-700 transition-colors">
-            Chat
+      <!-- Chat column -->
+      <div class="relative rounded-lg shadow-lg text-white bg-chat-starry bg-cover bg-center">
+
+        <!-- General Chat button -->
+        <button id="generalChatBtn"
+                class="absolute left-[5%] top-[2%]
+                       text-2xl font-bold
+                       hover:text-indigo-300 transition">
+          General Chat
+        </button>
+
+        <!-- Action bar (username input + buttons) -->
+        <div class="absolute left-[32%] top-[2%] flex items-center gap-2">
+          <input id="userActionInput" type="text" placeholder="Username or ID"
+                 class="px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-200 text-sm w-[140px]" />
+          <button id="addFriendBtn"
+                  class="px-2 py-1 bg-green-400 text-black rounded hover:bg-green-500 transition text-xs">
+            Add Friend
           </button>
-          <div class="flex items-center gap-2">
-            <input id="userActionInput" type="text" placeholder="Username or ID"
-                   class="px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-200 text-sm" style="width:140px;" />
-            <button id="addFriendBtn" class="px-2 py-1 bg-green-400 text-black rounded hover:bg-green-500 transition text-xs">Add Friend</button>
-            <button id="blockUserBtn" class="px-2 py-1 bg-yellow-400 text-black rounded hover:bg-yellow-500 transition text-xs">Block</button>
-            <button id="unblockUserBtn" class="px-2 py-1 bg-gray-300 text-black rounded hover:bg-gray-400 transition text-xs">Unblock</button>
-            <button id="newChatRoomBtn" class="px-3 py-1 bg-indigo-100 text-indigo-600 rounded hover:bg-indigo-200 transition text-sm">New Room</button>
-          </div>
-        </h2>
-        <div class="flex-1 overflow-auto mb-4 flex">
-          <ul id="room-list" class="w-1/3 border-r border-gray-300 pr-4 space-y-2 overflow-auto min-h-0 text-gray-900"></ul>
-          <div class="w-2/3 pl-4 flex flex-col">
-            <div id="chat" class="flex-1 overflow-auto space-y-2 mb-4 break-words text-gray-900"></div>
-            <form id="chatForm" class="flex space-x-2">
-              <input name="message" placeholder="Write a message…"
-                     class="flex-1 border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-[#6DD5FA]" />
-              <button type="submit" class="px-4 py-2 bg-[#2980B9] text-white rounded-lg hover:bg-[#2278A1] transition">Send</button>
-            </form>
-          </div>
+          <button id="blockUserBtn"
+                  class="px-2 py-1 bg-yellow-400 text-black rounded hover:bg-yellow-500 transition text-xs">
+            Block
+          </button>
+          <button id="unblockUserBtn"
+                  class="px-2 py-1 bg-gray-300 text-black rounded hover:bg-gray-400 transition text-xs">
+            Unblock
+          </button>
+          <button id="newChatRoomBtn"
+                  class="px-3 py-1 bg-indigo-100 text-indigo-600 rounded hover:bg-indigo-200 transition text-sm">
+            New Room
+          </button>
         </div>
+
+        <!-- Rooms list -->
+        <ul id="room-list"
+            class="absolute left-[6.5%] top-[17.5%]
+                   w-[20%] h-[60%]
+                   space-y-4 overflow-auto
+                   text-gray-200">
+        </ul>
+
+        <!-- Messages area -->
+        <div id="chat"
+             class="absolute left-[35%] top-[18%]
+                    w-[62%] h-[56%]
+                    overflow-y-auto space-y-2
+                    pr-2 break-words">
+        </div>
+
+        <!-- Send-message form -->
+        <form id="chatForm"
+              class="absolute left-[35%] bottom-[6%]
+                     w-[62%] flex space-x-2">
+          <input name="message" placeholder="Write a message…"
+                 class="flex-1 border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-[#6DD5FA] text-black" />
+          <button type="submit"
+                  class="px-4 py-2 bg-[#2980B9] text-white rounded-lg hover:bg-[#2278A1] transition">
+            Send
+          </button>
+        </form>
+
       </div>
 
     </div>

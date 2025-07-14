@@ -13,5 +13,13 @@ module.exports = {
       }
     }
   },
+  theme: {
+    extend: {
+      backgroundImage: {
+        'chat-starry': "url('../chat-bg.png')"   // bg-chat-starry class
+      },
+    },
+  },
   plugins: []
 }
+

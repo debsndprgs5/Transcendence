@@ -395,25 +395,51 @@ export async function setupHomeHandlers(): Promise<void> {
 			if (!ul) return;
 
 			ul.innerHTML = rooms
-				.map(
-					(r) =>
-						`<li data-id="${r.roomID}" class="group flex justify-between items-center cursor-pointer hover:bg-gray-100 p-2 rounded ${
-							state.currentRoom === r.roomID ? 'bg-indigo-100' : ''
-						}">
-						<span class="flex-1 truncate" title="${r.name || `Room #${r.roomID}`}">
-							${r.name || `Room #${r.roomID}`}
-						</span>
-						<div class="flex gap-1 opacity-0 group-hover:opacity-100 transition">
-							<button data-room="${r.roomID}" class="invite-room-btn text-green-600 hover:text-green-800 text-sm">➕</button>
-							${
-								r.ownerID === state.userId
-									? `<button data-room="${r.roomID}" class="delete-room-btn text-red-600 hover:text-red-800 text-sm">❌</button>`
-									: ''
-							}
-						</div>
-					</li>`
-				)
-				.join('');
+			  .map(
+			    (r) =>
+			      `<li
+			         data-id="${r.roomID}"
+			         class="
+			           group
+			           flex justify-between items-center
+			           cursor-pointer
+			           p-1                     <!-- smaller padding -->
+			           rounded-md             <!-- medium border radius -->
+			           bg-blue-200/20         <!-- light blue base -->
+			           hover:bg-blue-200/50   <!-- darker blue on hover -->
+			           transition
+			           ${
+			             state.currentRoom === r.roomID
+			               ? 'bg-blue-200/50'  /* English comment: highlight selected room */
+			               : ''
+			           }
+			         "
+			       >
+			         <span
+			           class="flex-1 truncate"
+			           title="${r.name || `Room #${r.roomID}`}"
+			         >
+			           ${r.name || `Room #${r.roomID}`}
+			         </span>
+			         <div
+			           class="flex gap-1 opacity-0 group-hover:opacity-100 transition"
+			         >
+			           <button
+			             data-room="${r.roomID}"
+			             class="invite-room-btn text-green-600 hover:text-green-800 text-sm"
+			           >➕</button>
+			           ${
+			             r.ownerID === state.userId
+			               ? `<button
+			                    data-room="${r.roomID}"
+			                    class="delete-room-btn text-red-600 hover:text-red-800 text-sm"
+			                  >❌</button>`
+			               : ''
+			           }
+			         </div>
+			       </li>`
+			  )
+			  .join('');
 
 			// Get previously selected room
 			const savedRoom = Number(localStorage.getItem('currentRoom') || '0');

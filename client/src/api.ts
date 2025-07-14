@@ -504,9 +504,26 @@ export function appendMessageToChat(
 	chatDiv: HTMLElement,
 	{ isOwnMessage, name, content, username }: ChatMessageOptions
 ): void {
-	const messageP = document.createElement('p');
-	messageP.className = isOwnMessage ? 'text-right mb-1' : 'text-left mb-1';
+	// Create a container that handles alignment
+	const messageContainer = document.createElement('div');
+	// use flex to align bubbles left or right
+	messageContainer.className = `flex mb-2 ${isOwnMessage ? 'justify-end' : 'justify-start'}`;
 
+	// Create the bubble element
+	const bubbleDiv = document.createElement('div');
+	// styling the chat bubble with tailwind classes
+	bubbleDiv.className = [
+		'max-w-xs',             // limit width
+		'px-4', 'py-2',          // padding
+		'rounded-2xl',          // rounded corners
+		'shadow-sm',            // subtle shadow
+		'break-words',          // wrap long text
+		isOwnMessage
+			? 'bg-sky-200 text-gray-800'   // sky-blue for own
+			: 'bg-gray-200 text-gray-800'   // gray for others
+	].join(' ');
+
+	// Determine display name
 	let safeUsername = username;
 	if (!safeUsername || safeUsername === 'undefined') {
 		safeUsername = isOwnMessage
@@ -514,24 +531,24 @@ export function appendMessageToChat(
 			: name;
 	}
 
-	let prefixSpan: HTMLSpanElement;
-	if (isOwnMessage) {
-		prefixSpan = document.createElement('span');
-		prefixSpan.className = 'text-green-500 font-semibold';
-		prefixSpan.textContent = 'Me: ';
-	} else {
-		prefixSpan = document.createElement('span');
-		prefixSpan.className =
-			'text-blue-600 font-semibold username-link cursor-pointer hover:underline';
-		prefixSpan.textContent = `${name}: `;
+	// Prefix span (author)
+	const prefixSpan = document.createElement('span');
+	prefixSpan.className = isOwnMessage
+		? 'font-semibold'
+		: 'font-semibold cursor-pointer hover:underline';
+	prefixSpan.textContent = isOwnMessage ? 'Me: ' : `${name}: `;
+	if (!isOwnMessage) {
+		// English comment: store username for click handling
 		prefixSpan.setAttribute('data-username', safeUsername);
 	}
 
+	// Content span (message text)
 	const contentSpan = document.createElement('span');
-	contentSpan.className = 'text-gray-800';
 	contentSpan.textContent = content;
 
-	messageP.appendChild(prefixSpan);
-	messageP.appendChild(contentSpan);
-	chatDiv.appendChild(messageP);
+	// Assemble elements
+	bubbleDiv.appendChild(prefixSpan);
+	bubbleDiv.appendChild(contentSpan);
+	messageContainer.appendChild(bubbleDiv);
+	chatDiv.appendChild(messageContainer);
 }

@@ -1,7 +1,6 @@
 #!/bin/bash
 
 echo "Authenticating with Vault..."
-# MODIFICATION: Utiliser le bon chemin vers le fichier de secrets
 vault login -no-print $(grep VAULT_ROOT_TOKEN /vault/data/.env.vault | cut -d '=' -f2)
 
 echo "Checking if 'kv' secrets engine is enabled..."

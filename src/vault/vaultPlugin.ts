@@ -2,7 +2,6 @@ import { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
 import vaultClient from 'node-vault';
 
-// Déclare les types pour les secrets que nous allons ajouter à Fastify
 declare module 'fastify' {
   interface FastifyInstance {
     vault: {
@@ -12,7 +11,6 @@ declare module 'fastify' {
   }
 }
 
-// La fonction du plugin
 async function configPlugin(fastify: FastifyInstance) {
   try {
     fastify.log.info('Initializing Vault client...');
@@ -32,7 +30,6 @@ async function configPlugin(fastify: FastifyInstance) {
 
     fastify.log.info('Fetching secrets from Vault at kv/transcendence...');
     
-    // Pour la version 2 du KV store, le chemin de lecture est "kv/data/..."
     const response = await vault.read('kv/data/transcendence');
 
     if (!response || !response.data || !response.data.data) {
@@ -46,7 +43,6 @@ async function configPlugin(fastify: FastifyInstance) {
       throw new Error('JWT_SECRET or COOKIE_SECRET missing from Vault response.');
     }
 
-    // On "décore" l'instance de Fastify avec les secrets
     fastify.decorate('vault', {
       jwt: jwtSecret,
       cookie: cookieSecret,
@@ -55,15 +51,12 @@ async function configPlugin(fastify: FastifyInstance) {
 
   } catch (err) {
     fastify.log.error('Failed to load secrets from Vault:', err);
-    // On relance l'erreur pour empêcher le serveur de démarrer en cas de problème
     throw err;
   }
 }
 
 export default fp(configPlugin);
 
-
-// secretsManagments
 let JWT_secret: string;
 let COOKIE_secret: string;
 

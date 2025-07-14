@@ -3,8 +3,6 @@ WORK_DIR = $(shell pwd)
 SHELL := /bin/bash
 .PHONY: install clean dev prod docker-build docker-run clear_db
 
-
-
 # -------------------------------------------------------------------
 # Env maniplutation to get login and hostMachine(ex:C1R2P8)
 # -------------------------------------------------------------------
@@ -15,7 +13,6 @@ set-env:
 	  echo "PORT=$(PORT)" >> .env; \
 	fi
 myexport-env:
-# 	@touch .env.vault 
 	@mkdir -p /goinfre/${USER}/transcendence
 	@for VAR in USER SESSION_MANAGER; do \
 	  if printenv $$VAR >/dev/null; then \
@@ -100,12 +97,11 @@ docker-run:
 clean:
 	@echo "🧹 Cleaning…"
 	@rm -rf node_modules package-lock.json
-	@docker compose down
+	@docker compose down -v --remove-orphans
 	@docker ps -q --filter "ancestor=$(IMAGE_NAME)" | xargs -r docker stop
 	@docker ps -aq --filter "ancestor=$(IMAGE_NAME)" | xargs -r docker rm -v
 	@docker images -q $(IMAGE_NAME) | xargs -r docker rmi
-	@docker run --rm -v $(shell pwd):/workspace alpine rm -rf /workspace/vault_data_local
-	@rm .env.vault
+# 	@docker run --rm -v $(shell pwd):/workspace alpine rm -rf /workspace/vault_data_local
 
 # -------------------------------------------------------------------
 # clear_db : clear the database

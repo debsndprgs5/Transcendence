@@ -47,7 +47,7 @@ services:
       - db_volume:/app/db
       - avatars_volume:/app/client/avatars
       - shared_volume:/app/client/shared
-      - vault_secrets:/app/vault # MODIFIÉ: Utiliser un volume nommé
+      - vault_secrets:/app/vault
     restart: always
     env_file:
       - .env
@@ -90,7 +90,7 @@ services:
       - vault_secrets:/vault/data
     working_dir: /vault/scripts
     entrypoint: /bin/sh
-    command: -c "apk add --no-cache bash netcat-openbsd jq && ./init-vault.sh && ./init-value.sh"
+    command: -c "apk add --no-cache bash netcat-openbsd jq && ./scripts/init.sh && ./scripts/init-value.sh"
     networks:
       - transcendence_net
     environment:
@@ -112,7 +112,7 @@ services:
       - transcendence_net
 
 volumes:
-  vault_secrets: {} # AJOUTÉ: Déclarer le nouveau volume
+  vault_secrets: {}
   dist_volume: {}
   transcendence_volume:
     name: transcendence_volume

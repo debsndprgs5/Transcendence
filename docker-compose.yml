@@ -72,8 +72,6 @@ services:
      volumes:
       - vault_data:/vault/file
       - ./vault/config:/vault/config
-      # - ./vault/policies:/vault/policies
-      # - ./vault/init-vault.sh:/usr/local/bin/init-vault.sh
      cap_add:
       - IPC_LOCK
      command: server
@@ -86,11 +84,11 @@ services:
     depends_on:
       - vault
     volumes:
-      - ./vault:/vault/scripts
+      - ./vault/scripts:/vault/scripts
       - vault_secrets:/vault/data
     working_dir: /vault/scripts
     entrypoint: /bin/sh
-    command: -c "apk add --no-cache bash netcat-openbsd jq && ./scripts/init.sh && ./scripts/init-value.sh"
+    command: -c "apk add --no-cache bash netcat-openbsd jq && ./init.sh && ./init-value.sh"
     networks:
       - transcendence_net
     environment:

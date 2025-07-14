@@ -68,7 +68,8 @@ export function handleAllEvents(typedSocket:TypedSocket, player:Interfaces.playe
 
     let payload: JwtPayload;
     try {
-      payload = jwt.verify(token, jwtSecret) as JwtPayload;
+      const dynamic_jwt = getJwtSecret()
+      payload = jwt.verify(token, dynamic_jwt) as JwtPayload;
     } catch (error) {
       console.log('Connection rejected: Invalid token', error);
       return socket.close(1008, 'Invalid token');

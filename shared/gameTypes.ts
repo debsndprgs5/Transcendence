@@ -179,6 +179,7 @@ export type SocketMessageMap = {
 	kicked:{	type:'kicked';
 				userID:number;
 				reason:string;
+				triggeredBySelf:boolean;
 		};
 	joinTournament:{	type:'joinTournament';
 						userID:number;

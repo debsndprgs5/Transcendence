@@ -1,4 +1,6 @@
 /* From Uiverse.io by StealthWorm */
+fsdfsdfsdfsdfsdfsdfsd
+
 .nav-btn {
   display: flex;
   justify-content: center;
@@ -64,17 +66,17 @@
 }
 
 .nav-circle:nth-of-type(1) {
-  background: rgba(254, 83, 186, 0.636);
+  background: rgba(6, 232, 55, 0.636);
 }
 
 .nav-circle:nth-of-type(2) {
-  background: rgba(142, 81, 234, 0.704);
+  background: rgba(42, 232, 12, 0.704);
 }
 
 /* hover brings stars to front */
 .nav-btn:hover .nav-stars {
   z-index: 1;
-  background-color: #212121;
+  background-color: #08db56d2;
 }
 
 /* hover scale */
@@ -84,7 +86,7 @@
 
 /* active border tweak */
 .nav-btn:active {
-  border: double 4px #fe53bb;
+  border: double 4px #53fe53;
   background-origin: border-box;
   background-clip: content-box, border-box;
   animation: none;

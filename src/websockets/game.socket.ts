@@ -124,9 +124,9 @@ async function verifyAndExtractUser(
         ws.close(1008, 'No token');
         return null;
     }
-
+    const dynamicJwt = getJwtSecret()
     try {
-        const payload = jwt.verify(token, jwtSecret) as JwtPayload;
+        const payload = jwt.verify(token, dynamicJwt) as JwtPayload;
         const rand_id = payload.sub as string;
 
         const fullUser: user | null = await UserManagement.getUserByRand(rand_id);

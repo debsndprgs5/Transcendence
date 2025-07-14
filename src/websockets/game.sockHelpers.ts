@@ -4,6 +4,7 @@ import {createTypedEventSocket} from '../shared/gameEventWrapper'
 import {getPlayerBySocket, getPlayerByUserID, getAllMembersFromGameID} from './game.socket'
 // import{stopMockGameLoop, startMockGameLoop} from '../services/pong'
 import { PongRoom } from '../services/PongRoom'
+import { Tournament } from '../services/tournament'
 
 
 
@@ -245,22 +246,21 @@ export async function tryStartGameIfReady(gameID: number) {
 
 
 //ALL STUFF THAT HAPPENDS AFTER THE GAME 
-
 export async function kickFromGameRoom(
   gameID: number,
-  triggeringPlayer?: Interfaces.playerInterface|number,
+  triggeringPlayer?: Interfaces.playerInterface | number,
   reason?: string
 ) {
-  let player: Interfaces.playerInterface | undefined;
+  let triggering: Interfaces.playerInterface | undefined;
   
   if (typeof triggeringPlayer === 'number') {
-    player = getPlayerByUserID(triggeringPlayer);
+    triggering = getPlayerByUserID(triggeringPlayer);
   } else {
-    player = triggeringPlayer;
+    triggering = triggeringPlayer;
   }
 
-  if (!player) return;
-  // Get all current players in the room from in-memory map
+  if (!triggering) return;
+
   const players = getAllMembersFromGameID(gameID);
   if (!players || players.length === 0) {
     console.warn(`[kickFromGameRoom] No players found in room ${gameID}`);
@@ -269,25 +269,37 @@ export async function kickFromGameRoom(
 
   // If reason is provided, kick **all** players with reason
   if (reason) {
-
     for (const p of players) {
-      const player = getPlayerByUserID(p.userID);
-      if (!player) continue;
+      const kickedPlayer = getPlayerByUserID(p.userID);
+      if (!kickedPlayer) continue;
+
+      const isTriggeringPlayer = (kickedPlayer.userID === triggering.userID);
+
       // Remove player from DB room membership
-      await GameManagement.delMemberFromGameRoom(gameID, player.userID);
+      await GameManagement.delMemberFromGameRoom(gameID, kickedPlayer.userID);
 
       // Send 'kicked' message with reason
-      player.typedSocket.send('kicked', {
-        userID: player.userID,
-        reason: reason ?? '',
+      kickedPlayer.typedSocket.send('kicked', {
+        userID: kickedPlayer.userID,
+        reason,
+        triggeredBySelf: isTriggeringPlayer, // can be used on client to display proper message
       });
 
       // Reset player state and gameID
-      updatePlayerState(player, 'init');
-      player.gameID = -1;
+      updatePlayerState(kickedPlayer, 'init');
+      kickedPlayer.gameID = -1;
+
+      if (!isTriggeringPlayer) {
+        // ✅ Step 1: Check if player is in tournament
+        if (kickedPlayer.tournamentID !== undefined) {
+          console.log(`[kickFromGameRoom] Player ${kickedPlayer.userID} was in tournament ${kickedPlayer.tournamentID}`);
+          const tour = Tournament.MappedTour.get(kickedPlayer.tournamentID);
+          tour!.matchGaveUp(kickedPlayer.tournamentID, triggering.userID);
+        }
+      }
     }
 
-    // Remove the game room and stop game loop
+    // Cleanup room after all kicked
     await GameManagement.deleteGameRoom(gameID);
     const room = PongRoom.rooms.get(gameID);
     if (room) room.stop();
@@ -300,14 +312,11 @@ export async function kickFromGameRoom(
     return;
   }
 
-  // Remove triggeringPlayer from DB membership
-  await GameManagement.delMemberFromGameRoom(gameID, player.userID);
+  await GameManagement.delMemberFromGameRoom(gameID, triggering.userID);
+  updatePlayerState(triggering, 'init');
+  triggering.gameID = -1;
 
-  // Reset triggeringPlayer state and gameID, no 'kicked' message (normal leave)
-  updatePlayerState(player, 'init');
-  player.gameID = -1;
-
-  // Optionally, check if room empty and cleanup if so:
+  // Optionally cleanup room
   const remainingPlayers = getAllMembersFromGameID(gameID);
   if (!remainingPlayers || remainingPlayers.length === 0) {
     await GameManagement.deleteGameRoom(gameID);
@@ -315,3 +324,4 @@ export async function kickFromGameRoom(
     if (room) room.stop();
   }
 }
+

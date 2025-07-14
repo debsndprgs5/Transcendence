@@ -53,8 +53,10 @@ async function bootstrap() {
 
   //load plugin vault // acces aux secrets comme ca : app.vault.<secretName>
   await app.register(vaultPlugin);
-  // console.log('gnngnggggg: ', app.vault.jwt);
-  // console.log('2222222: ', app.vault.cookie);
+  
+  console.log('gnngnggggg: ', app.vault.jwt);
+  console.log('2222222: ', app.vault.cookie);
+  setSecrets(app.vault.jwt, app.vault.cookie);
   // Config CORS
   await app.register(require('@fastify/cors'), {
   origin: true,

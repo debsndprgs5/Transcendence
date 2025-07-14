@@ -575,6 +575,12 @@ export async function handleReconnection(socket:WebSocket, typedSocket:TypedSock
 
 	return;
 	}
+	//User was in tournament but not playing
+	if(data.tournamentID && data.state !== 'playing'){
+		console.log('[RECONNECT] No active game but active tournament');
+		state.canvasViewState = 'WaitingTournamentRounds';
+		showPongMenu();
+	}
 
 
 	// CASE 3: User is not in a game → Return to main menu or lobby

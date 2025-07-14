@@ -115,6 +115,52 @@ export class Tournament {
 			return [mA.player, mB.player];
 		});
 	}
+	
+public async matchGaveUp(tourID: number, quitterID: number) {
+	const tour = Tournament.MappedTour.get(tourID);
+	if (!tour) {
+		console.warn(`[GAVE UP] No tournament found for tourID=${tourID}`);
+		return;
+	}
+
+	// Find the current match of the quitter
+	const pairIdx = tour.playingPairs.findIndex(
+		([a, b]) => a.userID === quitterID || b.userID === quitterID
+	);
+
+	if (pairIdx === -1) {
+		console.warn(`[GAVE UP] No current match found for userID=${quitterID}`);
+		return;
+	}
+
+	const [playerA, playerB] = tour.playingPairs[pairIdx];
+	const opponent = playerA.userID === quitterID ? playerB : playerA;
+	const quitter  = playerA.userID === quitterID ? playerA : playerB;
+
+	// Award points to the opponent (like a draw)
+	const drawPoints = 5;
+	tour.points.set(opponent.userID, (tour.points.get(opponent.userID) ?? 0) + drawPoints);
+
+	// Prevent future rematch
+	tour.opponents.get(opponent.userID)?.add(quitterID);
+
+	// Remove match from playingPairs
+	tour.playingPairs.splice(pairIdx, 1);
+
+	// Push only the remaining player into waitingPairs
+	tour.waitingPairs.push([opponent, opponent]); // interpreted as "bye for one"
+
+	// Remove quitter from tournament completely
+	tour.removeMemberFromTourID(quitterID);
+
+	// Notify the opponent
+	opponent.typedSocket.send('waitingNextRound', {
+		round: tour.current_round,
+		message: `Your opponent ${quitter.username} gave up. You receive 5 points.`,
+	});
+
+	console.log(`[GAVE UP] Player ${quitterID} removed from tournament ${tourID}`);
+}
 
 public removeMemberFromTourID(userID: number): boolean {
 	const tour = Tournament.MappedTour.get(this.tourID);

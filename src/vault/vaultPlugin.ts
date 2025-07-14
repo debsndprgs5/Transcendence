@@ -51,7 +51,6 @@ async function configPlugin(fastify: FastifyInstance) {
       jwt: jwtSecret,
       cookie: cookieSecret,
     });
-    setSecrets(jwtSecret, cookieSecret);
     fastify.log.info('Vault secrets loaded and attached to Fastify instance.');
 
   } catch (err) {

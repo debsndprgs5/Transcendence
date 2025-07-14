@@ -11,7 +11,6 @@ import { WebSocketServer, WebSocket, RawData } from 'ws';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import { getJwtSecret } from '../vault/vaultPlugin';
 
-const jwtSecret = getJwtSecret();
 
 // dotenv.config({
 // 	path: path.resolve(process.cwd(), '.env'),
@@ -113,11 +112,17 @@ async function handleConnection(ws: WebSocket, request: any) {
 
 	let payload: JwtPayload;
 	try {
-		payload = jwt.verify(token, jwtSecret) as JwtPayload;
+		const dynamicSecret = getJwtSecret();
+		if (!dynamicSecret) {
+			console.warn('JWT secret not yet initialized');
+			return ws.close(1008, 'Server not ready');
+		}
+		payload = jwt.verify(token, dynamicSecret) as JwtPayload;
 	} catch (error) {
 		console.log('Connection rejected: Invalid token', error);
 		return ws.close(1008, 'Invalid token');
 	}
+
 
 	const rand_id = payload.sub as string;
 	const fullUser: user | null = await UserManagement.getUserByRand(rand_id);

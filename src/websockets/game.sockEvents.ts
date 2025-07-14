@@ -7,12 +7,10 @@ import {getPlayerBySocket, getPlayerByUserID, getAllMembersFromGameID, delPlayer
 import { playerMove } from '../services/pong'
 import { PongRoom } from '../services/PongRoom';
 import jwt, { JwtPayload } from 'jsonwebtoken';
+import { getJwtSecret } from '../vault/vaultPlugin';
 
 
-const jwtSecret = process.env.JWT_SECRET!;
-if (!jwtSecret) {
-  throw new Error("JWT_SECRET environment variable is not defined");
-}
+const jwtSecret = getJwtSecret();
 
 // import{stopMockGameLoop, startMockGameLoop, playerMove} from '../services/pong'
 

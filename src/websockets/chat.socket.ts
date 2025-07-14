@@ -9,12 +9,13 @@ import * as dotenv from 'dotenv';
 import path from 'path';
 import { WebSocketServer, WebSocket, RawData } from 'ws';
 import jwt, { JwtPayload } from 'jsonwebtoken';
+import { getJwtSecret } from '../vault/vaultPlugin';
 
-let jwtSecret: string;
+const jwtSecret = getJwtSecret();
 
-dotenv.config({
-	path: path.resolve(process.cwd(), '.env'),
-}); // get env
+// dotenv.config({
+// 	path: path.resolve(process.cwd(), '.env'),
+// });
 
 const MappedClients = new Map<number, WebSocket>();
 
@@ -332,10 +333,10 @@ function handleDisconnect(userId: number, username: string, ws: WebSocket) {
 	
 
 export default fp(async fastify => {
-    jwtSecret = fastify.vault.jwt;
-    if (!jwtSecret) {
-        throw new Error("JWT_SECRET was not loaded from Vault. Chat socket cannot start.");
-    }
+    // jwtSecret = fastify.vault.jwt;
+    // if (!jwtSecret) {
+    //     throw new Error("JWT_SECRET was not loaded from Vault. Chat socket cannot start.");
+    // }
     const wss = new WebSocketServer({ noServer: true });
     wss.on('connection', handleConnection);
 

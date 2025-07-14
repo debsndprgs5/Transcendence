@@ -51,7 +51,7 @@ async function configPlugin(fastify: FastifyInstance) {
       jwt: jwtSecret,
       cookie: cookieSecret,
     });
-
+    setSecrets(jwtSecret, cookieSecret);
     fastify.log.info('Vault secrets loaded and attached to Fastify instance.');
 
   } catch (err) {
@@ -62,3 +62,21 @@ async function configPlugin(fastify: FastifyInstance) {
 }
 
 export default fp(configPlugin);
+
+
+// secretsManagments
+let JWT_secret: string;
+let COOKIE_secret: string;
+
+export function setSecrets(jwt: string, cookie: string) {
+  JWT_secret = jwt;
+  COOKIE_secret = cookie;
+}
+
+export function getJwtSecret() {
+  return JWT_secret;
+}
+
+export function getCookieSecret() {
+  return COOKIE_secret;
+}

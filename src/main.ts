@@ -29,7 +29,7 @@ import gamePlugin from './websockets/game.socket';
 import dbPlugin from './db/db';
 import { gameRoutes } from './routes/game.routes'
 import { tournamentRoutes } from './routes/tournament.routes'
-import vaultPlugin from './vault/vaultPlugin';
+import vaultPlugin , { setSecrets } from './vault/vaultPlugin';
 
 function extractHostFromSessionManager(session: string | undefined): string | null {
   if (!session) return null;

@@ -13,19 +13,12 @@ import { playerMove } from '../services/pong'
 import { TypedSocket } from '../shared/gameTypes';
 import {handleAllEvents, handleDisconnect} from './game.sockEvents'
 import { PongRoom } from '../services/PongRoom';
-
-
+import { getJwtSecret } from '../vault/vaultPlugin';
 
 export const MappedPlayers = new Map<number, Interfaces.playerInterface<WebSocket>>();
 
-dotenv.config({
-	path: path.resolve(process.cwd(), '.env'),
-}); // get env
+const jwtSecret = getJwtSecret();
 
-const jwtSecret = process.env.JWT_SECRET!;
-if (!jwtSecret) {
-	throw new Error("JWT_SECRET environment variable is not defined");
-}
 
 export async function initGameSocket(ws: WebSocket, request: any) {
 	const result = await verifyAndExtractUser(ws, request).catch(e => {

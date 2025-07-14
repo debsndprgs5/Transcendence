@@ -289,14 +289,14 @@ export async function kickFromGameRoom(
       updatePlayerState(kickedPlayer, 'init');
       kickedPlayer.gameID = -1;
 
-      if (!isTriggeringPlayer) {
-        // ✅ Step 1: Check if player is in tournament
-        if (kickedPlayer.tournamentID !== undefined) {
-          console.log(`[kickFromGameRoom] Player ${kickedPlayer.userID} was in tournament ${kickedPlayer.tournamentID}`);
-          const tour = Tournament.MappedTour.get(kickedPlayer.tournamentID);
-          tour!.matchGaveUp(kickedPlayer.tournamentID, triggering.userID);
-        }
-      }
+      // if (!isTriggeringPlayer) {
+      //   // ✅ Step 1: Check if player is in tournament
+      //   if (kickedPlayer.tournamentID !== undefined) {
+      //     console.log(`[kickFromGameRoom] Player ${kickedPlayer.userID} was in tournament ${kickedPlayer.tournamentID}`);
+      //     const tour = Tournament.MappedTour.get(kickedPlayer.tournamentID);
+      //     tour!.matchGaveUp(kickedPlayer.tournamentID, triggering.userID);
+      //   }
+      // }
     }
 
     // Cleanup room after all kicked

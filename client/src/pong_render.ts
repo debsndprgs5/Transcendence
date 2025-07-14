@@ -5,6 +5,7 @@ import { rmMemberFromRoom } from './handlers'
 import * as BABYLON from '@babylonjs/core';
 import * as LIMIT from './shared/gameTypes';
 import * as GUI from '@babylonjs/gui';
+import { handleLeaveTournament } from './tournament_rooms';
 
 export class PongRenderer{
 
@@ -524,14 +525,12 @@ private initInputListeners() {
 						});
 						if (state.currentTournamentID){
 							const tourID = state.currentTournamentID;
-							state.currentTournamentID = -1;
 							state.typedSocket.send('leaveTournament', {
 								userID: state.userId!,
 								tournamentID: tourID,
 								islegit: false,
 							});
-						const { chatID } = await apiFetch(`/api/tournaments/chat/${state.currentTournamentID}`);
-						await rmMemberFromRoom(chatID, state.userId!);
+						handleLeaveTournament(false);
 						}
 					},
 					onCancel: () => {

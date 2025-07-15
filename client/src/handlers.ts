@@ -352,7 +352,7 @@ export async function setupHomeHandlers(): Promise<void> {
 		const playersJson = localStorage.getItem('tournament_players');
 		if (name && idStr && playersJson) {
 			state.currentTournamentName    = name;
-			state.currentTournamentID      = Number(idStr);
+			state.playerInterface!.tournamentID      = Number(idStr);
 			state.currentTournamentPlayers = JSON.parse(playersJson);
 			state.canvasViewState          = 'waitingTournament';
 		}

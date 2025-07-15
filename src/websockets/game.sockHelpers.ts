@@ -279,15 +279,15 @@ export async function kickFromGameRoom(
       await GameManagement.delMemberFromGameRoom(gameID, kickedPlayer.userID);
 
       // Send 'kicked' message with reason
-      kickedPlayer.typedSocket.send('kicked', {
-        userID: kickedPlayer.userID,
+      p.typedSocket.send('kicked', {
+        userID: p.userID,
         reason,
         triggeredBySelf: isTriggeringPlayer, // can be used on client to display proper message
       });
 
       // Reset player state and gameID
-      updatePlayerState(kickedPlayer, 'init');
-      kickedPlayer.gameID = -1;
+      updatePlayerState(p, 'init');
+      p.gameID = -1;
 
       // if (!isTriggeringPlayer) {
       //   // ✅ Step 1: Check if player is in tournament

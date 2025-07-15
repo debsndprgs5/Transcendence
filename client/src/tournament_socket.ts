@@ -11,7 +11,6 @@ export function handleJoinTournament(data: Interfaces.SocketMessageMap['joinTour
 		return;
 	}
 	showNotification({ message: `Joined tournament "${data.tourName}" successfully`, type: 'success' });
-	state.currentTournamentID   = data.tournamentID;
 	state.playerInterface!.tournamentID = data.tournamentID;
 	state.currentTournamentName = data.tourName;
 	state.canvasViewState       = 'waitingTournament';
@@ -42,7 +41,7 @@ export function handleJoinTournament(data: Interfaces.SocketMessageMap['joinTour
 export function handleUpdateTournamentPlayerList(
 	data: Interfaces.SocketMessageMap['updateTourPlayerList']
 ) {
-	if (!state.currentTournamentID || data.tournamentID !== state.currentTournamentID) {
+	if (!state.playerInterface!.tournamentID || data.tournamentID !== state.playerInterface!.tournamentID) {
 		return;
 	}
 

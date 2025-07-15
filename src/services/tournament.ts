@@ -2,6 +2,7 @@ import { playerInterface } from '../shared/gameTypes'
 import * as gameMgr from '../db/gameManagement'
 import { getUnameByIndex } from '../db/userManagement'
 import { sendSystemMessage } from '../websockets/chat.socket'
+import { getPlayerByUserID } from '../websockets/game.socket';
 
 type Member = {
 	player: playerInterface;
@@ -196,6 +197,9 @@ public removeMemberFromTourID(userID: number): boolean {
 			tour.matchReports.delete(key);
 		}
 	}
+
+	const player = getPlayerByUserID(userID);
+	player!.tournamentID = -1;
 	console.log(`[REMOVE] userID=${userID} successfully removed from tournament ${this.tourID}`);
 	return true;
 }
@@ -217,6 +221,11 @@ public async onMatchFinished(
 	if (userID !== playerA && userID !== playerB) {
 		console.warn(`[MATCH FINISH] Invalid reporter userID=${userID} not in match (${playerA} vs ${playerB})`);
 		return;
+	}
+
+	if (!tour.players.find(p => p.userID === playerA) || !tour.players.find(p => p.userID === playerB)) {
+	console.warn(`[MATCH FINISH] One of the players has left the tournament: playerA=${playerA}, playerB=${playerB}`);
+	return;
 	}
 
 	// Ensure matchReports map

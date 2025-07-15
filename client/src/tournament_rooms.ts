@@ -104,7 +104,7 @@ export async function handleWaitingTournamentClick(
   else if (clickedBtn.action === 'startTournament') {
     // await startTournament();
     showNotification({message:`Tournament Starting now !`, type:'success'});
-    state.playerInterface!.typedSocket.send('startTournament', {userID:state.userId, tournamentID:state.currentTournamentID})
+    state.playerInterface!.typedSocket.send('startTournament', {userID:state.userId, tournamentID:state.playerInterface!.tournamentID})
   }
 }
 
@@ -189,7 +189,7 @@ export async function handleJoinTournament(tourID: number): Promise<void> {
 
 // Handles the "Leave Tournament" button action
 export async function handleLeaveTournament(islegit:boolean): Promise<void> {
-  const tourID = state.currentTournamentID!;
+  const tourID = state.playerInterface!.tournamentID!;
   const { chatID } = await apiFetch(`/api/tournaments/chat/${tourID}`);
     state.socket?.send(JSON.stringify({
     type:'systemMessage',
@@ -207,8 +207,7 @@ export async function handleLeaveTournament(islegit:boolean): Promise<void> {
   state.currentTournamentName    = undefined;
   state.currentTournamentPlayers = undefined;
   state.isTournamentCreator = false;
-  delete state.currentTournamentID;
-
+  state.playerInterface!.tournamentID = -1;
   localStorage.removeItem('tournament_view');
   localStorage.removeItem('tournament_name');
   localStorage.removeItem('tournament_players');

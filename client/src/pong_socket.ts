@@ -443,7 +443,7 @@ export async function handleEndMatch(
 		{ username: winnerName, score: winnerScore },
 		{ username: loserName,  score: loserScore  },
 		() => {
-			if (state.playerInterface!.tournamentID) {
+			if (state.playerInterface!.tournamentID && state.playerInterface!.tournamentID > 0) {
 				renderer.dispose();
 				pongState.pongRenderer = null;
 				state.playerInterface!.a_ID = data.a_ID
@@ -499,7 +499,8 @@ export async function handleKicked(data: Interfaces.SocketMessageMap['kicked']) 
 	if (state.playerInterface) {
 	state.playerInterface.gameID = -1;
 	}
-	if(!state.currentTournamentID){
+	if(!state.playerInterface!.tournamentID || data.triggeredBySelf == true){
+		state.playerInterface!.tournamentID=-1;
 		state.canvasViewState = 'mainMenu';
 		localStorage.setItem('pong_view', 'mainMenu');
 		localStorage.setItem('pong_view', 'mainMenu');

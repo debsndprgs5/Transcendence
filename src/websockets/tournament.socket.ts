@@ -75,9 +75,9 @@ export async function handleLeaveTournament(player: Interfaces.playerInterface, 
 	await GameManagement.delMemberFromTournament(player.tournamentID!, player.userID!);
 
 	// 2. Leave game if currently playing
-	if (player.gameID) {
-		Helpers.kickFromGameRoom(player.gameID, player, `${player.username!} left the match`);
-	}
+	// if (player.gameID) {
+	// 	Helpers.kickFromGameRoom(player.gameID, player, `${player.username!} left the match`);
+	// }
 	// 3. Clear tournament ID from player state
 	const leftTourID = player.tournamentID;
 	player.tournamentID = -1;

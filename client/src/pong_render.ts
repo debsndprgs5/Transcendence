@@ -523,8 +523,8 @@ private initInputListeners() {
 							gameID: player.gameID,
 							isLegit: false,
 						});
-						if (state.currentTournamentID){
-							const tourID = state.currentTournamentID;
+						if (state.playerInterface!.tournamentID){
+							const tourID = state.playerInterface!.tournamentID;
 							state.typedSocket.send('leaveTournament', {
 								userID: state.userId!,
 								tournamentID: tourID,

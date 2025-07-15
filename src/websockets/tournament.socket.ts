@@ -80,7 +80,7 @@ export async function handleLeaveTournament(player: Interfaces.playerInterface, 
 	// }
 	// 3. Clear tournament ID from player state
 	const leftTourID = player.tournamentID;
-	player.tournamentID = -1;
+	player.tournamentID = undefined;
 	Helpers.updatePlayerState(player, 'init');
 	
 	//HERE -> call Tournament -> removeMember(userID)

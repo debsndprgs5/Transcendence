@@ -287,7 +287,7 @@ export async function kickFromGameRoom(
 
       // Reset player state and gameID
       updatePlayerState(p, 'init');
-      p.gameID = -1;
+      p.gameID = undefined;
 
       // if (!isTriggeringPlayer) {
       //   // ✅ Step 1: Check if player is in tournament
@@ -314,7 +314,7 @@ export async function kickFromGameRoom(
 
   await GameManagement.delMemberFromGameRoom(gameID, triggering.userID);
   updatePlayerState(triggering, 'init');
-  triggering.gameID = -1;
+  triggering.gameID = undefined;
 
   // Optionally cleanup room
   const remainingPlayers = getAllMembersFromGameID(gameID);

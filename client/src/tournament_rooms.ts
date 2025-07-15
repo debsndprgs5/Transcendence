@@ -200,14 +200,14 @@ export async function handleLeaveTournament(islegit:boolean): Promise<void> {
   state.playerInterface!.typedSocket.send('leaveTournament', {
 	userID:state.playerInterface!.userID,
 	tournamentID:tourID,
-	islegit
+	islegit: islegit
   });
 
   // clean up state & storage
   state.currentTournamentName    = undefined;
   state.currentTournamentPlayers = undefined;
   state.isTournamentCreator = false;
-  state.playerInterface!.tournamentID = -1;
+  state.playerInterface!.tournamentID = undefined;
   localStorage.removeItem('tournament_view');
   localStorage.removeItem('tournament_name');
   localStorage.removeItem('tournament_players');

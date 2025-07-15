@@ -219,7 +219,7 @@ export async function handleInvite(
 
 export async function handleLeaveGame(parsed: any, player: Interfaces.playerInterface) {
   const gameID = player.gameID;
-  if (!gameID || gameID === -1) {
+  if (!gameID) {
     console.warn(`handleLeaveGame: player ${player.userID} is not in a game`);
     return;
   }

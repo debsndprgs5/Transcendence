@@ -404,7 +404,7 @@ private  handleWallScore(sideHit: 'left'|'right'|'top'|'bottom', ball: ballClass
 					a_score:scoreA,
 					b_score:scoreB
 				});
-				p.gameID=-1;
+				p.gameID=undefined;
 				// tour!.onMatchFinished(
 				// 	p.tournamentID,
 				// 	this.players[0].userID,

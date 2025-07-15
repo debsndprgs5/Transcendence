@@ -497,12 +497,11 @@ export async function handleKicked(data: Interfaces.SocketMessageMap['kicked']) 
 
 	// Reset game-related state
 	if (state.playerInterface) {
-	state.playerInterface.gameID = -1;
+	state.playerInterface.gameID = undefined;
 	}
 	if(!state.playerInterface!.tournamentID || data.triggeredBySelf == true){
-		state.playerInterface!.tournamentID=-1;
+		state.playerInterface!.tournamentID = undefined;
 		state.canvasViewState = 'mainMenu';
-		localStorage.setItem('pong_view', 'mainMenu');
 		localStorage.setItem('pong_view', 'mainMenu');
 	}
 	else{

@@ -199,7 +199,7 @@ public removeMemberFromTourID(userID: number): boolean {
 	}
 
 	const player = getPlayerByUserID(userID);
-	player!.tournamentID = -1;
+	player!.tournamentID = undefined;
 	console.log(`[REMOVE] userID=${userID} successfully removed from tournament ${this.tourID}`);
 	return true;
 }

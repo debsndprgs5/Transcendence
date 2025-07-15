@@ -192,24 +192,18 @@ export function showPongMenu(): void {
 export function drawMainMenu(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D): void {
 	const width = canvas.width;
 	const height = canvas.height;
+
+	// Clear the canvas to transparent
 	ctx.clearRect(0, 0, width, height);
 
-	// bg gradient
-	const gradient = ctx.createLinearGradient(0, 0, width, 0);
-	gradient.addColorStop(0, '#2C5364');
-	gradient.addColorStop(0.5, '#203A43');
-	gradient.addColorStop(1, '#0F2027');
-	ctx.fillStyle = gradient;
-	ctx.fillRect(0, 0, width, height);
-
 	// title
-	ctx.fillStyle = '#4de8b7';
+	ctx.fillStyle = '#b02b2b';
 	ctx.font = `${Math.floor(height/10)}px 'Orbitron', sans-serif`;
 	ctx.textAlign = 'center';
 	ctx.shadowColor = '#ffffff';
 	ctx.shadowBlur = 20;
-	ctx.fillText("LET'S PLAY", width/2, height/5);
-	ctx.fillText('PONG !',   width/2, height/5 + 50);
+	ctx.fillText("Play", width/2, height/5);
+	ctx.fillText('3D Pong',   width/2, height/5 + 50);
 	ctx.shadowBlur = 0;
 
 	// Prepare labels & pos
@@ -227,7 +221,7 @@ export function drawMainMenu(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
 		const x = width/2 - btnW/2;
 		const y = btn.y - btnH/2;
 
-		// Button
+		// Button background gradient
 		const g2 = ctx.createLinearGradient(x, y, x+btnW, y+btnH);
 		g2.addColorStop(0, '#0ea5e9');
 		g2.addColorStop(1, '#38bdf8');
@@ -236,7 +230,7 @@ export function drawMainMenu(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
 		;(ctx as any).roundRect(x, y, btnW, btnH, 12);
 		ctx.fill();
 
-		// texte
+		// Button text
 		ctx.fillStyle = 'white';
 		ctx.shadowColor = 'black';
 		ctx.shadowBlur = 8;
@@ -245,9 +239,7 @@ export function drawMainMenu(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
 
 		return { x, y, w: btnW, h: btnH, action: btn.action };
 	});
-
 }
-
 
 async function handlePongMenuClick(e: MouseEvent): Promise<void> {
 	const canvas = e.currentTarget as HTMLCanvasElement;

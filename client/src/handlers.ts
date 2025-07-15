@@ -306,33 +306,43 @@ export async function createDirectMessageWith(friendUsername: string): Promise<v
 
 // Little helper to resize canvas
 export function resizePongCanvas(): void {
-	const container = document.querySelector('#pong-canvas')?.parentElement;
-	const canvas = document.getElementById('pong-canvas') as HTMLCanvasElement | null;
-	if (!canvas || !container) return;
-	const rect = container.getBoundingClientRect();
-	canvas.width = rect.width;
-	canvas.height = rect.height;
+  const wrapper = document.getElementById('pongWrapper');
+  const canvas  = document.getElementById('pong-canvas') as HTMLCanvasElement | null;
+  if (!wrapper || !canvas) return;
+
+  const { width, height } = wrapper.getBoundingClientRect();
+  canvas.width  = Math.round(width);
+  canvas.height = Math.round(height);
+	console.log('Wrapper size:', wrapper.getBoundingClientRect());
 }
 
 // =======================
-// HANDLERS
+// HANDLERS 
 // =======================
 
 export let loadRooms: () => Promise<void>;
 export let selectRoom: (roomId: number) => Promise<void>;
 
 export async function setupHomeHandlers(): Promise<void> {
-	// Resize pong-canvas listener
-	setTimeout(() => {
-		resizePongCanvas();
-		showPongMenu();
-	}, 100);
+  // combine resize + redraw into one callback
+  const onResize = () => {
+    resizePongCanvas();   // resize the drawing buffer (will clear the canvas)
+    showPongMenu();       // immediately redraw the current menu state
+  };
 
-	window.addEventListener('resize', () => {
-		resizePongCanvas();
-		showPongMenu();
-	});
+  // Initial sizing + draw once DOM & CSS have settled
+  requestAnimationFrame(onResize);
 
+  // Redraw on window resize
+  window.addEventListener('resize', onResize);
+
+  // Redraw when the wrapper’s CSS size changes (breakpoints, dyn. classes…)
+  const wrapper = document.getElementById('pongWrapper');
+  if (wrapper) {
+    const ro = new ResizeObserver(onResize);
+    ro.observe(wrapper);
+  }
+  showPongMenu();
 	// Get back the pong view state
 	const savedView = localStorage.getItem('pong_view');
 	if (savedView === 'waitingGame') {

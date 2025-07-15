@@ -1,0 +1,44 @@
+.chatactionbarbutton-button {
+  width: auto;                  /* let width adapt to content */
+  height: auto;                 /* height adapts to padding */
+  padding: 0.125rem 0.5rem;     /* very small vertical & horizontal padding */
+  border: 2px ridge #149CEA;    /* slightly thinner border */
+  outline: none;
+  background-color: transparent;
+  color: white;
+  transition: 0.5s;             /* faster transition */
+  border-radius: 0.2em;         /* subtler rounding */
+  font-size: 0.75rem;           /* ~12px font */
+  font-weight: bold;
+  cursor: pointer;
+  position: relative;           /* keep pseudo-elements positioned correctly */
+}
+
+.chatactionbarbutton-button::after,
+.chatactionbarbutton-button::before {
+  content: "";
+  position: absolute;
+  left: 3%;
+  width: 94%;
+  height: 35%;                  /* reduce height of pseudo-elements */
+  background-color: #0d0d13;
+  transition: 0.3s;             /* faster hover collapse */
+  transform-origin: center;
+}
+
+.chatactionbarbutton-button::after {
+  top: -8px;                    /* adjust position for smaller size */
+}
+
+.chatactionbarbutton-button::before {
+  top: 80%;
+}
+
+.chatactionbarbutton-button:hover::before,
+.chatactionbarbutton-button:hover::after {
+  transform: scale(0);
+}
+
+.chatactionbarbutton-button:hover {
+  box-shadow: inset 0px 0px 15px #1479EA; /* softer glow */
+}

@@ -513,14 +513,16 @@ export function appendMessageToChat(
 	const bubbleDiv = document.createElement('div');
 	// styling the chat bubble with tailwind classes
 	bubbleDiv.className = [
-		'max-w-xs',             // limit width
-		'px-4', 'py-2',          // padding
-		'rounded-2xl',          // rounded corners
-		'shadow-sm',            // subtle shadow
-		'break-words',          // wrap long text
-		isOwnMessage
-			? 'bg-sky-200 text-gray-800'   // sky-blue for own
-			: 'bg-gray-200 text-gray-800'   // gray for others
+	  'max-w-xs',            // limit width
+	  'px-4', 'py-2',        // padding
+	  'rounded-2xl',         // rounded corners
+	  'shadow-sm',           // subtle shadow
+	  'break-words',         // wrap long text
+	  // 'bg-cover',            // ensure background covers
+	  'bg-center',           // center background
+	  isOwnMessage
+	    ? 'bg-msg1bgimage text-amber-200 font-bold'  // own bubble uses msg1 image
+	    : 'bg-msg2bgimage text-green-300 font-bold'  // other bubble uses msg2 image
 	].join(' ');
 
 	// Determine display name
@@ -536,7 +538,7 @@ export function appendMessageToChat(
 	prefixSpan.className = isOwnMessage
 		? 'font-semibold'
 		: 'font-semibold cursor-pointer hover:underline';
-	prefixSpan.textContent = isOwnMessage ? 'Me: ' : `${name}: `;
+	prefixSpan.textContent = !isOwnMessage ? `${name}: ` : '';
 	if (!isOwnMessage) {
 		// English comment: store username for click handling
 		prefixSpan.setAttribute('data-username', safeUsername);

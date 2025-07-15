@@ -1,0 +1,41 @@
+.pongmenubtn-button {
+  /* main variables */
+  --main-color: rgb(160, 40, 40);
+  --main-bg-color: rgba(160, 40, 43, 0.36);
+  --pattern-color: rgba(160, 40, 43, 0.073);
+
+  /* change hue‑rotate to recolor */
+  filter: hue-rotate(0deg);
+
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5rem;
+
+  background:
+    radial-gradient(circle,
+      var(--main-bg-color) 0%,
+      transparent 95%),
+    linear-gradient(var(--pattern-color) 1px, transparent 1px),
+    linear-gradient(to right, var(--pattern-color) 1px, transparent 1px);
+  background-size: cover, 15px 15px, 15px 15px;
+  background-position: center center;
+
+  border-image: radial-gradient(circle,
+      var(--main-color) 0%,
+      transparent 100%) 1;
+  border-width: 1px 0;
+  color: var(--main-color);
+
+  padding: 1rem 3rem;
+  font-weight: 700;
+  font-size: 1.5rem;
+  transition: background-size 0.2s ease-in-out;
+}
+
+.pongmenubtn-button:hover {
+  background-size: cover, 10px 10px, 10px 10px;
+}
+
+.pongmenubtn-button:active {
+  filter: hue-rotate(250deg);
+}

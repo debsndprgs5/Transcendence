@@ -130,7 +130,7 @@ export async function broadcastTourList() {
 		status: t.status
 	}));
 
-	const allPlayers = await  getAllInitPlayers(); // assuming this returns all connected players
+	const allPlayers = await  getAllInitPlayers();
 	for (const p of allPlayers!) {
 		p.typedSocket.send('updateTourList', { list: publicList });
 	}
@@ -146,11 +146,6 @@ export async function handleStartTournament(data: any) {
 		console.error(`[TOUR] No tournament with ID ${tournamentID}`);
 		return;
 	}
-
-	// if (tour.createdBy !== userID) {
-	// 	console.log(`USER ID mismatch for tournament "${tour.name}"`);
-	// 	return;
-	// }
 
 	const members = await getMembersByTourID(tournamentID);
 	for (const m of members!) {
@@ -185,9 +180,14 @@ export async function handleReadyNextRound(data:any){
 
 export async function reloadTourRound(data:any){
 
-	const tour = Tournament.MappedTour.get(data.TournamentID);
+	const tour = Tournament.MappedTour.get(data.tournamentID);
+	if (!tour) {
+		console.warn(`[reloadTourRound] No tournament found for id ${data.tournamentID}`);
+	}
 	const score = await tour?.extractScore();
+	console.log(`[reloadTourRound] Extracted score:`, score);
 	const player = getPlayerByUserID(data.userID);
+	console.log(`TOURSCORE:` ,score);
 	player!.typedSocket.send('updateTourScore', {
 		tournamentID:data.tournamentID,
 		score:score

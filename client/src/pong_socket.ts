@@ -524,6 +524,7 @@ export async function handleReconnection(socket:WebSocket, typedSocket:TypedSock
 	// Always recreate playerInterface from server data
 	state.gameSocket = socket;
 	state.typedSocket = typedSocket;
+	state.userId = data.userID;
 	state.playerInterface = {
 		userID: data.userID,
 		username: data.username,

@@ -111,7 +111,7 @@ clear_db:
 	rm -rf src/db/ourdatabase.db
 	touch src/db/ourdatabase.db
 	rm -rf client/avatars/*
-	docker volume rm db_volume
+	docker volume rm -f db_volume
 
 
 

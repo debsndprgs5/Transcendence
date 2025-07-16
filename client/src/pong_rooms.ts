@@ -18,6 +18,7 @@ import { handleTournamentClick,
 		handleLeaveTournament, 
 		fetchOpenTournaments,
 		handleTournamentRoundsClick } from './tournament_rooms';
+import { showLocalGameConfigView } from './localGame/localGameManager';
 
 export interface PongButton {
 	x: number;
@@ -58,6 +59,18 @@ export const createGameFormData: CreateGameFormData = {
   mode:         'duo',      // default selection
   winCondition: 'time',     // default selection
   limit:        60          // default: 60 seconds
+};
+
+export interface LocalGameConfig {
+  ballSpeed:     number;
+  paddleSpeed:   number;
+  winningScore:         number;
+}
+
+export const LocalGameConfig: LocalGameConfig = {
+  ballSpeed:    50,
+  paddleSpeed:  50,
+  winningScore: 5,
 };
 
 export async function fetchAvailableRooms(): Promise<{ roomID: number; roomName: string }[]> {
@@ -183,15 +196,22 @@ export function showPongMenu(): void {
 
 					}
 					break;
-				case 'settings':
-						babylonCanvas.style.display = 'block';
-						canvas.style.display = 'none';
+                case 'localGameConfig':
+                    // On s'assure de bien cacher les deux canvas
+                    if (canvas) canvas.style.display = 'none';
+                    if (babylonCanvas) babylonCanvas.style.display = 'none';
+                    // Et on affiche notre interface HTML
+                    showLocalGameConfigView();
+                    break;
+                case 'settings':
+                        babylonCanvas.style.display = 'block';
+                        canvas.style.display = 'none';
 
-						const rect = babylonCanvas.getBoundingClientRect();
-						babylonCanvas.width = Math.floor(rect.width);
-						babylonCanvas.height = Math.floor(rect.height);
+                        const rect = babylonCanvas.getBoundingClientRect();
+                        babylonCanvas.width = Math.floor(rect.width);
+                        babylonCanvas.height = Math.floor(rect.height);
 
-						if (!pongState.settingsRenderer) {
+                        if (!pongState.settingsRenderer) {
 							pongState.settingsRenderer = new settingsRenderer(babylonCanvas);
 						} else {
 							pongState.settingsRenderer.handleResize();
@@ -227,11 +247,14 @@ export function drawMainMenu(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
 	ctx.shadowBlur = 0;
 
 	// Prepare labels & pos
+	const spacing = 50;
+	const startY = height / 2 - spacing * 1;
 	const labels = [
-		{ action: 'Create Game', y: height/2 - 40 },
-		{ action: 'Join Game',   y: height/2 + 20 },
-		{ action: 'Tournament',  y: height/2 + 80 },
-		{ action: 'Settings',    y: height/2 + 140 }
+		{ action: 'Create Game', y: startY + spacing * 0 },
+		{ action: 'Join Game',   y: startY + spacing * 1 },
+		{ action: 'Local Game',  y: startY + spacing * 2 },
+		{ action: 'Tournament',  y: startY + spacing * 3 },
+		{ action: 'Settings',    y: startY + spacing * 4 }
 	];
 	ctx.font = `${Math.floor(height/20)}px 'Orbitron', sans-serif`;
 
@@ -267,14 +290,13 @@ async function handlePongMenuClick(e: MouseEvent): Promise<void> {
 	const canvas = e.currentTarget as HTMLCanvasElement;
 	const rect   = canvas.getBoundingClientRect();
 	const x      = (e.clientX - rect.left) * (canvas.width  / rect.width);
-	const y      = (e.clientY - rect.top ) * (canvas.height / rect.height);
+	const y      = (e.clientY - rect.top) * (canvas.height / rect.height);
 	if (state.canvasViewState === 'playingGame') return;
 
 	switch (state.canvasViewState) {
 		case 'mainMenu':
 			await handleMainMenuClick(canvas, x, y);
 			break;
-
 		case 'createGame':
 			await handleCreateGameClick(canvas, x, y);
 			break;
@@ -297,6 +319,7 @@ async function handlePongMenuClick(e: MouseEvent): Promise<void> {
 
 		case 'waitingTournamentRounds':
 			await handleTournamentRoundsClick(canvas, x, y);
+			break;
 		default:
 			break;
 	}
@@ -318,6 +341,13 @@ async function handleMainMenuClick(canvas: HTMLCanvasElement, x: number, y: numb
 		case 'Join Game':
 			state.availableRooms = await fetchAvailableRooms();
 			state.canvasViewState = 'joinGame';
+			showPongMenu();
+			break;
+		
+		case 'Local Game':
+			// On change juste l'état et on redessine.
+			// showPongMenu s'occupera d'appeler la bonne fonction.
+			state.canvasViewState = 'localGameConfig';
 			showPongMenu();
 			break;
 
@@ -601,18 +631,18 @@ async function handlePongMenuMouseDown(e: MouseEvent): Promise<void> {
 	);
 	if (btn && ['ballSpeedUp','ballSpeedDown','paddleSpeedUp','paddleSpeedDown'].includes(btn.action)) {
 		lastButtonAction = btn.action;
-	    // redraw immediately
-	    showPongMenu();
-	    incrementTimeout = window.setTimeout(() => {
-	      incrementInterval = window.setInterval(
-	        // mark this arrow async so we can await inside
-	        async () => {
-	          await handleCreateGameButton(btn.action);
-	          showPongMenu();
-	        },
-	        50
-	      );
-	    }, 350);
+		// redraw immediately
+		showPongMenu();
+		incrementTimeout = window.setTimeout(() => {
+		  incrementInterval = window.setInterval(
+			// mark this arrow async so we can await inside
+			async () => {
+			  await handleCreateGameButton(btn.action);
+			  showPongMenu();
+			},
+			50
+		  );
+		}, 350);
 	}
 }
 

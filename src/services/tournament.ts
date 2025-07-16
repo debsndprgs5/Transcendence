@@ -301,17 +301,8 @@ public async onMatchFinished(
 	}
 
 	// Build updated score table
-	const scoreUpdates = await Promise.all(
-		Array.from(tour.points.entries()).map(async ([playerId, pts]) => {
-			const user = await getUnameByIndex(playerId);
-			return {
-				username: user!.username,
-				score: pts
-			};
-		})
-	);
-	scoreUpdates.sort((a, b) => b.score - a.score);
-
+	const scoreUpdates = await tour.extractScore();
+	
 	// Notify both players of updated standings
 	for (const [pA, pB] of tour.waitingPairs) {
 		pA.typedSocket.send('updateTourScore', {
@@ -362,7 +353,19 @@ public async isReadyForNextRound(userID: number) {
 	}
 }
 
-
+public async extractScore(){
+		const scoreUpdates = await Promise.all(
+		Array.from(this.points.entries()).map(async ([playerId, pts]) => {
+			const user = await getUnameByIndex(playerId);
+			return {
+				username: user!.username,
+				score: pts
+			};
+		})
+	);
+	scoreUpdates.sort((a, b) => b.score - a.score);
+	return scoreUpdates;
+}
 
 private async endTournament() {
 	// process final ranking

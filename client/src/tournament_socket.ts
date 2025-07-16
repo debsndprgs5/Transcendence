@@ -99,7 +99,7 @@ export function handleStartNextRound(data:Interfaces.SocketMessageMap['startNext
 
 export function handleUpdateTourScore(data:Interfaces.SocketMessageMap['updateTourScore']){
 		state.currentTournamentPlayers = data.score;
-		console.warn('SCORES > ', data.score);
+		//console.warn('SCORES > ', data.score);
 		state.canvasViewState = 'waitingTournamentRounds';
 		showPongMenu();
 }

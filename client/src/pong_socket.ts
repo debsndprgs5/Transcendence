@@ -586,11 +586,17 @@ export async function handleReconnection(socket:WebSocket, typedSocket:TypedSock
 	//User was in tournament but not playing
 	if(data.tournamentID){
 		console.log('[RECONNECT] No active game but active tournament');
-		if(data.hasStarted === true)
-			state.canvasViewState = 'waitingTournamentRounds';
-		else
+		if(data.hasStarted === true){
+			state.playerInterface!.typedSocket.send('reloadTourRound', {
+				tournamentID:state.playerInterface.tournamentID,
+				userID:state.userId!
+			});
+			//state.canvasViewState = 'waitingTournamentRounds';
+		}
+		else{
 			state.canvasViewState = 'waitingTournament';
-		showPongMenu();
+			showPongMenu();
+		}
 		return;
 	}
 

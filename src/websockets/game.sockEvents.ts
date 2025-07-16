@@ -84,6 +84,9 @@ export function handleAllEvents(typedSocket:TypedSocket, player:Interfaces.playe
     const pongRoom = PongRoom.rooms.get(data.gameID);
     pongRoom?.resume(data.userID);
   });
+  typedSocket.on('reloadTourRound', async(socket:WebSocket, data:Interfaces.SocketMessageMap['reloadTourRound'])=> {
+    Tournaments.reloadTourRound(data);
+  })
 }
 
 

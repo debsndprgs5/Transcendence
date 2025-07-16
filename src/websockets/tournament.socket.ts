@@ -183,3 +183,13 @@ export async function handleReadyNextRound(data:any){
 }
 
 
+export async function reloadTourRound(data:any){
+
+	const tour = Tournament.MappedTour.get(data.TournamentID);
+	const score = await tour?.extractScore();
+	const player = getPlayerByUserID(data.userID);
+	player!.typedSocket.send('updateTourScore', {
+		tournamentID:data.tournamentID,
+		score:score
+	});
+}

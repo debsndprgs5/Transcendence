@@ -264,6 +264,11 @@ export type SocketMessageMap = {
 						newOwnerID:number;
 
 	};
+	reloadTourRound:{	type:'reloadTourRound';
+						tournamentID:number;
+						userID:number;
+						score:string;
+	};
 };
 
 export type SocketMessage = SocketMessageMap[keyof SocketMessageMap];

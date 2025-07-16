@@ -147,10 +147,10 @@ export async function handleStartTournament(data: any) {
 		return;
 	}
 
-	if (tour.createdBy !== userID) {
-		console.log(`USER ID mismatch for tournament "${tour.name}"`);
-		return;
-	}
+	// if (tour.createdBy !== userID) {
+	// 	console.log(`USER ID mismatch for tournament "${tour.name}"`);
+	// 	return;
+	// }
 
 	const members = await getMembersByTourID(tournamentID);
 	for (const m of members!) {

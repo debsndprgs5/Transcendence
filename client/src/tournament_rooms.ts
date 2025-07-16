@@ -213,11 +213,11 @@ export async function handleLeaveTournament(islegit:boolean, duringGame?:boolean
   }));
   await rmMemberFromRoom(chatID, state.userId!);
   state.playerInterface!.typedSocket.send('leaveTournament', {
-	userID:state.playerInterface!.userID,
-	tournamentID:tourID,
-	islegit:islegit,
-  duringGame:duringGame,
-  isTourOwner:state.playerInterface?.isTourOwner
+    userID:state.playerInterface!.userID,
+    tournamentID:tourID,
+    islegit:islegit,
+    duringGame:duringGame,
+    isTourOwner:state.playerInterface?.isTourOwner
   });
 
   // clean up state & storage

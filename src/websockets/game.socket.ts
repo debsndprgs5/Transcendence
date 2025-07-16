@@ -14,6 +14,7 @@ import { TypedSocket } from '../shared/gameTypes';
 import {handleAllEvents, handleDisconnect} from './game.sockEvents'
 import { PongRoom } from '../services/PongRoom';
 import { getJwtSecret } from '../vault/vaultPlugin';
+import { Tournament }  from '../services/tournament';
 
 export const MappedPlayers = new Map<number, Interfaces.playerInterface<WebSocket>>();
 
@@ -46,7 +47,11 @@ export async function initGameSocket(ws: WebSocket, request: any) {
 			clearTimeout(oldPlayer.disconnectTimeOut);
 			oldPlayer.disconnectTimeOut = undefined;
 		}
-
+    let hasStarted = false;
+    if(oldPlayer.tournamentID){
+      const tour = Tournament.MappedTour.get(oldPlayer.tournamentID)
+      if(tour) hasStarted = true;
+  }
 		// Register event handlers again on the new socket
 		handleAllEvents(typedSocket, oldPlayer);
 		ws.on('close', () => handleDisconnect(oldPlayer));
@@ -58,6 +63,8 @@ export async function initGameSocket(ws: WebSocket, request: any) {
 			state: oldPlayer.state,
 			gameID: oldPlayer.gameID ?? null,
 			tournamentID: oldPlayer.tournamentID ?? null,
+      hasStarted:hasStarted,
+      isTourOwner:oldPlayer.isTourOwner ?? false,
 			message: oldPlayer.state === 'playing' ? 'Reconnected' : 'No game to resume',
 		});
     updatePlayerState(oldPlayer, oldPlayer.state);

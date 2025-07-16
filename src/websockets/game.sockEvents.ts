@@ -269,8 +269,12 @@ export async function  handleReconnect(parsed:any ,player: Interfaces.playerInte
 	}
   let hasStarted = false;
   if(player.tournamentID){
-    const tour = Tournament.MappedTour.get(player.userID)
-    if(tour) hasStarted = true;
+    console.log('[RECONNECT] looking if tournament has started');
+    const tour = Tournament.MappedTour.get(player.tournamentID);
+    if(tour){
+      hasStarted = true;
+      console.log('[RECONNECT] tournament Found');
+    }
   }
   console.log(`[RECON][isTourOwner]${player.isTourOwner}`);
 	// Always send back current player + state info

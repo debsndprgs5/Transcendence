@@ -101,7 +101,7 @@ CREATE TABLE IF NOT EXISTS tournamentMembers (
   userID         INTEGER NOT NULL,
   points         INTEGER DEFAULT 0,          -- victory = 10 pts, defeat = 0pts, even = 5 pts
   matchesPlayed  INTEGER DEFAULT 0,
-  created_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
+  created_at     DATETIME DEFAULT CURRENT_TIMESTAMP, 
   PRIMARY KEY (tournamentID, userID),
   FOREIGN KEY(tournamentID) REFERENCES tournaments(tournamentID) ON DELETE CASCADE,
   FOREIGN KEY(userID) REFERENCES users(our_index) ON DELETE CASCADE

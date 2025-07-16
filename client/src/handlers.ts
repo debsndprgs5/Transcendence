@@ -12,6 +12,7 @@ import { isAuthenticated, apiFetch, initWebSocket, state, resetState } from './a
 import { showNotification, showUserActionsBubble } from './notifications';
 import { showPongMenu } from './pong_rooms';
 import { initGameSocket } from './pong_socket';
+import { handleLeaveTournament } from './tournament_rooms';
 //import { WebSocket } from 'ws';
 
 interface User {
@@ -1120,7 +1121,7 @@ window.addEventListener('storage', (event: StorageEvent) => {
 /**
  * Clears all auth state, closes socket and renders Home.
  */
-export function handleLogout(): void {
+export async function handleLogout(): Promise<void> {
 	// Notify server about game leave (only if socket is open)
 	if (state.playerInterface?.gameID && state.playerInterface?.socket?.readyState === WebSocket.OPEN) {
 		state.playerInterface!.typedSocket.send('leaveGame', {
@@ -1128,8 +1129,9 @@ export function handleLogout(): void {
 			gameID: state.playerInterface!.gameID,
 			islegit: false
 		});
+		if(state.playerInterface.tournamentID) await handleLeaveTournament(false);
 	}
-
+	
 	// Send offline status via friend socket (if open)
 	if (state.socket?.readyState === WebSocket.OPEN) {
 		console.warn(`CLOSING CHAT socket`)

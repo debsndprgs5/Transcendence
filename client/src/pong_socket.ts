@@ -534,7 +534,7 @@ export async function handleReconnection(socket:WebSocket, typedSocket:TypedSock
 		tournamentID: data.tournamentID ?? undefined,
 		isTourOwner:data.isTourOwner ?? false,
 	};
-	console.warn(`[RECONNETED][isOwner]${data.isTourOwner}`);
+	console.warn(`[RECONNETED][isOwner]${data.isTourOwner} | [hasStarted]${data.hasStarted}`);
 	localStorage.setItem('userID', data.userID.toString());
 
 	// CASE 1: Game is active & Renderer exists → Resume it

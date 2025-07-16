@@ -154,12 +154,18 @@ export async function handleCreateTournament(): Promise<void> {
       })
     });
     showNotification({ message: `Tournament "${name}" created`, type: 'success' });
-	
+	  state.playerInterface!.isTourOwner = true;
 	//send joinTournament request to backend 
-	state.playerInterface!.typedSocket.send('joinTournament', {userID:state.userId, tournamentID:reply.tournament.tournamentID, chatID:newRoom.roomID});
+	state.playerInterface!.typedSocket.send('joinTournament', {
+    userID:state.userId,
+    tournamentID:reply.tournament.tournamentID,
+    chatID:newRoom.roomID,
+    isTourOwner:state.playerInterface!.isTourOwner
+  });
   
   // notify that this user is the tournament's creator
-  state.isTournamentCreator = true;
+  //state.isTournamentCreator = true;
+
   } catch (err) {
     console.error('Error creating tournament:', err);
     showNotification({ message: 'Failed to create', type: 'error' });
@@ -173,7 +179,13 @@ export async function handleJoinTournament(tourID: number): Promise<void> {
 		showNotification({message:`You can't join tournament because you are ${state.playerInterface!.state}`, type:'error'})
 		return;
 	}
-	state.playerInterface!.typedSocket.send('joinTournament',  {userID:state.userId, tournamentID:tourID})
+  if(state.playerInterface!.isTourOwner !== true)
+    state.playerInterface!.isTourOwner = false;
+	state.playerInterface!.typedSocket.send('joinTournament',  {
+    userID:state.userId,
+    tournamentID:tourID,
+    isTourOwner:state.playerInterface!.isTourOwner
+  });
   //join linked chatRoom
   const { chatID } = await apiFetch(`/api/tournaments/chat/${tourID}`);
   await addMemberToRoom(chatID, state.userId!);
@@ -184,11 +196,14 @@ export async function handleJoinTournament(tourID: number): Promise<void> {
     chatRoomID:chatID,
     content: `${localStorage.getItem('username')} just join tournament !`
   }));
-  state.isTournamentCreator = false;
+  //state.isTournamentCreator = false;
+
 }
 
 // Handles the "Leave Tournament" button action
-export async function handleLeaveTournament(islegit:boolean): Promise<void> {
+export async function handleLeaveTournament(islegit:boolean, duringGame?:boolean|undefined): Promise<void> {
+  if(duringGame === undefined)
+    duringGame = false;
   const tourID = state.playerInterface!.tournamentID!;
   const { chatID } = await apiFetch(`/api/tournaments/chat/${tourID}`);
     state.socket?.send(JSON.stringify({
@@ -200,19 +215,22 @@ export async function handleLeaveTournament(islegit:boolean): Promise<void> {
   state.playerInterface!.typedSocket.send('leaveTournament', {
 	userID:state.playerInterface!.userID,
 	tournamentID:tourID,
-	islegit: islegit
+	islegit:islegit,
+  duringGame:duringGame,
+  isTourOwner:state.playerInterface?.isTourOwner
   });
 
   // clean up state & storage
   state.currentTournamentName    = undefined;
   state.currentTournamentPlayers = undefined;
-  state.isTournamentCreator = false;
+ // state.isTournamentCreator = false;
+  state.playerInterface!.isTourOwner = false;
   state.playerInterface!.tournamentID = undefined;
   localStorage.removeItem('tournament_view');
   localStorage.removeItem('tournament_name');
   localStorage.removeItem('tournament_players');
   localStorage.removeItem('tournament_id');
-
+  
   state.canvasViewState = 'mainMenu';
   showPongMenu();
 }

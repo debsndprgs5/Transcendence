@@ -133,6 +133,13 @@ async function handleEvents(
 	typedSocket.on('startNextRound', async(socket:WebSocket, data:Interfaces.SocketMessageMap['startNextRound'])=>{
 		 Tournament.handleStartNextRound(data);
 	});
+	typedSocket.on('tourOwnerChange', async(socket:WebSocket, data:Interfaces.SocketMessageMap['tourOwnerChange'])=>{
+		if(data.newOwnerID === state.userId!){
+			state.playerInterface!.isTourOwner = true;
+			//state.canvasViewState='waitingTournament';
+			//showPongMenu();
+		}
+	})
 	typedSocket.on('invite', async(socket:WebSocket, data:Interfaces.SocketMessageMap['invite'])=>{
 		await handleInvite(data);
 	});
@@ -525,8 +532,9 @@ export async function handleReconnection(socket:WebSocket, typedSocket:TypedSock
 		state: data.state!,
 		gameID: data.gameID ?? undefined,
 		tournamentID: data.tournamentID ?? undefined,
+		isTourOwner:data.isTourOwner ?? false,
 	};
-
+	console.warn(`[RECONNETED][isOwner]${data.isTourOwner}`);
 	localStorage.setItem('userID', data.userID.toString());
 
 	// CASE 1: Game is active & Renderer exists → Resume it
@@ -576,10 +584,14 @@ export async function handleReconnection(socket:WebSocket, typedSocket:TypedSock
 	return;
 	}
 	//User was in tournament but not playing
-	if(data.tournamentID && data.state !== 'playing'){
+	if(data.tournamentID){
 		console.log('[RECONNECT] No active game but active tournament');
-		state.canvasViewState = 'WaitingTournamentRounds';
+		if(data.hasStarted === true)
+			state.canvasViewState = 'waitingTournamentRounds';
+		else
+			state.canvasViewState = 'waitingTournament';
 		showPongMenu();
+		return;
 	}
 
 

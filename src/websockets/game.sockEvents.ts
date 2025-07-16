@@ -1,13 +1,14 @@
 import * as Interfaces from '../shared/gameTypes'
 import * as GameManagement from '../db/gameManagement'
 import * as Helpers from './game.sockHelpers'
-import * as Tournament from './tournament.socket'
+import * as Tournaments from './tournament.socket'
 import { TypedSocket } from '../shared/gameTypes';
 import {getPlayerBySocket, getPlayerByUserID, getAllMembersFromGameID, delPlayer} from './game.socket'
 import { playerMove } from '../services/pong'
 import { PongRoom } from '../services/PongRoom';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import { getJwtSecret } from '../vault/vaultPlugin';
+import { Tournament }  from '../services/tournament';
 
 
 const jwtSecret = getJwtSecret();
@@ -27,19 +28,19 @@ export function handleAllEvents(typedSocket:TypedSocket, player:Interfaces.playe
     handleJoin(data, player);
   });
   typedSocket.on('joinTournament', async (socket:WebSocket, data:Interfaces.SocketMessageMap['joinTournament']) => {
-    Tournament.handleJoinTournament(player, data);
+    Tournaments.handleJoinTournament(player, data);
   });
   typedSocket.on('leaveTournament', async (socket:WebSocket, data:Interfaces.SocketMessageMap['leaveTournament']) => {
-    Tournament.handleLeaveTournament(player, data);
+    Tournaments.handleLeaveTournament(player, data);
   });
   typedSocket.on('startTournament', async (socket:WebSocket, data:Interfaces.SocketMessageMap['startTournament']) => {
-    Tournament.handleStartTournament(data);
+    Tournaments.handleStartTournament(data);
   });
   typedSocket.on('matchFinish', async(socket:WebSocket, data:Interfaces.SocketMessageMap['matchFinish']) => {
-    Tournament.handleMatchFinish(data);
+    Tournaments.handleMatchFinish(data);
   });
   typedSocket.on('readyNextRound', async(socket:WebSocket, data:Interfaces.SocketMessageMap['readyNextRound']) => {
-    Tournament.handleReadyNextRound(data);
+    Tournaments.handleReadyNextRound(data);
   });
   typedSocket.on('invite', async (socket:WebSocket, data:Interfaces.SocketMessageMap['invite']) => {
     handleInvite(data, player);
@@ -237,7 +238,7 @@ export async function handlePlayerMove(parsed: any, player: Interfaces.playerInt
 }
 
 //WE NEED TO CHECK WHAT TO DO IN THAT CASE MORE CLEARLY
-export async function handleReconnect(parsed:any ,player: Interfaces.playerInterface) {
+export async function  handleReconnect(parsed:any ,player: Interfaces.playerInterface) {
 // CASE 1: Mismatched user — recreate the player interface
 	if (parsed.userID !== player.userID) {
 		console.warn(`[RECONNECT] Mismatch: received ${parsed.userID}, expected ${player.userID}. Reinitializing...`);
@@ -266,7 +267,12 @@ export async function handleReconnect(parsed:any ,player: Interfaces.playerInter
 			resumed = true;
 		}
 	}
-  if(resumed)
+  let hasStarted = false;
+  if(player.tournamentID){
+    const tour = Tournament.MappedTour.get(player.userID)
+    if(tour) hasStarted = true;
+  }
+  console.log(`[RECON][isTourOwner]${player.isTourOwner}`);
 	// Always send back current player + state info
 	player.typedSocket.send('reconnected', {
 		userID: player.userID,
@@ -274,6 +280,8 @@ export async function handleReconnect(parsed:any ,player: Interfaces.playerInter
 		state: player.state,
 		gameID: player.gameID ?? null,
 		tournamentID: player.tournamentID ?? null,
+    isTourOwner:player.isTourOwner ?? false,
+    hasStarted:hasStarted,
 		message: resumed ? 'Game resumed' : 'No game to resume',
 	});
 }

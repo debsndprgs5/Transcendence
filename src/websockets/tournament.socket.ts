@@ -22,9 +22,10 @@ export async function handleJoinTournament(player:Interfaces.playerInterface, da
 					tourName:tour?.name,
 					success:true
 			});
-			player.tournamentID = data.tournamentID
-			console.log(`${player.username} just joined tournament ID : ${data.tournamentID}`);
-			updateTourPlayerList(player, data.tournamentID, false)
+			player.tournamentID = data.tournamentID;
+			player.isTourOwner = data.isTourOwner;
+			console.log(`${player.username} just joined tournament ID : ${data.tournamentID} | ${data.isTourOwner}`);
+			updateTourPlayerList(player, data.tournamentID, false);
 			Helpers.updatePlayerState(player, 'waitingTournament');	
 		}
 		catch{
@@ -70,7 +71,18 @@ export async function handleLeaveTournament(player: Interfaces.playerInterface, 
 	// }
 
 	// User clicked "Leave Tournament" button manually
-
+	if(data.duringGame === false && data.isTourOwner === true){
+		const tour = Tournament.MappedTour.get(player.tournamentID!);
+		if(!tour){
+			const user = await GameManagement.getOlderPlayerForTour(player.userID!, player.tournamentID!);
+			if(user){
+				const newOwner = getPlayerByUserID(user!.userID);
+				//else we will just close tour later on
+				if(newOwner)
+					newOwner.typedSocket.send('tourOwnerChange', {newOwnerID:user!.userID});
+			}
+		}
+	}
 	// 1. Clean DB entry
 	await GameManagement.delMemberFromTournament(player.tournamentID!, player.userID!);
 
@@ -125,13 +137,7 @@ export async function broadcastTourList() {
 }
 
 
-//START TOURNAMENT
-/* SERVER RECEVIED START FROM OWNER
-	send back start to members?
-	start tournament loop
-	data{
-		userID:
-		tournamentID: } */
+
 export async function handleStartTournament(data: any) {
 	const { tournamentID, userID } = data;
 
@@ -177,19 +183,3 @@ export async function handleReadyNextRound(data:any){
 }
 
 
-
-/** 
- *  			 -> arreter le tournoi, on va rester en playing 
- * 				-> demarrer les games depuis tournoi -> check les rules envoyes 
- * 				-> verifier workflow fin de game till nextRound 
- * 				-> update DB sur fin de tournoi 
- * 
- *				-> TournamentClass -> rajouter un function delMember(id)
- *									-> si c'est owner -> newOwner
- * 
- * 				->WaitingNextRoundView	-> update score 
- * 										-> ownerID startNextRound
- * 	
- * 				->PLEIN D'AUTRES BAUX QUE JE VOIS PAS CASH 
- * 
- */

@@ -65,6 +65,7 @@ export interface playerInterface<SocketType= any>{
 	typedSocket: TypedSocket,
 	gameID?:number,
 	tournamentID?:number,
+	isTourOwner?:boolean,
 	score?:number,
 	hasDisconnected?:boolean,
 	disconnectTimeOut?:NodeJS.Timeout,
@@ -164,7 +165,9 @@ export type SocketMessageMap = {
 					state?:string;
 					gameID?:number;
 					tournamentID?:number;
-					message?:string
+					isTourOwner?:boolean;
+					hasStarted?:boolean;
+					message?:string;
 			};
 	leaveGame:{	type:'leaveGame';
 				userID:number;
@@ -188,6 +191,7 @@ export type SocketMessageMap = {
 						tournamentID:number;
 						tourName:string;
 						success:boolean;
+						isTourOwner:boolean;
 			};
 	updateTourPlayerList:{	type:'updateTourPlayerList';
 						tournamentID:number;
@@ -196,7 +200,9 @@ export type SocketMessageMap = {
 	leaveTournament:{	type:'leaveTournament';
 						userID:number;
 						tournamentID:number;
-						islegit:boolean
+						islegit:boolean;
+						duringGame:boolean;
+						isOwner:boolean;
 					};
 	updateTourList:{	type:'updateTourList';
 						list:{	tourID:number,
@@ -238,22 +244,26 @@ export type SocketMessageMap = {
 					b_ID:number;
 					a_score:number;
 					b_score:number;
-	}
+	};
 	readyNextRound:{	type:'readyNextRound';
 						tourID:number;
 						userID:number;
-	}
+	};
 	healthcheck:{	type:'healthcheck';
 					token:string;
-	}
+	};
 	pause:{		type:'pause';
 				userID:number;
 				gameID:number;
-	}
+	};
 	resume:{	type:'resume';
 				userID:number;
 				gameID:number;
-	}
+	};
+	tourOwnerChange:{	type:'tourOwnerChange';
+						newOwnerID:number;
+
+	};
 };
 
 export type SocketMessage = SocketMessageMap[keyof SocketMessageMap];

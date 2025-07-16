@@ -529,8 +529,9 @@ private initInputListeners() {
 								userID: state.userId!,
 								tournamentID: tourID,
 								islegit: false,
+								duringGame:true
 							});
-						handleLeaveTournament(false);
+						handleLeaveTournament(false, true);
 						}
 					},
 					onCancel: () => {

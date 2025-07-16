@@ -558,7 +558,7 @@ export function drawWaitingTournamentView(
 
   // Start Tournament button (only for creator)
   let startBtn: PongButton | null = null;
-  if (state.isTournamentCreator === true) {
+  if (state.playerInterface!.isTourOwner === true) {
     const startW = width  * 0.25;
     const startH = height * 0.08;
     const startX = width  / 2 - startW / 2;

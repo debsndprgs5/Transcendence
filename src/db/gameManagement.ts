@@ -201,6 +201,15 @@ export const getAllTournamentMembers = (tournamentID: number) =>
 		[tournamentID]
 	);
 
+export const getOlderPlayerForTour = (userID:number, tourID:number) =>
+		get<{ userID: number }>(
+		`SELECT userID
+		 FROM tournamentMembers
+		 WHERE userID != ? AND tournamentID = ?
+		 ORDER BY created_at ASC
+		 LIMIT 1`,
+		[userID, tourID]
+	);
 // Update tournament member's stats
 export const updateMemberStats = (
 	tournamentID: number,

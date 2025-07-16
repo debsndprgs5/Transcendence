@@ -250,6 +250,35 @@ export const getChatIDbyTourID = (tournamentID:number) =>
 // #       Match Result       #
 // ############################
 
+export const saveMatchStats = async (
+  matchID: number,
+  tourID: number | null,
+  paddleSpeed: number,
+  ballSpeed: number,
+  limit: number,
+  winCondition: string,
+  players: Array<{ userID: number, score: number }>
+) => {
+  await run(
+	`INSERT INTO matchHistory (matchID, tourID, rulesPaddleSpeed, rulesBallSpeed, rulesLimit, rulesCondition) VALUES (?, ?, ?, ?, ?, ?);`,
+	[
+	  matchID,
+	  tourID || null,
+	  paddleSpeed,
+	  ballSpeed,
+	  limit,
+	  winCondition === 'score' ? 1 : 0
+	]
+  );
+
+  for (const p of players) {
+	await run(
+	  `INSERT INTO scoreTable (matchID, userID, score) VALUES (?, ?, ?);`,
+	  [matchID, p.userID, p.score]
+	);
+  }
+}
+
 export const sendGameResultTwo = (gameID: number, userID: [number, number], winner: number, score: [number, number], start: string) =>
 	run(
 		`INSERT INTO gameResultTwo (gameID, winner, playerA, playerB, scoreA, scoreB, started_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,

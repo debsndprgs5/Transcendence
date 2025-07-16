@@ -121,42 +121,28 @@ CREATE TABLE IF NOT EXISTS tournamentMatches (
   FOREIGN KEY(playerB) REFERENCES users(our_index) ON DELETE CASCADE
 );
 
---  Normal Matches results 2 players
-CREATE TABLE IF NOT EXISTS gameResultTwo (
-  matchID		INTEGER NOT NULL,
-  winner		INTEGER NOT NULL,
-  playerA		INTEGER NOT NULL,
-  playerB		INTEGER NOT NULL,
-  scoreA		INTEGER NOT NULL,
-  scoreB		INTEGER NOT NULL,
-  played_at		DATETIME DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (matchID) REFERENCES gameRooms(gameID) ON DELETE CASCADE,
-  FOREIGN KEY(winner) REFERENCES users(our_index) ON DELETE CASCADE,
-  FOREIGN KEY(playerA) REFERENCES users(our_index) ON DELETE CASCADE,
-  FOREIGN KEY(playerB) REFERENCES users(our_index) ON DELETE CASCADE
+------------------- STATS -------------------
+
+CREATE TABLE IF NOT EXISTS scoreTable (
+  matchID       INTEGER,
+  userID        INTEGER,
+  score         INTEGER,
+  FOREIGN KEY (matchID) REFERENCES matchHistory(matchID),
+  FOREIGN KEY (userID) REFERENCES users(our_index)
 );
 
---  Normal Matches results 4 players
-CREATE TABLE IF NOT EXISTS gameResultFour (
-  matchID		INTEGER NOT NULL,
-  winner		INTEGER NOT NULL,
-  playerA		INTEGER NOT NULL,
-  playerB		INTEGER NOT NULL,
-  playerC		INTEGER NOT NULL,
-  playerD		INTEGER NOT NULL,
-  scoreA		INTEGER NOT NULL,
-  scoreB		INTEGER NOT NULL,
-  scoreC		INTEGER NOT NULL,
-  scoreD		INTEGER NOT NULL,
-  played_at		DATETIME DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY(winner) REFERENCES users(our_index) ON DELETE CASCADE,
-  FOREIGN KEY(playerA) REFERENCES users(our_index) ON DELETE CASCADE,
-  FOREIGN KEY(playerB) REFERENCES users(our_index) ON DELETE CASCADE,
-  FOREIGN KEY(playerC) REFERENCES users(our_index) ON DELETE CASCADE,
-  FOREIGN KEY(playerD) REFERENCES users(our_index) ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS matchHistory (
+  matchID           INTEGER,
+  tourID            INTEGER,
+  rulesPaddleSpeed  INTEGER,
+  rulesBallSpeed    INTEGER,
+  rulesLimit        INTEGER,
+  rulesCondition    INTEGER -- 1 = score, 0 = time
 );
 
-
+-- CREATE TABLE IF NOT EXISTS tourHistory (
+--   tourID         INTEGER,
+  
 /* 
     IDEAL POUR HISTORIQUE :  
       TABLE MATCH_HISTORY{

@@ -12,6 +12,7 @@ import {
 } from '../shared/gameTypes'
 import { getUnameByIndex } from '../db/userManagement'
 import { Tournament } from './tournament'
+import { saveMatchStats } from '../db/gameManagement'
 
 /**
  * A lightweight container for one running Pong match.
@@ -380,6 +381,16 @@ private  handleWallScore(sideHit: 'left'|'right'|'top'|'bottom', ball: ballClass
 	private async endCleanMatch() {
 		clearInterval(this.loop!);
 		PongRoom.rooms.delete(this.gameID);
+
+		await saveMatchStats(
+		this.gameID,
+		this.players[0].tournamentID || null,
+		this.game.paddleSpeed,
+		this.game.ballSpeed,
+		this.game.limit,
+		this.game.winCondition,
+		this.players.map(p => ({ userID: p.userID, score: this.scoreMap.get(p.userID) || 0 }))
+	);
 
 		const playermapped = new Map<string, number>();
 		for (const [userID, score] of this.scoreMap) {

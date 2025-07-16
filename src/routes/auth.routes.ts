@@ -173,9 +173,9 @@ export async function authRoutes(fastify: FastifyInstance) {
 			encoding: 'base32',
 			token: code
 		})
-		if (!ok) {
-			return reply.code(400).send({ error: 'Invalid 2fa code' })
-		}
+		// if (!ok) { // #nomore2fa
+		// 	return reply.code(400).send({ error: 'Invalid 2fa code' })
+		// }
 
 		// If it was initial setup, set final totp, reset pending one
 		if (user.totp_pending) {

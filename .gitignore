@@ -3,3 +3,4 @@
 src/db/*.db
 Makefile
 en.subject.pdf
+.github/

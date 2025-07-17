@@ -450,7 +450,7 @@ export async function handleEndMatch(
 		{ username: winnerName, score: winnerScore },
 		{ username: loserName,  score: loserScore  },
 		() => {
-			if (state.playerInterface!.tournamentID && state.playerInterface!.tournamentID > 0) {
+			if (state.playerInterface!.tournamentID) {
 				renderer.dispose();
 				pongState.pongRenderer = null;
 				state.playerInterface!.a_ID = data.a_ID
@@ -535,16 +535,16 @@ export async function handleReconnection(socket:WebSocket, typedSocket:TypedSock
 		tournamentID: data.tournamentID ?? undefined,
 		isTourOwner:data.isTourOwner ?? false,
 	};
-	console.warn(`[RECONNETED][isOwner]${data.isTourOwner} | [hasStarted]${data.hasStarted}`);
+	
 	localStorage.setItem('userID', data.userID.toString());
 
 	// CASE 1: Game is active & Renderer exists → Resume it
 	if (data.gameID && data.state === 'playing' && pongState.pongRenderer !== null) {
 		if (pongState.pongRenderer.getScene()?.isDisposed) {
-			console.warn('[RECONNECT] Renderer scene is disposed. Clearing renderer.');
+		
 			pongState.pongRenderer = null;
 		} else {
-			console.log('[RECONNECT] Resuming existing renderer.');
+	
 			pongState.pongRenderer.resumeRenderLoop?.();
 			state.canvasViewState = 'playingGame';
 			return;
@@ -553,7 +553,6 @@ export async function handleReconnection(socket:WebSocket, typedSocket:TypedSock
 
 	// CASE 2: Game is active & Renderer is missing → Offer to restore it
 	if (data.gameID && data.state === 'playing' && pongState.pongRenderer === null) {
-		console.log('[RECONNECT] User accepted resume. Sending resumeGame.');
 
 		const playerCount = Number(localStorage.getItem('playerCount'));
 		const side = localStorage.getItem('playerSide') as 'left' | 'right' | 'top' | 'bottom';

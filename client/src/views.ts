@@ -21,7 +21,7 @@ export function HomeView(): string {
         <main class="min-h-screen flex items-center justify-center px-4 py-8">
           <section class="w-full max-w-6xl h-[80vh] mt-[-5vh] bg-white/5 rounded-2xl shadow-xl overflow-hidden md:flex backdrop-blur-md border border-white/10">
             <div class="p-10 md:w-1/2 text-white flex flex-col justify-center">
-              <h1 class="text-4xl font-bold mb-4 text-indigo-100">Welcome to nothing</h1>
+              <h1 class="text-4xl font-bold mb-4 text-indigo-100">Welcome to Transcendence</h1>
               <p class="text-lg text-indigo-200 mb-8 leading-relaxed">
                 Play Pong with your friends, chat live, climb the leaderboard, and become a legend.
               </p>
@@ -37,129 +37,104 @@ export function HomeView(): string {
               </div>
             </div>
             <div class="md:w-1/2 flex items-center justify-center bg-white/10">
-              <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExMGxybmhtZmdwNTU0YjVqOThnMXdmaGlic3QxdXFod2N0aDZnNTRpNCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o72FkiKGMGauydfyg/giphy.gif"
+              <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExZnhjdTU4NHdsNTVocW54bndicnN0bDZ0ZG02NzN3azJvbGg2MnFjNiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/9tx0gy37p7oXu/giphy.gif"
                    alt="pong animation"
                    class="w-4/5 h-auto rounded-lg shadow-xl max-h-[65vh] object-contain">
-           </div>
+            </div>
           </section>
         </main>
       `;
     }
 
 
-  const userName = localStorage.getItem('username') || '';
+ const userName = localStorage.getItem('username') || '';
+
   return `
-	<main class="flex-grow w-full">
-  <div class="pt-6 px-[4px] sm:px-[8px] lg:px-[12px] mx-auto w-[95vw] max-w-[1600px]">
-    <h1 class="text-2xl font-semibold text-indigo-100 mb-4">
-      Welcome, <strong>${userName}</strong>!
-    </h1>
-    <div class="grid gap-6 grid-cols-1 md:grid-cols-[57%_43%]">
+    <main class="flex-grow w-full">
+      <div class="pt-6 px-[4px] sm:px-[8px] lg:px-[12px] mx-auto w-[95vw] max-w-[1800px]">
+        <h1 class="text-2xl font-semibold text-indigo-100 mb-4">
+          Welcome, <strong>${userName}</strong>!
+        </h1> 
 
-      <!-- Colonne Pong/Menu -->
-      <div class="flex justify-center items-center p-4 sm:p-6 rounded-lg shadow-lg"
-           style="background: conic-gradient(
-             from 90deg,
-             rgba(187,119,2,1)    0deg,
-             rgba(187,119,2,1)   27.692deg,
-             rgba(202,134,27,1)  27.692deg,
-             rgba(202,134,27,1)  55.385deg,
-             rgba(210,147,54,1)  55.385deg,
-             rgba(210,147,54,1)  83.077deg,
-             rgba(210,158,79,1)  83.077deg,
-             rgba(210,158,79,1) 110.769deg,
-             rgba(203,165,102,1)110.769deg,
-             rgba(188,169,121,1)138.462deg,
-             rgba(188,169,121,1)166.154deg,
-             rgba(168,170,136,1)166.154deg,
-             rgba(168,170,136,1)193.846deg,
-             rgba(146,166,144,1)193.846deg,
-             rgba(146,166,144,1)221.538deg,
-             rgba(123,159,146,1)221.538deg,
-             rgba(123,159,146,1)249.231deg,
-             rgba(103,148,141,1)249.231deg,
-             rgba(103,148,141,1)276.923deg,
-             rgba( 88,135,130,1)276.923deg,
-             rgba( 88,135,130,1)304.615deg,
-             rgba( 79,120,113,1)304.615deg,
-             rgba( 79,120,113,1)332.308deg,
-             rgba( 79,105, 92,1)332.308deg 360deg
-           );">
-        <div class="relative w-full max-w-5xl aspect-video">
-          <img src="/screen.png" alt="CRT frame" class="w-full h-auto">
-          <div class="absolute top-[14%] left-[14%] w-[71.2%] h-[55%]">
-            <canvas
-              id="pong-canvas"
-              class="w-full h-full rounded-[4px] shadow-inner bg-black"
-            ></canvas>
-            <canvas
-              id="babylon-canvas"
-              class="w-full h-full rounded-[4px] shadow-inner bg-black hidden"
-            ></canvas>
-            <!-- Notre conteneur pour les menus en HTML, caché par défaut -->
-            <div id="ui-overlay" class="absolute inset-0 hidden"></div>
-          </div>
+        <div class="grid gap-6 grid-cols-1 md:grid-cols-[57%_43%]">
+
+        <!-- Pong / Menu column -->
+        <div
+          class="flex justify-center items-start
+                 p-4 sm:p-6 rounded-lg shadow-lg
+                 bg-pongmenu-ui bg-cover bg-center
+                 min-h-[85vh] relative">
+
+            <div id="pongWrapper"
+                 class="absolute bg_gmenu-container"
+                 style="top:8%; left:10%; width:80%; height:58%;">
+            <canvas id="pong-canvas"
+                    class="w-full h-full rounded-[4px] shadow-inner bg-transparent relative z-10">
+            </canvas>
+            <canvas id="babylon-canvas"
+                    class="w-full h-full rounded-[4px] shadow-inner bg-black hidden relative z-10">
+            </canvas>
+          </div> 
+
         </div>
-      </div>
+        <div id="portal_rays"  class="portal-halo pointer-events-none"></div>
+        <div id="portal_base"  class="portal-base pointer-events-none"></div>
+        <!-- Chat column -->
+        <div
+          class="relative rounded-lg shadow-lg text-white
+                 bg-chat-starry bg-cover bg-contain bg-no-repea
+                 min-h-[85vh]">        <!-- same floor/ceiling -->
 
-      <!-- Colonne Chat -->
-      <div class="p-4 sm:p-6 rounded-lg shadow-lg flex flex-col"
-           style="background: conic-gradient(
-             from 90deg,
-             rgba(187,119,2,1)    0deg,
-             rgba(187,119,2,1)   27.692deg,
-             rgba(202,134,27,1)  27.692deg,
-             rgba(202,134,27,1)  55.385deg,
-             rgba(210,147,54,1)  55.385deg,
-             rgba(210,147,54,1)  83.077deg,
-             rgba(210,158,79,1)  83.077deg,
-             rgba(210,158,79,1) 110.769deg,
-             rgba(203,165,102,1)110.769deg,
-             rgba(188,169,121,1)138.462deg,
-             rgba(188,169,121,1)166.154deg,
-             rgba(168,170,136,1)166.154deg,
-             rgba(168,170,136,1)193.846deg,
-             rgba(146,166,144,1)193.846deg,
-             rgba(146,166,144,1)221.538deg,
-             rgba(123,159,146,1)221.538deg,
-             rgba(123,159,146,1)249.231deg,
-             rgba(103,148,141,1)249.231deg,
-             rgba(103,148,141,1)276.923deg,
-             rgba( 88,135,130,1)276.923deg,
-             rgba( 88,135,130,1)304.615deg,
-             rgba( 79,120,113,1)304.615deg,
-             rgba( 79,120,113,1)332.308deg,
-             rgba( 79,105, 92,1)332.308deg 360deg
-           );">
-        <h2 class="text-2xl font-semibold text-gray-900 mb-4 flex justify-between items-center">
-          <button id="generalChatBtn" class="text-gray-900 hover:text-gray-700 transition-colors">
-            Chat
+          <!-- General Chat button -->
+          <button id="generalChatBtn"
+                  class="absolute left-[5%] top-[2%]
+                         text-2xl font-bold
+                         hover:text-indigo-300 transition">
+            General Chat
           </button>
-          <div class="flex items-center gap-2">
-            <input id="userActionInput" type="text" placeholder="Username or ID"
-                   class="px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-200 text-sm" style="width:140px;" />
-            <button id="addFriendBtn" class="px-2 py-1 bg-green-400 text-black rounded hover:bg-green-500 transition text-xs">Add Friend</button>
-            <button id="blockUserBtn" class="px-2 py-1 bg-yellow-400 text-black rounded hover:bg-yellow-500 transition text-xs">Block</button>
-            <button id="unblockUserBtn" class="px-2 py-1 bg-gray-300 text-black rounded hover:bg-gray-400 transition text-xs">Unblock</button>
-            <button id="newChatRoomBtn" class="px-3 py-1 bg-indigo-100 text-indigo-600 rounded hover:bg-indigo-200 transition text-sm">New Room</button>
-          </div>
-        </h2>
-        <div class="flex-1 overflow-auto mb-4 flex">
-          <ul id="room-list" class="w-1/3 border-r border-gray-300 pr-4 space-y-2 overflow-auto min-h-0 text-gray-900"></ul>
-          <div class="w-2/3 pl-4 flex flex-col">
-            <div id="chat" class="flex-1 overflow-auto space-y-2 mb-4 break-words text-gray-900"></div>
-            <form id="chatForm" class="flex space-x-2">
-              <input name="message" placeholder="Write a message…"
-                     class="flex-1 border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-[#6DD5FA]" />
-              <button type="submit" class="px-4 py-2 bg-[#2980B9] text-white rounded-lg hover:bg-[#2278A1] transition">Send</button>
-            </form>
-          </div>
-        </div>
-      </div>
 
+          <!-- Action bar (username input + buttons) -->
+          <div class="absolute left-[32%] top-[0.5%] flex items-center gap-2">
+            <div class="topchatinput-textInputWrapper">
+              <input id="userActionInput" type="text" placeholder="Username or ID"
+                     class="topchatinput-textInput" />
+            </div>
+            <button id="addFriendBtn"    class="chatactionbarbutton-button">Add Friend</button>
+            <button id="blockUserBtn"    class="chatactionbarbutton-button">Block</button>
+            <button id="unblockUserBtn"  class="chatactionbarbutton-button">Unblock</button>
+            <button id="newChatRoomBtn"  class="chatactionbarbutton-button">New Room</button>
+          </div>
+
+          <!-- Rooms list -->
+          <ul id="room-list"
+              class="absolute left-[6.5%] top-[18%]
+                     w-[20%] h-[60%]
+                     space-y-[1.4rem] overflow-auto text-gray-200">
+          </ul>
+
+          <!-- Messages area -->
+          <div id="chat"
+               class="absolute left-[35%] top-[18%]
+                      w-[62%] h-[66%]
+                      overflow-y-auto space-y-2 pr-2 break-words">
+          </div>
+
+          <!-- Send-message form -->
+          <form id="chatForm"
+                class="absolute left-[35%] bottom-[6%] w-[62%] flex space-x-2">
+            <input name="message" placeholder="Write a message…"
+                   class="flex-1 border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-[#6DD5FA] text-black" />
+            <button type="submit"
+                    class="px-4 py-2 bg-[#2980B9] text-white rounded-lg hover:bg-[#2278A1] transition">
+              Send
+            </button>
+          </form>
+        </div>
+
+      </div>
     </div>
   </main>
-  `;
+`;
 }
 
 /**

@@ -1,4 +1,3 @@
-# Redirection HTTP vers HTTPS
 server {
     listen 1800;
     server_name _;

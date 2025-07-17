@@ -109,7 +109,9 @@ export function showPongMenu(): void {
 		if (!ctx) return;
 
 		// Handle canvas visibility based on game state
-		if (state.canvasViewState === 'playingGame') {
+		if (state.canvasViewState === 'playingGame'
+				|| state.canvasViewState === 'localGameConfig'
+				|| state.canvasViewState === 'settings') {
 			canvas.style.display        = 'none';
 			babylonCanvas.style.display = 'block';
 		} else {
@@ -176,8 +178,8 @@ export function showPongMenu(): void {
 						break;
 
 				case 'playingGame': 
-					canvas.style.display        = 'none';
-					babylonCanvas.style.display = 'block';
+					//canvas.style.display        = 'none';
+					//babylonCanvas.style.display = 'block';
 
 					const r = babylonCanvas.getBoundingClientRect();
 					babylonCanvas.width  = Math.floor(r.width);
@@ -204,8 +206,8 @@ export function showPongMenu(): void {
                     showLocalGameConfigView();
                     break;
                 case 'settings':
-                        babylonCanvas.style.display = 'block';
-                        canvas.style.display = 'none';
+                       // babylonCanvas.style.display = 'block';
+                        //canvas.style.display = 'none';
 
                         const rect = babylonCanvas.getBoundingClientRect();
                         babylonCanvas.width = Math.floor(rect.width);
@@ -224,65 +226,105 @@ export function showPongMenu(): void {
 }
 
 export function drawMainMenu(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D): void {
-	const width = canvas.width;
-	const height = canvas.height;
-	ctx.clearRect(0, 0, width, height);
+  const width = canvas.width;
+  const height = canvas.height;
+  const wrapper = canvas.parentElement!;
 
-	// bg gradient
-	const gradient = ctx.createLinearGradient(0, 0, width, 0);
-	gradient.addColorStop(0, '#2C5364');
-	gradient.addColorStop(0.5, '#203A43');
-	gradient.addColorStop(1, '#0F2027');
-	ctx.fillStyle = gradient;
-	ctx.fillRect(0, 0, width, height);
+  // 0) Add CSS class to get our rain background
+  // wrapper.classList.add('bg_gmenu-container');
 
-	// title
-	ctx.fillStyle = '#4de8b7';
-	ctx.font = `${Math.floor(height/10)}px 'Orbitron', sans-serif`;
-	ctx.textAlign = 'center';
-	ctx.shadowColor = '#ffffff';
-	ctx.shadowBlur = 20;
-	ctx.fillText("LET'S PLAY", width/2, height/5);
-	ctx.fillText('PONG !',   width/2, height/5 + 50);
-	ctx.shadowBlur = 0;
+  // 1) Clear the canvas instead of drawing the gradient
+  ctx.clearRect(0, 0, width, height);
 
 	// Prepare labels & pos
-	const spacing = 50;
-	const startY = height / 2 - spacing * 1;
-	const labels = [
-		{ action: 'Create Game', y: startY + spacing * 0 },
-		{ action: 'Join Game',   y: startY + spacing * 1 },
-		{ action: 'Local Game',  y: startY + spacing * 2 },
-		{ action: 'Tournament',  y: startY + spacing * 3 },
-		{ action: 'Settings',    y: startY + spacing * 4 }
-	];
-	ctx.font = `${Math.floor(height/20)}px 'Orbitron', sans-serif`;
+	// const spacing = 50;
+	// const startY = height / 2 - spacing * 1;
+	// const labels = [
+	// 	{ action: 'Create Game', y: startY + spacing * 0 },
+	// 	{ action: 'Join Game',   y: startY + spacing * 1 },
+	// 	{ action: 'Local Game',  y: startY + spacing * 2 },
+	// 	{ action: 'Tournament',  y: startY + spacing * 3 },
+	// 	{ action: 'Settings',    y: startY + spacing * 4 }
+	// ];
+	// ctx.font = `${Math.floor(height/20)}px 'Orbitron', sans-serif`;
+  // 2) Now draw your title text
+  ctx.fillStyle = '#5AC8FA';
+  ctx.font      = `${Math.floor(height/10)}px 'Orbitron', sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.shadowColor = '#ffffff';
+  ctx.shadowBlur  = 20;
+  ctx.fillText("Play",   width/2, height/5);
+  ctx.fillText("3D Pong", width/2, height/5 + 50);
+  ctx.shadowBlur = 0;
 
-	const btnW = 260, btnH = 50;
-	// Save button pos
-	canvas._pongMenuBtns = labels.map(btn => {
-		const x = width/2 - btnW/2;
-		const y = btn.y - btnH/2;
+  // 3) Prepare labels & positions for buttons
+  const labels = [
+    { action: 'Create Game', y: height/2 - 40 },
+    { action: 'Join Game',   y: height/2 + 20 },
+    { action: 'Tournament',  y: height/2 + 80 },
+	//{ action: 'LocalGame', 	 y:height/2 + 110},
+    { action: 'Settings',    y: height/2 + 140 }
+  ];
+  ctx.font = `${Math.floor(height/20)}px 'Orbitron', sans-serif`;
 
-		// Button
-		const g2 = ctx.createLinearGradient(x, y, x+btnW, y+btnH);
-		g2.addColorStop(0, '#0ea5e9');
-		g2.addColorStop(1, '#38bdf8');
-		ctx.fillStyle = g2;
-		ctx.beginPath();
-		;(ctx as any).roundRect(x, y, btnW, btnH, 12);
-		ctx.fill();
+  const btnW = 260, btnH = 50;
+  canvas._pongMenuBtns = labels.map(btn => {
+    const x = width/2 - btnW/2;
+    const y = btn.y   - btnH/2;
+    return { x, y, w: btnW, h: btnH, action: btn.action };
+  });
 
-		// texte
-		ctx.fillStyle = 'white';
-		ctx.shadowColor = 'black';
-		ctx.shadowBlur = 8;
-		ctx.fillText(btn.action, width/2, btn.y + 8);
-		ctx.shadowBlur = 0;
 
-		return { x, y, w: btnW, h: btnH, action: btn.action };
-	});
+  // Remove old buttons
+  wrapper.querySelectorAll('.menubtn_button').forEach(el => el.remove());
 
+  // Re-create each button with the correct structure/order
+  canvas._pongMenuBtns.forEach(btn => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.classList.add('menubtn_button');
+    button.style.position = 'absolute';
+    button.style.left   = `${btn.x}px`;
+    button.style.top    = `${btn.y}px`;
+    button.style.width  = `${btn.w}px`;
+    button.style.height = `${btn.h}px`;
+
+    // 1) Append the LABEL TEXT first
+    button.appendChild(document.createTextNode(btn.action));
+
+    // 2) Build the clip container (DIV) with its corners
+    const clip = document.createElement('div');
+    clip.classList.add('menubtn_clip');
+    ['leftTop','rightTop','rightBottom','leftBottom'].forEach(pos => {
+      const corner = document.createElement('div');
+      corner.classList.add('menubtn_corner', `menubtn_${pos}`);
+      clip.appendChild(corner);
+    });
+    button.appendChild(clip);
+
+    // 3) Add the two arrows
+    const rightArrow = document.createElement('span');
+    rightArrow.classList.add('menubtn_arrow','menubtn_rightArrow');
+    button.appendChild(rightArrow);
+
+    const leftArrow = document.createElement('span');
+    leftArrow.classList.add('menubtn_arrow','menubtn_leftArrow');
+    button.appendChild(leftArrow);
+
+    // 4) Click handler
+    button.addEventListener('click', e => {
+      e.stopPropagation();
+      const rect = wrapper.getBoundingClientRect();
+      const ev = new MouseEvent('click', {
+        clientX: rect.left + btn.x + btn.w/2,
+        clientY: rect.top  + btn.y + btn.h/2,
+        bubbles: true
+      });
+      canvas.dispatchEvent(ev);
+    });
+
+    wrapper.appendChild(button);
+  });
 }
 
 
@@ -319,7 +361,6 @@ async function handlePongMenuClick(e: MouseEvent): Promise<void> {
 
 		case 'waitingTournamentRounds':
 			await handleTournamentRoundsClick(canvas, x, y);
-			break;
 		default:
 			break;
 	}
@@ -631,18 +672,18 @@ async function handlePongMenuMouseDown(e: MouseEvent): Promise<void> {
 	);
 	if (btn && ['ballSpeedUp','ballSpeedDown','paddleSpeedUp','paddleSpeedDown'].includes(btn.action)) {
 		lastButtonAction = btn.action;
-		// redraw immediately
-		showPongMenu();
-		incrementTimeout = window.setTimeout(() => {
-		  incrementInterval = window.setInterval(
-			// mark this arrow async so we can await inside
-			async () => {
-			  await handleCreateGameButton(btn.action);
-			  showPongMenu();
-			},
-			50
-		  );
-		}, 350);
+	    // redraw immediately
+	    showPongMenu();
+	    incrementTimeout = window.setTimeout(() => {
+	      incrementInterval = window.setInterval(
+	        // mark this arrow async so we can await inside
+	        async () => {
+	          await handleCreateGameButton(btn.action);
+	          showPongMenu();
+	        },
+	        50
+	      );
+	    }, 350);
 	}
 }
 

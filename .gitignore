@@ -2,6 +2,7 @@
 *.db
 src/db/*.db
 Makefile
+<<<<<<< HEAD
 en.subject.pdf
 fr.subject.pdf
 src/WAF/logs/*
@@ -11,3 +12,6 @@ vault_data_local/
 /vault/data/*
 .env.vault
 .vault-keys
+=======
+en.subject.pdf
+>>>>>>> origin/KC

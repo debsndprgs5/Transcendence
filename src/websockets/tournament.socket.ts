@@ -137,7 +137,6 @@ export async function broadcastTourList() {
 }
 
 
-
 export async function handleStartTournament(data: any) {
 	const { tournamentID, userID } = data;
 

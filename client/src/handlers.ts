@@ -307,33 +307,43 @@ export async function createDirectMessageWith(friendUsername: string): Promise<v
 
 // Little helper to resize canvas
 export function resizePongCanvas(): void {
-	const container = document.querySelector('#pong-canvas')?.parentElement;
-	const canvas = document.getElementById('pong-canvas') as HTMLCanvasElement | null;
-	if (!canvas || !container) return;
-	const rect = container.getBoundingClientRect();
-	canvas.width = rect.width;
-	canvas.height = rect.height;
+  const wrapper = document.getElementById('pongWrapper');
+  const canvas  = document.getElementById('pong-canvas') as HTMLCanvasElement | null;
+  if (!wrapper || !canvas) return;
+
+  const { width, height } = wrapper.getBoundingClientRect();
+  canvas.width  = Math.round(width);
+  canvas.height = Math.round(height);
+	console.log('Wrapper size:', wrapper.getBoundingClientRect());
 }
 
 // =======================
-// HANDLERS
+// HANDLERS 
 // =======================
 
 export let loadRooms: () => Promise<void>;
 export let selectRoom: (roomId: number) => Promise<void>;
 
 export async function setupHomeHandlers(): Promise<void> {
-	// Resize pong-canvas listener
-	setTimeout(() => {
-		resizePongCanvas();
-		showPongMenu();
-	}, 100);
+  // combine resize + redraw into one callback
+  const onResize = () => {
+    resizePongCanvas();   // resize the drawing buffer (will clear the canvas)
+    showPongMenu();       // immediately redraw the current menu state
+  };
 
-	window.addEventListener('resize', () => {
-		resizePongCanvas();
-		showPongMenu();
-	});
+  // Initial sizing + draw once DOM & CSS have settled
+  requestAnimationFrame(onResize);
 
+  // Redraw on window resize
+  window.addEventListener('resize', onResize);
+
+  // Redraw when the wrapper’s CSS size changes (breakpoints, dyn. classes…)
+  const wrapper = document.getElementById('pongWrapper');
+  if (wrapper) {
+    const ro = new ResizeObserver(onResize);
+    ro.observe(wrapper);
+  }
+  showPongMenu();
 	// Get back the pong view state
 	const savedView = localStorage.getItem('pong_view');
 	if (savedView === 'waitingGame') {
@@ -396,25 +406,51 @@ export async function setupHomeHandlers(): Promise<void> {
 			if (!ul) return;
 
 			ul.innerHTML = rooms
-				.map(
-					(r) =>
-						`<li data-id="${r.roomID}" class="group flex justify-between items-center cursor-pointer hover:bg-gray-100 p-2 rounded ${
-							state.currentRoom === r.roomID ? 'bg-indigo-100' : ''
-						}">
-						<span class="flex-1 truncate" title="${r.name || `Room #${r.roomID}`}">
-							${r.name || `Room #${r.roomID}`}
-						</span>
-						<div class="flex gap-1 opacity-0 group-hover:opacity-100 transition">
-							<button data-room="${r.roomID}" class="invite-room-btn text-green-600 hover:text-green-800 text-sm">➕</button>
-							${
-								r.ownerID === state.userId
-									? `<button data-room="${r.roomID}" class="delete-room-btn text-red-600 hover:text-red-800 text-sm">❌</button>`
-									: ''
-							}
-						</div>
-					</li>`
-				)
-				.join('');
+			  .map(
+			    (r) =>
+			      `<li
+			         data-id="${r.roomID}"
+			         class="
+			           group
+			           flex justify-between items-center
+			           cursor-pointer
+			           p-1                     <!-- smaller padding -->
+			           rounded-md             <!-- medium border radius -->
+			           bg-blue-200/20         <!-- light blue base -->
+			           hover:bg-blue-200/50   <!-- darker blue on hover -->
+			           transition
+			           ${
+			             state.currentRoom === r.roomID
+			               ? 'bg-blue-200/50'  /* English comment: highlight selected room */
+			               : ''
+			           }
+			         "
+			       >
+			         <span
+			           class="flex-1 truncate"
+			           title="${r.name || `Room #${r.roomID}`}"
+			         >
+			           ${r.name || `Room #${r.roomID}`}
+			         </span>
+			         <div
+			           class="flex gap-1 opacity-0 group-hover:opacity-100 transition"
+			         >
+			           <button
+			             data-room="${r.roomID}"
+			             class="invite-room-btn text-green-600 hover:text-green-800 text-sm"
+			           >➕</button>
+			           ${
+			             r.ownerID === state.userId
+			               ? `<button
+			                    data-room="${r.roomID}"
+			                    class="delete-room-btn text-red-600 hover:text-red-800 text-sm"
+			                  >❌</button>`
+			               : ''
+			           }
+			         </div>
+			       </li>`
+			  )
+			  .join('');
 
 			// Get previously selected room
 			const savedRoom = Number(localStorage.getItem('currentRoom') || '0');
@@ -1121,7 +1157,7 @@ window.addEventListener('storage', (event: StorageEvent) => {
 /**
  * Clears all auth state, closes socket and renders Home.
  */
-export async function handleLogout(): Promise<void> {
+export function handleLogout(): void {
 	// Notify server about game leave (only if socket is open)
 	if (state.playerInterface?.gameID && state.playerInterface?.socket?.readyState === WebSocket.OPEN) {
 		state.playerInterface!.typedSocket.send('leaveGame', {
@@ -1129,9 +1165,8 @@ export async function handleLogout(): Promise<void> {
 			gameID: state.playerInterface!.gameID,
 			islegit: false
 		});
-		if(state.playerInterface.tournamentID) await handleLeaveTournament(false);
 	}
-	
+
 	// Send offline status via friend socket (if open)
 	if (state.socket?.readyState === WebSocket.OPEN) {
 		console.warn(`CLOSING CHAT socket`)
@@ -1157,6 +1192,7 @@ export async function handleLogout(): Promise<void> {
 	updateNav();
 	window.location.href = '/';
 }
+
 /**
  * Sets up the back button on profile view.
  */

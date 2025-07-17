@@ -31,6 +31,8 @@ import { gameRoutes } from './routes/game.routes'
 import { tournamentRoutes } from './routes/tournament.routes'
 import vaultPlugin , { setSecrets } from './vault/vaultPlugin';
 
+
+
 function extractHostFromSessionManager(session: string | undefined): string | null {
   if (!session) return null;
   const match = session.match(/(c\d+r\d+p\d+)/);

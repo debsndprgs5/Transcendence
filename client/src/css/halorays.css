@@ -1,0 +1,142 @@
+/* wrapper qui entoure l’écran + halo + base */
+/*.portal-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+*/
+
+
+/* ---------- Halo & cône lumineux ---------- */
+.portal-halo {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  animation: 
+    portal_rays 2.5s ease-in-out infinite,
+    portal_color_shift 8s linear infinite;
+}
+
+.portal-halo::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 50%;
+  transform: translateX(-50%);
+  border-left: 300px solid transparent;
+  border-right: 300px solid transparent;
+  border-top: 400px solid rgba(0,255,240,0.3);
+}
+
+.portal-halo::after {
+  content: '';
+  position: absolute;
+  top: 10px; left: 50%;
+  transform: translateX(-50%);
+  width: 200px; height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #0ff, transparent);
+  filter: blur(30px);
+  animation: portal_blur 3s ease-in-out infinite alternate;
+}
+
+
+/* ---------- Base cylindrique ---------- */
+.portal-base {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 150px; height: 30px;
+  background: linear-gradient(to bottom, #333 0%, #111 50%, #000 100%);
+  border-radius: 50%/20%;
+  box-shadow:
+    inset 0 4px 12px rgba(0,255,240,0.5),
+    0 0 10px rgba(0,255,240,0.2);
+}
+.portal-base::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 80px; height: 13px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at center,
+    rgba(0,255,240,0.5) 0%,
+    rgba(0,255,240,0.1) 60%,
+    transparent 80%
+  );
+}
+
+@keyframes portal_rays {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scaleY(1) skewX(0deg) rotate(0deg);
+  }
+  25% {
+    opacity: 0.8;
+    transform: scaleY(1.1) skewX(-1deg) rotate(-0.5deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleY(1.05) skewX(1deg) rotate(0.5deg);
+  }
+  75% {
+    opacity: 0.7;
+    transform: scaleY(0.95) skewX(0deg) rotate(0deg);
+  }
+}
+
+/* gently shift hue for a shimmering effect */
+@keyframes portal_color_shift {
+  0%, 100% {
+    filter: hue-rotate(0deg);
+  }
+  50% {
+    filter: hue-rotate(8deg);
+  }
+}
+
+/* pulsate blur on the inner glow */
+@keyframes portal_blur {
+  0%, 100% {
+    filter: blur(10px);
+  }
+  50% {
+    filter: blur(20px);
+  }
+}
+
+.relative.aspect-video {
+  position: relative;
+}
+
+#portal_rays {
+  position: absolute !important;
+  bottom: 19.5rem !important; 
+  left: 34% !important;
+  transform: translateX(-50%) !important;
+}
+
+#portal_base {
+  position: absolute !important;
+  bottom: -1rem !important;
+  left: 34% !important;
+  transform: translateX(-50%) !important;
+}
+
+
+#portal_rays::before {
+  border-left: 350px solid transparent !important;   /* half-width */
+  border-right: 350px solid transparent !important;  /* half-width */
+  border-top: 300px solid rgba(0,255,240,0.3) !important; /* height */
+}
+
+/* override the size of the halo */
+#portal_rays::after {
+  width: 300px !important;
+  height: 150px !important;
+  filter: blur(22.5px) !important;
+}

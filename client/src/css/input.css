@@ -1,8 +1,16 @@
 @import "./login_register_buttons.css";
+@import "./general_bg.css";
+@import "./topchatinput.css";
+@import "./chatactionbarbutton.css";
+@import "./halorays.css";
+@import "./pongmenubtn.css";
+@import "./bg_gmenu.css";
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
 
 .user-action-bubble {
     position: absolute;
@@ -52,27 +60,19 @@
     pointer-events: none;
 }
 
-#pong-canvas, #babylon-canvas {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-}
-
 .game-container {
     position: relative;
     width: 100%;
     height: 100%;
 }
 
-#Container {
+/*#Container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
   height: 100%;
-}
+}*/
 
 #rays {
   z-index: 2;

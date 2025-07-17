@@ -26,17 +26,13 @@ export function drawCreateGameView(
 ): void {
   const w = canvas.width;
   const h = canvas.height;
+  const wrapper = canvas.parentElement!;
+  
+  wrapper.querySelectorAll('.menubtn_button').forEach(el => el.remove());
 
   // Clear
   ctx.clearRect(0, 0, w, h);
 
-  // Background gradient
-  const grad = ctx.createLinearGradient(0, 0, w, 0);
-  grad.addColorStop(0, '#2C5364');
-  grad.addColorStop(0.5, '#203A43');
-  grad.addColorStop(1, '#0F2027');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, w, h);
 
   // Title
   ctx.fillStyle = 'white';
@@ -199,17 +195,11 @@ export function drawWaitingGameView(
 ): void {
 	const width  = canvas.width;
 	const height = canvas.height;
-
+  const wrapper = canvas.parentElement!;
+  
+  wrapper.querySelectorAll('.menubtn_button').forEach(el => el.remove());
 	// Clear
 	ctx.clearRect(0, 0, width, height);
-
-	// Background gradient (left → right: #2C5364 → #203A43 → #0F2027)
-	const grad = ctx.createLinearGradient(0, 0, width, 0);
-	grad.addColorStop(0.0, '#2C5364');
-	grad.addColorStop(0.5, '#203A43');
-	grad.addColorStop(1.0, '#0F2027');
-	ctx.fillStyle = grad;
-	ctx.fillRect(0, 0, width, height);
 
 	// Room title
 	ctx.fillStyle = 'white';
@@ -261,17 +251,11 @@ export function drawJoinGameView(
 ): void {
   const width  = canvas.width;
   const height = canvas.height;
-
+  const wrapper = canvas.parentElement!;
+  
+  wrapper.querySelectorAll('.menubtn_button').forEach(el => el.remove());
   // Clear
   ctx.clearRect(0, 0, width, height);
-
-  // Background gradient
-  const grad = ctx.createLinearGradient(0, 0, width, 0);
-  grad.addColorStop(0.0, '#2C5364');
-  grad.addColorStop(0.5, '#203A43');
-  grad.addColorStop(1.0, '#0F2027');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, width, height);
 
   // Title
   ctx.fillStyle   = 'white';
@@ -360,16 +344,9 @@ export function drawTournamentView(
 ): void {
 	const width  = canvas.width;
 	const height = canvas.height;
-
-	// Background gradient
-	ctx.clearRect(0, 0, width, height);
-	const grad = ctx.createLinearGradient(0, 0, width, 0);
-	grad.addColorStop(0.0, '#2C5364');
-	grad.addColorStop(0.5, '#203A43');
-	grad.addColorStop(1.0, '#0F2027');
-	ctx.fillStyle = grad;
-	ctx.fillRect(0, 0, width, height);
-
+  const wrapper = canvas.parentElement!;
+  
+  wrapper.querySelectorAll('.menubtn_button').forEach(el => el.remove());
 	// Title
 	ctx.fillStyle = 'white';
 	ctx.font      = `${Math.floor(height / 15)}px Orbitron`;
@@ -507,17 +484,11 @@ export function drawWaitingTournamentView(
 ): void {
   const width  = canvas.width;
   const height = canvas.height;
-
+  const wrapper = canvas.parentElement!;
+  
+  wrapper.querySelectorAll('.menubtn_button').forEach(el => el.remove());
   // Clear entire canvas
   ctx.clearRect(0, 0, width, height);
-
-  // Background gradient (left → right: #2C5364 → #203A43 → #0F2027)
-  const grad = ctx.createLinearGradient(0, 0, width, 0);
-  grad.addColorStop(0.0, '#2C5364');
-  grad.addColorStop(0.5, '#203A43');
-  grad.addColorStop(1.0, '#0F2027');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, width, height);
 
   // Tournament title
   ctx.fillStyle = 'white';
@@ -558,7 +529,7 @@ export function drawWaitingTournamentView(
 
   // Start Tournament button (only for creator)
   let startBtn: PongButton | null = null;
-  if (state.playerInterface!.isTourOwner === true) {
+  if (state.isTournamentCreator === true) {
     const startW = width  * 0.25;
     const startH = height * 0.08;
     const startX = width  / 2 - startW / 2;
@@ -595,14 +566,10 @@ export function drawWaitingRoundsTournamentView(
   const width  = canvas.width;
   const height = canvas.height;
 
-  // --- background ---
+  const wrapper = canvas.parentElement!;
+  
+  wrapper.querySelectorAll('.menubtn_button').forEach(el => el.remove());
   ctx.clearRect(0, 0, width, height);
-  const grad = ctx.createLinearGradient(0, 0, width, 0);
-  grad.addColorStop(0.0, '#2C5364');
-  grad.addColorStop(0.5, '#203A43');
-  grad.addColorStop(1.0, '#0F2027');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, width, height);
 
   // --- titles ---
   ctx.fillStyle = 'white';

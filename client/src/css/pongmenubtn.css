@@ -1,0 +1,153 @@
+/* === 1) Global reset — must come first === */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* === 2) Override box-sizing for your menu button to preserve original dimensions === */
+.menubtn_button,
+.menubtn_button * {
+  box-sizing: content-box;
+}
+
+/* Main structure */
+.menubtn_button {
+  --color: #5AC8FA;        /* light blue base */
+  position: relative;
+  z-index: 10;
+  width: 11em;
+  height: 4em;
+  outline: none;
+  transition: 0.1s;
+  background-color: transparent;
+  border: none;
+  font-size: 16px;         /* enlarged text */
+  font-weight: bold;
+  color: #E0F7FF;          /* light bluish text */
+}
+
+/* Clipped border */
+.menubtn_button .menubtn_clip {
+  position: absolute;
+  top: 0;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  border: 5px double var(--color);
+  box-shadow: inset 0px 0px 15px #339DFF; /* darker blue shade */
+  -webkit-clip-path: polygon(
+    30% 0%, 70% 0%, 100% 30%, 
+    100% 70%, 70% 100%, 30% 100%, 
+    0% 70%, 0% 30%
+  );
+}
+
+/* Arrows */
+.menubtn_button .menubtn_arrow {
+  position: absolute;
+  transition: 0.2s;
+  background-color: var(--color);
+  top: 35%;
+  width: 11%;
+  height: 30%;
+}
+
+.menubtn_button .menubtn_leftArrow {
+  left: -13.5%;
+  -webkit-clip-path: polygon(100% 0, 100% 100%, 0 50%);
+}
+
+.menubtn_button .menubtn_rightArrow {
+  left: 106%;
+  -webkit-clip-path: polygon(100% 49%, 0 0, 0 100%);
+}
+
+/* Decorative corners */
+.menubtn_button .menubtn_corner {
+  position: absolute;
+  width: 4em;
+  height: 4em;
+  background-color: var(--color);
+  box-shadow: inset 1px 1px 8px #339DFF; /* mid-tone blue */
+  transform: scale(1) rotate(45deg);
+  transition: 0.2s;
+}
+
+.menubtn_button .menubtn_rightTop    { top: -1.98em; left: 91%; }
+.menubtn_button .menubtn_leftTop     { top: -1.96em; left: -3.0em; }
+.menubtn_button .menubtn_leftBottom  { top:  2.10em; left: -2.15em; }
+.menubtn_button .menubtn_rightBottom { top:   45%; left: 88%; }
+
+/* Hover effects */
+.menubtn_button:hover .menubtn_rightArrow {
+  background-color: #A7D8FF; /* highlight blue */
+  animation: 0.6s ease-in-out both infinite alternate menubtn_rightArrowAnim;
+}
+
+.menubtn_button:hover .menubtn_leftArrow {
+  background-color: #A7D8FF;
+  animation: 0.6s ease-in-out both infinite alternate menubtn_leftArrowAnim;
+}
+
+.menubtn_button:hover .menubtn_leftTop {
+  animation: 
+    0.1s ease-in-out 0.05s both menubtn_changeColor,
+    0.2s linear 0.4s both menubtn_lightEffect;
+}
+
+.menubtn_button:hover .menubtn_rightTop {
+  animation: 
+    0.1s ease-in-out 0.15s both menubtn_changeColor,
+    0.2s linear 0.4s both menubtn_lightEffect;
+}
+
+.menubtn_button:hover .menubtn_rightBottom {
+  animation: 
+    0.1s ease-in-out 0.25s both menubtn_changeColor,
+    0.2s linear 0.4s both menubtn_lightEffect;
+}
+
+.menubtn_button:hover .menubtn_leftBottom {
+  animation: 
+    0.1s ease-in-out 0.35s both menubtn_changeColor,
+    0.2s linear 0.4s both menubtn_lightEffect;
+}
+
+.menubtn_button:hover .menubtn_corner {
+  transform: scale(1.25) rotate(45deg);
+}
+
+.menubtn_button:hover .menubtn_clip {
+  animation: 0.2s ease-in-out 0.55s both menubtn_greenLight;
+  --color: #A7D8FF;
+}
+
+/* Keyframes d’animation — noms et timings d’origine, couleurs adaptées au bleu */
+@keyframes menubtn_changeColor {
+  from { background-color: #339DFF; }   /* mid-tone blue */
+  to   { background-color: #A7D8FF; }   /* highlight blue */
+}
+
+@keyframes menubtn_lightEffect {
+  from { box-shadow: 1px 1px 5px #A7D8FF; }
+  to   { box-shadow: 0 0 2px #A7D8FF; }
+}
+
+@keyframes menubtn_greenLight {
+  to { box-shadow: inset 0px 0px 32px #A7D8FF; }
+}
+
+@keyframes menubtn_leftArrowAnim {
+  from { transform: translate(0px); }
+  to   { transform: translateX(10px); }
+}
+
+@keyframes menubtn_rightArrowAnim {
+  from { transform: translate(0px); }
+  to   { transform: translateX(-10px); }
+}

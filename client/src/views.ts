@@ -96,6 +96,8 @@ export function HomeView(): string {
               id="babylon-canvas"
               class="w-full h-full rounded-[4px] shadow-inner bg-black hidden"
             ></canvas>
+            <!-- Notre conteneur pour les menus en HTML, caché par défaut -->
+            <div id="ui-overlay" class="absolute inset-0 hidden"></div>
           </div>
         </div>
       </div>

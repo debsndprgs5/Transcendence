@@ -11,7 +11,6 @@ import { WebSocketServer, WebSocket, RawData } from 'ws';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import { getJwtSecret } from '../vault/vaultPlugin';
 
-
 // dotenv.config({
 // 	path: path.resolve(process.cwd(), '.env'),
 // });

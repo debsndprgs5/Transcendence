@@ -1,6 +1,7 @@
 import { playerInterface } from '../shared/gameTypes'
 import * as gameMgr from '../db/gameManagement'
 import { getUnameByIndex } from '../db/userManagement'
+import { sendSystemMessage } from '../websockets/chat.socket'
 
 type Member = {
 	player: playerInterface;
@@ -73,8 +74,9 @@ export class Tournament {
 		console.log(`[ROUND ${this.current_round}] Round pairing started.`);
 		console.log(`[ROUND ${this.current_round}] All participant IDs:`, this.players.map(p => p.userID));
 		console.log(`[ROUND ${this.current_round}] Already matched player sets:`, this.opponents);
-
-
+		
+		const chat = await gameMgr.getChatIDbyTourID(this.tourID);
+		sendSystemMessage( chat!.chatID , `Round ${this.current_round}/${this.max_round}: is about to start`);
 		const baseRules = JSON.parse(this.rules);
 		// Inject the tournament's win_condition
 		const extendedRules = {
@@ -113,6 +115,52 @@ export class Tournament {
 			return [mA.player, mB.player];
 		});
 	}
+	
+public async matchGaveUp(tourID: number, quitterID: number) {
+	const tour = Tournament.MappedTour.get(tourID);
+	if (!tour) {
+		console.warn(`[GAVE UP] No tournament found for tourID=${tourID}`);
+		return;
+	}
+
+	// Find the current match of the quitter
+	const pairIdx = tour.playingPairs.findIndex(
+		([a, b]) => a.userID === quitterID || b.userID === quitterID
+	);
+
+	if (pairIdx === -1) {
+		console.warn(`[GAVE UP] No current match found for userID=${quitterID}`);
+		return;
+	}
+
+	const [playerA, playerB] = tour.playingPairs[pairIdx];
+	const opponent = playerA.userID === quitterID ? playerB : playerA;
+	const quitter  = playerA.userID === quitterID ? playerA : playerB;
+
+	// Award points to the opponent (like a draw)
+	const drawPoints = 5;
+	tour.points.set(opponent.userID, (tour.points.get(opponent.userID) ?? 0) + drawPoints);
+
+	// Prevent future rematch
+	tour.opponents.get(opponent.userID)?.add(quitterID);
+
+	// Remove match from playingPairs
+	tour.playingPairs.splice(pairIdx, 1);
+
+	// Push only the remaining player into waitingPairs
+	tour.waitingPairs.push([opponent, opponent]); // interpreted as "bye for one"
+
+	// Remove quitter from tournament completely
+	tour.removeMemberFromTourID(quitterID);
+
+	// Notify the opponent
+	opponent.typedSocket.send('waitingNextRound', {
+		round: tour.current_round,
+		message: `Your opponent ${quitter.username} gave up. You receive 5 points.`,
+	});
+
+	console.log(`[GAVE UP] Player ${quitterID} removed from tournament ${tourID}`);
+}
 
 public removeMemberFromTourID(userID: number): boolean {
 	const tour = Tournament.MappedTour.get(this.tourID);
@@ -307,7 +355,7 @@ public async isReadyForNextRound(userID: number) {
 
 
 
-private endTournament() {
+private async endTournament() {
 	// process final ranking
 	const standings = [...this.players]
 		.sort((a, b) => this.points.get(b.userID)! - this.points.get(a.userID)!);
@@ -322,7 +370,10 @@ private endTournament() {
 			}))
 		});
 	}
+	const chat = await gameMgr.getChatIDbyTourID(this.tourID);
+	sendSystemMessage(chat!.chatID , `Tournament is over now, who's the boss ? `)
 	Tournament.MappedTour.delete(this.tourID);
+
 }
 
 public giveBye(member: Member) {

@@ -3,4 +3,13 @@
 src/db/*.db
 Makefile
 en.subject.pdf
+fr.subject.pdf
+src/WAF/logs/*
+
+# Vault
+vault_data_local/
+/vault/data/*
+.env.vault
+.vault-keys
+
 .github/

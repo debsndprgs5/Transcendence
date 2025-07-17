@@ -3,8 +3,6 @@ WORK_DIR = $(shell pwd)
 SHELL := /bin/bash
 .PHONY: install clean dev prod docker-build docker-run clear_db
 
-
-
 # -------------------------------------------------------------------
 # Env maniplutation to get login and hostMachine(ex:C1R2P8)
 # -------------------------------------------------------------------
@@ -25,12 +23,21 @@ myexport-env:
 	    fi; \
 	  fi; \
 	done
+	@if [ -d "vault_data_local" ] && [ ! -f ".env.vault" ]; then \
+        echo "données Vault sans clés. Nettoyage de vault_data_local"; \
+        docker run --rm -v $(shell pwd):/workspace alpine rm -rf /workspace/vault_data_local; \
+    elif [ ! -d "vault_data_local" ] && [ -f ".env.vault" ]; then \
+        echo "clés Vault sans données. Nettoyage de vault_data_local"; \
+        rm -f .env.vault; \
+    fi
 
+clear-waf-logs:
+	@rm -rf src/WAF/logs/*
 
 # -------------------------------------------------------------------
 # Docker Rules
 # -------------------------------------------------------------------
-docker-up:myexport-env
+docker-up:myexport-env clear-waf-logs
 	@if grep -q '^WORK_DIR=' .env; then \
 	  sed -i 's|^WORK_DIR=.*|WORK_DIR=$(WORK_DIR)|' .env; \
 	else \
@@ -90,10 +97,11 @@ docker-run:
 clean:
 	@echo "🧹 Cleaning…"
 	@rm -rf node_modules package-lock.json
-	@docker compose down
+	@docker compose down -v --remove-orphans
 	@docker ps -q --filter "ancestor=$(IMAGE_NAME)" | xargs -r docker stop
 	@docker ps -aq --filter "ancestor=$(IMAGE_NAME)" | xargs -r docker rm -v
 	@docker images -q $(IMAGE_NAME) | xargs -r docker rmi
+# 	@docker run --rm -v $(shell pwd):/workspace alpine rm -rf /workspace/vault_data_local
 
 # -------------------------------------------------------------------
 # clear_db : clear the database
@@ -103,7 +111,7 @@ clear_db:
 	rm -rf src/db/ourdatabase.db
 	touch src/db/ourdatabase.db
 	rm -rf client/avatars/*
-	docker volume rm db_volume
+	docker volume rm -f db_volume
 
 
 

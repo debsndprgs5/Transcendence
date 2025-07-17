@@ -1,7 +1,7 @@
 import sqlite3 from 'sqlite3';
 import { user } from '../types/user';
 import * as chatType from '../types/chat';
-
+import { PreferencesRow } from '../shared/gameTypes'
 import { run, get, getAll } from './userManagement';
 
 let db: sqlite3.Database;
@@ -289,4 +289,56 @@ export const sendGameResultFour = (gameID: number, userID: [number, number, numb
 	run(
 		`INSERT INTO gameResultFour (gameID, winner, playerA, playerB, playerC, playerD, scoreA, scoreB, scoreC, scoreD, started_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		[gameID, winner, userID[0], userID[1], userID[2], userID[3], score[0], score[1], score[2], score[3], start]
+	);
+
+
+// ############################
+// #      USER PREFERENCES    #
+// ############################
+export const getAllPref = (userID: number): Promise<PreferencesRow | null> => {
+	return get<PreferencesRow>(
+		`SELECT * FROM user_preferences WHERE userID = ?`,
+		[userID]
+	)
+}
+export const getPlayedGames2 = (userID: number) =>
+	getAll<{ gameID: number; winner:number; playerA:Number; playerB:Number; scoreA: number; scoreB: number; played_at: string}>(
+		`SELECT matchID, winner, playerA, playerB, scoreA, scoreB, played_at
+		 FROM tournamentMembers
+		 WHERE playerA = ? OR playerB = ?
+		 ORDER BY played_at`,
+		[userID, userID]
+	);
+
+export const setAllPref = async (userID: number, data: Partial<PreferencesRow>) => {
+	if (Object.keys(data).length === 0) return;
+
+	const fields = Object.keys(data);
+	const values = Object.values(data);
+	const setClause = fields.map((key) => `${key} = ?`).join(', ');
+
+	await run(
+		`UPDATE user_preferences SET ${setClause} WHERE userID = ?`,
+		[...values, userID]
+	)
+}
+
+
+export const setBackDefPref = async (userID: number) => {
+	await run(`DELETE FROM user_preferences WHERE userID = ?`, [userID]);
+	await run(`INSERT INTO user_preferences (userID) VALUES (?)`, [userID]);
+};
+
+export const createDefaultPref = async (userID: number) => {
+	await run(`INSERT INTO user_preferences (userID) VALUES (?)`, [userID]);
+};
+
+
+export const getPlayedGames4 = (userID: number) =>
+	getAll<{ gameID: number; winner:number; playerA:Number; playerB:Number; playerC:number; playerD:number; scoreA: number; scoreB: number; scoreC: number; scoreD: number, played_at: string}>(
+		`SELECT matchID, winner, playerA, playerB, playerC, playerD, scroeA, scoreB, scoreC, scoreD, played_at
+		 FROM tournamentMembers
+		 WHERE playerA = ? OR playerB = ? OR playerC = ? OR playerD = ?
+		 ORDER BY played_at`,
+		[userID, userID]
 	);

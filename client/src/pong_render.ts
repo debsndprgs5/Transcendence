@@ -25,9 +25,6 @@ export class PongRenderer{
 	private scoreText!: GUI.TextBlock;
 	private avatarSquares!: GUI.AdvancedDynamicTexture; // Avatar near the name
 	private avatarCirles!: GUI.AdvancedDynamicTexture;  // Small avatars linked to paddles
-	
-
-
 	private playerCount: number;
 	private playerSide: 'left' | 'right' | 'top' | 'bottom';
 	private playersInfo: Record<'left' | 'right' | 'top' | 'bottom', string> = {
@@ -526,9 +523,11 @@ private initInputListeners() {
 							isLegit: false,
 						});
 						if (state.currentTournamentID){
+							const tourID = state.currentTournamentID;
+							state.currentTournamentID = -1;
 							state.typedSocket.send('leaveTournament', {
 								userID: state.userId!,
-								tournamentID: state.currentTournamentID!,
+								tournamentID: tourID,
 								islegit: false,
 							});
 						const { chatID } = await apiFetch(`/api/tournaments/chat/${state.currentTournamentID}`);

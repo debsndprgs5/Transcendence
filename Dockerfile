@@ -13,9 +13,10 @@ RUN npm install --prefer-offline --no-audit --progress=false
 COPY client ./client
 COPY shared ./client/src/shared
 COPY tailwind.config.js ./
+COPY postcss.config.js ./
 
 # 3) build CSS + JS client
-RUN npx tailwindcss -i client/src/css/input.css -o client/dist/output.css --minify
+RUN npx tailwindcss --postcss -i client/src/css/input.css -o client/dist/output.css --minify
 RUN npm run build:client
 RUN npm run bundle
 

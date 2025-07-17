@@ -7,7 +7,6 @@ import path from 'path';
 import * as UserManagement from '../db/userManagement';
 
 import jwt from 'jsonwebtoken';
-const JWT_SECRET = process.env.JWT_SECRET!;
 
 export default async function accountRoutes(fastify: FastifyInstance) {
 	fastify.register(fastifyMultipart);
@@ -18,7 +17,7 @@ export default async function accountRoutes(fastify: FastifyInstance) {
 	  const token = auth.split(' ')[1];
 	  let payload;
 	  try { 
-		payload = jwt.verify(token, JWT_SECRET);
+		payload = jwt.verify(token, fastify.vault.jwt);
 	  } catch {
 		return reply.code(401).send({ error: 'Invalid token' });
 	  }
@@ -64,6 +63,16 @@ export default async function accountRoutes(fastify: FastifyInstance) {
 			return reply.code(500).send({ error: 'Internal server error' });
 		}
 	});
+
+	/*
+	fastify.get('/friends', async (request, reply) => {
+			const currentUserId = getUserId(request, reply);
+			if (currentUserId === undefined) return;
+			const friends = await chatMgr.getFriends(currentUserId);
+			return reply.send(friends);
+		});
+	*/
+
 
 // get other people's profile
 

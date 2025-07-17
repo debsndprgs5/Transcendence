@@ -59,7 +59,7 @@ export async function updateTourPlayerList(joiner: Interfaces.playerInterface, t
 	}
 }
 
-
+//Add the has started flag -> this leave can only by trigger by clicking on the leave button
 export async function handleLeaveTournament(player: Interfaces.playerInterface, data: any) {
 	// Tournament ends cleanly: not user-triggered
 	// if (data.isLegit) {

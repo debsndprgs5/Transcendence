@@ -1,6 +1,7 @@
 import { showNotification, showUserActionsBubble } from './notifications';
 import { isAuthenticated, apiFetch, state } from './api';
 import { PongRenderer } from './pong_render';
+import {settingsRenderer} from './settings_render';
 import * as Interfaces from './shared/gameTypes';
 import {createTypedEventSocket} from './shared/gameEventWrapper';
 import { showPongMenu } from './pong_rooms';
@@ -10,8 +11,10 @@ import * as BABYLON from "@babylonjs/core";
 import * as Tournament from './tournament_socket'
 import { handleLogout } from './handlers'
 
-export const pongState = {
+export const pongState = 
+{
 	pongRenderer: null as PongRenderer | null,
+	settingsRenderer: null as settingsRenderer|null
 };
 
 export async function initGameSocket(): Promise<void> {
@@ -496,9 +499,15 @@ export async function handleKicked(data: Interfaces.SocketMessageMap['kicked']) 
 	if (state.playerInterface) {
 	state.playerInterface.gameID = -1;
 	}
-	state.canvasViewState = 'mainMenu';
-	localStorage.setItem('pong_view', 'mainMenu');
-	localStorage.setItem('pong_view', 'mainMenu');
+	if(!state.currentTournamentID){
+		state.canvasViewState = 'mainMenu';
+		localStorage.setItem('pong_view', 'mainMenu');
+		localStorage.setItem('pong_view', 'mainMenu');
+	}
+	else{
+		state.canvasViewState = 'waitingTournamentRounds';
+		localStorage.setItem('pong_view','waitingTournamentRounds');
+	}
 	showPongMenu();
 }
 
@@ -566,6 +575,12 @@ export async function handleReconnection(socket:WebSocket, typedSocket:TypedSock
 
 	return;
 	}
+	//User was in tournament but not playing
+	if(data.tournamentID && data.state !== 'playing'){
+		console.log('[RECONNECT] No active game but active tournament');
+		state.canvasViewState = 'WaitingTournamentRounds';
+		showPongMenu();
+	}
 
 
 	// CASE 3: User is not in a game → Return to main menu or lobby
@@ -579,7 +594,3 @@ export async function handleReconnection(socket:WebSocket, typedSocket:TypedSock
 		});
 	}
 }
-
-
-
-

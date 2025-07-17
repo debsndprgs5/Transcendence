@@ -7,12 +7,10 @@ import {getPlayerBySocket, getPlayerByUserID, getAllMembersFromGameID, delPlayer
 import { playerMove } from '../services/pong'
 import { PongRoom } from '../services/PongRoom';
 import jwt, { JwtPayload } from 'jsonwebtoken';
+import { getJwtSecret } from '../vault/vaultPlugin';
 
 
-const jwtSecret = process.env.JWT_SECRET!;
-if (!jwtSecret) {
-  throw new Error("JWT_SECRET environment variable is not defined");
-}
+const jwtSecret = getJwtSecret();
 
 // import{stopMockGameLoop, startMockGameLoop, playerMove} from '../services/pong'
 
@@ -70,7 +68,8 @@ export function handleAllEvents(typedSocket:TypedSocket, player:Interfaces.playe
 
     let payload: JwtPayload;
     try {
-      payload = jwt.verify(token, jwtSecret) as JwtPayload;
+      const dynamic_jwt = getJwtSecret()
+      payload = jwt.verify(token, dynamic_jwt) as JwtPayload;
     } catch (error) {
       console.log('Connection rejected: Invalid token', error);
       return socket.close(1008, 'Invalid token');

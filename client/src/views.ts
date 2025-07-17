@@ -21,7 +21,7 @@ export function HomeView(): string {
         <main class="min-h-screen flex items-center justify-center px-4 py-8">
           <section class="w-full max-w-6xl h-[80vh] mt-[-5vh] bg-white/5 rounded-2xl shadow-xl overflow-hidden md:flex backdrop-blur-md border border-white/10">
             <div class="p-10 md:w-1/2 text-white flex flex-col justify-center">
-              <h1 class="text-4xl font-bold mb-4 text-indigo-100">Welcome to Transcendence</h1>
+              <h1 class="text-4xl font-bold mb-4 text-indigo-100">Welcome to nothing</h1>
               <p class="text-lg text-indigo-200 mb-8 leading-relaxed">
                 Play Pong with your friends, chat live, climb the leaderboard, and become a legend.
               </p>
@@ -40,7 +40,7 @@ export function HomeView(): string {
               <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExMGxybmhtZmdwNTU0YjVqOThnMXdmaGlic3QxdXFod2N0aDZnNTRpNCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o72FkiKGMGauydfyg/giphy.gif"
                    alt="pong animation"
                    class="w-4/5 h-auto rounded-lg shadow-xl max-h-[65vh] object-contain">
-            </div>
+           </div>
           </section>
         </main>
       `;
@@ -96,6 +96,8 @@ export function HomeView(): string {
               id="babylon-canvas"
               class="w-full h-full rounded-[4px] shadow-inner bg-black hidden"
             ></canvas>
+            <!-- Notre conteneur pour les menus en HTML, caché par défaut -->
+            <div id="ui-overlay" class="absolute inset-0 hidden"></div>
           </div>
         </div>
       </div>

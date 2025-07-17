@@ -3,19 +3,13 @@ import bcrypt from 'bcrypt' // Blowfish encrypting
 import jwt from 'jsonwebtoken' // Json web token -> one-time token
 import speakeasy from 'speakeasy' // lib that supports 2fa using time based one-time pass (TOTP) and HOTP
 import * as UserManagement from '../db/userManagement';
+import * as GameManagement from '../db/gameManagement'
 import * as dotenv from 'dotenv';
 import path from 'path';
 
 dotenv.config({
 	path: path.resolve(process.cwd(), '.env'),
 });
-
-// SECRET KEY to sign JWT (.env)
-const JWT_SECRET = process.env.JWT_SECRET!;
-if (!JWT_SECRET) {
-	throw new Error("JWT_SECRET environment variable is not defined");
-}
-
 
 // Big function called by main.ts to mount auth routes
 export async function authRoutes(fastify: FastifyInstance) {
@@ -42,7 +36,8 @@ export async function authRoutes(fastify: FastifyInstance) {
 			//Create simple ID (with timestamp + random)
 				const id = `${Date.now()}-${Math.floor(Math.random()*1000)}`
 			//Create the user in the database
-				await UserManagement.createUser(id, username, passwordHash)
+				const userID  = await UserManagement.createUser(id, username, passwordHash);
+				await  GameManagement.createDefaultPref(userID);
 
 			//Success feedback
 		return reply.code(201).send({ message: 'Registered successfully', userId: id })
@@ -73,7 +68,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 									sub: user.rand_id,
 									step: '2fa'  // Important: this flag indicates 2FA setup/verify is needed
 							},
-							JWT_SECRET,
+							fastify.vault.jwt,
 							{ expiresIn: '5m' }
 					);
 
@@ -102,7 +97,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 		}
 		let payload: any;
 		try {
-			payload = jwt.verify(token, JWT_SECRET);
+			payload = jwt.verify(token, fastify.vault.jwt);
 		} catch (error) {
 			console.error('Token verification failed:', error);
 			return reply.code(401).send({ error: 'Invalid token' });
@@ -148,7 +143,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 
 		let payload: any
 		try {
-			payload = jwt.verify(auth, JWT_SECRET)
+			payload = jwt.verify(auth, fastify.vault.jwt)
 		} catch {
 			return reply.code(401).send({ error: 'Invalid token' })
 		}
@@ -184,7 +179,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 		}
 
 		// Final JWT generation
-		const token = jwt.sign({ sub: user.rand_id }, JWT_SECRET, { expiresIn: '1h' })
+		const token = jwt.sign({ sub: user.rand_id }, fastify.vault.jwt, { expiresIn: '1h' })
 
 		return reply
 			.setCookie('token', token, {
@@ -225,7 +220,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 				// Verify current session token
 				let payload: any;
 				try {
-						payload = jwt.verify(token, JWT_SECRET);
+						payload = jwt.verify(token, fastify.vault.jwt);
 				} catch (error) {
 						return reply.code(401).send({ error: 'Invalid token' });
 				}
@@ -251,7 +246,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 								sub: payload.sub,
 								step: '2fa'
 						},
-						JWT_SECRET,
+						fastify.vault.jwt,
 						{ expiresIn: '5m' }
 				);
 
@@ -310,7 +305,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 
 			let payload: any;
 			try {
-					payload = jwt.verify(token, JWT_SECRET);
+					payload = jwt.verify(token, fastify.vault.jwt);
 			} catch (error) {
 					return reply.code(401).send({ error: 'Invalid token' });
 			}
@@ -332,7 +327,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 		const token = auth.split(' ')[1];
 		let payload;
 		try {
-			payload = jwt.verify(token, JWT_SECRET);
+			payload = jwt.verify(token, fastify.vault.jwt);
 		} catch {
 			return reply.code(401).send({ error: 'Invalid token' });
 		}

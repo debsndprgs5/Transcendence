@@ -1,6 +1,23 @@
-import path from 'path'
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+import * as fs from 'fs';
+
+// Charger les variables depuis le fichier créé par vault-init
+const vaultEnvPath = path.resolve('/app', 'vault', '.env.vault'); // MODIFIÉ: Chemin absolu dans le conteneur
+if (fs.existsSync(vaultEnvPath)) {
+  const vaultEnv = fs.readFileSync(vaultEnvPath, 'utf8');
+  const parsed = dotenv.parse(vaultEnv);
+  for (const key in parsed) {
+    process.env[key] = parsed[key];
+  }
+  console.log('Successfully loaded secrets from .env.vault');
+} else {
+  console.error('FATAL: .env.vault file not found at:', vaultEnvPath);
+  // En production, il est souvent préférable de quitter si les secrets ne sont pas trouvés.
+  // process.exit(1); 
+}
+
 import Fastify from 'fastify'
-import fs from 'fs'
 import fastifyStatic from '@fastify/static'
 import { authRoutes } from './routes/auth.routes'
 import chatRoutes from './routes/chat.routes'
@@ -8,15 +25,11 @@ import accountRoutes from './routes/account.routes'
 import cookie from '@fastify/cookie';
 import wsPlugin from './websockets/chat.socket';
 import gamePlugin from './websockets/game.socket';
-import * as dotenv from 'dotenv';
+
 import dbPlugin from './db/db';
 import { gameRoutes } from './routes/game.routes'
 import { tournamentRoutes } from './routes/tournament.routes'
-
-
-dotenv.config({
-  path: path.resolve(process.cwd(), '.env'),
-});
+import vaultPlugin , { setSecrets } from './vault/vaultPlugin';
 
 function extractHostFromSessionManager(session: string | undefined): string | null {
   if (!session) return null;
@@ -30,7 +43,7 @@ async function bootstrap() {
 
   const key = fs.readFileSync(keyPath);
   const cert = fs.readFileSync(certPath);
-
+  
   const app = Fastify({
     https: {
       key,
@@ -38,7 +51,13 @@ async function bootstrap() {
     }
   });
 
-
+  //load plugin vault // acces aux secrets comme ca : app.vault.<secretName>
+  await app.register(vaultPlugin);
+  
+  console.log('gnngnggggg: ', app.vault.jwt);
+  console.log('2222222: ', app.vault.cookie);
+  setSecrets(app.vault.jwt, app.vault.cookie);
+  // Config CORS
   await app.register(require('@fastify/cors'), {
   origin: true,
   credentials: true,
@@ -47,7 +66,7 @@ async function bootstrap() {
 
   // Cookie plugin
   await app.register(cookie, {
-    secret: process.env.COOKIE_SECRET || '&hotzBs@bziCO$oy2xTY0pq7QiBJ9Jz4Clgb$@od0MWzuU*ybL', // secret pour signer les cookies
+    secret: app.vault.cookie,
     parseOptions: {  // options pour le parsing des cookies
       secure: process.env.NODE_ENV === 'production',
       httpOnly: false,

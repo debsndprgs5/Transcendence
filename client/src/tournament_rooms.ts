@@ -12,7 +12,6 @@ import { resizePongCanvas } from './handlers';
 import { PongButton, showPongMenu } from './pong_rooms';
 import { addMemberToRoom, loadRooms, selectRoom, rmMemberFromRoom } from './handlers';
 
-
 export const createTournamentFormData = {
   tournamentName: null as string | null,
   ballSpeed: 50,
@@ -133,6 +132,11 @@ export async function handleCreateTournament(): Promise<void> {
       await addMemberToRoom(newRoom.roomID, state.userId!);
       selectRoom(newRoom.roomID);
       await loadRooms();
+          state.socket?.send(JSON.stringify({
+      type:'systemMessage',
+      chatRoomID:newRoom.roomID,
+      content: `${localStorage.getItem('username')} just created tournament !`
+    }));
     // POST to create tournament
    const reply =  await apiFetch(`/api/tournament/${state.userId}`, {
       method: 'POST',
@@ -175,6 +179,11 @@ export async function handleJoinTournament(tourID: number): Promise<void> {
   await addMemberToRoom(chatID, state.userId!);
   selectRoom(chatID.ID);
   await loadRooms();
+  state.socket?.send(JSON.stringify({
+    type:'systemMessage',
+    chatRoomID:chatID,
+    content: `${localStorage.getItem('username')} just join tournament !`
+  }));
   state.isTournamentCreator = false;
 }
 
@@ -182,6 +191,11 @@ export async function handleJoinTournament(tourID: number): Promise<void> {
 export async function handleLeaveTournament(islegit:boolean): Promise<void> {
   const tourID = state.currentTournamentID!;
   const { chatID } = await apiFetch(`/api/tournaments/chat/${tourID}`);
+    state.socket?.send(JSON.stringify({
+    type:'systemMessage',
+    chatRoomID:chatID,
+    content: `${localStorage.getItem('username')} just left tournament !`
+  }));
   await rmMemberFromRoom(chatID, state.userId!);
   state.playerInterface!.typedSocket.send('leaveTournament', {
 	userID:state.playerInterface!.userID,

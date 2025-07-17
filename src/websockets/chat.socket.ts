@@ -2,25 +2,18 @@ import { user } from '../types/user';
 import * as UserManagement from '../db/userManagement';
 import { getChatRoomMembers } from '../db/chatManagement';
 import * as chatManagement from '../db/chatManagement';
-import { getPlayerState } from './game.socket';
+import { getMembersByTourID, getPlayerState } from './game.socket';
 import { playerInterface } from '../shared/gameTypes';
 import fp from 'fastify-plugin';
 import * as dotenv from 'dotenv';
 import path from 'path';
 import { WebSocketServer, WebSocket, RawData } from 'ws';
 import jwt, { JwtPayload } from 'jsonwebtoken';
+import { getJwtSecret } from '../vault/vaultPlugin';
 
-
-
-dotenv.config({
-	path: path.resolve(process.cwd(), '.env'),
-}); // get env
-
-
-const jwtSecret = process.env.JWT_SECRET!;
-if (!jwtSecret) {
-	throw new Error("JWT_SECRET environment variable is not defined");
-}
+// dotenv.config({
+// 	path: path.resolve(process.cwd(), '.env'),
+// });
 
 const MappedClients = new Map<number, WebSocket>();
 
@@ -38,6 +31,26 @@ async function getRightSockets(authorID: number): Promise<Map<number, WebSocket>
 	return filtered;
 }
 
+export async function sendSystemMessage(chatRoomID:number, content:string){
+	console.log(`[BACK][Stsm] ${content}`)
+	if(chatRoomID <= 0 || !chatRoomID){
+		SendGeneralMessage(0, content); //A VOIR SI CA MARCHE CA MAIS TFACON ON ENVOYE R EN GENERALE JE PENSE
+		return ;
+	}
+	const members = await getChatRoomMembers(chatRoomID);
+	const membersID = members.map(m => m.userID);
+	for(const m of membersID){
+		const payload = JSON.stringify({
+			type: 'system',
+			roomID:chatRoomID,
+			content,
+		});
+		const socket =  MappedClients.get(m);
+		if(!socket)continue;
+		socket.send(payload);
+	}
+		
+}
 
 async function SendGeneralMessage(authorID: number, message: string) {
 	for (const [clientID, socket] of MappedClients.entries()) {
@@ -98,11 +111,17 @@ async function handleConnection(ws: WebSocket, request: any) {
 
 	let payload: JwtPayload;
 	try {
-		payload = jwt.verify(token, jwtSecret) as JwtPayload;
+		const dynamicSecret = getJwtSecret();
+		if (!dynamicSecret) {
+			console.warn('JWT secret not yet initialized');
+			return ws.close(1008, 'Server not ready');
+		}
+		payload = jwt.verify(token, dynamicSecret) as JwtPayload;
 	} catch (error) {
 		console.log('Connection rejected: Invalid token', error);
 		return ws.close(1008, 'Invalid token');
 	}
+
 
 	const rand_id = payload.sub as string;
 	const fullUser: user | null = await UserManagement.getUserByRand(rand_id);
@@ -128,7 +147,6 @@ async function handleConnection(ws: WebSocket, request: any) {
 		ws.on('close', () => handleDisconnect(userId, fullUser.username, ws));
 	
 		ws.on('message', async (data: RawData) => {
-			console.log('CHAT:Message received from client:', data.toString());
 			let parsed: any;
 			try {
 				parsed = JSON.parse(data.toString());
@@ -138,6 +156,11 @@ async function handleConnection(ws: WebSocket, request: any) {
 	
 			// --- Handle message types ---
 			switch (parsed.type) {
+				case 'systemMessage':{
+					const{ chatRoomID, content} = parsed;
+					await sendSystemMessage(chatRoomID, content);
+					break;
+				}
 				case 'chatRoomMessage': {
 					const { chatRoomID, userID, content } = parsed;
 	
@@ -235,7 +258,6 @@ async function  handleFriendStatus(parsed:any, ws:WebSocket){
 	switch(parsed.action){
 		//Front is asking for the full list
 	case 'request': {
-		console.log('[BACK] friendStatus action=request', friendList);
 		if (!Array.isArray(friendList)) {
 			ws.send(JSON.stringify({ error: 'Invalid friend list' }));
 			return;
@@ -247,7 +269,6 @@ async function  handleFriendStatus(parsed:any, ws:WebSocket){
 			status
 		};
 		});
-		console.log('[BACK] friendStatus action=response', updatedStatus);
 		ws.send(JSON.stringify({
 			type: 'friendStatus',
 			action: 'response',
@@ -309,7 +330,6 @@ function handleDisconnect(userId: number, username: string, ws: WebSocket) {
 
 	if (existingSocket === ws) {
 		MappedClients.delete(userId);
-		console.log(`CHAT: User ${username} (ID: ${userId}) disconnected.`);
 	} else {
 		console.warn(`CHAT : WebSocket mismatch for user ${userId}, not removing.`);
 	}
@@ -317,8 +337,12 @@ function handleDisconnect(userId: number, username: string, ws: WebSocket) {
 	
 
 export default fp(async fastify => {
-	const wss = new WebSocketServer({ noServer: true });
-	wss.on('connection', handleConnection);
+    // jwtSecret = fastify.vault.jwt;
+    // if (!jwtSecret) {
+    //     throw new Error("JWT_SECRET was not loaded from Vault. Chat socket cannot start.");
+    // }
+    const wss = new WebSocketServer({ noServer: true });
+    wss.on('connection', handleConnection);
 
 	fastify.server.on('upgrade', (request, socket, head) => {
 		const { url } = request;

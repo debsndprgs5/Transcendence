@@ -274,12 +274,20 @@ export async function handleWebSocketMessage(msg: WebSocketMsg): Promise<void> {
 	
 	switch (msg.type) {
 		case 'system': {
+			console.log(`{MSG : ${{msg}}}`);
 			const chatDiv = document.getElementById('chat');
 			if (chatDiv) {
 				const systemMsg = document.createElement('p');
 				systemMsg.className = 'italic text-gray-500';
-				systemMsg.textContent = msg.message;
+				systemMsg.textContent = msg.content;
 				chatDiv.appendChild(systemMsg);
+				// if(msg.roomID === state.currentRoom){
+				// 	appendMessageToChat(chatDiv, {
+				// 		isOwnMessage: false,
+				// 		name: 'System:',
+				// 		content: msg.content,
+				// });
+				//}
 			}
 			break;
 		}

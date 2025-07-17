@@ -1,0 +1,33 @@
+---Z20F7UAa---A--
+[17/Jul/2025:07:49:08 +0000] 175273854875.814825 172.18.0.1 60990 172.18.0.4 1400
+---Z20F7UAa---B--
+GET /?id=1%20OR%201=1 HTTP/2.0
+host: localhost:1400
+user-agent: curl/7.81.0
+accept: */*
+
+---Z20F7UAa---D--
+
+---Z20F7UAa---E--
+<html>\x0d\x0a<head><title>403 Forbidden</title></head>\x0d\x0a<body>\x0d\x0a<center><h1>403 Forbidden</h1></center>\x0d\x0a<hr><center>nginx/1.22.1</center>\x0d\x0a</body>\x0d\x0a</html>\x0d\x0a
+
+---Z20F7UAa---F--
+HTTP/2.0 403
+Server: nginx/1.22.1
+Date: Thu, 17 Jul 2025 07:49:08 GMT
+Content-Length: 153
+Content-Type: text/html
+Connection: close
+
+---Z20F7UAa---H--
+ModSecurity: Warning. detected SQLi using libinjection. [file "/usr/share/modsecurity-crs/rules/REQUEST-942-APPLICATION-ATTACK-SQLI.conf"] [line "46"] [id "942100"] [rev ""] [msg "SQL Injection Attack Detected via libinjection"] [data "Matched Data: 1&1 found within ARGS:id: 1 OR 1=1"] [severity "2"] [ver "OWASP_CRS/3.3.5"] [maturity "0"] [accuracy "0"] [hostname "172.18.0.4"] [uri "/"] [unique_id "175273854875.814825"] [ref "v9,8"]
+ModSecurity: Warning. Matched "Operator `Rx' with parameter `(?i:[\s'\"`()]*?\b([\d\w]+)\b[\s'\"`()]*?(?:<(?:=(?:[\s'\"`()]*?(?!\b\1\b)[\d\w]+|>[\s'\"`()]*?(?:\b\1\b))|>?[\s'\"`()]*?(?!\b\1\b)[\d\w]+)|(?:not\s+(?:regexp|like)|is\s+not|>=?|!=|\^)[\s'\"`()]*?(?!\ (78 characters omitted)' against variable `ARGS:id' (Value: `1 OR 1=1' ) [file "/usr/share/modsecurity-crs/rules/REQUEST-942-APPLICATION-ATTACK-SQLI.conf"] [line "571"] [id "942130"] [rev ""] [msg "SQL Injection Attack: SQL Tautology Detected"] [data "Matched Data:  1=1 found within ARGS:id: 1 OR 1=1"] [severity "2"] [ver "OWASP_CRS/3.3.5"] [maturity "0"] [accuracy "0"] [hostname "172.18.0.4"] [uri "/"] [unique_id "175273854875.814825"] [ref "o4,4o5,1v9,8"]
+ModSecurity: Warning. Matched "Operator `Rx' with parameter `(?:\b(?:(?i:xor)\b\s+(?:'[^=]{1,10}'(?:\s*?[=<>])?|\d{1,10}(?:\s*?[=<>])?)|(?i:or)\b\s+(?:'[^=]{1,10}'(?:\s*?[=<>])?|\d{1,10}(?:\s*?[=<>])?))|(?i:\bor\b ?[\'\"][^=]{1,10}[\'\"] ?[=<>]+)|(?i:'\s+xor\s+ (79 characters omitted)' against variable `ARGS:id' (Value: `1 OR 1=1' ) [file "/usr/share/modsecurity-crs/rules/REQUEST-942-APPLICATION-ATTACK-SQLI.conf"] [line "970"] [id "942390"] [rev ""] [msg "SQL Injection Attack"] [data "Matched Data: OR 1= found within ARGS:id: 1 OR 1=1"] [severity "2"] [ver "OWASP_CRS/3.3.5"] [maturity "0"] [accuracy "0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-sqli"] [tag "OWASP_CRS"] [tag "capec/1000/152/248/66"] [tag "PCI/6.5.2"] [tag "paranoia-level/2"] [hostname "172.18.0.4"] [uri "/"] [unique_id "175273854875.814825"] [ref "o2,5v9,8t:urlDecodeUni"]
+ModSecurity: Access denied with code 403 (phase 2). Matched "Operator `Ge' with parameter `5' against variable `TX:ANOMALY_SCORE' (Value: `15' ) [file "/usr/share/modsecurity-crs/rules/REQUEST-949-BLOCKING-EVALUATION.conf"] [line "81"] [id "949110"] [rev ""] [msg "Inbound Anomaly Score Exceeded (Total Score: 15)"] [data ""] [severity "2"] [ver "OWASP_CRS/3.3.5"] [maturity "0"] [accuracy "0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-generic"] [hostname "172.18.0.4"] [uri "/"] [unique_id "175273854875.814825"] [ref ""]
+
+---Z20F7UAa---I--
+
+---Z20F7UAa---J--
+
+---Z20F7UAa---Z--
+

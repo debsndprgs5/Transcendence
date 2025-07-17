@@ -37,7 +37,7 @@ export function HomeView(): string {
               </div>
             </div>
             <div class="md:w-1/2 flex items-center justify-center bg-white/10">
-              <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExMGxybmhtZmdwNTU0YjVqOThnMXdmaGlic3QxdXFod2N0aDZnNTRpNCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o72FkiKGMGauydfyg/giphy.gif"
+              <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExZnhjdTU4NHdsNTVocW54bndicnN0bDZ0ZG02NzN3azJvbGg2MnFjNiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/9tx0gy37p7oXu/giphy.gif"
                    alt="pong animation"
                    class="w-4/5 h-auto rounded-lg shadow-xl max-h-[65vh] object-contain">
             </div>
@@ -66,13 +66,13 @@ export function HomeView(): string {
                  min-h-[85vh] relative">
 
             <div id="pongWrapper"
-                 class="absolute"
-                 style="top:8%; left:11.2%; width:78.1%; height:58%;">
+                 class="absolute bg_gmenu-container"
+                 style="top:8%; left:10%; width:80%; height:58%;">
             <canvas id="pong-canvas"
-                    class="w-full h-full rounded-[4px] shadow-inner bg-transparent">
+                    class="w-full h-full rounded-[4px] shadow-inner bg-transparent relative z-10">
             </canvas>
             <canvas id="babylon-canvas"
-                    class="w-full h-full rounded-[4px] shadow-inner bg-black hidden">
+                    class="w-full h-full rounded-[4px] shadow-inner bg-black hidden relative z-10">
             </canvas>
           </div> 
 

@@ -4,6 +4,7 @@
 @import "./chatactionbarbutton.css";
 @import "./halorays.css";
 @import "./pongmenubtn.css";
+@import "./bg_gmenu.css";
 
 @tailwind base;
 @tailwind components;

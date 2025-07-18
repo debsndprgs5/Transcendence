@@ -108,7 +108,7 @@ export function HomeView(): string {
           <!-- Rooms list -->
           <ul id="room-list"
               class="absolute left-[6.5%] top-[18%]
-                     w-[20%] h-[60%]
+                     w-[20%] h-[80%]
                      space-y-[1.4rem] overflow-auto text-gray-200">
           </ul>
 

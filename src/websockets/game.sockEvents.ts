@@ -23,6 +23,19 @@ export function handleAllEvents(typedSocket:TypedSocket, player:Interfaces.playe
      handleInit(data, player);
    });
 
+    // permet au client de demander les stats d'un joueur
+    typedSocket.on('getStats', async (socket:WebSocket, data:{ userID?: number }) => {
+      let winPercentage = null;
+      let matchHistory = null;
+      // console.log('[socket stats] getStats called with userID:', data.userID);
+      if (data.userID) {
+        winPercentage = await GameManagement.getWinPercentageForUser(data.userID);
+        matchHistory = await GameManagement.getMatchHistoryForUser(data.userID);
+        // console.log('[socket stats] matchHistory for user', data.userID, matchHistory);
+      }
+      typedSocket.send('statsResult', { winPercentage, matchHistory });
+    });
+
   typedSocket.on('joinGame', async (socket:WebSocket, data:Interfaces.SocketMessageMap['joinGame']) => {
     handleJoin(data, player);
   });
@@ -242,12 +255,12 @@ export async function handleReconnect(parsed:any ,player: Interfaces.playerInter
 	if (parsed.userID !== player.userID) {
 		console.warn(`[RECONNECT] Mismatch: received ${parsed.userID}, expected ${player.userID}. Reinitializing...`);
 
-		player.typedSocket.send('init', {
-			userID: player.userID,
-			username: player.username,
-			state: 'init',
-			success: true,
-		});
+    player.typedSocket.send('init', {
+      userID: player.userID,
+      username: player.username,
+      state: 'init',
+      success: true,
+    });
     Helpers.updatePlayerState(player, 'init');
 		return;
 	}

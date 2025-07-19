@@ -17,6 +17,8 @@ export const pongState =
 	settingsRenderer: null as settingsRenderer|null
 };
 
+export { state };
+
 export async function initGameSocket(): Promise<void> {
 	if (!state.authToken) return;
 
@@ -593,4 +595,12 @@ export async function handleReconnection(socket:WebSocket, typedSocket:TypedSock
 			type: 'info',
 		});
 	}
+}
+
+export function fetchAccountStats(userID: number, onStats: (data: any) => void) {
+  if (!state?.typedSocket) return;
+  state.typedSocket.send('getStats', { userID });
+  state.typedSocket.on('statsResult', (_socket: WebSocket, data: any) => {
+	onStats(data);
+  });
 }

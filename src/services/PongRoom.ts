@@ -34,9 +34,9 @@ export class PongRoom {
 	private totalPausedTime = 0;
 
 	private pauseState = {
-        isPaused: false,
-        pausedPlayers: new Set<number>(),        // Track all paused players
-    };
+		isPaused: false,
+		pausedPlayers: new Set<number>(),        // Track all paused players
+	};
 	private loop?: NodeJS.Timeout
 
 	constructor(
@@ -77,18 +77,18 @@ export class PongRoom {
 		}
 
 		// Position paddles just inside walls
-    const wallTh = 0.25;
-    for (const p of players) {
-      const pad = this.paddles.get(p.userID)!.paddleInterface;
-      const halfW = pad.width  / 2;
-      const halfL = pad.length / 2;
-      switch (p.playerSide) {
-        case 'left':   pad.x = -this.WIDTH/2 + wallTh + halfW; pad.y = 0; break;
-        case 'right':  pad.x =  this.WIDTH/2 - wallTh - halfW; pad.y = 0; break;
-        case 'top':    pad.x = 0; pad.y =  this.HEIGHT/2 - wallTh - halfL; break;
-        case 'bottom': pad.x = 0; pad.y = -this.HEIGHT/2 + wallTh + halfL; break;
-      }
-    }
+	const wallTh = 0.25;
+	for (const p of players) {
+	  const pad = this.paddles.get(p.userID)!.paddleInterface;
+	  const halfW = pad.width  / 2;
+	  const halfL = pad.length / 2;
+	  switch (p.playerSide) {
+		case 'left':   pad.x = -this.WIDTH/2 + wallTh + halfW; pad.y = 0; break;
+		case 'right':  pad.x =  this.WIDTH/2 - wallTh - halfW; pad.y = 0; break;
+		case 'top':    pad.x = 0; pad.y =  this.HEIGHT/2 - wallTh - halfL; break;
+		case 'bottom': pad.x = 0; pad.y = -this.HEIGHT/2 + wallTh + halfL; break;
+	  }
+	}
 
 
 		// Create ball
@@ -245,8 +245,8 @@ private ballsMove(b: ballClass) {
 	  const n = Math.ceil(remaining / maxStep);
 	  const step = remaining / n;
 	  for (let i = 0; i < n; i++) {
-	    b.x += b.vector[0] * step;
-	    b.y += b.vector[1] * step;
+		b.x += b.vector[0] * step;
+		b.y += b.vector[1] * step;
 	  }
 }
 
@@ -256,9 +256,9 @@ private bounce_player(ball: ballClass, paddle: paddleClass) {
   const pi   = paddle.paddleInterface;
   const R    = ball.radius;
   const left = pi.x - pi.width / 2,
-        right  = pi.x + pi.width / 2,
-        top    = pi.y - pi.length / 2,
-        bottom = pi.y + pi.length / 2;
+		right  = pi.x + pi.width / 2,
+		top    = pi.y - pi.length / 2,
+		bottom = pi.y + pi.length / 2;
 
   const cx = Math.max(left, Math.min(ball.x, right));
   const cy = Math.max(top,  Math.min(ball.y, bottom));
@@ -268,22 +268,22 @@ private bounce_player(ball: ballClass, paddle: paddleClass) {
   const maxAngle = 75 * Math.PI / 180;
 
   if (pi.type === 'H') {                         // raquette gauche / droite
-    const rel = (ball.y - pi.y) / (pi.length/2); // centre direct
-    const angle = Math.max(-1, Math.min(1, rel)) * maxAngle;
+	const rel = (ball.y - pi.y) / (pi.length/2); // centre direct
+	const angle = Math.max(-1, Math.min(1, rel)) * maxAngle;
 
-    const dirX = (pi.x < 0) ? 1 : -1;            // gauche => +X, droite => -X
-    ball.vector[0] =  dirX * Math.cos(angle);
-    ball.vector[1] =  Math.sin(angle);
-    ball.x += ball.vector[0] * 0.01;             // sortir du paddle
+	const dirX = (pi.x < 0) ? 1 : -1;            // gauche => +X, droite => -X
+	ball.vector[0] =  dirX * Math.cos(angle);
+	ball.vector[1] =  Math.sin(angle);
+	ball.x += ball.vector[0] * 0.01;             // sortir du paddle
 
   } else {                                       // raquette haut / bas
-    const rel = (ball.x - pi.x) / (pi.width/2);
-    const angle = Math.max(-1, Math.min(1, rel)) * maxAngle;
+	const rel = (ball.x - pi.x) / (pi.width/2);
+	const angle = Math.max(-1, Math.min(1, rel)) * maxAngle;
 
-    const dirY = (pi.y < 0) ? 1 : -1;            // bas => +Y, haut => -Y
-    ball.vector[0] =  Math.sin(angle);
-    ball.vector[1] =  dirY * Math.cos(angle);
-    ball.y += ball.vector[1] * 0.01;
+	const dirY = (pi.y < 0) ? 1 : -1;            // bas => +Y, haut => -Y
+	ball.vector[0] =  Math.sin(angle);
+	ball.vector[1] =  dirY * Math.cos(angle);
+	ball.y += ball.vector[1] * 0.01;
   }
 
   // normalise
@@ -304,10 +304,10 @@ private resetBallPosition(sideHit: 'left'|'right'|'top'|'bottom', ball: ballClas
   const rad = (Math.random() * 2 * maxServeDeg - maxServeDeg) * Math.PI / 180;
 
   switch (sideHit) {
-    case 'left':   ball.vector = [  Math.cos(rad),  Math.sin(rad)]; break; // vers +X
-    case 'right':  ball.vector = [ -Math.cos(rad),  Math.sin(rad)]; break;
-    case 'top':    ball.vector = [  Math.sin(rad), -Math.cos(rad)]; break;
-    case 'bottom': ball.vector = [  Math.sin(rad),  Math.cos(rad)]; break;
+	case 'left':   ball.vector = [  Math.cos(rad),  Math.sin(rad)]; break; // vers +X
+	case 'right':  ball.vector = [ -Math.cos(rad),  Math.sin(rad)]; break;
+	case 'top':    ball.vector = [  Math.sin(rad), -Math.cos(rad)]; break;
+	case 'bottom': ball.vector = [  Math.sin(rad),  Math.cos(rad)]; break;
   }
 
   const l = Math.hypot(ball.vector[0], ball.vector[1]);
@@ -382,15 +382,34 @@ private  handleWallScore(sideHit: 'left'|'right'|'top'|'bottom', ball: ballClass
 		clearInterval(this.loop!);
 		PongRoom.rooms.delete(this.gameID);
 
+		function getResultForPlayer(userID: number, scoreMap: Map<number, number>): 0|1|2 {
+			const scores = Array.from(scoreMap.values());
+			const maxScore = Math.max(...scores);
+			const playerScore = scoreMap.get(userID) || 0;
+			const winners = scores.filter(s => s === maxScore).length;
+			if (playerScore === maxScore) {
+				if (winners === 1) return 1; // win
+				if (winners > 1) return 2;  // tie
+			}
+			return 0; // lose
+		}
+
+		const duration = Math.floor((Date.now() - this.clock - this.totalPausedTime) / 1000);
+		// console.log(`[STATS] duration: ${duration}s`);
 		await saveMatchStats(
-		this.gameID,
-		this.players[0].tournamentID || null,
-		this.game.paddleSpeed,
-		this.game.ballSpeed,
-		this.game.limit,
-		this.game.winCondition,
-		this.players.map(p => ({ userID: p.userID, score: this.scoreMap.get(p.userID) || 0 }))
-	);
+			this.gameID,
+			this.players[0].tournamentID || null,
+			this.game.paddleSpeed,
+			this.game.ballSpeed,
+			this.game.limit,
+			this.game.winCondition,
+			this.players.map(p => ({
+				userID: p.userID,
+				score: this.scoreMap.get(p.userID) || 0,
+				result: getResultForPlayer(p.userID, this.scoreMap)
+			})),
+			duration
+		);
 
 		const playermapped = new Map<string, number>();
 		for (const [userID, score] of this.scoreMap) {

@@ -1,4 +1,56 @@
 import { isAuthenticated } from './api';
+import { fetchAccountStats, state } from './pong_socket';
+
+function updateStatsChart(stats: { win: number, lose: number, tie: number }) {
+  const canvasEl = document.getElementById('stats-chart');
+  const legendEl = document.getElementById('stats-legend');
+  if (!canvasEl || !(canvasEl instanceof HTMLCanvasElement) || !stats) return;
+  const canvas = canvasEl;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  const data = [
+    { label: 'Win', value: stats.win, color: '#10B981' },
+    { label: 'Lose', value: stats.lose, color: '#EF4444' },
+    { label: 'Tie', value: stats.tie, color: '#F59E0B' }
+  ];
+  const filteredData = data.filter(item => item.value > 0);
+  if (filteredData.length === 0) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#6B7280';
+    ctx.font = '16px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('No games played', canvas.width / 2, canvas.height / 2);
+    if (legendEl) legendEl.innerHTML = '<span class="text-gray-500">No data available</span>';
+    return;
+  }
+  const total = filteredData.reduce((sum, item) => sum + item.value, 0);
+  let currentAngle = -Math.PI / 2; // Commencer en haut
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const centerX = canvas.width / 2;
+  const centerY = canvas.height / 2;
+  const radius = Math.min(centerX, centerY) - 10;
+  filteredData.forEach(item => {
+    const sliceAngle = (item.value / total) * 2 * Math.PI;
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
+    ctx.closePath();
+    ctx.fillStyle = item.color;
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    currentAngle += sliceAngle;
+  });
+  if (legendEl) {
+    legendEl.innerHTML = filteredData.map(item => 
+      `<span class="inline-block mr-4">
+        <span class="inline-block w-3 h-3 rounded-full mr-1" style="background-color: ${item.color}"></span>
+        ${item.label}: ${item.value}%
+      </span>`
+    ).join('');
+  }
+}
 
 /**
  * Renders the given HTML string into the #app element.
@@ -317,8 +369,23 @@ export function Verify2FAView(): string {
  */
 
 export function AccountView(user: any, friends: any[] = []): string {
-	const username = user.username || '';
-	const style = /^\d+$/.test(username)
+  console.log('Fetching account stats for user:', user);
+  console.log('Rendering account view for user_id:', user.userId);
+  if (user && user.userId) {
+    // pour eviter les doublons listeners
+    const socket = state?.typedSocket;
+    if (socket && socket.removeAllListeners) {
+      socket.removeAllListeners('statsResult');
+    }
+    fetchAccountStats(user.userId, (data: any) => {
+      console.log('[Realtime Stats Update]', data);
+      const stats = data.winPercentage;
+      updateStatsChart(stats);
+    });
+  }
+
+  const username = user.username || '';
+  const style = /^\d+$/.test(username)
     ? 'bottts'
     : 'initials';
 	const avatar = user.avatarUrl || `https://api.dicebear.com/9.x/${style}/svg`
@@ -335,6 +402,10 @@ export function AccountView(user: any, friends: any[] = []): string {
 					<img src="${avatar}" id="account-avatar" alt="Avatar" class="w-24 h-24 rounded-full shadow-lg border-4 border-indigo-200 mb-4 cursor-pointer">
 					<input type="file" id="avatarInput" class="hidden" accept="image/*">
 					<h2 class="text-2xl font-bold text-indigo-700 mb-1">${username}</h2>
+          <div id="account-stats" class="mt-4 text-center">
+            <canvas id="stats-chart" width="200" height="200" class="mx-auto"></canvas>
+            <div id="stats-legend" class="mt-2 text-sm"></div>
+          </div>
 				</div>
 				<div class="px-8 py-6">
 					<form id="profileForm" class="space-y-3">

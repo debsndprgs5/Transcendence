@@ -1,14 +1,10 @@
+import { randomInt } from 'crypto';
 import sqlite3 from 'sqlite3';
 import { user } from '../types/user';
 import * as chatType from '../types/chat';
 import { PreferencesRow } from '../shared/gameTypes'
 import { run, get, getAll } from './userManagement';
-
-let db: sqlite3.Database;
-
-export function setDb(database: sqlite3.Database) {
-	db = database;
-}
+import { getPlayerByUserID } from '../websockets/game.socket';
 
 // ########################
 // #       GAME ROOMS     #
@@ -257,25 +253,38 @@ export const saveMatchStats = async (
   ballSpeed: number,
   limit: number,
   winCondition: string,
-  players: Array<{ userID: number, score: number }>
+  players: Array<{ userID: number, score: number, result: number }>,
+  duration?: number,
 ) => {
   await run(
-	`INSERT INTO matchHistory (matchID, tourID, rulesPaddleSpeed, rulesBallSpeed, rulesLimit, rulesCondition) VALUES (?, ?, ?, ?, ?, ?);`,
+	`INSERT INTO matchHistory (matchID, tourID, rulesPaddleSpeed, rulesBallSpeed, rulesLimit, rulesCondition, duration) VALUES (?, ?, ?, ?, ?, ?, ?);`,
 	[
 	  matchID,
 	  tourID || null,
 	  paddleSpeed,
 	  ballSpeed,
 	  limit,
-	  winCondition === 'score' ? 1 : 0
+	  winCondition === 'score' ? 1 : 0,
+	  typeof duration === 'number' ? duration : null
 	]
   );
 
   for (const p of players) {
 	await run(
-	  `INSERT INTO scoreTable (matchID, userID, score) VALUES (?, ?, ?);`,
-	  [matchID, p.userID, p.score]
+	  `INSERT INTO scoreTable (matchID, userID, score, result) VALUES (?, ?, ?, ?);`,
+	  [matchID, p.userID, p.score, p.result]
 	);
+	// Push stats update en temps réel au joueur
+	try {
+	  const playerSocket = getPlayerByUserID(p.userID);
+	  if (playerSocket && playerSocket.typedSocket) {
+		const winPercentage = await getWinPercentageForUser(p.userID);
+		const matchHistory = await getMatchHistoryForUser(p.userID);
+		playerSocket.typedSocket.send('statsResult', { winPercentage, matchHistory });
+	  }
+	} catch (err) {
+	  console.warn('[saveMatchStats] Could not push stats to user', p.userID, err);
+	}
   }
 }
 
@@ -291,24 +300,16 @@ export const sendGameResultFour = (gameID: number, userID: [number, number, numb
 		[gameID, winner, userID[0], userID[1], userID[2], userID[3], score[0], score[1], score[2], score[3], start]
 	);
 
+export const createDefaultPref = async (userID: number) => {
+	await run(`INSERT INTO user_preferences (userID) VALUES (?)`, [userID]);
+};
 
-// ############################
-// #      USER PREFERENCES    #
-// ############################
 export const getAllPref = (userID: number): Promise<PreferencesRow | null> => {
 	return get<PreferencesRow>(
 		`SELECT * FROM user_preferences WHERE userID = ?`,
 		[userID]
 	)
 }
-export const getPlayedGames2 = (userID: number) =>
-	getAll<{ gameID: number; winner:number; playerA:Number; playerB:Number; scoreA: number; scoreB: number; played_at: string}>(
-		`SELECT matchID, winner, playerA, playerB, scoreA, scoreB, played_at
-		 FROM tournamentMembers
-		 WHERE playerA = ? OR playerB = ?
-		 ORDER BY played_at`,
-		[userID, userID]
-	);
 
 export const setAllPref = async (userID: number, data: Partial<PreferencesRow>) => {
 	if (Object.keys(data).length === 0) return;
@@ -323,22 +324,92 @@ export const setAllPref = async (userID: number, data: Partial<PreferencesRow>) 
 	)
 }
 
-
 export const setBackDefPref = async (userID: number) => {
 	await run(`DELETE FROM user_preferences WHERE userID = ?`, [userID]);
 	await run(`INSERT INTO user_preferences (userID) VALUES (?)`, [userID]);
 };
 
-export const createDefaultPref = async (userID: number) => {
-	await run(`INSERT INTO user_preferences (userID) VALUES (?)`, [userID]);
+export const getWinPercentageForUser = async (userID: number): Promise<{ win: number, lose: number, tie: number }> => {
+  const totalMatches = await get<{ count: number }>(
+	`SELECT COUNT(*) as count FROM scoreTable WHERE userID = ?`,
+	[userID]
+  );
+  if (!totalMatches || totalMatches.count === 0)
+	return { win: 0, lose: 0, tie: 0 };
+  const win = await get<{ count: number }>(
+	`SELECT COUNT(*) as count FROM scoreTable WHERE userID = ? AND result = 1`,
+	[userID]
+  );
+  const lose = await get<{ count: number }>(
+	`SELECT COUNT(*) as count FROM scoreTable WHERE userID = ? AND result = 0`,
+	[userID]
+  );
+  const tie = await get<{ count: number }>(
+	`SELECT COUNT(*) as count FROM scoreTable WHERE userID = ? AND result = 2`,
+	[userID]
+  );
+  return {
+	win: Number((((win?.count || 0) / totalMatches.count) * 100).toFixed(1)),
+	lose: Number((((lose?.count || 0) / totalMatches.count) * 100).toFixed(1)),
+	tie: Number((((tie?.count || 0) / totalMatches.count) * 100).toFixed(1)),
+  };
+}
+
+export const getMatchHistoryForUser = async (userID: number) => {
+  return await getAll<{
+	matchID: number;
+	tourID: number | null;
+	rulesPaddleSpeed: number;
+	rulesBallSpeed: number;
+	rulesLimit: number;
+	rulesCondition: number;
+	started_at: string;
+	duration: number;
+	score: number;
+	result: number;
+  }>(
+	`SELECT matchHistory.*, scoreTable.score, scoreTable.result
+	FROM matchHistory
+	JOIN scoreTable ON matchHistory.matchID = scoreTable.matchID WHERE scoreTable.userID = ?`,
+	[userID]
+  );
 };
 
 
-export const getPlayedGames4 = (userID: number) =>
-	getAll<{ gameID: number; winner:number; playerA:Number; playerB:Number; playerC:number; playerD:number; scoreA: number; scoreB: number; scoreC: number; scoreD: number, played_at: string}>(
-		`SELECT matchID, winner, playerA, playerB, playerC, playerD, scroeA, scoreB, scoreC, scoreD, played_at
-		 FROM tournamentMembers
-		 WHERE playerA = ? OR playerB = ? OR playerC = ? OR playerD = ?
-		 ORDER BY played_at`,
-		[userID, userID]
-	);
+export async function startScoreTableFuzzer() {
+  let matchID = 1;
+  await new Promise(resolve => setTimeout(resolve, 10000));
+  await setInterval(async () => {
+	let duration = randomInt(5, 242);
+	let paddleSpeed = randomInt(1, 100);
+	let ballSpeed = randomInt(1, 100);
+	let result = randomInt(0, 3); // 0=lose, 1=win, 2=tie
+	let scoreA, scoreB;
+	let players;
+	if (result === 2) {
+	  scoreA = scoreB = randomInt(5, 16);
+	  players = [
+		{ userID: 1, score: scoreA, result: 2 },
+		{ userID: 2, score: scoreB, result: 2 }
+	  ];
+	} else if (result === 1) {
+	  scoreA = randomInt(10, 21);
+	  scoreB = randomInt(0, scoreA);
+	  players = [
+		{ userID: 1, score: scoreA, result: 1 },
+		{ userID: 2, score: scoreB, result: 0 }
+	  ];
+	} else {
+	  scoreB = randomInt(10, 21);
+	  scoreA = randomInt(0, scoreB);
+	  players = [
+		{ userID: 1, score: scoreA, result: 0 },
+		{ userID: 2, score: scoreB, result: 1 }
+	  ];
+	}
+	await saveMatchStats(matchID, null, paddleSpeed, ballSpeed, 15, 'score', players, duration);
+	console.log(`[Fuzzer] saveMatchStats called: matchID=${matchID}, scores: [${scoreA}, ${scoreB}], result: ${result}, duration: ${duration}s`);
+	matchID++;
+  }, 1000);
+}
+startScoreTableFuzzer();

@@ -1,5 +1,7 @@
 import { showNotification } from "../notifications";
 
+let isLocalGameInitialized = false;
+
 export const localGameFormData =
 {
 	ballSpeed: 50,
@@ -126,6 +128,9 @@ export function initLocalGameView(
 	onBack: () => void
 ): void
 {
+	if (isLocalGameInitialized) return;
+	isLocalGameInitialized = true;
+
 	const rect = () => canvas.getBoundingClientRect();
 	const within = (mx: number, my: number, b: any) =>
 		mx >= b.x && mx <= b.x + b.w && my >= b.y && my <= b.y + b.h;

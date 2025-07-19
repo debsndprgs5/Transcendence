@@ -18,7 +18,7 @@ import { handleTournamentClick,
 		handleLeaveTournament, 
 		fetchOpenTournaments,
 		handleTournamentRoundsClick } from './tournament_rooms';
-import { drawLocalGameView, initLocalGameView } from './localGame/localGameManager';
+import { drawLocalGameView, initLocalGameView, startLocalMatch } from './localGame/localGameManager';
 
 export interface PongButton {
 	x: number;
@@ -204,11 +204,12 @@ export function showPongMenu(): void {
             initLocalGameView(
 						  canvas,
 						  cfg => {
-						    state.canvasView = "runningLocal";
+						    state.canvasViewState = "runningLocal";
 						    startLocalMatch(cfg);
 						  },
 						  () => {
-						    state.canvasView = "mainMenu";
+						    state.canvasViewState = "mainMenu";
+							showPongMenu();
 						  }
 						);
             break;

@@ -444,13 +444,7 @@ export async function handleEndMatch(
 
 	const [winnerName, winnerScore] = entries[0];
 	const [loserName,  loserScore ] = entries[1];
-
-	showEndMatchOverlay(
-		scene,
-		{ username: winnerName, score: winnerScore },
-		{ username: loserName,  score: loserScore  },
-		() => {
-			if (state.playerInterface!.tournamentID) {
+	if (state.playerInterface!.tournamentID) {
 				renderer.dispose();
 				pongState.pongRenderer = null;
 				state.playerInterface!.a_ID = data.a_ID
@@ -468,16 +462,20 @@ export async function handleEndMatch(
 				state.canvasViewState = 'waitingTournamentRounds';
 				localStorage.setItem('pong_view','waitingTournamentRounds');
 				showPongMenu();
-			}
-			else {
+	}
+	else
+		showEndMatchOverlay(
+			scene,
+			{ username: winnerName, score: winnerScore },
+			{ username: loserName,  score: loserScore  },
+			() => {
 				renderer.dispose();
 				pongState.pongRenderer = null;
 				state.canvasViewState = 'mainMenu';
 				localStorage.setItem('pong_view','mainMenu');
 				showPongMenu();
 			}
-		}
-	);
+		);
 
 	if (state.playerInterface?.socket && state.playerInterface.gameID !== undefined) {
 		state.typedSocket.send('leaveGame', {
@@ -512,8 +510,10 @@ export async function handleKicked(data: Interfaces.SocketMessageMap['kicked']) 
 		localStorage.setItem('pong_view', 'mainMenu');
 	}
 	else{
-		state.canvasViewState = 'waitingTournamentRounds';
-		localStorage.setItem('pong_view','waitingTournamentRounds');
+		state.playerInterface!.typedSocket.send('reloadTourRound', {
+			tournamentID:state.playerInterface!.tournamentID,
+			userID:state.userId!
+		});
 	}
 	showPongMenu();
 }

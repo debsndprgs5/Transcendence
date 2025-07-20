@@ -529,7 +529,7 @@ export function drawWaitingTournamentView(
 
   // Start Tournament button (only for creator)
   let startBtn: PongButton | null = null;
-  if (state.isTournamentCreator === true) {
+  if (state.playerInterface!.isTourOwner === true) {
     const startW = width  * 0.25;
     const startH = height * 0.08;
     const startX = width  / 2 - startW / 2;
@@ -553,7 +553,58 @@ export function drawWaitingTournamentView(
   (canvas as any)._waitingTournamentButtons = buttons;
 }
 
+export function drawEndTournamentView(
+  canvas:HTMLCanvasElement,
+  ctx:CanvasRenderingContext2D,
+  tournamentName:string,
+  players:{username:string; score:number}[]
+):void{
+  const width  = canvas.width;
+  const height = canvas.height;
 
+  const wrapper = canvas.parentElement!;
+  
+  wrapper.querySelectorAll('.menubtn_button').forEach(el => el.remove());
+  ctx.clearRect(0, 0, width, height);
+
+  ctx.font = `${Math.floor(height / 15)}px Orbitron`;
+  ctx.fillText(tournamentName, width / 2, height * 0.12);
+
+    ctx.fillStyle = 'white';
+  ctx.textAlign = 'left';
+  ctx.font = `${Math.floor(height / 28)}px Orbitron`;
+  const listX      = width * 0.18;
+  const startY     = height * 0.25;
+  const lineHeight = height * 0.06;
+  ctx.fillText('Tournament Result:', listX, startY);
+
+  players.forEach(({ username, score }, index) => {
+  const y = startY + lineHeight * (index + 1);
+  if(index === 0)
+    ctx.fillText(`• ${username} -> ${score} pts  WINNER`, listX, y);
+  else
+    ctx.fillText(`• ${username} -> ${score} pts`, listX, y);
+  });
+  const btnW    = width  * 0.25;
+  const btnH    = height * 0.08;
+  const spacing = width  * 0.05;
+  const totalW  = btnW * 2 + spacing;
+  const baseX   = width  / 2 - totalW / 2;
+  const btnY    = height * 0.8;
+  const leaveX  = baseX;
+
+  // Leave Tournament
+  ctx.fillStyle = '#f87171';
+  ctx.fillRect(leaveX, btnY, btnW, btnH);
+  ctx.fillStyle = 'white';
+  ctx.font      = `${Math.floor(height / 22)}px Orbitron`;
+  ctx.textAlign = 'center';
+  ctx.fillText('Leave Tournament', leaveX + btnW / 2, btnY + btnH * 0.65);
+  
+  (canvas as any)._waitingTournamentButtons = [
+    { x: leaveX, y: btnY,   w: btnW, h: btnH, action: 'exitTournament' },
+  ];
+}
 
 
 export function drawWaitingRoundsTournamentView(

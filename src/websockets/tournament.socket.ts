@@ -63,12 +63,21 @@ export async function updateTourPlayerList(joiner: Interfaces.playerInterface, t
 //Add the has started flag -> this leave can only by trigger by clicking on the leave button
 export async function handleLeaveTournament(player: Interfaces.playerInterface, data: any) {
 	// Tournament ends cleanly: not user-triggered
-	// if (data.isLegit) {
-	// 	// Placeholder: tournament finished naturally (e.g., someone won)
-	// 	// Kick all players, update DB, send score, broadcast final standings, etc.
-	// 	// This logic will eventually call handleLeaveTournament for each player
-	// 	return;
-	// }
+	if (data.isLegit) {
+		const tour = Tournament.MappedTour.get(player.tournamentID!)
+		 if(tour){
+			console.log(`TOURNAMENT FOUND ON LEGIT END WTF ?`);
+			//const endScore = await tour.extractScore();
+			//await gameManagment.UpdateTournamentScore(player.tourID, endScore);
+		 }
+		 await GameManagement.delMemberFromTournament(player.tournamentID!, player.userID!);
+		 const members = await GameManagement.getAllTournamentMembers(player.tournamentID!);
+		 if(members.length < 1)
+			await GameManagement.delTournament(player.tournamentID!);
+		player.tournamentID = undefined;
+		Helpers.updatePlayerState(player, 'init');
+		return;
+	}
 
 	// User clicked "Leave Tournament" button manually
 	if(data.duringGame === false && data.isTourOwner === true){
@@ -85,22 +94,15 @@ export async function handleLeaveTournament(player: Interfaces.playerInterface, 
 	}
 	// 1. Clean DB entry
 	await GameManagement.delMemberFromTournament(player.tournamentID!, player.userID!);
-
-	// 2. Leave game if currently playing
-	// if (player.gameID) {
-	// 	Helpers.kickFromGameRoom(player.gameID, player, `${player.username!} left the match`);
-	// }
-	// 3. Clear tournament ID from player state
 	const leftTourID = player.tournamentID;
-	player.tournamentID = undefined;
-	Helpers.updatePlayerState(player, 'init');
-	
-	//HERE -> call Tournament -> removeMember(userID)
 	const tour = Tournament.MappedTour.get(leftTourID!);
+	if(data.duringGame === true) tour?.matchGaveUp(leftTourID!, player.userID!);
 	tour?.removeMemberFromTourID(player.userID!);
+	player.tournamentID = undefined;
 	// 4. Get remaining members
 	const members = await getMembersByTourID(leftTourID!);
-
+	
+	Helpers.updatePlayerState(player, 'init');
 	// 5. If no player remains, clean
 	if (members!.length < 1) {
 		console.log(`[TOUR][LEFT]{No members left deleting room}`)

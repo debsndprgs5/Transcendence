@@ -219,8 +219,8 @@ export type SocketMessageMap = {
 	};
 	endTournament:{		type: 'endTournament';
 						tourID: number;
+						tourName:string;
 						standings: {
-							userID: number;
 							username: string;
 							score: number;
 						}[];

@@ -435,20 +435,27 @@ export async function setupHomeHandlers(): Promise<void> {
 			         <div
 			           class="flex gap-1 opacity-0 group-hover:opacity-100 transition"
 			         >
-			           <button
-			             data-room="${r.roomID}"
-			             class="invite-room-btn text-green-600 hover:text-green-800 text-sm"
-			           >➕</button>
-			           ${
-			             r.ownerID === state.userId
-			               ? `<button
-			                    data-room="${r.roomID}"
-			                    class="delete-room-btn text-red-600 hover:text-red-800 text-sm"
-			                  >❌</button>`
-			               : ''
-			           }
-			         </div>
-			       </li>`
+					     ${
+					r.ownerID !== -1
+					? `
+					<button
+						data-room="${r.roomID}"
+						class="invite-room-btn text-green-600 hover:text-green-800 text-sm"
+					>➕</button>
+					${
+						r.ownerID === state.userId
+						? `<button
+								data-room="${r.roomID}"
+								class="delete-room-btn text-red-600 hover:text-red-800 text-sm"
+							>❌</button>`
+						: ''
+					}
+					`
+					: ''
+				}
+				</div>
+			</li>`
+			           
 			  )
 			  .join('');
 

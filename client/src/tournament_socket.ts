@@ -78,10 +78,10 @@ export function handleStartTournament(data:Interfaces.SocketMessageMap['startTou
 //data.score=stringJSON{username{score: , rank|pos: } username{} ...}
 export function handleEndTournament(data:Interfaces.SocketMessageMap['endTournament']){
 	
-	//OverRide regularEndMatch
-	// localStorage.removeItem(''); -> all tournament related
-	//state.canvasViewState='EndTournament'
-	//showPongMenu();
+	state.currentTournamentPlayers = data.standings;
+	state.currentTournamentName = data.tourName;
+	state.canvasViewState = 'endTournament';
+	showPongMenu();
 }
 
 

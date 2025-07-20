@@ -52,6 +52,24 @@ export async function sendSystemMessage(chatRoomID:number, content:string){
 		
 }
 
+export async function sendPrivateSystemMessage(chatID:number, userID:number, content:string){
+
+	//check if user have chatID for room 
+	const userRooms = await chatManagement.getChatRoomsByUserId(userID);
+	for(const room of userRooms){
+		if(chatID === room.roomID){
+			const socket = MappedClients.get(userID);
+			socket!.send(JSON.stringify({
+				type:'system',
+				roomID:chatID,
+				content
+			}));
+			return;
+		}
+	}
+	console.warn(`[SYSTM] trying to send message but user${userID} is not in chat${chatID}`);
+}
+
 async function SendGeneralMessage(authorID: number, message: string) {
 	for (const [clientID, socket] of MappedClients.entries()) {
 		const blockedByClient = await chatManagement.isBlocked(clientID, authorID);

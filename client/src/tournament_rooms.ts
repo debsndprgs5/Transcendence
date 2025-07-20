@@ -83,6 +83,7 @@ export async function handleTournamentClick(canvas: HTMLCanvasElement, x: number
 	}
 }
 
+
 // Handle clicks in the Waiting Tournament view
 export async function handleWaitingTournamentClick(
   canvas: HTMLCanvasElement,
@@ -102,10 +103,11 @@ export async function handleWaitingTournamentClick(
   }
   // Start tournament when creator clicks the button
   else if (clickedBtn.action === 'startTournament') {
-    // await startTournament();
     showNotification({message:`Tournament Starting now !`, type:'success'});
     state.playerInterface!.typedSocket.send('startTournament', {userID:state.userId, tournamentID:state.playerInterface!.tournamentID})
   }
+  else if (clickedBtn.action === 'exitTournament')
+    handleLeaveTournament(true);
 }
 
 export async function handleCreateTournament(): Promise<void> {
@@ -202,6 +204,8 @@ export async function handleJoinTournament(tourID: number): Promise<void> {
 
 // Handles the "Leave Tournament" button action
 export async function handleLeaveTournament(islegit:boolean, duringGame?:boolean|undefined): Promise<void> {
+  if(islegit === true)
+    console.warn(`[TOURNAMENT][EXIT CLICKED]`);
   if(duringGame === undefined)
     duringGame = false;
   const tourID = state.playerInterface!.tournamentID!;

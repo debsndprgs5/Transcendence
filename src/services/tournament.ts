@@ -1,7 +1,7 @@
 import { playerInterface } from '../shared/gameTypes'
 import * as gameMgr from '../db/gameManagement'
 import { getUnameByIndex } from '../db/userManagement'
-import { sendSystemMessage } from '../websockets/chat.socket'
+import { sendSystemMessage , sendPrivateSystemMessage} from '../websockets/chat.socket'
 import { getPlayerByUserID } from '../websockets/game.socket';
 
 type Member = {
@@ -17,6 +17,7 @@ export class Tournament {
 	public static MappedTour = new Map<number, Tournament>();
 
 	tourID: number;
+	chatID = 0;
 	players: playerInterface[];
 	current_round = 0;
 	max_round: number;
@@ -77,7 +78,8 @@ export class Tournament {
 		console.log(`[ROUND ${this.current_round}] Already matched player sets:`, this.opponents);
 		
 		const chat = await gameMgr.getChatIDbyTourID(this.tourID);
-		sendSystemMessage( chat!.chatID , `Round ${this.current_round}/${this.max_round}: is about to start`);
+		this.chatID = chat!.chatID;
+		sendSystemMessage( this.chatID , `Round ${this.current_round}/${this.max_round}: is about to start`);
 		const baseRules = JSON.parse(this.rules);
 		// Inject the tournament's win_condition
 		const extendedRules = {
@@ -94,7 +96,10 @@ export class Tournament {
 				gameRulesStr, gameName, 0, this.tourID
 			);
 			await pA.typedSocket.send('startNextRound', { userID: pA.userID, gameID, gameName });
+			//Idealy we add the diff point between them and their pos in the tournament 
+			sendPrivateSystemMessage(this.chatID, pA.userID, `You play against ${pB.username}`);
 			await pB.typedSocket.send('startNextRound', { userID: pB.userID, gameID, gameName });
+			sendPrivateSystemMessage(this.chatID, pB.userID, `You play against ${pA.username}`);
 		}
 	}
 
@@ -155,11 +160,11 @@ public async matchGaveUp(tourID: number, quitterID: number) {
 	tour.removeMemberFromTourID(quitterID);
 
 	// Notify the opponent
-	opponent.typedSocket.send('waitingNextRound', {
-		round: tour.current_round,
-		message: `Your opponent ${quitter.username} gave up. You receive 5 points.`,
-	});
-
+	// opponent.typedSocket.send('waitingNextRound', {
+	// 	round: tour.current_round,
+	// 	message: `Your opponent ${quitter.username} gave up. You receive 5 points.`,
+	// });
+	sendPrivateSystemMessage(this.chatID, opponent.userID, `Your opponent ${quitter.username} gave up. You receive 5 points.`);
 	console.log(`[GAVE UP] Player ${quitterID} removed from tournament ${tourID}`);
 }
 
@@ -259,21 +264,30 @@ public async onMatchFinished(
 
 	// Award points
 	const winPoints = 10, drawPoints = 5, lossPoints = 0;
-
+	let endLogA:string;
+	let endLogB:string;
 	console.log(`[MATCH FINISH]   ↳ Determining outcome...`);
 	if (scoreA > scoreB) {
 		console.log(`[MATCH FINISH]   ↳ ${playerA} wins over ${playerB}`);
 		tour.points.set(playerA, (tour.points.get(playerA) ?? 0) + winPoints);
 		tour.points.set(playerB, (tour.points.get(playerB) ?? 0) + lossPoints);
+		endLogA = `You just won congrats!`;
+		endLogB = `You lost BOUUUUH`;
 	} else if (scoreB > scoreA) {
 		console.log(`[MATCH FINISH]   ↳ ${playerB} wins over ${playerA}`);
 		tour.points.set(playerB, (tour.points.get(playerB) ?? 0) + winPoints);
 		tour.points.set(playerA, (tour.points.get(playerA) ?? 0) + lossPoints);
+		endLogA = `You lost BOUUUUH`;
+		endLogB = `You just won congrats!`;
 	} else {
 		console.log(`[MATCH FINISH]   ↳ Draw between ${playerA} and ${playerB}`);
 		tour.points.set(playerA, (tour.points.get(playerA) ?? 0) + drawPoints);
 		tour.points.set(playerB, (tour.points.get(playerB) ?? 0) + drawPoints);
+		endLogA = 'No winner this round GET GOOD !' ;
+		endLogB = endLogA;
 	}
+	sendPrivateSystemMessage(this.chatID, playerA, endLogA);
+	sendPrivateSystemMessage(this.chatID, playerB, endLogB);
 
 	// Log current points map
 	console.log(`[MATCH FINISH]   ↳ Points after update:`);
@@ -306,11 +320,11 @@ public async onMatchFinished(
 	// Notify both players of updated standings
 	for (const [pA, pB] of tour.waitingPairs) {
 		pA.typedSocket.send('updateTourScore', {
-			tourID,
+			tourID:tourID,
 			score: scoreUpdates
 		});
 		pB.typedSocket.send('updateTourScore', {
-			tourID,
+			tourID:tourID,
 			score: scoreUpdates
 		});
 	}
@@ -368,6 +382,7 @@ public async extractScore(){
 }
 
 private async endTournament() {
+	const tour =  await gameMgr.getTournamentById(this.tourID)
 	// process final ranking
 	const standings = [...this.players]
 		.sort((a, b) => this.points.get(b.userID)! - this.points.get(a.userID)!);
@@ -375,8 +390,8 @@ private async endTournament() {
 	for (const p of this.players) {
 		p.typedSocket.send('endTournament', {
 			tourID: this.tourID,
+			tourName: tour!.name,
 			standings: standings.map(pl => ({
-				userID: pl.userID,
 				username: pl.username!,
 				score: this.points.get(pl.userID)!
 			}))
@@ -388,7 +403,7 @@ private async endTournament() {
 
 }
 
-public giveBye(member: Member) {
+public async giveBye(member: Member) {
 	const userID = member.userID;
 	const player = member.player;
 
@@ -402,11 +417,13 @@ public giveBye(member: Member) {
 	const tour = Tournament.MappedTour.get(player.tournamentID!)!;
 	tour.waitingPairs.push([player, player]); // or some sentinel value if needed
 
+	const scoreUpdates = await tour.extractScore();
 	// 3. Send socket event to inform the player
-	player.typedSocket.send('waitingNextRound', {
-		round: tour.current_round,
-		message: 'You received a bye this round.',
+	player.typedSocket.send('updateTourScore', {
+		tourID: tour.tourID,
+		score: scoreUpdates!,
 	});
+	sendPrivateSystemMessage(this.chatID, userID, 'You received a bye this round');
 }
 
 }

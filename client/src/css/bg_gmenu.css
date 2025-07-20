@@ -14,7 +14,6 @@
   background-size: 8px 8px;
 }
 
-
 /* Pseudo-élément pour le flou et la trame */
 .bg_gmenu-container::after {
   content: "";

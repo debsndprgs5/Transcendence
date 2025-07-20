@@ -19,7 +19,7 @@ import { handleTournamentClick,
 		handleLeaveTournament, 
 		fetchOpenTournaments,
 		handleTournamentRoundsClick } from './tournament_rooms';
-import { showLocalGameConfigView } from './localGame/localGameManager';
+import { drawLocalGameView, initLocalGameView, startLocalMatch } from './localGame/localGameManager';
 
 export interface PongButton {
 	x: number;
@@ -111,7 +111,7 @@ export function showPongMenu(): void {
 
 		// Handle canvas visibility based on game state
 		if (state.canvasViewState === 'playingGame'
-				|| state.canvasViewState === 'localGameConfig'
+				// || state.canvasViewState === 'localGameConfig'
 				|| state.canvasViewState === 'settings') {
 			canvas.style.display        = 'none';
 			babylonCanvas.style.display = 'block';
@@ -207,22 +207,28 @@ export function showPongMenu(): void {
 
 					}
 					break;
-                case 'localGameConfig':
-                    // On s'assure de bien cacher les deux canvas
-                    if (canvas) canvas.style.display = 'none';
-                    if (babylonCanvas) babylonCanvas.style.display = 'none';
-                    // Et on affiche notre interface HTML
-                    showLocalGameConfigView();
-                    break;
-                case 'settings':
-                       // babylonCanvas.style.display = 'block';
-                        //canvas.style.display = 'none';
+        case 'localGameConfig':
+            // Et on affiche notre interface HTML
+            drawLocalGameView(canvas, ctx);
+            initLocalGameView(
+						  canvas,
+						  cfg => {
+						    state.canvasViewState = "runningLocal";
+						    startLocalMatch(cfg);
+						  },
+						  () => {
+						    state.canvasViewState = "mainMenu";
+							showPongMenu();
+						  }
+						);
+            break;
+        case 'Settings':
 
-                        const rect = babylonCanvas.getBoundingClientRect();
-                        babylonCanvas.width = Math.floor(rect.width);
-                        babylonCanvas.height = Math.floor(rect.height);
+                const rect = babylonCanvas.getBoundingClientRect();
+                babylonCanvas.width = Math.floor(rect.width);
+                babylonCanvas.height = Math.floor(rect.height);
 
-                        if (!pongState.settingsRenderer) {
+                if (!pongState.settingsRenderer) {
 							pongState.settingsRenderer = new settingsRenderer(babylonCanvas);
 						} else {
 							pongState.settingsRenderer.handleResize();
@@ -245,17 +251,6 @@ export function drawMainMenu(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
   // 1) Clear the canvas instead of drawing the gradient
   ctx.clearRect(0, 0, width, height);
 
-	// Prepare labels & pos
-	// const spacing = 50;
-	// const startY = height / 2 - spacing * 1;
-	// const labels = [
-	// 	{ action: 'Create Game', y: startY + spacing * 0 },
-	// 	{ action: 'Join Game',   y: startY + spacing * 1 },
-	// 	{ action: 'Local Game',  y: startY + spacing * 2 },
-	// 	{ action: 'Tournament',  y: startY + spacing * 3 },
-	// 	{ action: 'Settings',    y: startY + spacing * 4 }
-	// ];
-	// ctx.font = `${Math.floor(height/20)}px 'Orbitron', sans-serif`;
   // 2) Now draw your title text
   ctx.fillStyle = '#5AC8FA';
   ctx.font      = `${Math.floor(height/10)}px 'Orbitron', sans-serif`;
@@ -271,8 +266,8 @@ export function drawMainMenu(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
     { action: 'Create Game', y: height/2 - 40 },
     { action: 'Join Game',   y: height/2 + 20 },
     { action: 'Tournament',  y: height/2 + 80 },
-	//{ action: 'LocalGame', 	 y:height/2 + 110},
-    { action: 'Settings',    y: height/2 + 140 }
+    { action: 'Settings',    y: height/2 + 140 },
+		{ action: 'Local Game', 	 y:height/2 + 200},
   ];
   ctx.font = `${Math.floor(height/20)}px 'Orbitron', sans-serif`;
 

@@ -10,7 +10,7 @@ import * as GUI from "@babylonjs/gui";
 import * as BABYLON from "@babylonjs/core";
 import * as Tournament from './tournament_socket'
 import { handleLogout } from './handlers'
-import { LocalGameMapRenderer } from './localGame/localGameMapRenderer';
+import { LocalGameView } from './localGame/localGame.view';
 
 export const pongState = 
 {

@@ -18,8 +18,8 @@ import { handleTournamentClick,
 		handleLeaveTournament, 
 		fetchOpenTournaments,
 		handleTournamentRoundsClick } from './tournament_rooms';
-import { drawLocalGameView, initLocalGameView, startLocalMatch, isLocalGameInitialized, cleanupLocalGameView } from './localGame/localGameManager';
-import { LocalGameMapRenderer } from './localGame/localGameMapRenderer';
+import { drawLocalGameConfig, initLocalGameConfig, startLocalMatch, isLocalGameInitialized, cleanupLocalGameConfig } from './localGame/localGame.manager';
+import { LocalGameView } from './localGame/localGame.view';
 
 export interface PongButton {
 	x: number;
@@ -178,10 +178,10 @@ export function showPongMenu(): void {
 
 		case 'localGameConfig':
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
-			drawLocalGameView(canvas, ctx);
+			drawLocalGameConfig(canvas, ctx);
 			
 			if (!isLocalGameInitialized) {
-				initLocalGameView(
+				initLocalGameConfig(
 					canvas,
 					cfg => {
 						state.canvasViewState = "runningLocal";
@@ -203,7 +203,7 @@ export function showPongMenu(): void {
 			
 			if (!pongState.localMapRenderer)
 			{
-				pongState.localMapRenderer = new LocalGameMapRenderer(babylonCanvas);
+				pongState.localMapRenderer = new LocalGameView(babylonCanvas);
 			}
 			else
 			{

@@ -1,11 +1,11 @@
 import { state } from '../api';
 import { showPongMenu } from '../pong_rooms';
 import { pongState } from '../pong_socket';
-import { LocalPongRenderer } from './localPongRenderer';
+import { LocalGameRenderer } from './localGame.renderer';
 
-export class LocalGameMapRenderer
+export class LocalGameView
 {
-	private localPongRenderer: LocalPongRenderer;
+	private localGameRenderer: LocalGameRenderer;
 	private canvas: HTMLCanvasElement;
 	private escapeKeyHandler: (e: KeyboardEvent) => void;
 	
@@ -22,7 +22,7 @@ export class LocalGameMapRenderer
 			winningScore: state.localGameConfig?.winningScore || 5
 		};
 		
-		this.localPongRenderer = new LocalPongRenderer(canvas, config);
+		this.localGameRenderer = new LocalGameRenderer(canvas, config);
 		
 		this.escapeKeyHandler = (e: KeyboardEvent) => {
 			if (e.key === 'Escape' || e.key === 'Esc')
@@ -42,12 +42,12 @@ export class LocalGameMapRenderer
 	
 	public dispose(): void
 	{
-		this.localPongRenderer.dispose();
+		this.localGameRenderer.dispose();
 		window.removeEventListener('keydown', this.escapeKeyHandler, true);
 	}
 	
 	public handleResize(): void
 	{
-		this.localPongRenderer.handleResize();
+		this.localGameRenderer.handleResize();
 	}
 } 

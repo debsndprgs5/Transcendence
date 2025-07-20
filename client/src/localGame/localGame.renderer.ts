@@ -1,23 +1,24 @@
 import { PongRenderer } from '../pong_render';
-import { LocalPongEngine, LocalGameState } from './localPongEngine';
+import { LocalGameEngine, LocalGameState } from './localGame.engine';
 import { state } from '../api';
 import { showPongMenu } from '../pong_rooms';
 import { pongState } from '../pong_socket';
-import { cleanupLocalGameView } from './localGameManager';
+import { cleanupLocalGameConfig } from './localGame.manager';
 import * as BABYLON from '@babylonjs/core';
 import * as GUI from '@babylonjs/gui';
 
-export class LocalPongRenderer
+export class LocalGameRenderer
 {
 	private baseRenderer: PongRenderer;
-	private gameEngine: LocalPongEngine;
+	private gameEngine: LocalGameEngine;
 	private canvas: HTMLCanvasElement;
 	private isDisposing: boolean = false;
+	private activeUI: GUI.AdvancedDynamicTexture | null = null;
 	
 	constructor(canvas: HTMLCanvasElement, config: { ballSpeed: number; paddleSpeed: number; winningScore: number })
 	{
 		this.canvas = canvas;
-		
+
 		const mockSocket = {
 			send: () => {},
 			on: () => {},
@@ -26,8 +27,8 @@ export class LocalPongRenderer
 		} as any;
 		
 		const usernames = {
-			left: 'LocalPlayer1',
-			right: 'LocalPlayer2',
+			left: 'Player1',
+			right: 'Player2',
 			top: '',
 			bottom: ''
 		};
@@ -41,20 +42,15 @@ export class LocalPongRenderer
 			usernames
 		);
 		
-		this.gameEngine = new LocalPongEngine(
+		this.gameEngine = new LocalGameEngine(
 			config,
 			(gameState) => this.updateRenderer(gameState),
 			(winner, scores) => this.handleGameEnd(winner, scores)
 		);
-		
+
 		this.gameEngine.start();
 	}
 	
-	// public togglePause(): void
-	// {
-	//     this.gameEngine.togglePause();
-	//     console.log(this.gameEngine.getState().isPaused ? 'Game paused' : 'Game resumed');
-	// }
 	
 	private updateRenderer(gameState: LocalGameState): void
 	{
@@ -91,8 +87,18 @@ export class LocalPongRenderer
 	
 	private showEndGameOverlay(winner: 'left' | 'right', scores: { left: number; right: number }): void
 	{
+		// Clean any existing UI first
+		if (this.activeUI)
+		{
+			this.activeUI.dispose();
+			this.activeUI = null;
+		}
+
 		const scene = this.baseRenderer.getScene();
+		if (!scene || scene.isDisposed) return;
+
 		const ui = GUI.AdvancedDynamicTexture.CreateFullscreenUI("EndGameUI", true, scene);
+		this.activeUI = ui;
 		
 		const overlay = new GUI.Rectangle();
 		overlay.background = "rgba(0,0,0,0.7)";
@@ -150,7 +156,7 @@ export class LocalPongRenderer
 		playAgainBtn.background = "#22c55e";
 		playAgainBtn.cornerRadius = 5;
 		playAgainBtn.onPointerClickObservable.add(() => {
-			ui.dispose();
+			this.cleanupActiveUI();
 			this.restartGame();
 		});
 		buttonContainer.addControl(playAgainBtn);
@@ -162,15 +168,25 @@ export class LocalPongRenderer
 		menuBtn.background = "#ef4444";
 		menuBtn.cornerRadius = 5;
 		menuBtn.onPointerClickObservable.add(() => {
-			ui.dispose();
+			this.cleanupActiveUI();
 			this.returnToLocalMenu();
 		});
 		buttonContainer.addControl(menuBtn);
 	}
 
-	private restartGame(): void
-	{
-		this.gameEngine.dispose();
+	private cleanupActiveUI(): void {
+		if (this.activeUI)
+		{
+			this.activeUI.dispose();
+			this.activeUI = null;
+		}
+	}
+
+	private restartGame(): void {
+		if (this.gameEngine)
+		{
+			this.gameEngine.dispose();
+		}
 		
 		const config = {
 			ballSpeed: state.localGameConfig?.ballSpeed || 50,
@@ -178,45 +194,49 @@ export class LocalPongRenderer
 			winningScore: state.localGameConfig?.winningScore || 5
 		};
 		
-		this.gameEngine = new LocalPongEngine(
+		this.gameEngine = new LocalGameEngine(
 			config,
 			(gameState) => this.updateRenderer(gameState),
 			(winner, scores) => this.handleGameEnd(winner, scores)
 		);
 	}
 	
-	private returnToLocalMenu(): void
-	{
+	private returnToLocalMenu(): void {
 		if (this.isDisposing) return;
 		this.isDisposing = true;
 		
-		// console.log("returnToLocalMenu called");
+		this.cleanupRenderer();
 		
-		if (this.gameEngine) {
+		pongState.localMapRenderer = null;
+		cleanupLocalGameConfig();
+		
+		state.canvasViewState = 'localGameConfig';
+		showPongMenu();
+	}
+
+	private cleanupRenderer(): void {
+		this.cleanupActiveUI();
+
+		if (this.gameEngine)
+		{
 			this.gameEngine.dispose();
 		}
 		
-		if (this.baseRenderer) {
+		if (this.baseRenderer)
+		{
 			this.baseRenderer.dispose();
 		}
-		
-		pongState.localMapRenderer = null;
-		cleanupLocalGameView();
-		
-		state.canvasViewState = 'localGameConfig';
-		// console.log("Calling showPongMenu");
-		showPongMenu();
 	}
 	
-	public dispose(): void
-	{
+	public dispose(): void {
 		if (this.isDisposing) return;
 		this.returnToLocalMenu();
 	}
 	
 	public handleResize(): void
 	{
-		if (this.baseRenderer) {
+		if (this.baseRenderer && !this.isDisposing)
+		{
 			this.baseRenderer.handleResize();
 		}
 	}

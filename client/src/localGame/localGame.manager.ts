@@ -1,4 +1,4 @@
-import { LocalGameMapRenderer } from './localGameMapRenderer';
+import { LocalGameView } from './localGame.view';
 import { pongState } from '../pong_socket';
 import { state } from '../api';
 import { showPongMenu } from '../pong_rooms';
@@ -12,7 +12,7 @@ export const localGameFormData =
 
 export let isLocalGameInitialized = false;
 
-export function drawLocalGameView(
+export function drawLocalGameConfig(
 	canvas: HTMLCanvasElement,
 	ctx: CanvasRenderingContext2D
 ): void
@@ -106,7 +106,7 @@ export function drawLocalGameView(
 	];
 }
 
-export function initLocalGameView(
+export function initLocalGameConfig(
 	canvas: HTMLCanvasElement,
 	onStart: (cfg: typeof localGameFormData) => void,
 	onBack: () => void
@@ -148,7 +148,7 @@ export function initLocalGameView(
 		if (ctx)
 		{
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
-			drawLocalGameView(canvas, ctx);
+			drawLocalGameConfig(canvas, ctx);
 		}
 	};
 
@@ -214,7 +214,7 @@ export function initLocalGameView(
 	};
 }
 
-export function cleanupLocalGameView(): void
+export function cleanupLocalGameConfig(): void
 {
 	isLocalGameInitialized = false;
 
@@ -232,8 +232,6 @@ export function cleanupLocalGameView(): void
 
 export function startLocalMatch(cfg: typeof localGameFormData): void
 {
-	// console.log("Starting local match with config:", cfg);
-
 	state.localGameConfig = {
 		ballSpeed: cfg.ballSpeed,
 		paddleSpeed: cfg.paddleSpeed,
@@ -250,21 +248,13 @@ function cleanupAllTransitionOverlays(): void
 	const existingOverlays = document.querySelectorAll('.space-transition-overlay, .exit-transition-overlay');
 	existingOverlays.forEach(overlay => overlay.remove());
 
-	if ((window as any).lastTransitionTimeout)
+	const timeouts = ['lastTransitionTimeout', 'lastFadeTimeout', 'lastRemoveTimeout'];
+	timeouts.forEach(timeoutName =>
 	{
-		clearTimeout((window as any).lastTransitionTimeout);
-		(window as any).lastTransitionTimeout = null;
-	}
-
-	if ((window as any).lastFadeTimeout)
-	{
-		clearTimeout((window as any).lastFadeTimeout);
-		(window as any).lastFadeTimeout = null;
-	}
-
-	if ((window as any).lastRemoveTimeout)
-	{
-		clearTimeout((window as any).lastRemoveTimeout);
-		(window as any).lastRemoveTimeout = null;
-	}
+		if ((window as any)[timeoutName])
+		{
+			clearTimeout((window as any)[timeoutName]);
+			(window as any)[timeoutName] = null;
+		}
+	});
 }

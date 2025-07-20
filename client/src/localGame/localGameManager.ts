@@ -1,4 +1,3 @@
-import { showNotification } from "../notifications";
 import { LocalGameMapRenderer } from './localGameMapRenderer';
 import { pongState } from '../pong_socket';
 import { state } from '../api';
@@ -233,7 +232,7 @@ export function cleanupLocalGameView(): void
 
 export function startLocalMatch(cfg: typeof localGameFormData): void
 {
-	console.log("Starting local match with config:", cfg);
+	// console.log("Starting local match with config:", cfg);
 
 	state.localGameConfig = {
 		ballSpeed: cfg.ballSpeed,

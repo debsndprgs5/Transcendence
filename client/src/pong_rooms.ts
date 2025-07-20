@@ -39,7 +39,6 @@ declare global {
 	}
 }
 
-
 let incrementInterval: number | null = null;
 let incrementTimeout: number | null = null;
 let lastButtonAction: string | null = null;
@@ -57,31 +56,15 @@ export const createGameFormData: CreateGameFormData = {
   roomName:     null,
   ballSpeed:    50,
   paddleSpeed:  50,
-  mode:         'duo',      // default selection
-  winCondition: 'time',     // default selection
-  limit:        60          // default: 60 seconds
-};
-
-export interface LocalGameConfig
-{
-	ballSpeed:     number;
-	paddleSpeed:   number;
-	winningScore:  number;
-}
-
-export const LocalGameConfig: LocalGameConfig =
-{
-	ballSpeed:    50,
-	paddleSpeed:  50,
-	winningScore: 5,
+  mode:         'duo',
+  winCondition: 'time',
+  limit:        60
 };
 
 export async function fetchAvailableRooms(): Promise<{ roomID: number; roomName: string }[]> {
 	const resp = await apiFetch('/api/pong/list', {
 		headers: { Authorization: `Bearer ${state.authToken}` }
 	});
-
-	console.log('fetchAvailableRooms – raw response:', resp);
 
 	const rawGames = Array.isArray((resp as any).games) ? (resp as any).games : [];
 
@@ -100,7 +83,6 @@ export function showPongMenu(): void {
 		const babylonCanvas = document.getElementById('babylon-canvas') as HTMLCanvasElement | null;
 		if (!canvas || !babylonCanvas) return;
 
-		// Set up event listeners for menu interactions
 		canvas.onclick = handlePongMenuClick;
 		canvas.onmousedown = handlePongMenuMouseDown;
 		canvas.onmouseup = handlePongMenuMouseUp;
@@ -111,14 +93,11 @@ export function showPongMenu(): void {
 		const ctx = canvas.getContext('2d');
 		if (!ctx) return;
 
-		// Nettoyer l'ancien renderer si on change d'état
 		if (state.canvasViewState !== 'localGameMap' && pongState.localMapRenderer) {
-			console.log("Cleaning up old localMapRenderer");
 			pongState.localMapRenderer.dispose();
 			pongState.localMapRenderer = null;
 		}
 
-		// Handle canvas visibility based on game state
 		if (state.canvasViewState === 'playingGame'
 				|| state.canvasViewState === 'settings'
 				|| state.canvasViewState === 'localGameMap'
@@ -130,12 +109,6 @@ export function showPongMenu(): void {
 			canvas.style.display        = 'block';
 		}
 
-		// Dispose of pongRenderer if exists but not in 'playingGame' state
-		// if (state.canvasViewState !== 'playingGame' && pongState.pongRenderer) {
-		// 		pongState.pongRenderer.dispose();
-		// 		pongState.pongRenderer = null;
-		// }
-		// Handle different view states
 		switch (state.canvasViewState) {
 				case 'mainMenu':
 						drawMainMenu(canvas, ctx);
@@ -187,9 +160,6 @@ export function showPongMenu(): void {
 						break;
 
 				case 'playingGame': 
-					//canvas.style.display        = 'none';
-					//babylonCanvas.style.display = 'block';
-
 					const r = babylonCanvas.getBoundingClientRect();
 					babylonCanvas.width  = Math.floor(r.width);
 					babylonCanvas.height = Math.floor(r.height);
@@ -197,7 +167,6 @@ export function showPongMenu(): void {
 					if (pongState.pongRenderer) {
 						pongState.pongRenderer.handleResize();
 					}
-
 					else {
 					console.log(`HELLO NOOB IF YOU"RE HERE YOU'RE COOKED`)
 						if (!state.playerInterface?.typedSocket) {
@@ -206,12 +175,11 @@ export function showPongMenu(): void {
 						}
 					}
 					break;
+
 		case 'localGameConfig':
-			// Force cleanup before drawing
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
 			drawLocalGameView(canvas, ctx);
 			
-			// Only init if not already done
 			if (!isLocalGameInitialized) {
 				initLocalGameView(
 					canvas,
@@ -220,28 +188,25 @@ export function showPongMenu(): void {
 						startLocalMatch(cfg);
 					},
 					() => {
-						state.canvasViewState = "mainMenu";  // This should stay mainMenu for the actual back button
+						state.canvasViewState = "mainMenu";
 						showPongMenu();
 					}
 				);
 			}
 			break;
+
 		case 'localGameMap':
 		{		
 			const rect = babylonCanvas.getBoundingClientRect();
 			babylonCanvas.width = Math.floor(rect.width);
 			babylonCanvas.height = Math.floor(rect.height);
 			
-			console.log("Setting up 3D localGameMap, canvas dimensions:", babylonCanvas.width, babylonCanvas.height);
-			
 			if (!pongState.localMapRenderer)
 			{
-				console.log("Creating new 3D LocalGameMapRenderer");
 				pongState.localMapRenderer = new LocalGameMapRenderer(babylonCanvas);
 			}
 			else
 			{
-				console.log("Reusing existing 3D LocalGameMapRenderer");
 				pongState.localMapRenderer.handleResize();
 			}
 		}
@@ -271,13 +236,8 @@ export function drawMainMenu(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
   const height = canvas.height;
   const wrapper = canvas.parentElement!;
 
-  // 0) Add CSS class to get our rain background
-  // wrapper.classList.add('bg_gmenu-container');
-
-  // 1) Clear the canvas instead of drawing the gradient
   ctx.clearRect(0, 0, width, height);
 
-  // 2) Now draw your title text
   ctx.fillStyle = '#5AC8FA';
   ctx.font      = `${Math.floor(height/10)}px 'Orbitron', sans-serif`;
   ctx.textAlign = 'center';
@@ -287,13 +247,12 @@ export function drawMainMenu(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
   ctx.fillText("3D Pong", width/2, height/5 + 50);
   ctx.shadowBlur = 0;
 
-  // 3) Prepare labels & positions for buttons
   const labels = [
 	{ action: 'Create Game', y: height/2 - 40 },
 	{ action: 'Join Game',   y: height/2 + 20 },
 	{ action: 'Tournament',  y: height/2 + 80 },
 	{ action: 'Settings',    y: height/2 + 140 },
-		{ action: 'Local Game', 	 y:height/2 + 200},
+	{ action: 'Local Game', y: height/2 + 200},
   ];
   ctx.font = `${Math.floor(height/20)}px 'Orbitron', sans-serif`;
 
@@ -304,11 +263,8 @@ export function drawMainMenu(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
 	return { x, y, w: btnW, h: btnH, action: btn.action };
   });
 
-
-  // Remove old buttons
   wrapper.querySelectorAll('.menubtn_button').forEach(el => el.remove());
 
-  // Re-create each button with the correct structure/order
   canvas._pongMenuBtns.forEach(btn => {
 	const button = document.createElement('button');
 	button.type = 'button';
@@ -416,8 +372,6 @@ async function handleMainMenuClick(canvas: HTMLCanvasElement, x: number, y: numb
 			break;
 		
 		case 'Local Game':
-			// On change juste l'état et on redessine.
-			// showPongMenu s'occupera d'appeler la bonne fonction.
 			state.canvasViewState = 'localGameConfig';
 			showPongMenu();
 			break;

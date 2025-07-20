@@ -1,6 +1,8 @@
 import { showNotification } from "../notifications";
-
-let isLocalGameInitialized = false;
+import { LocalGameMapRenderer } from './localGameMapRenderer';
+import { pongState } from '../pong_socket';
+import { state } from '../api';
+import { showPongMenu } from '../pong_rooms';
 
 export const localGameFormData =
 {
@@ -9,7 +11,8 @@ export const localGameFormData =
 	winningScore: 5
 };
 
-/** Draw the menu every frame while canvasView === "localGameConfig" */
+export let isLocalGameInitialized = false;
+
 export function drawLocalGameView(
 	canvas: HTMLCanvasElement,
 	ctx: CanvasRenderingContext2D
@@ -19,19 +22,14 @@ export function drawLocalGameView(
 	const h = canvas.height;
 	const wrapper = canvas.parentElement!;
 
-	// Clean any DOM leftovers
 	wrapper.querySelectorAll(".menubtn_button").forEach(el => el.remove());
-
-	// Clear the canvas
 	ctx.clearRect(0, 0, w, h);
 
-	//------------------ Title -----------------------------------
 	ctx.fillStyle = "white";
 	ctx.font = `${Math.floor(h / 15)}px Orbitron`;
 	ctx.textAlign = "center";
 	ctx.fillText("LOCAL GAME", w / 2, h * 0.08);
 
-	//------------------ Layout helpers --------------------------
 	const labelX = w * 0.18;
 	const valueX = w * 0.48;
 	const rowY = (i: number) => h * (0.22 + i * 0.10);
@@ -40,19 +38,13 @@ export function drawLocalGameView(
 	ctx.font = `${Math.floor(h / 28)}px Orbitron`;
 	ctx.textAlign = "left";
 
-	//------------------ Row 0: Ball Speed -----------------------
 	ctx.fillText("Ball speed:", labelX, rowY(0));
 	ctx.fillText(String(localGameFormData.ballSpeed), valueX, rowY(0));
-
-	//------------------ Row 1: Paddle Speed ---------------------
 	ctx.fillText("Paddle speed:", labelX, rowY(1));
 	ctx.fillText(String(localGameFormData.paddleSpeed), valueX, rowY(1));
-
-	//------------------ Row 2: Winning Score --------------------
 	ctx.fillText("Winning score:", labelX, rowY(2));
 	ctx.fillText(String(localGameFormData.winningScore), valueX, rowY(2));
 
-	//------------------ +/- buttons -----------------------------
 	const btnW = w * 0.06;
 	const btnH = h * 0.06;
 	const plusX = valueX + w * 0.10;
@@ -65,8 +57,8 @@ export function drawLocalGameView(
 	ctx.fillStyle = "#38bdf8";
 	[yBall, yPad, yScore].forEach(y =>
 	{
-		ctx.fillRect(plusX, y, btnW, btnH);   // +
-		ctx.fillRect(minusX, y, btnW, btnH);   // -
+		ctx.fillRect(plusX, y, btnW, btnH);
+		ctx.fillRect(minusX, y, btnW, btnH);
 	});
 
 	ctx.fillStyle = "black";
@@ -79,7 +71,6 @@ export function drawLocalGameView(
 	ctx.fillText("+", plusX + btnW / 2, yScore + btnH * 0.7);
 	ctx.fillText("-", minusX + btnW / 2, yScore + btnH * 0.7);
 
-	//------------------ Confirm & Back buttons ------------------
 	const confirmW = w * 0.23;
 	const confirmH = h * 0.10;
 	const confirmX = w / 2 - confirmW / 2;
@@ -104,24 +95,18 @@ export function drawLocalGameView(
 	ctx.font = `${Math.floor(h / 32)}px Orbitron`;
 	ctx.fillText("← Back", backX + backW / 2, backY + backH * 0.62);
 
-	//------------------ Store clickable areas -------------------
 	(canvas as any)._localGameButtons = [
-		// ball
 		{ x: plusX, y: yBall, w: btnW, h: btnH, action: "ballSpeedUp" },
 		{ x: minusX, y: yBall, w: btnW, h: btnH, action: "ballSpeedDown" },
-		// paddle
 		{ x: plusX, y: yPad, w: btnW, h: btnH, action: "paddleSpeedUp" },
 		{ x: minusX, y: yPad, w: btnW, h: btnH, action: "paddleSpeedDown" },
-		// score
 		{ x: plusX, y: yScore, w: btnW, h: btnH, action: "scoreUp" },
 		{ x: minusX, y: yScore, w: btnW, h: btnH, action: "scoreDown" },
-		// confirm & back
 		{ x: confirmX, y: confirmY, w: confirmW, h: confirmH, action: "startLocalGame" },
 		{ x: backX, y: backY, w: backW, h: backH, action: "backToMenu" }
 	];
 }
 
-/** One‑time set‑up: attach listeners exactly once */
 export function initLocalGameView(
 	canvas: HTMLCanvasElement,
 	onStart: (cfg: typeof localGameFormData) => void,
@@ -156,7 +141,6 @@ export function initLocalGameView(
 			case "scoreDown": localGameFormData.winningScore -= 1; break;
 		}
 
-		// Clamp values
 		localGameFormData.ballSpeed = Math.max(10, Math.min(100, localGameFormData.ballSpeed));
 		localGameFormData.paddleSpeed = Math.max(10, Math.min(100, localGameFormData.paddleSpeed));
 		localGameFormData.winningScore = Math.max(1, Math.min(15, localGameFormData.winningScore));
@@ -164,11 +148,12 @@ export function initLocalGameView(
 		const ctx = canvas.getContext('2d');
 		if (ctx)
 		{
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
 			drawLocalGameView(canvas, ctx);
 		}
 	};
 
-	canvas.addEventListener("mousedown", e =>
+	const handleMouseDown = (e: MouseEvent) =>
 	{
 		const pos = toLocal(e);
 		const btns = (canvas as any)._localGameButtons as any[] | undefined;
@@ -203,7 +188,7 @@ export function initLocalGameView(
 			e.preventDefault();
 			return;
 		}
-	});
+	};
 
 	const stopRepeat = () =>
 	{
@@ -219,20 +204,68 @@ export function initLocalGameView(
 		}
 	};
 
+	canvas.addEventListener("mousedown", handleMouseDown);
 	canvas.addEventListener("mouseup", stopRepeat);
 	canvas.addEventListener("mouseleave", stopRepeat);
 	window.addEventListener("mouseup", stopRepeat);
+
+	(canvas as any)._localGameListeners = {
+		handleMouseDown,
+		stopRepeat
+	};
+}
+
+export function cleanupLocalGameView(): void
+{
+	isLocalGameInitialized = false;
+
+	const canvas = document.getElementById('pong-canvas') as HTMLCanvasElement | null;
+	if (canvas && (canvas as any)._localGameListeners)
+	{
+		const listeners = (canvas as any)._localGameListeners;
+		canvas.removeEventListener("mousedown", listeners.handleMouseDown);
+		canvas.removeEventListener("mouseup", listeners.stopRepeat);
+		canvas.removeEventListener("mouseleave", listeners.stopRepeat);
+		window.removeEventListener("mouseup", listeners.stopRepeat);
+		(canvas as any)._localGameListeners = null;
+	}
 }
 
 export function startLocalMatch(cfg: typeof localGameFormData): void
 {
 	console.log("Starting local match with config:", cfg);
-	showNotification({ message: 'Start Local Game', type: 'info', duration: 5000 });
-	// TODO: Implement local match logic
+
+	state.localGameConfig = {
+		ballSpeed: cfg.ballSpeed,
+		paddleSpeed: cfg.paddleSpeed,
+		winningScore: cfg.winningScore
+	};
+
+	cleanupAllTransitionOverlays();
+	state.canvasViewState = 'localGameMap';
+	showPongMenu();
 }
 
-export function stopLocalMatch(): void
+function cleanupAllTransitionOverlays(): void
 {
-	console.log("Stopping local match");
-	// TODO: Implement local match stop logic
+	const existingOverlays = document.querySelectorAll('.space-transition-overlay, .exit-transition-overlay');
+	existingOverlays.forEach(overlay => overlay.remove());
+
+	if ((window as any).lastTransitionTimeout)
+	{
+		clearTimeout((window as any).lastTransitionTimeout);
+		(window as any).lastTransitionTimeout = null;
+	}
+
+	if ((window as any).lastFadeTimeout)
+	{
+		clearTimeout((window as any).lastFadeTimeout);
+		(window as any).lastFadeTimeout = null;
+	}
+
+	if ((window as any).lastRemoveTimeout)
+	{
+		clearTimeout((window as any).lastRemoveTimeout);
+		(window as any).lastRemoveTimeout = null;
+	}
 }

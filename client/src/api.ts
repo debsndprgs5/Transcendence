@@ -25,7 +25,12 @@ export interface AppState {
 	selectRoom?: (roomId: number) => Promise<void>;
 	playerInterface?:Interfaces.playerInterface,
 	paddleInterface?:Interfaces.paddleInterface,
-	gameInterface?:Interfaces.gameRoomInterface
+	gameInterface?:Interfaces.gameRoomInterface;
+	localGameConfig?: {
+		ballSpeed: number;
+		paddleSpeed: number;
+		winningScore: number;
+	};
 }
 
 export const state: AppState = {
@@ -47,6 +52,7 @@ export const state: AppState = {
 	playerInterface: undefined,
 	paddleInterface: undefined,
 	gameInterface: undefined,
+	localGameConfig: undefined,
 };
 
 export function resetState(){

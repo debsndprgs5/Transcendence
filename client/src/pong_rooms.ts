@@ -18,7 +18,8 @@ import { handleTournamentClick,
 		handleLeaveTournament, 
 		fetchOpenTournaments,
 		handleTournamentRoundsClick } from './tournament_rooms';
-import { drawLocalGameView, initLocalGameView, startLocalMatch } from './localGame/localGameManager';
+import { drawLocalGameView, initLocalGameView, startLocalMatch, isLocalGameInitialized, cleanupLocalGameView } from './localGame/localGameManager';
+import { LocalGameMapRenderer } from './localGame/localGameMapRenderer';
 
 export interface PongButton {
 	x: number;
@@ -61,16 +62,18 @@ export const createGameFormData: CreateGameFormData = {
   limit:        60          // default: 60 seconds
 };
 
-export interface LocalGameConfig {
-  ballSpeed:     number;
-  paddleSpeed:   number;
-  winningScore:         number;
+export interface LocalGameConfig
+{
+	ballSpeed:     number;
+	paddleSpeed:   number;
+	winningScore:  number;
 }
 
-export const LocalGameConfig: LocalGameConfig = {
-  ballSpeed:    50,
-  paddleSpeed:  50,
-  winningScore: 5,
+export const LocalGameConfig: LocalGameConfig =
+{
+	ballSpeed:    50,
+	paddleSpeed:  50,
+	winningScore: 5,
 };
 
 export async function fetchAvailableRooms(): Promise<{ roomID: number; roomName: string }[]> {
@@ -108,10 +111,18 @@ export function showPongMenu(): void {
 		const ctx = canvas.getContext('2d');
 		if (!ctx) return;
 
+		// Nettoyer l'ancien renderer si on change d'état
+		if (state.canvasViewState !== 'localGameMap' && pongState.localMapRenderer) {
+			console.log("Cleaning up old localMapRenderer");
+			pongState.localMapRenderer.dispose();
+			pongState.localMapRenderer = null;
+		}
+
 		// Handle canvas visibility based on game state
 		if (state.canvasViewState === 'playingGame'
-				// || state.canvasViewState === 'localGameConfig'
-				|| state.canvasViewState === 'settings') {
+				|| state.canvasViewState === 'settings'
+				|| state.canvasViewState === 'localGameMap'
+			){
 			canvas.style.display        = 'none';
 			babylonCanvas.style.display = 'block';
 		} else {
@@ -124,8 +135,6 @@ export function showPongMenu(): void {
 		// 		pongState.pongRenderer.dispose();
 		// 		pongState.pongRenderer = null;
 		// }
-		console.log('state.canvasViewState = ', state.canvasViewState);
-
 		// Handle different view states
 		switch (state.canvasViewState) {
 				case 'mainMenu':
@@ -195,36 +204,62 @@ export function showPongMenu(): void {
 							console.error('No socket for PongRenderer');
 							return;
 						}
-
 					}
 					break;
-        case 'localGameConfig':
-            // Et on affiche notre interface HTML
-            drawLocalGameView(canvas, ctx);
-            initLocalGameView(
-						  canvas,
-						  cfg => {
-						    state.canvasViewState = "runningLocal";
-						    startLocalMatch(cfg);
-						  },
-						  () => {
-						    state.canvasViewState = "mainMenu";
-							showPongMenu();
-						  }
-						);
-            break;
-        case 'Settings':
+		case 'localGameConfig':
+			// Force cleanup before drawing
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
+			drawLocalGameView(canvas, ctx);
+			
+			// Only init if not already done
+			if (!isLocalGameInitialized) {
+				initLocalGameView(
+					canvas,
+					cfg => {
+						state.canvasViewState = "runningLocal";
+						startLocalMatch(cfg);
+					},
+					() => {
+						state.canvasViewState = "mainMenu";  // This should stay mainMenu for the actual back button
+						showPongMenu();
+					}
+				);
+			}
+			break;
+		case 'localGameMap':
+		{		
+			const rect = babylonCanvas.getBoundingClientRect();
+			babylonCanvas.width = Math.floor(rect.width);
+			babylonCanvas.height = Math.floor(rect.height);
+			
+			console.log("Setting up 3D localGameMap, canvas dimensions:", babylonCanvas.width, babylonCanvas.height);
+			
+			if (!pongState.localMapRenderer)
+			{
+				console.log("Creating new 3D LocalGameMapRenderer");
+				pongState.localMapRenderer = new LocalGameMapRenderer(babylonCanvas);
+			}
+			else
+			{
+				console.log("Reusing existing 3D LocalGameMapRenderer");
+				pongState.localMapRenderer.handleResize();
+			}
+		}
+		break;
 
-                const rect = babylonCanvas.getBoundingClientRect();
-                babylonCanvas.width = Math.floor(rect.width);
-                babylonCanvas.height = Math.floor(rect.height);
+case 'Settings':
+    {
+        const rect = babylonCanvas.getBoundingClientRect();
+        babylonCanvas.width = Math.floor(rect.width);
+        babylonCanvas.height = Math.floor(rect.height);
 
-                if (!pongState.settingsRenderer) {
-							pongState.settingsRenderer = new settingsRenderer(babylonCanvas);
-						} else {
-							pongState.settingsRenderer.handleResize();
-						}
-					break;
+        if (!pongState.settingsRenderer) {
+            pongState.settingsRenderer = new settingsRenderer(babylonCanvas);
+        } else {
+            pongState.settingsRenderer.handleResize();
+        }
+    }
+    break;
 				default:
 					drawMainMenu(canvas, ctx);
 					break;
@@ -254,19 +289,19 @@ export function drawMainMenu(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
 
   // 3) Prepare labels & positions for buttons
   const labels = [
-    { action: 'Create Game', y: height/2 - 40 },
-    { action: 'Join Game',   y: height/2 + 20 },
-    { action: 'Tournament',  y: height/2 + 80 },
-    { action: 'Settings',    y: height/2 + 140 },
+	{ action: 'Create Game', y: height/2 - 40 },
+	{ action: 'Join Game',   y: height/2 + 20 },
+	{ action: 'Tournament',  y: height/2 + 80 },
+	{ action: 'Settings',    y: height/2 + 140 },
 		{ action: 'Local Game', 	 y:height/2 + 200},
   ];
   ctx.font = `${Math.floor(height/20)}px 'Orbitron', sans-serif`;
 
   const btnW = 260, btnH = 50;
   canvas._pongMenuBtns = labels.map(btn => {
-    const x = width/2 - btnW/2;
-    const y = btn.y   - btnH/2;
-    return { x, y, w: btnW, h: btnH, action: btn.action };
+	const x = width/2 - btnW/2;
+	const y = btn.y   - btnH/2;
+	return { x, y, w: btnW, h: btnH, action: btn.action };
   });
 
 
@@ -275,50 +310,50 @@ export function drawMainMenu(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
 
   // Re-create each button with the correct structure/order
   canvas._pongMenuBtns.forEach(btn => {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.classList.add('menubtn_button');
-    button.style.position = 'absolute';
-    button.style.left   = `${btn.x}px`;
-    button.style.top    = `${btn.y}px`;
-    button.style.width  = `${btn.w}px`;
-    button.style.height = `${btn.h}px`;
+	const button = document.createElement('button');
+	button.type = 'button';
+	button.classList.add('menubtn_button');
+	button.style.position = 'absolute';
+	button.style.left   = `${btn.x}px`;
+	button.style.top    = `${btn.y}px`;
+	button.style.width  = `${btn.w}px`;
+	button.style.height = `${btn.h}px`;
 
-    // 1) Append the LABEL TEXT first
-    button.appendChild(document.createTextNode(btn.action));
+	// 1) Append the LABEL TEXT first
+	button.appendChild(document.createTextNode(btn.action));
 
-    // 2) Build the clip container (DIV) with its corners
-    const clip = document.createElement('div');
-    clip.classList.add('menubtn_clip');
-    ['leftTop','rightTop','rightBottom','leftBottom'].forEach(pos => {
-      const corner = document.createElement('div');
-      corner.classList.add('menubtn_corner', `menubtn_${pos}`);
-      clip.appendChild(corner);
-    });
-    button.appendChild(clip);
+	// 2) Build the clip container (DIV) with its corners
+	const clip = document.createElement('div');
+	clip.classList.add('menubtn_clip');
+	['leftTop','rightTop','rightBottom','leftBottom'].forEach(pos => {
+	  const corner = document.createElement('div');
+	  corner.classList.add('menubtn_corner', `menubtn_${pos}`);
+	  clip.appendChild(corner);
+	});
+	button.appendChild(clip);
 
-    // 3) Add the two arrows
-    const rightArrow = document.createElement('span');
-    rightArrow.classList.add('menubtn_arrow','menubtn_rightArrow');
-    button.appendChild(rightArrow);
+	// 3) Add the two arrows
+	const rightArrow = document.createElement('span');
+	rightArrow.classList.add('menubtn_arrow','menubtn_rightArrow');
+	button.appendChild(rightArrow);
 
-    const leftArrow = document.createElement('span');
-    leftArrow.classList.add('menubtn_arrow','menubtn_leftArrow');
-    button.appendChild(leftArrow);
+	const leftArrow = document.createElement('span');
+	leftArrow.classList.add('menubtn_arrow','menubtn_leftArrow');
+	button.appendChild(leftArrow);
 
-    // 4) Click handler
-    button.addEventListener('click', e => {
-      e.stopPropagation();
-      const rect = wrapper.getBoundingClientRect();
-      const ev = new MouseEvent('click', {
-        clientX: rect.left + btn.x + btn.w/2,
-        clientY: rect.top  + btn.y + btn.h/2,
-        bubbles: true
-      });
-      canvas.dispatchEvent(ev);
-    });
+	// 4) Click handler
+	button.addEventListener('click', e => {
+	  e.stopPropagation();
+	  const rect = wrapper.getBoundingClientRect();
+	  const ev = new MouseEvent('click', {
+		clientX: rect.left + btn.x + btn.w/2,
+		clientY: rect.top  + btn.y + btn.h/2,
+		bubbles: true
+	  });
+	  canvas.dispatchEvent(ev);
+	});
 
-    wrapper.appendChild(button);
+	wrapper.appendChild(button);
   });
 }
 
@@ -667,18 +702,18 @@ async function handlePongMenuMouseDown(e: MouseEvent): Promise<void> {
 	);
 	if (btn && ['ballSpeedUp','ballSpeedDown','paddleSpeedUp','paddleSpeedDown'].includes(btn.action)) {
 		lastButtonAction = btn.action;
-	    // redraw immediately
-	    showPongMenu();
-	    incrementTimeout = window.setTimeout(() => {
-	      incrementInterval = window.setInterval(
-	        // mark this arrow async so we can await inside
-	        async () => {
-	          await handleCreateGameButton(btn.action);
-	          showPongMenu();
-	        },
-	        50
-	      );
-	    }, 350);
+		// redraw immediately
+		showPongMenu();
+		incrementTimeout = window.setTimeout(() => {
+		  incrementInterval = window.setInterval(
+			// mark this arrow async so we can await inside
+			async () => {
+			  await handleCreateGameButton(btn.action);
+			  showPongMenu();
+			},
+			50
+		  );
+		}, 350);
 	}
 }
 

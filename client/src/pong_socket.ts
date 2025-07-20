@@ -10,11 +10,13 @@ import * as GUI from "@babylonjs/gui";
 import * as BABYLON from "@babylonjs/core";
 import * as Tournament from './tournament_socket'
 import { handleLogout } from './handlers'
+import { LocalGameMapRenderer } from './localGame/localGameMapRenderer';
 
 export const pongState = 
 {
 	pongRenderer: null as PongRenderer | null,
-	settingsRenderer: null as settingsRenderer|null
+	settingsRenderer: null as settingsRenderer|null,
+	localMapRenderer: null as any | null
 };
 
 export async function initGameSocket(): Promise<void> {

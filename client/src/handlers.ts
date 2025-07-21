@@ -355,7 +355,9 @@ export async function setupHomeHandlers(): Promise<void> {
 			state.currentPlayers = [];
 		}
 	} else if (savedView === 'localGameMap') {
-		state.canvasViewState = 'localGameMap';
+		// Au refresh pendant un jeu local, retourner au menu principal
+		localStorage.removeItem('pong_view');
+		state.canvasViewState = 'mainMenu';
 	}
 
 	const savedTView = localStorage.getItem('tournament_view');

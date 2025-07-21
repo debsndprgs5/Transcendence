@@ -210,7 +210,12 @@ export class LocalGameRenderer
 		pongState.localMapRenderer = null;
 		cleanupLocalGameConfig();
 		
-		state.canvasViewState = 'localGameConfig';
+		// Nettoyer complètement l'état du jeu local
+		state.localGameConfig = undefined;
+		
+		// Nettoyer localStorage et retourner au menu principal
+		localStorage.removeItem('pong_view');
+		state.canvasViewState = 'mainMenu';
 		showPongMenu();
 	}
 

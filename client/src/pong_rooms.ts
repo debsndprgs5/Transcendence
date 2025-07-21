@@ -99,9 +99,13 @@ export function showPongMenu(): void {
 		}
 
 		if (state.canvasViewState === 'playingGame'
-				|| state.canvasViewState === 'settings'
+				|| state.canvasViewState === 'Settings'
 				|| state.canvasViewState === 'localGameMap'
 			){
+			// Nettoyer les boutons HTML du menu avant de masquer le canvas
+			const wrapper = canvas.parentElement!;
+			wrapper.querySelectorAll('.menubtn_button').forEach(el => el.remove());
+			
 			canvas.style.display        = 'none';
 			babylonCanvas.style.display = 'block';
 		} else {
@@ -361,6 +365,8 @@ async function handleMainMenuClick(canvas: HTMLCanvasElement, x: number, y: numb
 
 	switch (btnMain.action) {
 		case 'Create Game':
+			// Nettoyer l'état du jeu local si présent
+			state.localGameConfig = undefined;
 			state.canvasViewState = 'createGame';
 			showPongMenu();
 			break;
@@ -382,7 +388,7 @@ async function handleMainMenuClick(canvas: HTMLCanvasElement, x: number, y: numb
 			showPongMenu();
 			break;
 		case 'Settings':
-			state.canvasViewState = 'settings';
+			state.canvasViewState = 'Settings';
 			showPongMenu();
 			break;
 		default:

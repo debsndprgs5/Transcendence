@@ -354,6 +354,8 @@ export async function setupHomeHandlers(): Promise<void> {
 		} catch {
 			state.currentPlayers = [];
 		}
+	} else if (savedView === 'localGameMap') {
+		state.canvasViewState = 'localGameMap';
 	}
 
 	const savedTView = localStorage.getItem('tournament_view');

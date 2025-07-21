@@ -75,6 +75,7 @@ export function resetState(){
 		playerInterface: undefined,
 		paddleInterface: undefined,
 		gameInterface: undefined,
+		localGameConfig: undefined,
 	});
 }
 

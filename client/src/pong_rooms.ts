@@ -367,6 +367,8 @@ async function handleMainMenuClick(canvas: HTMLCanvasElement, x: number, y: numb
 		case 'Create Game':
 			// Nettoyer l'état du jeu local si présent
 			state.localGameConfig = undefined;
+			// Réinitialiser createGameFormData pour éviter la contamination
+			createGameFormData.roomName = null;
 			state.canvasViewState = 'createGame';
 			showPongMenu();
 			break;

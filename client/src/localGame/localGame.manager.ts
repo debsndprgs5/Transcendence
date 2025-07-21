@@ -241,7 +241,7 @@ export function startLocalMatch(cfg: typeof localGameFormData): void
 	cleanupAllTransitionOverlays();
 	state.canvasViewState = 'localGameMap';
 	
-	// Ne PAS persister le jeu local - au refresh on retourne au menu
+	// Ne PAS persister le jeu local
 	// localStorage.setItem('pong_view', 'localGameMap');
 	
 	showPongMenu();

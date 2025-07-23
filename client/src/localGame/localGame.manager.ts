@@ -237,13 +237,9 @@ export function startLocalMatch(cfg: typeof localGameFormData): void
 		paddleSpeed: cfg.paddleSpeed,
 		winningScore: cfg.winningScore
 	};
-
 	cleanupAllTransitionOverlays();
 	state.canvasViewState = 'localGameMap';
-	
-	// Ne PAS persister le jeu local
-	// localStorage.setItem('pong_view', 'localGameMap');
-	
+
 	showPongMenu();
 }
 

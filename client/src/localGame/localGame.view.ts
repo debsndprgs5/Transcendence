@@ -28,7 +28,6 @@ export class LocalGameView
 			if (e.key === 'Escape' || e.key === 'Esc')
 			{
 				e.preventDefault();
-				// Protection contre la boucle infinie
 				if (state.canvasViewState === 'localGameMap') {
 					this.transitionOut();
 				}

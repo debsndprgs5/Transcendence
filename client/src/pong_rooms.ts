@@ -279,10 +279,8 @@ export function drawMainMenu(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
 	button.style.width  = `${btn.w}px`;
 	button.style.height = `${btn.h}px`;
 
-	// 1) Append the LABEL TEXT first
 	button.appendChild(document.createTextNode(btn.action));
 
-	// 2) Build the clip container (DIV) with its corners
 	const clip = document.createElement('div');
 	clip.classList.add('menubtn_clip');
 	['leftTop','rightTop','rightBottom','leftBottom'].forEach(pos => {
@@ -292,7 +290,6 @@ export function drawMainMenu(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
 	});
 	button.appendChild(clip);
 
-	// 3) Add the two arrows
 	const rightArrow = document.createElement('span');
 	rightArrow.classList.add('menubtn_arrow','menubtn_rightArrow');
 	button.appendChild(rightArrow);
@@ -301,7 +298,6 @@ export function drawMainMenu(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
 	leftArrow.classList.add('menubtn_arrow','menubtn_leftArrow');
 	button.appendChild(leftArrow);
 
-	// 4) Click handler
 	button.addEventListener('click', e => {
 	  e.stopPropagation();
 	  const rect = wrapper.getBoundingClientRect();
@@ -398,7 +394,6 @@ async function handleMainMenuClick(canvas: HTMLCanvasElement, x: number, y: numb
 	}
 }
 
-// Handle clicks in the Create Game view
 async function handleCreateGameClick(canvas: HTMLCanvasElement, x: number, y: number): Promise<void> {
 	const btnCreate = canvas._createGameButtons?.find((b: PongButton) =>
 		x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h
@@ -409,13 +404,12 @@ async function handleCreateGameClick(canvas: HTMLCanvasElement, x: number, y: nu
 		return;
 	}
 
-	// compute the exact bounds of the "Room name" row
 	const h = canvas.height;
 	const w = canvas.width;
-	const rowY0 = h * 0.18;            // same as drawCreateGameView rowY(0)
-	const fontH = h * 0.03;            // approx. text height
-	const leftX = w * 0.15;            // labelX
-	const rightX = w * 0.85;           // right margin
+	const rowY0 = h * 0.18;
+	const fontH = h * 0.03;
+	const leftX = w * 0.15;
+	const rightX = w * 0.85;
 
 	if (
 		y >= rowY0 - fontH && y <= rowY0 + fontH/2 &&
@@ -433,7 +427,6 @@ async function handleCreateGameClick(canvas: HTMLCanvasElement, x: number, y: nu
 	}
 }
 
-// Handle clicks in the Waiting Game view
 async function handleWaitingGameClick(canvas: HTMLCanvasElement, x: number, y: number): Promise<void> {
 	const btnWaiting = (canvas as any)._waitingGameButtons?.find((b: PongButton) =>
 		x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h
@@ -446,7 +439,6 @@ async function handleWaitingGameClick(canvas: HTMLCanvasElement, x: number, y: n
 	}
 }
 
-// Handle clicks in the Join Game view
 async function handleJoinGameClick(canvas: HTMLCanvasElement, x: number, y: number): Promise<void> {
 	const btns = (canvas as any)._joinGameButtons as PongButton[] | undefined;
 	if (!btns) return;
@@ -469,15 +461,12 @@ async function handleJoinGameClick(canvas: HTMLCanvasElement, x: number, y: numb
 	}
 
 	if (clickedBtn.action.startsWith('join:')) {
-		// Extract roomID from action string
 		const [, roomIDStr] = clickedBtn.action.split(':');
 		const roomID = Number(roomIDStr);
 
-		// get roomName
 		const roomInfo = state.availableRooms?.find(r => r.roomID === roomID);
 		const roomName = roomInfo ? roomInfo.roomName : 'Unknown Room';
 
-		// Verify socket
 		if (!state.playerInterface?.socket) {
 			console.error('No gameSocket available');
 			showNotification({ message: 'Cannot join game : Socket unavailable.', type: 'error' });
@@ -487,7 +476,6 @@ async function handleJoinGameClick(canvas: HTMLCanvasElement, x: number, y: numb
 		state.typedSocket.send('joinGame',{ userID: state.userId, gameID: roomID, gameName: roomName });
 		state.playerInterface.gameID = roomID;
 
-		// fetch players list
 		let usernames: string[] = [];
 		try {
 			const playerslist = await apiFetch(`/api/pong/${encodeURIComponent(roomID)}/list`, { headers: { Authorization: `Bearer ${state.authToken}` } });
@@ -508,7 +496,6 @@ async function handleJoinGameClick(canvas: HTMLCanvasElement, x: number, y: numb
 
 async function handleCreateGameButton(action: string): Promise<void> {
 	switch (action) {
-		// — Mode toggles —
 		case 'toggleModeDuo':
 			createGameFormData.mode = 'duo';
 			break;
@@ -516,19 +503,15 @@ async function handleCreateGameButton(action: string): Promise<void> {
 			createGameFormData.mode = 'quatuor';
 			break;
 
-		// — Win condition toggles —
 		case 'toggleWinTime':
 			createGameFormData.winCondition = 'time';
-			// clamp limit between 5 et 600
 			createGameFormData.limit = Math.min(600, Math.max(5, createGameFormData.limit));
 			break;
 		case 'toggleWinScore':
 			createGameFormData.winCondition = 'score';
-			// clamp limit entre 1 et 20
 			createGameFormData.limit = Math.min(20, Math.max(1, createGameFormData.limit));
 			break;
 
-		// — Edit limit via prompt —
 		case 'editLimit':
 			showNotification({
 				message: 'Enter limit:',
@@ -546,9 +529,8 @@ async function handleCreateGameButton(action: string): Promise<void> {
 					showPongMenu();
 				}
 			});
-			return; // on va redraw en callback
+			return;
 
-		// — Ball / paddle speed as avant —
 		case 'ballSpeedUp':
 			createGameFormData.ballSpeed = Math.min(100, createGameFormData.ballSpeed + 1);
 			break;
@@ -567,7 +549,6 @@ async function handleCreateGameButton(action: string): Promise<void> {
 			break;
 
 		case 'confirmGame':
-			// validation possible ici…
 			const reply = await apiFetch(`/api/pong/${state.userId}`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
@@ -601,15 +582,12 @@ async function handleCreateGameButton(action: string): Promise<void> {
 					`/api/pong/${encodeURIComponent(gameID)}/list`,
 					{ headers: { Authorization: `Bearer ${state.authToken}` } }
 			);
-			// map playerslist object as a string map
 			const usernames = (playerslist as { username: string }[]).map(u => u.username);
 
-			// stock in state
 			state.currentGameName   = gameName;
 			state.currentPlayers    = usernames;
 			state.canvasViewState   = 'waitingGame';
 
-			// persist in local storage to survive refresh
 			localStorage.setItem('pong_view', 'waitingGame');
 			localStorage.setItem('pong_room', gameName);
 			localStorage.setItem('pong_players', JSON.stringify(usernames));
@@ -620,25 +598,21 @@ async function handleCreateGameButton(action: string): Promise<void> {
 }
 
 async function handleJoinRandom(): Promise<void> {
-	// fetch available rooms
 	let rooms = await fetchAvailableRooms();
 
 	if (rooms.length === 0) {
-		// No available room → create “Random Queue”
 		createGameFormData.roomName = 'Random Queue';
 		await handleCreateGameButton('confirmGame');
 		rooms = await fetchAvailableRooms();
 	} else {
 		const oldest = rooms.reduce((a, b) => a.roomID < b.roomID ? a : b);
 
-		// join
 		state.typedSocket.send('joinGame', {
 			userID: state.userId,
 			gameID: oldest.roomID,
 			gameName: oldest.roomName
 		});
 
-		// update waitingGame
 		state.currentGameName  = oldest.roomName;
 		const list = await apiFetch(`/api/pong/${oldest.roomID}/list`, {
 			headers: { Authorization: `Bearer ${state.authToken}` }

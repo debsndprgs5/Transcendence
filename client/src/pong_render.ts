@@ -24,8 +24,8 @@ export class PongRenderer{
 	private guiTexture!: GUI.AdvancedDynamicTexture;
 	private timeText!: GUI.TextBlock;
 	private scoreText!: GUI.TextBlock;
-	private avatarSquares!: GUI.AdvancedDynamicTexture; // Avatar near the name
-	private avatarCirles!: GUI.AdvancedDynamicTexture;  // Small avatars linked to paddles
+	private avatarSquares!: GUI.AdvancedDynamicTexture;
+	private avatarCirles!: GUI.AdvancedDynamicTexture;
 	private playerCount: number;
 	private playerSide: 'left' | 'right' | 'top' | 'bottom';
 	private playersInfo: Record<'left' | 'right' | 'top' | 'bottom', string> = {
@@ -117,7 +117,6 @@ export class PongRenderer{
 	private async setupGUI() {
 		this.guiTexture = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI", true, this.scene);
 
-		// Time at top center
 		this.timeText = new GUI.TextBlock();
 		this.timeText.color = "white";
 		this.timeText.fontSize = 14;
@@ -127,7 +126,6 @@ export class PongRenderer{
 		this.guiTexture.addControl(this.timeText);
 
 		if (this.playerCount === 2) {
-			// LEFT name
 			const leftName = new GUI.TextBlock();
 			leftName.text = this.playersInfo.left;
 			leftName.color = "white";
@@ -138,7 +136,6 @@ export class PongRenderer{
 			leftName.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
 			this.guiTexture.addControl(leftName);
 
-			// RIGHT name
 			const rightName = new GUI.TextBlock();
 			rightName.text = this.playersInfo.right;
 			rightName.color = "white";
@@ -149,7 +146,6 @@ export class PongRenderer{
 			rightName.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
 			this.guiTexture.addControl(rightName);
 
-			// LEFT score under left name
 			const leftScore = new GUI.TextBlock();
 			leftScore.color = "white";
 			leftScore.fontSize = 14;
@@ -160,7 +156,6 @@ export class PongRenderer{
 			this.guiTexture.addControl(leftScore);
 			this.scoreTextBlocks.left = leftScore;
 
-			// RIGHT score under right name
 			const rightScore = new GUI.TextBlock();
 			rightScore.color = "white";
 			rightScore.fontSize = 14;
@@ -171,7 +166,6 @@ export class PongRenderer{
 			this.guiTexture.addControl(rightScore);
 			this.scoreTextBlocks.right = rightScore;
 
-			// LEFT AVATAR
 			const leftUsername = this.playersInfo.left;
 			let leftAvatarurl: string;
 			try {
@@ -203,7 +197,6 @@ export class PongRenderer{
 			leftAvatarImage.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
 			this.guiTexture.addControl(leftAvatarImage);
 
-			// RIGHT AVATAR
 			const rightUsername = this.playersInfo.right;
 			let rightAvatarurl: string;
 			try {
@@ -246,14 +239,12 @@ export class PongRenderer{
 
 		const { container, icon, message } = this.pauseUI;
 
-		// Container: semi-transparent overlay covering full screen
 		container.width = "100%";
 		container.height = "100%";
 		container.background = "rgba(0, 0, 0, 0.5)";
 		container.thickness = 0;
 		container.isVisible = false;
 
-		// Icon: large pause symbol "||"
 		icon.text = "||";
 		icon.color = "white";
 		icon.fontSize = "160px";
@@ -261,11 +252,10 @@ export class PongRenderer{
 		icon.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
 		icon.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
 
-		// Message: small text under the pause icon
 		message.text = "Waiting for connection...";
 		message.color = "white";
 		message.fontSize = "24px";
-		message.top = "100px"; // below the pause icon
+		message.top = "100px";
 		message.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
 		message.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
 
@@ -277,10 +267,10 @@ export class PongRenderer{
 			new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), this.scene);
 	}
 	private createWalls() {
-		const width2P = LIMIT.arenaWidth2p; // -8 to 8
-		const depth2P = LIMIT.arenaLength2p; // -5 to 5
-		const width4P = LIMIT.arenaWidth4p; // -6 to 6
-		const depth4P = LIMIT.arenaWidth4p; // -6 to 6
+		const width2P = LIMIT.arenaWidth2p;
+		const depth2P = LIMIT.arenaLength2p;
+		const width4P = LIMIT.arenaWidth4p;
+		const depth4P = LIMIT.arenaWidth4p;
 
 		const wallHeight = 0.3;
 		const wallDepth = 0.5;
@@ -289,7 +279,6 @@ export class PongRenderer{
 		const width = this.playerCount === 2 ? width2P : width4P;
 		const depth = this.playerCount === 2 ? depth2P : depth4P;
 
-		// Front/back walls
 		const topWall = BABYLON.MeshBuilder.CreateBox("topWall", {
 			width,
 			height: wallHeight,
@@ -302,7 +291,6 @@ export class PongRenderer{
 		bottomWall.position.z = -depth / 2 - wallDepth / 2;
 		this.frontWalls.push(bottomWall);
 
-		// Side walls
 		const sideWall = BABYLON.MeshBuilder.CreateBox("sideWall", {
 			width: wallLength,
 			height: wallHeight,
@@ -317,8 +305,8 @@ export class PongRenderer{
 	}
 
 	private createGameObjects() {
-		const paddleSize2P = { height: 1, width: LIMIT.paddleWidth, depth: LIMIT.paddleSize }; // Original paddle size
-		const paddleSize4P = { height: 1, width: LIMIT.paddleSize, depth: LIMIT.paddleWidth }; // Rotated for top/bottom
+		const paddleSize2P = { height: 1, width: LIMIT.paddleWidth, depth: LIMIT.paddleSize };
+		const paddleSize4P = { height: 1, width: LIMIT.paddleSize, depth: LIMIT.paddleWidth };
 
 		for (let i = 0; i < this.playerCount; i++) {
 			const isVertical = i === 0 || i === 1;
@@ -334,57 +322,48 @@ export class PongRenderer{
 	}
 
 	private setupInitialPositions() {
-	  // wall thicknesses: along X use wallLength, along Z use wallDepth
 	  const wallLength = 0.25;
 	  const wallDepth  = 0.5;
 
 	  if (this.playerCount === 2) {
-	    // 2-player mode: paddles on left/right, move along Z
-	    const halfW2    = LIMIT.arenaWidth2p  / 2;    // half arena width
-	    const padHalfX  = LIMIT.paddleWidth    / 2;   // half paddle width
+	    const halfW2    = LIMIT.arenaWidth2p  / 2;
+	    const padHalfX  = LIMIT.paddleWidth    / 2;
 
-	    // LEFT paddle (index 0)
 	    this.paddles[0].position.set(
-	      - (halfW2 - wallLength - padHalfX), // X just inside left wall
-	       0,                                  // Y
-	       0                                   // Z center
+	      - (halfW2 - wallLength - padHalfX),
+	       0,
+	       0
 	    );
 
-	    // RIGHT paddle (index 1)
 	    this.paddles[1].position.set(
-	       (halfW2 - wallLength - padHalfX),   // X just inside right wall
+	       (halfW2 - wallLength - padHalfX),
 	       0,
 	       0
 	    );
 	  } else {
-	    // 4-player mode: left/right on X, top/bottom on Z
 	    const halfW4   = LIMIT.arenaWidth4p   / 2;
 	    const halfL4   = LIMIT.arenaLength4p  / 2;
 	    const padHalfX = LIMIT.paddleWidth    / 2;
 	    const padHalfZ = LIMIT.paddleSize     / 2;
 
-	    // LEFT paddle (index 0)
 	    this.paddles[0].position.set(
 	      - (halfW4 - wallLength - padHalfX), 
 	       0,
 	       0
 	    );
 
-	    // RIGHT paddle (index 1)
 	    this.paddles[1].position.set(
 	       (halfW4 - wallLength - padHalfX),
 	       0,
 	       0
 	    );
 
-	    // TOP paddle (index 2)
 	    this.paddles[2].position.set(
 	      0,
 	      0,
 	      (halfL4 - wallDepth - padHalfZ)
 	    );
 
-	    // BOTTOM paddle (index 3)
 	    this.paddles[3].position.set(
 	      0,
 	      0,
@@ -392,7 +371,6 @@ export class PongRenderer{
 	    );
 	  }
 
-	  // Ball always starts at center
 	  if (this.balls[0]) {
 	    this.balls[0].position.set(0, 0, 0);
 	  }
@@ -405,7 +383,7 @@ export class PongRenderer{
 		console.log('[RESUME] Stopping render loop...');
 		this.engine.stopRenderLoop();
 		console.log('[RESUME] Starting render loop...');
-		this.startRenderLoop(); // Reuse full original loop logic
+		this.startRenderLoop();
 
 		this.isPaused = false;
 		if (this.pauseUI?.container) {
@@ -420,29 +398,24 @@ export class PongRenderer{
 	  elapsed:number;
 	  isPaused:boolean
 	}) {
-	  // update paddles
 	  Object.values(update.paddles).forEach(({ side, pos }) => {
 	    const mesh = this.paddleMap[side];
 	    if (!mesh) return;
 
 	    if (side === 'left' || side === 'right') {
-	      // ← H-paddles slide on X
 	      mesh.position.z = pos;
 	    } else {
-	      // ← V-paddles slide on Z
 	      mesh.position.x = pos;
 	    }
 	  });
 
-	  // update balls (inchangé)
 	  Object.values(update.balls).forEach(({ x, y }) => {
 	    const m = this.balls[0];
 	    if (!m) return;
 	    m.position.x = x;
 	    m.position.z = y;
 	  });
-	  //Update UI
-	  // Extract scores by side
+
 		const scores: Record<'left' | 'right' | 'top' | 'bottom', number> = {
 			left: 0,
 			right: 0,
@@ -467,13 +440,11 @@ export class PongRenderer{
 	}
 
 	private processInput() {
-	  // Determine raw direction
 	  let dir: 'left'|'right'|'stop' = 'stop';
 	  if (this.inputState.left && this.inputState.right) dir = 'stop';
 	  else if (this.inputState.left)  dir = 'left';
 	  else if (this.inputState.right) dir = 'right';
 
-	  // Swap for left view
 	  if (this.playerSide === 'left' && dir !== 'stop') {
 	    dir = dir === 'left' ? 'right' : 'left';
 	  }
@@ -501,11 +472,10 @@ private initInputListeners() {
 
 		if (e.key.startsWith('Arrow')) e.preventDefault();
 
-		// Handle Escape key logic here too
 		if (e.key === 'Escape' || e.key === 'Esc') {
 			const player = state.playerInterface;
 			if (player && player.state === 'playing') {
-				if (this.isPaused) return; // prevent spam
+				if (this.isPaused) return;
 
 				this.isPaused = true;
 

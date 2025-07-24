@@ -17,7 +17,6 @@ const jwtSecret = getJwtSecret();
 //Map of pending invite for timeout and duplicates managment
 const PendingInvites = new Map<number, { inviterID: number; timeout: NodeJS.Timeout }>();
 
-//ADD event here if needed for gameSocket
 export function handleAllEvents(typedSocket:TypedSocket, player:Interfaces.playerInterface) {
    typedSocket.on('init', async (socket:WebSocket, data:Interfaces.SocketMessageMap['init']) => {
      handleInit(data, player);

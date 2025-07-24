@@ -375,41 +375,79 @@ export const getMatchHistoryForUser = async (userID: number) => {
   );
 };
 
-
 export async function startScoreTableFuzzer() {
   let matchID = 1;
-  await new Promise(resolve => setTimeout(resolve, 10000));
+  await new Promise(resolve => setTimeout(resolve, 15000));
   await setInterval(async () => {
 	let duration = randomInt(5, 242);
 	let paddleSpeed = randomInt(1, 100);
 	let ballSpeed = randomInt(1, 100);
-	let result = randomInt(0, 3); // 0=lose, 1=win, 2=tie
-	let scoreA, scoreB;
+	let gameMode = randomInt(0, 2); // 0=1v1, 1=2v2
 	let players;
-	if (result === 2) {
-	  scoreA = scoreB = randomInt(5, 16);
-	  players = [
-		{ userID: 1, score: scoreA, result: 2 },
-		{ userID: 2, score: scoreB, result: 2 }
-	  ];
-	} else if (result === 1) {
-	  scoreA = randomInt(10, 21);
-	  scoreB = randomInt(0, scoreA);
-	  players = [
-		{ userID: 1, score: scoreA, result: 1 },
-		{ userID: 2, score: scoreB, result: 0 }
-	  ];
+
+	if (gameMode === 0) {
+	  let result = randomInt(0, 3); // 0=lose, 1=win, 2=tie
+	  let scoreA, scoreB;
+	  if (result === 2) {
+		scoreA = scoreB = randomInt(5, 16);
+		players = [
+		  { userID: 1, score: scoreA, result: 2 },
+		  { userID: 2, score: scoreB, result: 2 }
+		];
+	  } else if (result === 1) {
+		scoreA = randomInt(10, 21);
+		scoreB = randomInt(0, scoreA);
+		players = [
+		  { userID: 1, score: scoreA, result: 1 },
+		  { userID: 2, score: scoreB, result: 0 }
+		];
+	  } else {
+		scoreB = randomInt(10, 21);
+		scoreA = randomInt(0, scoreB);
+		players = [
+		  { userID: 1, score: scoreA, result: 0 },
+		  { userID: 2, score: scoreB, result: 1 }
+		];
+	  }
+	  console.log(`[Fuzzer] 1v1 Match: matchID=${matchID}, scores: [${scoreA}, ${scoreB}], duration: ${duration}s`);
 	} else {
-	  scoreB = randomInt(10, 21);
-	  scoreA = randomInt(0, scoreB);
-	  players = [
-		{ userID: 1, score: scoreA, result: 0 },
-		{ userID: 2, score: scoreB, result: 1 }
-	  ];
+	  let result = randomInt(0, 3); // 0=team2 wins, 1=team1 wins, 2=tie
+	  let scoreTeam1, scoreTeam2;
+	  if (result === 2) {
+		// Égalité
+		scoreTeam1 = scoreTeam2 = randomInt(5, 16);
+		players = [
+		  { userID: 1, score: scoreTeam1, result: 2 }, // Team 1 Player 1
+		  { userID: 3, score: scoreTeam1, result: 2 }, // Team 1 Player 2
+		  { userID: 2, score: scoreTeam2, result: 2 }, // Team 2 Player 1
+		  { userID: 4, score: scoreTeam2, result: 2 }  // Team 2 Player 2
+		];
+	  } else if (result === 1) {
+		// Team 1 gagne
+		scoreTeam1 = randomInt(10, 21);
+		scoreTeam2 = randomInt(0, scoreTeam1);
+		players = [
+		  { userID: 1, score: scoreTeam1, result: 1 }, // Team 1 Player 1 (win)
+		  { userID: 3, score: scoreTeam1, result: 1 }, // Team 1 Player 2 (win)
+		  { userID: 2, score: scoreTeam2, result: 0 }, // Team 2 Player 1 (lose)
+		  { userID: 4, score: scoreTeam2, result: 0 }  // Team 2 Player 2 (lose)
+		];
+	  } else {
+		// Team 2 gagne
+		scoreTeam2 = randomInt(10, 21);
+		scoreTeam1 = randomInt(0, scoreTeam2);
+		players = [
+		  { userID: 1, score: scoreTeam1, result: 0 }, // Team 1 Player 1 (lose)
+		  { userID: 3, score: scoreTeam1, result: 0 }, // Team 1 Player 2 (lose)
+		  { userID: 2, score: scoreTeam2, result: 1 }, // Team 2 Player 1 (win)
+		  { userID: 4, score: scoreTeam2, result: 1 }  // Team 2 Player 2 (win)
+		];
+	  }
+	  console.log(`[Fuzzer] 2v2 Match: matchID=${matchID}, scores: Team1=${scoreTeam1} vs Team2=${scoreTeam2}, duration: ${duration}s`);
 	}
+
 	await saveMatchStats(matchID, null, paddleSpeed, ballSpeed, 15, 'score', players, duration);
-	console.log(`[Fuzzer] saveMatchStats called: matchID=${matchID}, scores: [${scoreA}, ${scoreB}], result: ${result}, duration: ${duration}s`);
 	matchID++;
-  }, 1000);
+  }, 1);
 }
-startScoreTableFuzzer();
+// startScoreTableFuzzer();

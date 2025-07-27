@@ -1,5 +1,5 @@
 import { createGameFormData } from './pong_rooms';
-import { createTournamentFormData } from './tournament_rooms';
+import { createTournamentFormData, isLastTournamentRound  } from './tournament_rooms';
 import { state } from './api';
 
 interface PongButton {
@@ -619,6 +619,7 @@ export function drawWaitingRoundsTournamentView(
 
   const wrapper = canvas.parentElement!;
   
+  const islast =  isLastTournamentRound(currentGameName);
   wrapper.querySelectorAll('.menubtn_button').forEach(el => el.remove());
   ctx.clearRect(0, 0, width, height);
 
@@ -664,13 +665,24 @@ export function drawWaitingRoundsTournamentView(
   ctx.fillText('Leave Tournament', leaveX + btnW / 2, btnY + btnH * 0.65);
 
   // Ready
-  ctx.fillStyle = '#34d399';
-  ctx.fillRect(readyX, btnY, btnW, btnH);
-  ctx.fillStyle = 'white';
-  ctx.fillText('Ready', readyX + btnW / 2, btnY + btnH * 0.65);
+  if(islast === false){
+    ctx.fillStyle = '#34d399';
+    ctx.fillRect(readyX, btnY, btnW, btnH);
+    ctx.fillStyle = 'white';
+    ctx.fillText('Ready', readyX + btnW / 2, btnY + btnH * 0.65);
+  }
 
   (canvas as any)._waitingTournamentButtons = [
-    { x: leaveX, y: btnY,   w: btnW, h: btnH, action: 'leaveTournament' },
-    { x: readyX, y: btnY,   w: btnW, h: btnH, action: 'ready' }
-  ];
+  { x: leaveX, y: btnY, w: btnW, h: btnH, action: 'leaveTournament' },
+];
+
+if (!islast) {
+  (canvas as any)._waitingTournamentButtons.push({
+    x: readyX,
+    y: btnY,
+    w: btnW,
+    h: btnH,
+    action: 'ready',
+  });
+}
 }

@@ -170,7 +170,15 @@ export async function handleStartTournament(data: any) {
 export async function handleMatchFinish(data:any){
 
 	const tour = Tournament.MappedTour.get(data.tourID)!;
-	tour.onMatchFinished(data.tourID, data.a_ID, data.b_ID, data.a_score, data.b_score, data.userID);
+	if(!tour)
+		return;
+	await tour.onMatchFinished(data.tourID, data.a_ID, data.b_ID, data.a_score, data.b_score, data.userID);
+	console.log(`[MATCHFINISH] regular call`)
+	if(tour.current_round === tour.max_round){
+		console.log(`[MATCHFINSIH][AutoReady] for userID:${data.userID}`);
+		await tour.isReadyForNextRound(data.userID);
+		console.log('PASSED...')
+	}
 }
 
 export async function handleReadyNextRound(data:any){

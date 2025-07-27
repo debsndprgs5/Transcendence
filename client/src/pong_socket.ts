@@ -459,6 +459,7 @@ export async function handleEndMatch(
 					a_score: data.a_score,
 					b_score: data.b_score
 				});
+				state.currentGameName = data.gameName;
 				state.canvasViewState = 'waitingTournamentRounds';
 				localStorage.setItem('pong_view','waitingTournamentRounds');
 				showPongMenu();

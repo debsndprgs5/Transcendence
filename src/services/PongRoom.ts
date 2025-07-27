@@ -12,6 +12,7 @@ import {
 } from '../shared/gameTypes'
 import { getUnameByIndex } from '../db/userManagement'
 import { Tournament } from './tournament'
+import { getNamePerGameID } from '../db/gameManagement'
 
 /**
  * A lightweight container for one running Pong match.
@@ -378,8 +379,7 @@ private  handleWallScore(sideHit: 'left'|'right'|'top'|'bottom', ball: ballClass
 	}
 
 	private async endCleanMatch() {
-		clearInterval(this.loop!);
-		PongRoom.rooms.delete(this.gameID);
+
 
 		const playermapped = new Map<string, number>();
 		for (const [userID, score] of this.scoreMap) {
@@ -387,7 +387,8 @@ private  handleWallScore(sideHit: 'left'|'right'|'top'|'bottom', ball: ballClass
 			playermapped.set(uname!.username, score);
 		}
 		const playerScores = Object.fromEntries(playermapped);
-
+		const gameName = await getNamePerGameID(this.gameID);
+		console.log(`GAME NAME ${gameName!.name}`)
 		for (const p of this.players) {
 			const isWinner = (this.scoreMap.get(p.userID)! >= this.game.limit);
 			if(p.tournamentID){
@@ -402,17 +403,10 @@ private  handleWallScore(sideHit: 'left'|'right'|'top'|'bottom', ball: ballClass
 					a_ID:this.players[0].userID,
 					b_ID:this.players[1].userID,
 					a_score:scoreA,
-					b_score:scoreB
+					b_score:scoreB,
+					gameName:gameName!.name
 				});
 				p.gameID=undefined;
-				// tour!.onMatchFinished(
-				// 	p.tournamentID,
-				// 	this.players[0].userID,
-				// 	this.players[1].userID,
-				// 	scoreA!,
-				// 	scoreB!,
-				// 	p.userID
-				// );
 			}
 			else{
 				p.typedSocket.send('endMatch', {
@@ -421,5 +415,7 @@ private  handleWallScore(sideHit: 'left'|'right'|'top'|'bottom', ball: ballClass
 				});
 			}
 		}
+		clearInterval(this.loop!);
+		PongRoom.rooms.delete(this.gameID);
 	}
 }

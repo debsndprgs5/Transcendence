@@ -365,6 +365,10 @@ async function handlePongMenuClick(e: MouseEvent): Promise<void> {
 
 		case 'waitingTournamentRounds':
 			await handleTournamentRoundsClick(canvas, x, y);
+			break;
+		case 'endTournament':
+			await handleTournamentRoundsClick(canvas, x, y);
+			break;
 		default:
 			break;
 	}

@@ -158,6 +158,7 @@ export type SocketMessageMap = {
 				b_ID?:number;
 				a_score?:number;
 				b_score?:number;
+				gameName?:string;
 			};
 	reconnected:{	type:'reconnected';
 					userID:number;

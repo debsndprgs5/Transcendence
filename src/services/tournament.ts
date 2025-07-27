@@ -65,6 +65,7 @@ export class Tournament {
 	}
 
 	private async nextRound() {
+		console.log('[NEXTROUND] starting....');
 		this.current_round++;
 		if (this.current_round > this.max_round) {
 			return this.endTournament();
@@ -335,15 +336,15 @@ public async onMatchFinished(
 public async isReadyForNextRound(userID: number) {
 	const tour = Tournament.MappedTour.get(this.tourID)!;
 
-	// Ignore players who aren't in waitingPairs
-	const isInWaiting = tour.waitingPairs.some(
-		([a, b]) => a.userID === userID || b.userID === userID
-	);
+	// // Ignore players who aren't in waitingPairs
+	// const isInWaiting = tour.waitingPairs.some(
+	// 	([a, b]) => a.userID === userID || b.userID === userID
+	// );
 
-	if (!isInWaiting) {
-		console.warn(`[isReadyForNextRound] userID ${userID} is not in waitingPairs`);
-		return;
-	}
+	// if (!isInWaiting) {
+	// 	console.warn(`[isReadyForNextRound] userID ${userID} is not in waitingPairs`);
+	// 	return;
+	// }
 
 	// Add to ready set
 	tour.readyPlayers.add(userID);
@@ -427,102 +428,6 @@ public async giveBye(member: Member) {
 }
 
 }
-
-
-
-
-// function generateSwissPairings(
-// 	round: number,
-// 	members: Member[]
-// 	): { playerA: number, playerB: number }[] {
-// 		// compute Median Buchholz for all players
-// 	console.log(`Members before shuffles : `)
-// 	console.log(members);
-// 	if (round === 1) {
-// 		// randomize initial pairing
-// 		members = shuffle(members);
-// 	} else {
-// 		computeMedianBuchholz(members);
-// 	}
-// 	console.log(`members after shuffle : `)
-// 	console.log(members);
-// 	// sort by points desc, then by buchholz desc
-// 	members.sort((a, b) => {
-// 		if (b.points !== a.points) {
-// 			return b.points - a.points;
-// 		}
-// 		const mbA = (a as any).buchholz as number;
-// 		const mbB = (b as any).buchholz as number;
-// 		return mbB - mbA;
-// 	});
-
-// 	// group by identical score
-// 	const groups = groupBy(members, m => m.points);
-
-// 	const pairs: { playerA: number, playerB: number }[] = [];
-// 	const floaters: typeof members = [];
-
-// 	for (const group of groups) {
-// 		let pool = [...group];
-
-// 		// if odd, pull one floater to next group
-// 		if (pool.length % 2 === 1) {
-// 			const floater = selectFloater(pool, []);
-// 			floater.originalGroup = group;
-// 			floaters.push(floater);
-// 			pool = pool.filter(p => p !== floater); // REMOVE the floater from pool
-// 		}
-// 		// split and pair within group
-// 		const half = pool.length / 2;
-// 		const top = pool.slice(0, half);
-// 		let bottom = pool.slice(half);
-
-// 		for (let i = 0; i < top.length; i++) {
-// 			const a = top[i];
-// 			let paired = false;
-
-// 			for (let j = 0; j < bottom.length; j++) {
-// 				const b = bottom[j];
-// 				if (!a.opponents.includes(b.userID)) {
-// 					pairs.push({ playerA: a.userID, playerB: b.userID });
-// 					bottom.splice(j, 1);
-// 					paired = true;
-// 					break;
-// 				}
-// 			}
-
-// 			if (!paired && bottom.length > 0) {
-// 				const b = bottom.shift()!;
-// 				pairs.push({ playerA: a.userID, playerB: b.userID });
-// 			}
-// 		}
-// 	}
-// 	for (const floater of floaters) {
-// 	// try to insert into the next-lower score group
-// 		let placed = false;
-// 		for (let i = groups.indexOf(floater.originalGroup!) + 1;
-// 				i < groups.length && !placed;
-// 				i++) {
-// 			const targetGroup = groups[i];
-// 			// if targetGroup now odd, pair floater with one of them
-// 			if (targetGroup.length % 2 === 1) {
-// 				const opponent = selectOpponentForFloater(floater, targetGroup);
-// 				pairs.push({ playerA: floater.userID, playerB: opponent.userID });
-// 				targetGroup.splice(targetGroup.indexOf(opponent), 1);
-// 				placed = true;
-// 			}
-// 		}
-// 		if (!placed) {
-// 			// give a bye
-// 			console.warn(`GIVING BYE to ${floater.player.userID!}`)
-// 			const tour = Tournament.MappedTour.get(floater.player.tournamentID!) 
-// 			tour!.giveBye(floater);
-// 		}
-// 	}
-
-// 	return pairs;
-// }
- 
 
 function generateSwissPairings(
 	round: number,

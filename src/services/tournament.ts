@@ -15,6 +15,7 @@ type Member = {
 
 export class Tournament {
 	public static MappedTour = new Map<number, Tournament>();
+	public leftPlayers: Set<number> = new Set();
 
 	tourID: number;
 	chatID = 0;

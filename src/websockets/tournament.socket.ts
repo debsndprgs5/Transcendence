@@ -64,21 +64,30 @@ export async function updateTourPlayerList(joiner: Interfaces.playerInterface, t
 export async function handleLeaveTournament(player: Interfaces.playerInterface, data: any) {
 	// Tournament ends cleanly: not user-triggered
 	if (data.isLegit) {
-		const tour = Tournament.MappedTour.get(player.tournamentID!)
-		 if(tour){
-			console.log(`TOURNAMENT FOUND ON LEGIT END WTF ?`);
-			//const endScore = await tour.extractScore();
-			//await gameManagment.UpdateTournamentScore(player.tourID, endScore);
-		 }
-		 await GameManagement.delMemberFromTournament(player.tournamentID!, player.userID!);
-		 const members = await GameManagement.getAllTournamentMembers(player.tournamentID!);
-		 if(members.length < 1)
-			await GameManagement.delTournament(player.tournamentID!);
+	const tour = Tournament.MappedTour.get(player.tournamentID!);
+
+	if (tour) {
+		console.log(`[TOUR][LEGIT END] Player ${player.username} left tournament ${player.tournamentID!}`);
+
+		tour.leftPlayers.add(player.userID!);
+
 		player.tournamentID = undefined;
 		Helpers.updatePlayerState(player, 'init');
-		return;
+
+		const members = await GameManagement.getAllTournamentMembers(player.tournamentID!);
+
+		if (tour.leftPlayers.size >= members.length) {
+			console.log(`[TOUR][LEGIT END] All players left tournament ${tour.tourID}, deleting...`);
+			for (const m of members) {
+				await GameManagement.delMemberFromTournament(tour.tourID, m.userID);
+			}
+			await GameManagement.delTournament(tour.tourID);
+			Tournament.MappedTour.delete(tour.tourID);
+		}
 	}
 
+	return;
+}
 	// User clicked "Leave Tournament" button manually
 	if(data.duringGame === false && data.isTourOwner === true){
 		const tour = Tournament.MappedTour.get(player.tournamentID!);

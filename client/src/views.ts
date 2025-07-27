@@ -51,6 +51,8 @@ function updateStatsChart(stats: { win: number, lose: number, tie: number }) {
   }
 }
 
+(window as any).updateStatsDisplay = updateStatsDisplay;
+
 function updateStatsDisplay(data: any) {
   console.log('[updateStatsDisplay] Received data:', data);
   if (data.winPercentage) {
@@ -84,10 +86,17 @@ function getTotalGames(data: any): number {
   return 0;
 }
 
+let matchHistoryDisplayCount = 30;
+let matchHistoryCache: any[] = [];
+
 function updateMatchHistory(matchHistory: any[]) {
   const tableBody = document.getElementById('match-history-table');
+  const showMoreBtnId = 'show-more-matches-btn';
   if (!tableBody || !Array.isArray(matchHistory)) return;
-  tableBody.innerHTML = matchHistory.map(match => {
+  matchHistoryCache = matchHistory;
+  // affiche que les x premiers matchs
+  const toDisplay = matchHistory.slice(0, matchHistoryDisplayCount);
+  tableBody.innerHTML = toDisplay.map(match => {
     const resultClass = match.result === 1 ? 'text-green-600 font-semibold' : match.result === 0 ? 'text-red-600 font-semibold' : 'text-yellow-600 font-semibold';
     const resultText = match.result === 1 ? 'Win' : match.result === 0 ? 'Loss' : 'Tie';
     const date = match.started_at ? new Date(match.started_at).toLocaleDateString() : 'N/A';
@@ -103,6 +112,31 @@ function updateMatchHistory(matchHistory: any[]) {
       </tr>
     `;
   }).join('');
+
+  // show more bouton
+  const holder = tableBody.closest('.overflow-x-auto');
+  let showMoreBtn = document.getElementById(showMoreBtnId);
+  if (matchHistory.length > matchHistoryDisplayCount) {
+    if (!showMoreBtn) {
+      showMoreBtn = document.createElement('button');
+      showMoreBtn.id = showMoreBtnId;
+      showMoreBtn.textContent = 'Show more';
+      showMoreBtn.className = 'mt-4 mb-2 px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition';
+      showMoreBtn.style.display = 'block';
+      showMoreBtn.onclick = () => {
+        matchHistoryDisplayCount += 30;
+        updateMatchHistory(matchHistoryCache);
+      };
+      const flexDiv = document.createElement('div');
+      flexDiv.className = 'flex justify-center';
+      flexDiv.appendChild(showMoreBtn);
+      holder?.appendChild(flexDiv);
+    } else {
+      showMoreBtn.style.display = 'block';
+    }
+  } else if (showMoreBtn) {
+    showMoreBtn.style.display = 'none';
+  }
 }
 
 function calculateAdvancedStats(matchHistory: any[]) {
@@ -466,18 +500,14 @@ export function Verify2FAView(): string {
  */
 
 export function AccountView(user: any, friends: any[] = []): string {
-  console.log('Fetching account stats for user:', user);
-  console.log('Rendering account view for user_id:', user.userId);
+  // console.log('Fetching account stats for user:', user);
+  // console.log('Rendering account view for user_id:', user.userId);
   if (user && user.userId) {
-    // pour eviter les doublons listeners
-    const socket = state?.typedSocket;
-    if (socket && socket.removeAllListeners) {
-      socket.removeAllListeners('statsResult');
+    if (window.location.hash === '#account' || document.body.getAttribute('data-current-view') === 'account') {
+      return '';
     }
-    fetchAccountStats(user.userId, (data: any) => {
-      console.log('[Realtime Stats Update]', data);
-      updateStatsDisplay(data);
-    });
+    fetchAccountStats(user.userId);
+    document.body.setAttribute('data-current-view', 'account');
   }
 
   const username = user.username || '';
@@ -664,11 +694,11 @@ export function ProfileView(profileUser: any): string {
     ? 'bottts'
     : 'initials';
 	const avatar = profileUser.avatarUrl || `https://api.dicebear.com/9.x/${style}/svg`
-								    + `?seed=${encodeURIComponent(username)}`
-									+ `&backgroundType=gradientLinear`
-  									+ `&backgroundColor=919bff,133a94`  
-  								    + `&size=64`
-								    + `&radius=50`
+                + `?seed=${encodeURIComponent(username)}`
+                + `&backgroundType=gradientLinear`
+                + `&backgroundColor=919bff,133a94`  
+                + `&size=64`
+                + `&radius=50`
 
 	return `
 		<div class="min-h-screen flex items-center justify-center py-10">

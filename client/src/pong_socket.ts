@@ -175,7 +175,11 @@ async function handleEvents(
 	  }
 	  await handleReconnection(socket, typedSocket, data);
 	});
-	
+	typedSocket.on('statsResult', (_socket: WebSocket, data: any) => {
+		if (typeof (window as any).updateStatsDisplay === 'function') {
+			(window as any).updateStatsDisplay(data);
+		}
+	});
 }
 
 export async function handleInit(data:Interfaces.SocketMessageMap['init'], gameSocket:WebSocket){
@@ -597,10 +601,7 @@ export async function handleReconnection(socket:WebSocket, typedSocket:TypedSock
 	}
 }
 
-export function fetchAccountStats(userID: number, onStats: (data: any) => void) {
+export function fetchAccountStats(userID: number) {
   if (!state?.typedSocket) return;
   state.typedSocket.send('getStats', { userID });
-  state.typedSocket.on('statsResult', (_socket: WebSocket, data: any) => {
-	onStats(data);
-  });
 }

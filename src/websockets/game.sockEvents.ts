@@ -21,20 +21,12 @@ export function handleAllEvents(typedSocket:TypedSocket, player:Interfaces.playe
    typedSocket.on('init', async (socket:WebSocket, data:Interfaces.SocketMessageMap['init']) => {
      handleInit(data, player);
    });
-
-    // permet au client de demander les stats d'un joueur
-    typedSocket.on('getStats', async (socket:WebSocket, data:{ userID?: number }) => {
-      let winPercentage = null;
-      let matchHistory = null;
-      // console.log('[socket stats] getStats called with userID:', data.userID);
-      if (data.userID) {
-        winPercentage = await GameManagement.getWinPercentageForUser(data.userID);
-        matchHistory = await GameManagement.getMatchHistoryForUser(data.userID);
-        // console.log('[socket stats] matchHistory for user', data.userID, matchHistory);
-      }
-      typedSocket.send('statsResult', { winPercentage, matchHistory });
-    });
-
+  typedSocket.on('getStats', async (socket:WebSocket, data:{ userID?: number }) => {
+    if (data.userID) {
+      const stats = await GameManagement.getStatsForUser(data.userID);
+      typedSocket.send('statsResult', stats);
+    }
+  });
   typedSocket.on('joinGame', async (socket:WebSocket, data:Interfaces.SocketMessageMap['joinGame']) => {
     handleJoin(data, player);
   });

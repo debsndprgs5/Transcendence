@@ -1198,7 +1198,11 @@ export async function router(): Promise<void> {
 				try {
 					const user = await apiFetch('/api/users/me', { headers: { Authorization: `Bearer ${state.authToken}` } });
 					const friends = await apiFetch('/api/friends', { headers: { Authorization: `Bearer ${state.authToken}` } });
-					render(AccountView(user, friends));
+					const view = AccountView(user, friends);
+					if (view === '') {
+						break;
+					}
+					render(view);
 					if (!state.socket || state.socket.readyState === WebSocket.CLOSED)
 						initWebSocket();
 					if (!state.playerInterface?.socket || state.playerInterface?.socket.readyState === WebSocket.CLOSED)

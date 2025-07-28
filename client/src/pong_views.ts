@@ -570,7 +570,7 @@ export function drawEndTournamentView(
   ctx.font = `${Math.floor(height / 15)}px Orbitron`;
   ctx.fillText(tournamentName, width / 2, height * 0.12);
 
-    ctx.fillStyle = 'white';
+  ctx.fillStyle = 'white';
   ctx.textAlign = 'left';
   ctx.font = `${Math.floor(height / 28)}px Orbitron`;
   const listX      = width * 0.18;

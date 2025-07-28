@@ -64,49 +64,64 @@ export class Tournament {
 		this.hasStarted = true;
 		this.nextRound();
 	}
+	private totalMatchesCount: number = 0;
+	private endedMatchesCount: number = 0;
 
 	private async nextRound() {
 		console.log('[NEXTROUND] starting....');
 		this.current_round++;
 		if (this.current_round > this.max_round) {
-			return this.endTournament();
+		  return this.endTournament();
 		}
 		if (this.players.length <= 1) {
-			console.log(`[NEXTROUND] Only one player or less remains. Ending tournament.`);
-			return this.endTournament();
+		  console.log(`[NEXTROUND] Only one player or less remains. Ending tournament.`);
+		  return this.endTournament();
 		}
+
+		// Réinitialisation des compteurs
 		this.readyPlayers.clear();
-		// Generating pairs
+		this.waitingPairs = [];
 		this.playingPairs = this.swissPairingAlgo();
-				
-		console.log(`[ROUND ${this.current_round}] Total matches this round: ${this.playingPairs.length}`);
-		console.log(`[ROUND ${this.current_round}] Round pairing started.`);
-		console.log(`[ROUND ${this.current_round}] All participant IDs:`, this.players.map(p => p.userID));
-		console.log(`[ROUND ${this.current_round}] Already matched player sets:`, this.opponents);
-		
+
+		// 2) On initialise totalMatchesCount au nombre de paires (incluant les byes)
+		this.totalMatchesCount = this.playingPairs.length;
+		this.endedMatchesCount = 0;
+
+		// 3) Traitement immédiat des byes
+		const realPairs: [playerInterface, playerInterface][] = [];
+		const BYE_POINTS = 10;
+		for (const [pA, pB] of this.playingPairs) {
+		  if (pA.userID === pB.userID) {
+			// – award bye points
+			this.points.set(pA.userID, (this.points.get(pA.userID) ?? 0) + BYE_POINTS);
+			// – on considère le bye comme un “match terminé”
+			this.waitingPairs.push([pA, pB]);
+			this.endedMatchesCount++;
+		  } else {
+			realPairs.push([pA, pB]);
+		  }
+		}
+		this.playingPairs = realPairs;
+
+		// 4) Création des parties pour les vrais duels
 		const chat = await gameMgr.getChatIDbyTourID(this.tourID);
 		this.chatID = chat!.chatID;
-		sendSystemMessage( this.chatID , `Round ${this.current_round}/${this.max_round}: is about to start`);
-		const baseRules = JSON.parse(this.rules);
-		// Inject the tournament's win_condition
-		const extendedRules = {
-			...baseRules,
-			win_condition: 'time',
-		};
+		sendSystemMessage(this.chatID, `Round ${this.current_round}/${this.max_round}: is about to start`);
 
+		const baseRules = JSON.parse(this.rules);
+		const extendedRules = { ...baseRules, win_condition: 'time' };
 		const gameRulesStr = JSON.stringify(extendedRules);
 		const gameName = `Tournament : Round ${this.current_round}/${this.max_round}.`;
 
 		for (const [pA, pB] of this.playingPairs) {
-			const gameID = await gameMgr.createGameRoom(
-				'tournament', 'init', 'duo',
-				gameRulesStr, gameName, 0, this.tourID
-			);
-			await pA.typedSocket.send('startNextRound', { userID: pA.userID, gameID, gameName });
-			//Idealy we add the diff point between them and their pos in the tournament 
-			sendPrivateSystemMessage(this.chatID, pA.userID, `You play against ${pB.username}`);
-			await pB.typedSocket.send('startNextRound', { userID: pB.userID, gameID, gameName });
-			sendPrivateSystemMessage(this.chatID, pB.userID, `You play against ${pA.username}`);
+		  const gameID = await gameMgr.createGameRoom(
+			'tournament','init','duo',
+			gameRulesStr, gameName, 0, this.tourID
+		  );
+		  await pA.typedSocket.send('startNextRound', { userID: pA.userID, gameID, gameName });
+		  sendPrivateSystemMessage(this.chatID, pA.userID, `You play against ${pB.username}`);
+		  await pB.typedSocket.send('startNextRound', { userID: pB.userID, gameID, gameName });
+		  sendPrivateSystemMessage(this.chatID, pB.userID, `You play against ${pA.username}`);
 		}
 	}
 
@@ -212,126 +227,109 @@ public removeMemberFromTourID(userID: number): boolean {
 }
 
 public async onMatchFinished(
-	tourID: number,
-	playerA: number,
-	playerB: number,
-	scoreA: number,
-	scoreB: number,
-	userID: number
+  tourID: number,
+  playerA: number,
+  playerB: number,
+  scoreA: number,
+  scoreB: number,
+  userID: number
 ) {
-	const tour = Tournament.MappedTour.get(tourID);
-	if (!tour) {
-		console.warn(`[MATCH FINISH] No tournament found for tourID=${tourID}`);
-		return;
-	}
+  // Retrieve the tournament instance
+  const tour = Tournament.MappedTour.get(tourID);
+  if (!tour) {
+    console.warn(`[MATCH FINISH] No tournament found for tourID=${tourID}`);
+    return;
+  }
 
-	if (userID !== playerA && userID !== playerB) {
-		console.warn(`[MATCH FINISH] Invalid reporter userID=${userID} not in match (${playerA} vs ${playerB})`);
-		return;
-	}
+  // Validate reporter is one of the players
+  if (userID !== playerA && userID !== playerB) {
+    console.warn(`[MATCH FINISH] Invalid reporter userID=${userID} not in match (${playerA} vs ${playerB})`);
+    return;
+  }
 
-	if (!tour.players.find(p => p.userID === playerA) || !tour.players.find(p => p.userID === playerB)) {
-	console.warn(`[MATCH FINISH] One of the players has left the tournament: playerA=${playerA}, playerB=${playerB}`);
-	return;
-	}
+  // Ensure both players still in the tournament
+  if (!tour.players.find(p => p.userID === playerA) || !tour.players.find(p => p.userID === playerB)) {
+    console.warn(`[MATCH FINISH] One of the players has left the tournament: playerA=${playerA}, playerB=${playerB}`);
+    return;
+  }
 
-	// Ensure matchReports map
-	if (!tour.matchReports) tour.matchReports = new Map<string, Set<number>>();
-	const matchKey = [playerA, playerB].sort((a, b) => a - b).join("-");
+  // Initialize matchReports map if needed
+  if (!tour.matchReports) {
+    tour.matchReports = new Map<string, Set<number>>();
+  }
+  const matchKey = [playerA, playerB].sort((a, b) => a - b).join("-");
 
-	// Log who is reporting what
-	console.log(`[MATCH FINISH] Report received from userID=${userID} for match=${matchKey}`);
-	console.log(`[MATCH FINISH]   ↳ Raw score: scoreA=${scoreA} scoreB=${scoreB}`);
+  // Track reports from each player
+  if (!tour.matchReports.has(matchKey)) {
+    tour.matchReports.set(matchKey, new Set());
+  }
+  const reporters = tour.matchReports.get(matchKey)!;
+  if (reporters.has(userID)) {
+    console.warn(`[MATCH FINISH] Duplicate report from userID=${userID} for match=${matchKey}`);
+    return;
+  }
+  reporters.add(userID);
 
-	// Track reporters
-	if (!tour.matchReports.has(matchKey)) {
-		tour.matchReports.set(matchKey, new Set());
-	}
-	const reporters = tour.matchReports.get(matchKey)!;
+  // Wait for both players to report
+  if (reporters.size < 2) {
+    console.log(`[MATCH FINISH] Waiting for second report for match=${matchKey}`);
+    return;
+  }
 
-	if (reporters.has(userID)) {
-		console.warn(`[MATCH FINISH] Duplicate report from userID=${userID} for match=${matchKey}`);
-		return;
-	}
-	reporters.add(userID);
+  // Both reports received → determine outcome
+  const WIN_POINTS = 10, DRAW_POINTS = 5, LOSS_POINTS = 0;
+  let msgA: string, msgB: string;
 
-	console.log(`[MATCH FINISH]   ↳ Total reporters so far: ${reporters.size}`);
+  if (scoreA > scoreB) {
+    // Player A wins
+    tour.points.set(playerA, (tour.points.get(playerA) ?? 0) + WIN_POINTS);
+    tour.points.set(playerB, (tour.points.get(playerB) ?? 0) + LOSS_POINTS);
+    msgA = `You won, congrats!`;
+    msgB = `You lost, better luck next time.`;
+  } else if (scoreB > scoreA) {
+    // Player B wins
+    tour.points.set(playerB, (tour.points.get(playerB) ?? 0) + WIN_POINTS);
+    tour.points.set(playerA, (tour.points.get(playerA) ?? 0) + LOSS_POINTS);
+    msgA = `You lost, better luck next time.`;
+    msgB = `You won, congrats!`;
+  } else {
+    // Draw
+    tour.points.set(playerA, (tour.points.get(playerA) ?? 0) + DRAW_POINTS);
+    tour.points.set(playerB, (tour.points.get(playerB) ?? 0) + DRAW_POINTS);
+    msgA = msgB = `Draw! Well played both.`;
+  }
 
-	if (reporters.size < 2) {
-		console.log(`[MATCH FINISH]   ↳ Waiting for second player to report`);
-		return;
-	}
+  // Notify both players of result
+  sendPrivateSystemMessage(tour.chatID, playerA, msgA);
+  sendPrivateSystemMessage(tour.chatID, playerB, msgB);
 
-	console.log(`[MATCH FINISH]   ↳ Both players reported, processing result`);
+  // Cleanup matchReports for this match
+  tour.matchReports.delete(matchKey);
 
-	// Award points
-	const winPoints = 10, drawPoints = 5, lossPoints = 0;
-	let endLogA:string;
-	let endLogB:string;
-	console.log(`[MATCH FINISH]   ↳ Determining outcome...`);
-	if (scoreA > scoreB) {
-		console.log(`[MATCH FINISH]   ↳ ${playerA} wins over ${playerB}`);
-		tour.points.set(playerA, (tour.points.get(playerA) ?? 0) + winPoints);
-		tour.points.set(playerB, (tour.points.get(playerB) ?? 0) + lossPoints);
-		endLogA = `You just won congrats!`;
-		endLogB = `You lost BOUUUUH`;
-	} else if (scoreB > scoreA) {
-		console.log(`[MATCH FINISH]   ↳ ${playerB} wins over ${playerA}`);
-		tour.points.set(playerB, (tour.points.get(playerB) ?? 0) + winPoints);
-		tour.points.set(playerA, (tour.points.get(playerA) ?? 0) + lossPoints);
-		endLogA = `You lost BOUUUUH`;
-		endLogB = `You just won congrats!`;
-	} else {
-		console.log(`[MATCH FINISH]   ↳ Draw between ${playerA} and ${playerB}`);
-		tour.points.set(playerA, (tour.points.get(playerA) ?? 0) + drawPoints);
-		tour.points.set(playerB, (tour.points.get(playerB) ?? 0) + drawPoints);
-		endLogA = 'No winner this round GET GOOD !' ;
-		endLogB = endLogA;
-	}
-	sendPrivateSystemMessage(this.chatID, playerA, endLogA);
-	sendPrivateSystemMessage(this.chatID, playerB, endLogB);
+  // Prevent future rematch
+  tour.opponents.get(playerA)!.add(playerB);
+  tour.opponents.get(playerB)!.add(playerA);
 
-	// Log current points map
-	console.log(`[MATCH FINISH]   ↳ Points after update:`);
-	for (const [uid, pts] of tour.points.entries()) {
-		console.log(`    - userID=${uid}, points=${pts}`);
-	}
+  // Move this match from playingPairs to waitingPairs
+  const idx = tour.playingPairs.findIndex(
+    ([a, b]) =>
+      (a.userID === playerA && b.userID === playerB) ||
+      (a.userID === playerB && b.userID === playerA)
+  );
+  if (idx !== -1) {
+    tour.waitingPairs.push(tour.playingPairs[idx]);
+    tour.playingPairs.splice(idx, 1);
+  }
 
-	// Cleanup match report
-	tour.matchReports.delete(matchKey);
-
-	// Prevent rematch
-	tour.opponents.get(playerA)!.add(playerB);
-	tour.opponents.get(playerB)!.add(playerA);
-
-	// Move to waitingPairs
-	const idx = tour.playingPairs.findIndex(
-		([a, b]) =>
-			(a.userID === playerA && b.userID === playerB) ||
-			(a.userID === playerB && b.userID === playerA)
-	);
-	if (idx !== -1) {
-		tour.waitingPairs.push(tour.playingPairs[idx]);
-		tour.playingPairs.splice(idx, 1);
-		console.log(`[MATCH FINISH]   ↳ Match ${matchKey} moved to waitingPairs`);
-	}
-
-	// Build updated score table
-	const scoreUpdates = await tour.extractScore();
-	
-	// Notify both players of updated standings
-	for (const [pA, pB] of tour.waitingPairs) {
-		pA.typedSocket.send('updateTourScore', {
-			tourID:tourID,
-			score: scoreUpdates
-		});
-		pB.typedSocket.send('updateTourScore', {
-			tourID:tourID,
-			score: scoreUpdates
-		});
-	}
-
-	if (!this.hasStarted) return;
+  // Increment endedMatchesCount and check if all matches are done
+  tour.endedMatchesCount++;
+  if (tour.endedMatchesCount >= tour.totalMatchesCount) {
+    console.log(`[Tournament] All ${tour.totalMatchesCount} matches finished, starting next round.`);
+    // Reset counters before next round
+    tour.endedMatchesCount = 0;
+    tour.totalMatchesCount = 0;
+    await tour.nextRound();
+  }
 }
 
 public async isReadyForNextRound(userID: number) {

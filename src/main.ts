@@ -2,8 +2,7 @@ import * as dotenv from 'dotenv';
 import * as path from 'path';
 import * as fs from 'fs';
 
-// Charger les variables depuis le fichier créé par vault-init
-const vaultEnvPath = path.resolve('/app', 'vault', '.env.vault'); // MODIFIÉ: Chemin absolu dans le conteneur
+const vaultEnvPath = path.resolve('/app', 'vault', '.env.vault');
 if (fs.existsSync(vaultEnvPath)) {
   const vaultEnv = fs.readFileSync(vaultEnvPath, 'utf8');
   const parsed = dotenv.parse(vaultEnv);
@@ -13,7 +12,6 @@ if (fs.existsSync(vaultEnvPath)) {
   console.log('Successfully loaded secrets from .env.vault');
 } else {
   console.error('FATAL: .env.vault file not found at:', vaultEnvPath);
-  // En production, il est souvent préférable de quitter si les secrets ne sont pas trouvés.
   // process.exit(1); 
 }
 

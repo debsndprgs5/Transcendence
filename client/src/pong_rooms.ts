@@ -102,7 +102,6 @@ export function showPongMenu(): void {
 				|| state.canvasViewState === 'Settings'
 				|| state.canvasViewState === 'localGameMap'
 			){
-			// Nettoyer les boutons HTML du menu avant de masquer le canvas
 			const wrapper = canvas.parentElement!;
 			wrapper.querySelectorAll('.menubtn_button').forEach(el => el.remove());
 			
@@ -361,9 +360,7 @@ async function handleMainMenuClick(canvas: HTMLCanvasElement, x: number, y: numb
 
 	switch (btnMain.action) {
 		case 'Create Game':
-			// Nettoyer l'état du jeu local si présent
 			state.localGameConfig = undefined;
-			// Réinitialiser createGameFormData pour éviter la contamination
 			createGameFormData.roomName = null;
 			state.canvasViewState = 'createGame';
 			showPongMenu();

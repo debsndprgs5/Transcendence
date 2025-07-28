@@ -87,7 +87,6 @@ export class LocalGameRenderer
 	
 	private showEndGameOverlay(winner: 'left' | 'right', scores: { left: number; right: number }): void
 	{
-		// Clean any existing UI first
 		if (this.activeUI)
 		{
 			this.activeUI.dispose();
@@ -210,10 +209,8 @@ export class LocalGameRenderer
 		pongState.localMapRenderer = null;
 		cleanupLocalGameConfig();
 		
-		// Nettoyer complètement l'état du jeu local
 		state.localGameConfig = undefined;
 		
-		// Nettoyer localStorage et retourner au menu principal
 		localStorage.removeItem('pong_view');
 		state.canvasViewState = 'mainMenu';
 		showPongMenu();

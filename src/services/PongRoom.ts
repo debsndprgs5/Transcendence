@@ -116,7 +116,6 @@ export class PongRoom {
 	}
 	/* Pause the loop */
 	pause(userID: number) {
-		console.log(`PAUSE INITIALIAZED`);
 		if (this.pauseState.isPaused) {
 			this.pauseState.pausedPlayers.add(userID);
 			return;
@@ -130,19 +129,14 @@ export class PongRoom {
 		this.pauseStartTime = Date.now(); // Mark pause start time
 
 		if (this.loop) clearInterval(this.loop);
-		console.log(`Game paused due to disconnect: ${userID}`);
 	}
 
 	/*Resume the loop*/ 
 	resume(userID: number) {
 		this.pauseState.pausedPlayers.delete(userID);
 
-		if (!this.pauseState.isPaused) {
-			console.log(`RESUME CALLED ON A RUNNING GAME`);
+		if (!this.pauseState.isPaused)
 			return;
-		}
-
-		console.log(`RESUME CALLED !`);
 
 		if (this.pauseState.pausedPlayers.size === 0) {
 			this.pauseState.isPaused = false;
@@ -388,7 +382,6 @@ private  handleWallScore(sideHit: 'left'|'right'|'top'|'bottom', ball: ballClass
 		}
 		const playerScores = Object.fromEntries(playermapped);
 		const gameName = await getNamePerGameID(this.gameID);
-		console.log(`GAME NAME ${gameName!.name}`)
 		for (const p of this.players) {
 			const isWinner = (this.scoreMap.get(p.userID)! >= this.game.limit);
 			if(p.tournamentID){

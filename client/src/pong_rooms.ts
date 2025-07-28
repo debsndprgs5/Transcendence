@@ -201,28 +201,28 @@ export function showPongMenu(): void {
 
 					}
 					break;
-        case 'localGameConfig':
-            // Et on affiche notre interface HTML
-            drawLocalGameView(canvas, ctx);
-            initLocalGameView(
+		case 'localGameConfig':
+			// Et on affiche notre interface HTML
+			drawLocalGameView(canvas, ctx);
+			initLocalGameView(
 						  canvas,
 						  cfg => {
-						    state.canvasViewState = "runningLocal";
-						    startLocalMatch(cfg);
+							state.canvasViewState = "runningLocal";
+							startLocalMatch(cfg);
 						  },
 						  () => {
-						    state.canvasViewState = "mainMenu";
+							state.canvasViewState = "mainMenu";
 							showPongMenu();
 						  }
 						);
-            break;
-        case 'Settings':
+			break;
+		case 'Settings':
 
-                const rect = babylonCanvas.getBoundingClientRect();
-                babylonCanvas.width = Math.floor(rect.width);
-                babylonCanvas.height = Math.floor(rect.height);
+				const rect = babylonCanvas.getBoundingClientRect();
+				babylonCanvas.width = Math.floor(rect.width);
+				babylonCanvas.height = Math.floor(rect.height);
 
-                if (!pongState.settingsRenderer) {
+				if (!pongState.settingsRenderer) {
 							pongState.settingsRenderer = new settingsRenderer(babylonCanvas);
 						} else {
 							pongState.settingsRenderer.handleResize();
@@ -257,19 +257,19 @@ export function drawMainMenu(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
 
   // 3) Prepare labels & positions for buttons
   const labels = [
-    { action: 'Create Game', y: height/2 - 40 },
-    { action: 'Join Game',   y: height/2 + 20 },
-    { action: 'Tournament',  y: height/2 + 80 },
-    { action: 'Settings',    y: height/2 + 140 },
+	{ action: 'Create Game', y: height/2 - 40 },
+	{ action: 'Join Game',   y: height/2 + 20 },
+	{ action: 'Tournament',  y: height/2 + 80 },
+	{ action: 'Settings',    y: height/2 + 140 },
 		{ action: 'Local Game', 	 y:height/2 + 200},
   ];
   ctx.font = `${Math.floor(height/20)}px 'Orbitron', sans-serif`;
 
   const btnW = 260, btnH = 50;
   canvas._pongMenuBtns = labels.map(btn => {
-    const x = width/2 - btnW/2;
-    const y = btn.y   - btnH/2;
-    return { x, y, w: btnW, h: btnH, action: btn.action };
+	const x = width/2 - btnW/2;
+	const y = btn.y   - btnH/2;
+	return { x, y, w: btnW, h: btnH, action: btn.action };
   });
 
 
@@ -278,50 +278,50 @@ export function drawMainMenu(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
 
   // Re-create each button with the correct structure/order
   canvas._pongMenuBtns.forEach(btn => {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.classList.add('menubtn_button');
-    button.style.position = 'absolute';
-    button.style.left   = `${btn.x}px`;
-    button.style.top    = `${btn.y}px`;
-    button.style.width  = `${btn.w}px`;
-    button.style.height = `${btn.h}px`;
+	const button = document.createElement('button');
+	button.type = 'button';
+	button.classList.add('menubtn_button');
+	button.style.position = 'absolute';
+	button.style.left   = `${btn.x}px`;
+	button.style.top    = `${btn.y}px`;
+	button.style.width  = `${btn.w}px`;
+	button.style.height = `${btn.h}px`;
 
-    // 1) Append the LABEL TEXT first
-    button.appendChild(document.createTextNode(btn.action));
+	// 1) Append the LABEL TEXT first
+	button.appendChild(document.createTextNode(btn.action));
 
-    // 2) Build the clip container (DIV) with its corners
-    const clip = document.createElement('div');
-    clip.classList.add('menubtn_clip');
-    ['leftTop','rightTop','rightBottom','leftBottom'].forEach(pos => {
-      const corner = document.createElement('div');
-      corner.classList.add('menubtn_corner', `menubtn_${pos}`);
-      clip.appendChild(corner);
-    });
-    button.appendChild(clip);
+	// 2) Build the clip container (DIV) with its corners
+	const clip = document.createElement('div');
+	clip.classList.add('menubtn_clip');
+	['leftTop','rightTop','rightBottom','leftBottom'].forEach(pos => {
+	  const corner = document.createElement('div');
+	  corner.classList.add('menubtn_corner', `menubtn_${pos}`);
+	  clip.appendChild(corner);
+	});
+	button.appendChild(clip);
 
-    // 3) Add the two arrows
-    const rightArrow = document.createElement('span');
-    rightArrow.classList.add('menubtn_arrow','menubtn_rightArrow');
-    button.appendChild(rightArrow);
+	// 3) Add the two arrows
+	const rightArrow = document.createElement('span');
+	rightArrow.classList.add('menubtn_arrow','menubtn_rightArrow');
+	button.appendChild(rightArrow);
 
-    const leftArrow = document.createElement('span');
-    leftArrow.classList.add('menubtn_arrow','menubtn_leftArrow');
-    button.appendChild(leftArrow);
+	const leftArrow = document.createElement('span');
+	leftArrow.classList.add('menubtn_arrow','menubtn_leftArrow');
+	button.appendChild(leftArrow);
 
-    // 4) Click handler
-    button.addEventListener('click', e => {
-      e.stopPropagation();
-      const rect = wrapper.getBoundingClientRect();
-      const ev = new MouseEvent('click', {
-        clientX: rect.left + btn.x + btn.w/2,
-        clientY: rect.top  + btn.y + btn.h/2,
-        bubbles: true
-      });
-      canvas.dispatchEvent(ev);
-    });
+	// 4) Click handler
+	button.addEventListener('click', e => {
+	  e.stopPropagation();
+	  const rect = wrapper.getBoundingClientRect();
+	  const ev = new MouseEvent('click', {
+		clientX: rect.left + btn.x + btn.w/2,
+		clientY: rect.top  + btn.y + btn.h/2,
+		bubbles: true
+	  });
+	  canvas.dispatchEvent(ev);
+	});
 
-    wrapper.appendChild(button);
+	wrapper.appendChild(button);
   });
 }
 
@@ -676,18 +676,18 @@ async function handlePongMenuMouseDown(e: MouseEvent): Promise<void> {
 	);
 	if (btn && ['ballSpeedUp','ballSpeedDown','paddleSpeedUp','paddleSpeedDown'].includes(btn.action)) {
 		lastButtonAction = btn.action;
-	    // redraw immediately
-	    showPongMenu();
-	    incrementTimeout = window.setTimeout(() => {
-	      incrementInterval = window.setInterval(
-	        // mark this arrow async so we can await inside
-	        async () => {
-	          await handleCreateGameButton(btn.action);
-	          showPongMenu();
-	        },
-	        50
-	      );
-	    }, 350);
+		// redraw immediately
+		showPongMenu();
+		incrementTimeout = window.setTimeout(() => {
+		  incrementInterval = window.setInterval(
+			// mark this arrow async so we can await inside
+			async () => {
+			  await handleCreateGameButton(btn.action);
+			  showPongMenu();
+			},
+			50
+		  );
+		}, 350);
 	}
 }
 

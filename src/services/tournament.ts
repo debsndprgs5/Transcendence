@@ -68,15 +68,13 @@ export class Tournament {
 	private endedMatchesCount: number = 0;
 
 	private async nextRound() {
-		console.log('[NEXTROUND] starting....');
 		this.current_round++;
 		if (this.current_round > this.max_round) {
 		  return this.endTournament();
 		}
-		if (this.players.length <= 1) {
-		  console.log(`[NEXTROUND] Only one player or less remains. Ending tournament.`);
+		if (this.players.length <= 1) 
 		  return this.endTournament();
-		}
+		
 
 		// Réinitialisation des compteurs
 		this.readyPlayers.clear();
@@ -428,17 +426,12 @@ function generateSwissPairings(
 	round: number,
 	members: Member[]
 ): { playerA: number, playerB: number }[] {
-	console.log(`Members before shuffles : `);
-	console.log(members);
 
 	if (round === 1) {
 		members = shuffle(members);
 	} else {
 		computeMedianBuchholz(members);
 	}
-
-	console.log(`members after shuffle : `);
-	console.log(members);
 
 	members.sort((a, b) => {
 		if (b.points !== a.points) return b.points - a.points;

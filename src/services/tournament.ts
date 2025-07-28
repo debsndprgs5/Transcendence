@@ -322,14 +322,14 @@ public async onMatchFinished(
   }
 
   // Increment endedMatchesCount and check if all matches are done
-  tour.endedMatchesCount++;
-  if (tour.endedMatchesCount >= tour.totalMatchesCount) {
-    console.log(`[Tournament] All ${tour.totalMatchesCount} matches finished, starting next round.`);
-    // Reset counters before next round
-    tour.endedMatchesCount = 0;
-    tour.totalMatchesCount = 0;
-    await tour.nextRound();
-  }
+//   tour.endedMatchesCount++;
+//   if (tour.endedMatchesCount >= tour.totalMatchesCount) {
+//     console.log(`[Tournament] All ${tour.totalMatchesCount} matches finished, starting next round.`);
+//     // Reset counters before next round
+//     tour.endedMatchesCount = 0;
+//     tour.totalMatchesCount = 0;
+//     await tour.nextRound();
+//   }
 }
 
 public async isReadyForNextRound(userID: number) {
@@ -350,7 +350,7 @@ public async isReadyForNextRound(userID: number) {
 		}
 	}
 
-	if (tour.readyPlayers.size >= totalWaitingUsers.size) {
+	if (tour.readyPlayers.size >= totalWaitingUsers.size && this.playingPairs.length < 1) {
 		console.log(`[Tournament] All players ready for next round.`);
 
 		// Clear ready state before starting next round

@@ -63,12 +63,16 @@ export async function updateTourPlayerList(joiner: Interfaces.playerInterface, t
 //Add the has started flag -> this leave can only by trigger by clicking on the leave button
 export async function handleLeaveTournament(player: Interfaces.playerInterface, data: any) {
 	// Tournament ends cleanly: not user-triggered
-	if (data.isLegit) {
+	if (data.islegit) {
+	console.log('[TOUR END] is Legit !');
 	const tour = Tournament.MappedTour.get(player.tournamentID!);
 
 	if (tour) {
 		console.log(`[TOUR][LEGIT END] Player ${player.username} left tournament ${player.tournamentID!}`);
-
+		if (tour.leftPlayers.has(player.userID!)) {
+			console.warn(`[TOUR][ALREADY LEFT] Player ${player.username} already left tournament ${player.tournamentID!}`);
+			return;
+		}
 		tour.leftPlayers.add(player.userID!);
 
 		player.tournamentID = undefined;

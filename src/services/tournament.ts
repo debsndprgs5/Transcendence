@@ -71,6 +71,11 @@ export class Tournament {
 		if (this.current_round > this.max_round) {
 			return this.endTournament();
 		}
+		if (this.players.length <= 1) {
+			console.log(`[NEXTROUND] Only one player or less remains. Ending tournament.`);
+			return this.endTournament();
+		}
+		this.readyPlayers.clear();
 		// Generating pairs
 		this.playingPairs = this.swissPairingAlgo();
 				
@@ -161,11 +166,6 @@ public async matchGaveUp(tourID: number, quitterID: number) {
 	// Remove quitter from tournament completely
 	tour.removeMemberFromTourID(quitterID);
 
-	// Notify the opponent
-	// opponent.typedSocket.send('waitingNextRound', {
-	// 	round: tour.current_round,
-	// 	message: `Your opponent ${quitter.username} gave up. You receive 5 points.`,
-	// });
 	sendPrivateSystemMessage(this.chatID, opponent.userID, `Your opponent ${quitter.username} gave up. You receive 5 points.`);
 	console.log(`[GAVE UP] Player ${quitterID} removed from tournament ${tourID}`);
 }
@@ -337,29 +337,25 @@ public async onMatchFinished(
 public async isReadyForNextRound(userID: number) {
 	const tour = Tournament.MappedTour.get(this.tourID)!;
 
-	// // Ignore players who aren't in waitingPairs
-	// const isInWaiting = tour.waitingPairs.some(
-	// 	([a, b]) => a.userID === userID || b.userID === userID
-	// );
-
-	// if (!isInWaiting) {
-	// 	console.warn(`[isReadyForNextRound] userID ${userID} is not in waitingPairs`);
-	// 	return;
-	// }
-
+	if (tour.readyPlayers.has(userID)) {
+		console.warn(`[isReadyForNextRound] Duplicate ready signal from userID=${userID}`);
+		return; // ignore repeated ready signal
+	}
 	// Add to ready set
 	tour.readyPlayers.add(userID);
 
-	// Compute total number of unique players in waitingPairs
 	const totalWaitingUsers = new Set<number>();
 	for (const [a, b] of tour.waitingPairs) {
 		totalWaitingUsers.add(a.userID);
-		totalWaitingUsers.add(b.userID);
+		if (a.userID !== b.userID) {
+			totalWaitingUsers.add(b.userID);
+		}
 	}
 
-	// Check if all have reported
 	if (tour.readyPlayers.size >= totalWaitingUsers.size) {
 		console.log(`[Tournament] All players ready for next round.`);
+
+		// Clear ready state before starting next round
 		tour.readyPlayers.clear();
 
 		// Move to next round

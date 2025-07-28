@@ -119,12 +119,6 @@ export function showPongMenu(): void {
 			babylonCanvas.style.display = 'none';
 			canvas.style.display        = 'block';
 		}
-
-		// Dispose of pongRenderer if exists but not in 'playingGame' state
-		// if (state.canvasViewState !== 'playingGame' && pongState.pongRenderer) {
-		// 		pongState.pongRenderer.dispose();
-		// 		pongState.pongRenderer = null;
-		// }
 		console.log('state.canvasViewState = ', state.canvasViewState);
 
 		// Handle different view states
@@ -366,9 +360,11 @@ async function handlePongMenuClick(e: MouseEvent): Promise<void> {
 		case 'waitingTournamentRounds':
 			await handleTournamentRoundsClick(canvas, x, y);
 			break;
+
 		case 'endTournament':
 			await handleTournamentRoundsClick(canvas, x, y);
 			break;
+			
 		default:
 			break;
 	}

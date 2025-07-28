@@ -282,8 +282,7 @@ export function handleTournamentRoundsClick(
             isReady = true;
           }
           break;
-
-          case 'exitTournament':
+        case 'exitTournament':
             handleLeaveTournament(true);
             break;
       }

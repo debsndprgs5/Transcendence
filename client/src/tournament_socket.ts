@@ -37,7 +37,6 @@ export function handleJoinTournament(data: Interfaces.SocketMessageMap['joinTour
 	showPongMenu();
 }
 
-
 export function handleUpdateTournamentPlayerList(
 	data: Interfaces.SocketMessageMap['updateTourPlayerList']
 ) {
@@ -78,28 +77,22 @@ export function handleStartTournament(data:Interfaces.SocketMessageMap['startTou
 //data.score=stringJSON{username{score: , rank|pos: } username{} ...}
 export function handleEndTournament(data:Interfaces.SocketMessageMap['endTournament']){
 	
-	//OverRide regularEndMatch
-	// localStorage.removeItem(''); -> all tournament related
-	//state.canvasViewState='EndTournament'
-	//showPongMenu();
+	state.currentTournamentPlayers = data.standings;
+	state.currentTournamentName = data.tourName;
+	state.canvasViewState = 'endTournament';
+	showPongMenu();
 }
 
 
-/*DU coup le mieux c'est en fin de match tournoi 
-		->Afficher placement/score tournoi(en socket ca permet d'overide le match regular inch)
-		->rester sur la view tant que startNextRound est pas appele
-*/
 export function handleStartNextRound(data:Interfaces.SocketMessageMap['startNextRound']){
 	console.warn('[TOUR][STARTNEXTROUND]gamename =', data.gameName);
+	state.currentGameName = data.gameName;
 	state.canvasViewState = 'waitingTournamentRounds';
 	state.typedSocket.send('joinGame', {userID:state.userId, gameID:data.gameID, gameName:data.gameName});
-	//Show notif with user Rank and matches left ? 
 }
-
 
 export function handleUpdateTourScore(data:Interfaces.SocketMessageMap['updateTourScore']){
 		state.currentTournamentPlayers = data.score;
-		console.warn('SCORES > ', data.score);
 		state.canvasViewState = 'waitingTournamentRounds';
 		showPongMenu();
 }

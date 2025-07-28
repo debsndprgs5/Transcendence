@@ -83,6 +83,7 @@ export async function handleTournamentClick(canvas: HTMLCanvasElement, x: number
 	}
 }
 
+
 // Handle clicks in the Waiting Tournament view
 export async function handleWaitingTournamentClick(
   canvas: HTMLCanvasElement,
@@ -102,7 +103,6 @@ export async function handleWaitingTournamentClick(
   }
   // Start tournament when creator clicks the button
   else if (clickedBtn.action === 'startTournament') {
-    // await startTournament();
     showNotification({message:`Tournament Starting now !`, type:'success'});
     state.playerInterface!.typedSocket.send('startTournament', {userID:state.userId, tournamentID:state.playerInterface!.tournamentID})
   }
@@ -196,12 +196,14 @@ export async function handleJoinTournament(tourID: number): Promise<void> {
     chatRoomID:chatID,
     content: `${localStorage.getItem('username')} just join tournament !`
   }));
-  //state.isTournamentCreator = false;
+
 
 }
 
 // Handles the "Leave Tournament" button action
 export async function handleLeaveTournament(islegit:boolean, duringGame?:boolean|undefined): Promise<void> {
+  if(islegit === true)
+    console.warn(`[TOURNAMENT][EXIT CLICKED]`);
   if(duringGame === undefined)
     duringGame = false;
   const tourID = state.playerInterface!.tournamentID!;
@@ -236,7 +238,7 @@ export async function handleLeaveTournament(islegit:boolean, duringGame?:boolean
 }
 
 
-function isLastTournamentRound(gameName: string): boolean {
+export function isLastTournamentRound(gameName: string): boolean {
 	const match = gameName.match(/Round (\d+)\/(\d+)/);
 	if (!match) return false;
 
@@ -280,6 +282,9 @@ export function handleTournamentRoundsClick(
             isReady = true;
           }
           break;
+        case 'exitTournament':
+            handleLeaveTournament(true);
+            break;
       }
       break;
     }

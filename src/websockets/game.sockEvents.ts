@@ -62,19 +62,18 @@ export function handleAllEvents(typedSocket:TypedSocket, player:Interfaces.playe
   typedSocket.on('healthcheck', async (socket:WebSocket, data:Interfaces.SocketMessageMap['healthcheck']) => { 
     const token = data.token
 
-    if (!token) {
-      console.log('Connection rejected: No token provided');
+    if (!token) 
       return socket.close(1008, 'No token');
-    }
+    
 
     let payload: JwtPayload;
     try {
       const dynamic_jwt = getJwtSecret()
       payload = jwt.verify(token, dynamic_jwt) as JwtPayload;
-    } catch (error) {
-      console.log('Connection rejected: Invalid token', error);
-      return socket.close(1008, 'Invalid token');
+    } catch (error){
+        return socket.close(1008, 'Invalid token');
     }
+    
   });
   typedSocket.on('pause', async(socket:WebSocket, data:Interfaces.SocketMessageMap['pause']) => {
     const pongRoom = PongRoom.rooms.get(data.gameID);
@@ -272,14 +271,11 @@ export async function  handleReconnect(parsed:any ,player: Interfaces.playerInte
 	}
   let hasStarted = false;
   if(player.tournamentID){
-    console.log('[RECONNECT] looking if tournament has started');
     const tour = Tournament.MappedTour.get(player.tournamentID);
-    if(tour){
+    if(tour)
       hasStarted = true;
-      console.log('[RECONNECT] tournament Found');
-    }
+    
   }
-  console.log(`[RECON][isTourOwner]${player.isTourOwner}`);
 	// Always send back current player + state info
 	player.typedSocket.send('reconnected', {
 		userID: player.userID,

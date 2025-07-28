@@ -158,6 +158,7 @@ export type SocketMessageMap = {
 				b_ID?:number;
 				a_score?:number;
 				b_score?:number;
+				gameName?:string;
 			};
 	reconnected:{	type:'reconnected';
 					userID:number;
@@ -219,8 +220,8 @@ export type SocketMessageMap = {
 	};
 	endTournament:{		type: 'endTournament';
 						tourID: number;
+						tourName:string;
 						standings: {
-							userID: number;
 							username: string;
 							score: number;
 						}[];

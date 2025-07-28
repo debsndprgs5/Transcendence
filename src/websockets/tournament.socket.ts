@@ -63,13 +63,35 @@ export async function updateTourPlayerList(joiner: Interfaces.playerInterface, t
 //Add the has started flag -> this leave can only by trigger by clicking on the leave button
 export async function handleLeaveTournament(player: Interfaces.playerInterface, data: any) {
 	// Tournament ends cleanly: not user-triggered
-	// if (data.isLegit) {
-	// 	// Placeholder: tournament finished naturally (e.g., someone won)
-	// 	// Kick all players, update DB, send score, broadcast final standings, etc.
-	// 	// This logic will eventually call handleLeaveTournament for each player
-	// 	return;
-	// }
+	if (data.islegit) {
+	console.log('[TOUR END] is Legit !');
+	const tour = Tournament.MappedTour.get(player.tournamentID!);
 
+	if (tour) {
+		console.log(`[TOUR][LEGIT END] Player ${player.username} left tournament ${player.tournamentID!}`);
+		if (tour.leftPlayers.has(player.userID!)) {
+			console.warn(`[TOUR][ALREADY LEFT] Player ${player.username} already left tournament ${player.tournamentID!}`);
+			return;
+		}
+		tour.leftPlayers.add(player.userID!);
+
+		player.tournamentID = undefined;
+		Helpers.updatePlayerState(player, 'init');
+
+		const members = await GameManagement.getAllTournamentMembers(player.tournamentID!);
+
+		if (tour.leftPlayers.size >= members.length) {
+			console.log(`[TOUR][LEGIT END] All players left tournament ${tour.tourID}, deleting...`);
+			for (const m of members) {
+				await GameManagement.delMemberFromTournament(tour.tourID, m.userID);
+			}
+			await GameManagement.delTournament(tour.tourID);
+			Tournament.MappedTour.delete(tour.tourID);
+		}
+	}
+
+	return;
+}
 	// User clicked "Leave Tournament" button manually
 	if(data.duringGame === false && data.isTourOwner === true){
 		const tour = Tournament.MappedTour.get(player.tournamentID!);
@@ -85,22 +107,15 @@ export async function handleLeaveTournament(player: Interfaces.playerInterface, 
 	}
 	// 1. Clean DB entry
 	await GameManagement.delMemberFromTournament(player.tournamentID!, player.userID!);
-
-	// 2. Leave game if currently playing
-	// if (player.gameID) {
-	// 	Helpers.kickFromGameRoom(player.gameID, player, `${player.username!} left the match`);
-	// }
-	// 3. Clear tournament ID from player state
 	const leftTourID = player.tournamentID;
-	player.tournamentID = undefined;
-	Helpers.updatePlayerState(player, 'init');
-	
-	//HERE -> call Tournament -> removeMember(userID)
 	const tour = Tournament.MappedTour.get(leftTourID!);
+	if(data.duringGame === true) tour?.matchGaveUp(leftTourID!, player.userID!);
 	tour?.removeMemberFromTourID(player.userID!);
+	player.tournamentID = undefined;
 	// 4. Get remaining members
 	const members = await getMembersByTourID(leftTourID!);
-
+	
+	Helpers.updatePlayerState(player, 'init');
 	// 5. If no player remains, clean
 	if (members!.length < 1) {
 		console.log(`[TOUR][LEFT]{No members left deleting room}`)
@@ -168,7 +183,15 @@ export async function handleStartTournament(data: any) {
 export async function handleMatchFinish(data:any){
 
 	const tour = Tournament.MappedTour.get(data.tourID)!;
-	tour.onMatchFinished(data.tourID, data.a_ID, data.b_ID, data.a_score, data.b_score, data.userID);
+	if(!tour)
+		return;
+	await tour.onMatchFinished(data.tourID, data.a_ID, data.b_ID, data.a_score, data.b_score, data.userID);
+	console.log(`[MATCHFINISH] regular call`)
+	if(tour.current_round === tour.max_round){
+		console.log(`[MATCHFINSIH][AutoReady] for userID:${data.userID}`);
+		await tour.isReadyForNextRound(data.userID);
+		console.log('PASSED...')
+	}
 }
 
 export async function handleReadyNextRound(data:any){

@@ -4,7 +4,8 @@ import { drawCreateGameView,
 		drawJoinGameView,
 		drawTournamentView,
 		drawWaitingTournamentView,
-		drawWaitingRoundsTournamentView } from './pong_views';
+		drawWaitingRoundsTournamentView,
+		drawEndTournamentView } from './pong_views';
 import { showNotification } from './notifications';
 import { pongState } from './pong_socket';
 import { PongRenderer } from './pong_render'
@@ -152,6 +153,14 @@ export function showPongMenu(): void {
 					  state.currentTournamentName || 'Unnamed Tournament',
 					  state.currentTournamentPlayers || [],
 					  state.currentGameName || 'Unknown game room',
+					);
+					break;
+				case 'endTournament':
+					drawEndTournamentView(
+						canvas,
+						ctx,
+						state.currentTournamentName!,
+						state.currentTournamentPlayers!
 					);
 					break;
 				case 'joinGame':
@@ -346,6 +355,12 @@ async function handlePongMenuClick(e: MouseEvent): Promise<void> {
 
 		case 'waitingTournamentRounds':
 			await handleTournamentRoundsClick(canvas, x, y);
+			break;
+
+		case 'endTournament':
+			await handleTournamentRoundsClick(canvas, x, y);
+			break;
+			
 		default:
 			break;
 	}

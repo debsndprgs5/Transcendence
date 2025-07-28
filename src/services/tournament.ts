@@ -1,7 +1,7 @@
 import { playerInterface } from '../shared/gameTypes'
 import * as gameMgr from '../db/gameManagement'
 import { getUnameByIndex } from '../db/userManagement'
-import { sendSystemMessage } from '../websockets/chat.socket'
+import { sendSystemMessage , sendPrivateSystemMessage} from '../websockets/chat.socket'
 import { getPlayerByUserID } from '../websockets/game.socket';
 
 type Member = {
@@ -15,8 +15,10 @@ type Member = {
 
 export class Tournament {
 	public static MappedTour = new Map<number, Tournament>();
+	public leftPlayers: Set<number> = new Set();
 
 	tourID: number;
+	chatID = 0;
 	players: playerInterface[];
 	current_round = 0;
 	max_round: number;
@@ -62,39 +64,62 @@ export class Tournament {
 		this.hasStarted = true;
 		this.nextRound();
 	}
+	private totalMatchesCount: number = 0;
+	private endedMatchesCount: number = 0;
 
 	private async nextRound() {
 		this.current_round++;
 		if (this.current_round > this.max_round) {
-			return this.endTournament();
+		  return this.endTournament();
 		}
-		// Generating pairs
-		this.playingPairs = this.swissPairingAlgo();
-				
-		console.log(`[ROUND ${this.current_round}] Total matches this round: ${this.playingPairs.length}`);
-		console.log(`[ROUND ${this.current_round}] Round pairing started.`);
-		console.log(`[ROUND ${this.current_round}] All participant IDs:`, this.players.map(p => p.userID));
-		console.log(`[ROUND ${this.current_round}] Already matched player sets:`, this.opponents);
+		if (this.players.length <= 1) 
+		  return this.endTournament();
 		
-		const chat = await gameMgr.getChatIDbyTourID(this.tourID);
-		sendSystemMessage( chat!.chatID , `Round ${this.current_round}/${this.max_round}: is about to start`);
-		const baseRules = JSON.parse(this.rules);
-		// Inject the tournament's win_condition
-		const extendedRules = {
-			...baseRules,
-			win_condition: 'time',
-		};
 
+		// Réinitialisation des compteurs
+		this.readyPlayers.clear();
+		this.waitingPairs = [];
+		this.playingPairs = this.swissPairingAlgo();
+
+		// 2) On initialise totalMatchesCount au nombre de paires (incluant les byes)
+		this.totalMatchesCount = this.playingPairs.length;
+		this.endedMatchesCount = 0;
+
+		// 3) Traitement immédiat des byes
+		const realPairs: [playerInterface, playerInterface][] = [];
+		const BYE_POINTS = 10;
+		for (const [pA, pB] of this.playingPairs) {
+		  if (pA.userID === pB.userID) {
+			// – award bye points
+			this.points.set(pA.userID, (this.points.get(pA.userID) ?? 0) + BYE_POINTS);
+			// – on considère le bye comme un “match terminé”
+			this.waitingPairs.push([pA, pB]);
+			this.endedMatchesCount++;
+		  } else {
+			realPairs.push([pA, pB]);
+		  }
+		}
+		this.playingPairs = realPairs;
+
+		// 4) Création des parties pour les vrais duels
+		const chat = await gameMgr.getChatIDbyTourID(this.tourID);
+		this.chatID = chat!.chatID;
+		sendSystemMessage(this.chatID, `Round ${this.current_round}/${this.max_round}: is about to start`);
+
+		const baseRules = JSON.parse(this.rules);
+		const extendedRules = { ...baseRules, win_condition: 'time' };
 		const gameRulesStr = JSON.stringify(extendedRules);
 		const gameName = `Tournament : Round ${this.current_round}/${this.max_round}.`;
 
 		for (const [pA, pB] of this.playingPairs) {
-			const gameID = await gameMgr.createGameRoom(
-				'tournament', 'init', 'duo',
-				gameRulesStr, gameName, 0, this.tourID
-			);
-			await pA.typedSocket.send('startNextRound', { userID: pA.userID, gameID, gameName });
-			await pB.typedSocket.send('startNextRound', { userID: pB.userID, gameID, gameName });
+		  const gameID = await gameMgr.createGameRoom(
+			'tournament','init','duo',
+			gameRulesStr, gameName, 0, this.tourID
+		  );
+		  await pA.typedSocket.send('startNextRound', { userID: pA.userID, gameID, gameName });
+		  sendPrivateSystemMessage(this.chatID, pA.userID, `You play against ${pB.username}`);
+		  await pB.typedSocket.send('startNextRound', { userID: pB.userID, gameID, gameName });
+		  sendPrivateSystemMessage(this.chatID, pB.userID, `You play against ${pA.username}`);
 		}
 	}
 
@@ -154,12 +179,7 @@ public async matchGaveUp(tourID: number, quitterID: number) {
 	// Remove quitter from tournament completely
 	tour.removeMemberFromTourID(quitterID);
 
-	// Notify the opponent
-	opponent.typedSocket.send('waitingNextRound', {
-		round: tour.current_round,
-		message: `Your opponent ${quitter.username} gave up. You receive 5 points.`,
-	});
-
+	sendPrivateSystemMessage(this.chatID, opponent.userID, `Your opponent ${quitter.username} gave up. You receive 5 points.`);
 	console.log(`[GAVE UP] Player ${quitterID} removed from tournament ${tourID}`);
 }
 
@@ -205,145 +225,133 @@ public removeMemberFromTourID(userID: number): boolean {
 }
 
 public async onMatchFinished(
-	tourID: number,
-	playerA: number,
-	playerB: number,
-	scoreA: number,
-	scoreB: number,
-	userID: number
+  tourID: number,
+  playerA: number,
+  playerB: number,
+  scoreA: number,
+  scoreB: number,
+  userID: number
 ) {
-	const tour = Tournament.MappedTour.get(tourID);
-	if (!tour) {
-		console.warn(`[MATCH FINISH] No tournament found for tourID=${tourID}`);
-		return;
-	}
+  // Retrieve the tournament instance
+  const tour = Tournament.MappedTour.get(tourID);
+  if (!tour) {
+    console.warn(`[MATCH FINISH] No tournament found for tourID=${tourID}`);
+    return;
+  }
 
-	if (userID !== playerA && userID !== playerB) {
-		console.warn(`[MATCH FINISH] Invalid reporter userID=${userID} not in match (${playerA} vs ${playerB})`);
-		return;
-	}
+  // Validate reporter is one of the players
+  if (userID !== playerA && userID !== playerB) {
+    console.warn(`[MATCH FINISH] Invalid reporter userID=${userID} not in match (${playerA} vs ${playerB})`);
+    return;
+  }
 
-	if (!tour.players.find(p => p.userID === playerA) || !tour.players.find(p => p.userID === playerB)) {
-	console.warn(`[MATCH FINISH] One of the players has left the tournament: playerA=${playerA}, playerB=${playerB}`);
-	return;
-	}
+  // Ensure both players still in the tournament
+  if (!tour.players.find(p => p.userID === playerA) || !tour.players.find(p => p.userID === playerB)) {
+    console.warn(`[MATCH FINISH] One of the players has left the tournament: playerA=${playerA}, playerB=${playerB}`);
+    return;
+  }
 
-	// Ensure matchReports map
-	if (!tour.matchReports) tour.matchReports = new Map<string, Set<number>>();
-	const matchKey = [playerA, playerB].sort((a, b) => a - b).join("-");
+  // Initialize matchReports map if needed
+  if (!tour.matchReports) {
+    tour.matchReports = new Map<string, Set<number>>();
+  }
+  const matchKey = [playerA, playerB].sort((a, b) => a - b).join("-");
 
-	// Log who is reporting what
-	console.log(`[MATCH FINISH] Report received from userID=${userID} for match=${matchKey}`);
-	console.log(`[MATCH FINISH]   ↳ Raw score: scoreA=${scoreA} scoreB=${scoreB}`);
+  // Track reports from each player
+  if (!tour.matchReports.has(matchKey)) {
+    tour.matchReports.set(matchKey, new Set());
+  }
+  const reporters = tour.matchReports.get(matchKey)!;
+  if (reporters.has(userID)) {
+    console.warn(`[MATCH FINISH] Duplicate report from userID=${userID} for match=${matchKey}`);
+    return;
+  }
+  reporters.add(userID);
 
-	// Track reporters
-	if (!tour.matchReports.has(matchKey)) {
-		tour.matchReports.set(matchKey, new Set());
-	}
-	const reporters = tour.matchReports.get(matchKey)!;
+  // Wait for both players to report
+  if (reporters.size < 2) {
+    console.log(`[MATCH FINISH] Waiting for second report for match=${matchKey}`);
+    return;
+  }
 
-	if (reporters.has(userID)) {
-		console.warn(`[MATCH FINISH] Duplicate report from userID=${userID} for match=${matchKey}`);
-		return;
-	}
-	reporters.add(userID);
+  // Both reports received → determine outcome
+  const WIN_POINTS = 10, DRAW_POINTS = 5, LOSS_POINTS = 0;
+  let msgA: string, msgB: string;
 
-	console.log(`[MATCH FINISH]   ↳ Total reporters so far: ${reporters.size}`);
+  if (scoreA > scoreB) {
+    // Player A wins
+    tour.points.set(playerA, (tour.points.get(playerA) ?? 0) + WIN_POINTS);
+    tour.points.set(playerB, (tour.points.get(playerB) ?? 0) + LOSS_POINTS);
+    msgA = `You won, congrats!`;
+    msgB = `You lost, better luck next time.`;
+  } else if (scoreB > scoreA) {
+    // Player B wins
+    tour.points.set(playerB, (tour.points.get(playerB) ?? 0) + WIN_POINTS);
+    tour.points.set(playerA, (tour.points.get(playerA) ?? 0) + LOSS_POINTS);
+    msgA = `You lost, better luck next time.`;
+    msgB = `You won, congrats!`;
+  } else {
+    // Draw
+    tour.points.set(playerA, (tour.points.get(playerA) ?? 0) + DRAW_POINTS);
+    tour.points.set(playerB, (tour.points.get(playerB) ?? 0) + DRAW_POINTS);
+    msgA = msgB = `Draw! Well played both.`;
+  }
 
-	if (reporters.size < 2) {
-		console.log(`[MATCH FINISH]   ↳ Waiting for second player to report`);
-		return;
-	}
+  // Notify both players of result
+  sendPrivateSystemMessage(tour.chatID, playerA, msgA);
+  sendPrivateSystemMessage(tour.chatID, playerB, msgB);
 
-	console.log(`[MATCH FINISH]   ↳ Both players reported, processing result`);
+  // Cleanup matchReports for this match
+  tour.matchReports.delete(matchKey);
 
-	// Award points
-	const winPoints = 10, drawPoints = 5, lossPoints = 0;
+  // Prevent future rematch
+  tour.opponents.get(playerA)!.add(playerB);
+  tour.opponents.get(playerB)!.add(playerA);
 
-	console.log(`[MATCH FINISH]   ↳ Determining outcome...`);
-	if (scoreA > scoreB) {
-		console.log(`[MATCH FINISH]   ↳ ${playerA} wins over ${playerB}`);
-		tour.points.set(playerA, (tour.points.get(playerA) ?? 0) + winPoints);
-		tour.points.set(playerB, (tour.points.get(playerB) ?? 0) + lossPoints);
-	} else if (scoreB > scoreA) {
-		console.log(`[MATCH FINISH]   ↳ ${playerB} wins over ${playerA}`);
-		tour.points.set(playerB, (tour.points.get(playerB) ?? 0) + winPoints);
-		tour.points.set(playerA, (tour.points.get(playerA) ?? 0) + lossPoints);
-	} else {
-		console.log(`[MATCH FINISH]   ↳ Draw between ${playerA} and ${playerB}`);
-		tour.points.set(playerA, (tour.points.get(playerA) ?? 0) + drawPoints);
-		tour.points.set(playerB, (tour.points.get(playerB) ?? 0) + drawPoints);
-	}
+  // Move this match from playingPairs to waitingPairs
+  const idx = tour.playingPairs.findIndex(
+    ([a, b]) =>
+      (a.userID === playerA && b.userID === playerB) ||
+      (a.userID === playerB && b.userID === playerA)
+  );
+  if (idx !== -1) {
+    tour.waitingPairs.push(tour.playingPairs[idx]);
+    tour.playingPairs.splice(idx, 1);
+  }
 
-	// Log current points map
-	console.log(`[MATCH FINISH]   ↳ Points after update:`);
-	for (const [uid, pts] of tour.points.entries()) {
-		console.log(`    - userID=${uid}, points=${pts}`);
-	}
-
-	// Cleanup match report
-	tour.matchReports.delete(matchKey);
-
-	// Prevent rematch
-	tour.opponents.get(playerA)!.add(playerB);
-	tour.opponents.get(playerB)!.add(playerA);
-
-	// Move to waitingPairs
-	const idx = tour.playingPairs.findIndex(
-		([a, b]) =>
-			(a.userID === playerA && b.userID === playerB) ||
-			(a.userID === playerB && b.userID === playerA)
-	);
-	if (idx !== -1) {
-		tour.waitingPairs.push(tour.playingPairs[idx]);
-		tour.playingPairs.splice(idx, 1);
-		console.log(`[MATCH FINISH]   ↳ Match ${matchKey} moved to waitingPairs`);
-	}
-
-	// Build updated score table
-	const scoreUpdates = await tour.extractScore();
-	
-	// Notify both players of updated standings
-	for (const [pA, pB] of tour.waitingPairs) {
-		pA.typedSocket.send('updateTourScore', {
-			tourID,
-			score: scoreUpdates
-		});
-		pB.typedSocket.send('updateTourScore', {
-			tourID,
-			score: scoreUpdates
-		});
-	}
-
-	if (!this.hasStarted) return;
+  // Increment endedMatchesCount and check if all matches are done
+//   tour.endedMatchesCount++;
+//   if (tour.endedMatchesCount >= tour.totalMatchesCount) {
+//     console.log(`[Tournament] All ${tour.totalMatchesCount} matches finished, starting next round.`);
+//     // Reset counters before next round
+//     tour.endedMatchesCount = 0;
+//     tour.totalMatchesCount = 0;
+//     await tour.nextRound();
+//   }
 }
 
 public async isReadyForNextRound(userID: number) {
 	const tour = Tournament.MappedTour.get(this.tourID)!;
 
-	// Ignore players who aren't in waitingPairs
-	const isInWaiting = tour.waitingPairs.some(
-		([a, b]) => a.userID === userID || b.userID === userID
-	);
-
-	if (!isInWaiting) {
-		console.warn(`[isReadyForNextRound] userID ${userID} is not in waitingPairs`);
-		return;
+	if (tour.readyPlayers.has(userID)) {
+		console.warn(`[isReadyForNextRound] Duplicate ready signal from userID=${userID}`);
+		return; // ignore repeated ready signal
 	}
-
 	// Add to ready set
 	tour.readyPlayers.add(userID);
 
-	// Compute total number of unique players in waitingPairs
 	const totalWaitingUsers = new Set<number>();
 	for (const [a, b] of tour.waitingPairs) {
 		totalWaitingUsers.add(a.userID);
-		totalWaitingUsers.add(b.userID);
+		if (a.userID !== b.userID) {
+			totalWaitingUsers.add(b.userID);
+		}
 	}
 
-	// Check if all have reported
-	if (tour.readyPlayers.size >= totalWaitingUsers.size) {
+	if (tour.readyPlayers.size >= totalWaitingUsers.size && this.playingPairs.length < 1) {
 		console.log(`[Tournament] All players ready for next round.`);
+
+		// Clear ready state before starting next round
 		tour.readyPlayers.clear();
 
 		// Move to next round
@@ -368,6 +376,7 @@ public async extractScore(){
 }
 
 private async endTournament() {
+	const tour =  await gameMgr.getTournamentById(this.tourID)
 	// process final ranking
 	const standings = [...this.players]
 		.sort((a, b) => this.points.get(b.userID)! - this.points.get(a.userID)!);
@@ -375,8 +384,8 @@ private async endTournament() {
 	for (const p of this.players) {
 		p.typedSocket.send('endTournament', {
 			tourID: this.tourID,
+			tourName: tour!.name,
 			standings: standings.map(pl => ({
-				userID: pl.userID,
 				username: pl.username!,
 				score: this.points.get(pl.userID)!
 			}))
@@ -388,7 +397,7 @@ private async endTournament() {
 
 }
 
-public giveBye(member: Member) {
+public async giveBye(member: Member) {
 	const userID = member.userID;
 	const player = member.player;
 
@@ -402,126 +411,27 @@ public giveBye(member: Member) {
 	const tour = Tournament.MappedTour.get(player.tournamentID!)!;
 	tour.waitingPairs.push([player, player]); // or some sentinel value if needed
 
+	const scoreUpdates = await tour.extractScore();
 	// 3. Send socket event to inform the player
-	player.typedSocket.send('waitingNextRound', {
-		round: tour.current_round,
-		message: 'You received a bye this round.',
+	player.typedSocket.send('updateTourScore', {
+		tourID: tour.tourID,
+		score: scoreUpdates!,
 	});
+	sendPrivateSystemMessage(this.chatID, userID, 'You received a bye this round');
 }
 
 }
-
-
-
-
-// function generateSwissPairings(
-// 	round: number,
-// 	members: Member[]
-// 	): { playerA: number, playerB: number }[] {
-// 		// compute Median Buchholz for all players
-// 	console.log(`Members before shuffles : `)
-// 	console.log(members);
-// 	if (round === 1) {
-// 		// randomize initial pairing
-// 		members = shuffle(members);
-// 	} else {
-// 		computeMedianBuchholz(members);
-// 	}
-// 	console.log(`members after shuffle : `)
-// 	console.log(members);
-// 	// sort by points desc, then by buchholz desc
-// 	members.sort((a, b) => {
-// 		if (b.points !== a.points) {
-// 			return b.points - a.points;
-// 		}
-// 		const mbA = (a as any).buchholz as number;
-// 		const mbB = (b as any).buchholz as number;
-// 		return mbB - mbA;
-// 	});
-
-// 	// group by identical score
-// 	const groups = groupBy(members, m => m.points);
-
-// 	const pairs: { playerA: number, playerB: number }[] = [];
-// 	const floaters: typeof members = [];
-
-// 	for (const group of groups) {
-// 		let pool = [...group];
-
-// 		// if odd, pull one floater to next group
-// 		if (pool.length % 2 === 1) {
-// 			const floater = selectFloater(pool, []);
-// 			floater.originalGroup = group;
-// 			floaters.push(floater);
-// 			pool = pool.filter(p => p !== floater); // REMOVE the floater from pool
-// 		}
-// 		// split and pair within group
-// 		const half = pool.length / 2;
-// 		const top = pool.slice(0, half);
-// 		let bottom = pool.slice(half);
-
-// 		for (let i = 0; i < top.length; i++) {
-// 			const a = top[i];
-// 			let paired = false;
-
-// 			for (let j = 0; j < bottom.length; j++) {
-// 				const b = bottom[j];
-// 				if (!a.opponents.includes(b.userID)) {
-// 					pairs.push({ playerA: a.userID, playerB: b.userID });
-// 					bottom.splice(j, 1);
-// 					paired = true;
-// 					break;
-// 				}
-// 			}
-
-// 			if (!paired && bottom.length > 0) {
-// 				const b = bottom.shift()!;
-// 				pairs.push({ playerA: a.userID, playerB: b.userID });
-// 			}
-// 		}
-// 	}
-// 	for (const floater of floaters) {
-// 	// try to insert into the next-lower score group
-// 		let placed = false;
-// 		for (let i = groups.indexOf(floater.originalGroup!) + 1;
-// 				i < groups.length && !placed;
-// 				i++) {
-// 			const targetGroup = groups[i];
-// 			// if targetGroup now odd, pair floater with one of them
-// 			if (targetGroup.length % 2 === 1) {
-// 				const opponent = selectOpponentForFloater(floater, targetGroup);
-// 				pairs.push({ playerA: floater.userID, playerB: opponent.userID });
-// 				targetGroup.splice(targetGroup.indexOf(opponent), 1);
-// 				placed = true;
-// 			}
-// 		}
-// 		if (!placed) {
-// 			// give a bye
-// 			console.warn(`GIVING BYE to ${floater.player.userID!}`)
-// 			const tour = Tournament.MappedTour.get(floater.player.tournamentID!) 
-// 			tour!.giveBye(floater);
-// 		}
-// 	}
-
-// 	return pairs;
-// }
- 
 
 function generateSwissPairings(
 	round: number,
 	members: Member[]
 ): { playerA: number, playerB: number }[] {
-	console.log(`Members before shuffles : `);
-	console.log(members);
 
 	if (round === 1) {
 		members = shuffle(members);
 	} else {
 		computeMedianBuchholz(members);
 	}
-
-	console.log(`members after shuffle : `);
-	console.log(members);
 
 	members.sort((a, b) => {
 		if (b.points !== a.points) return b.points - a.points;

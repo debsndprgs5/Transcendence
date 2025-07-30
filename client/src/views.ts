@@ -439,24 +439,33 @@ export function RegisterView(): string {
 export function Setup2FAView(otpauthUrl: string, base32: string): string {
 //	preventBodyScroll();
 	const chartUrl = `https://quickchart.io/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(otpauthUrl)}`;
-	return `
-		<div class="max-w-md mx-auto mt-12 bg-white shadow-lg rounded-lg overflow-hidden">
-			<div class="px-6 py-4 bg-yellow-50">
-				<h2 class="text-2xl font-bold text-yellow-700">Configurer la 2FA</h2>
-			</div>
-			<div class="px-6 py-4 space-y-4 text-center">
-				<p class="text-gray-700">Scan this QR code with your authenticator app :</p>
-				<img src="${chartUrl}" alt="QR Code 2FA" class="mx-auto w-48 h-48" />
-				<p class="text-gray-700">Or manually enter this code :</p>
-				<code class="block bg-gray-100 p-2 rounded font-mono text-sm">${base32}</code>
-			</div>
-			<div class="px-6 pb-6 space-y-2">
-				<input id="2fa-setup-code" placeholder="Enter 2FA code" class="w-full border-gray-300 rounded-md shadow-sm p-2 focus:ring-yellow-500 focus:border-yellow-500" />
-				<button id="verify-setup-2fa-btn" class="w-full py-2 px-4 bg-yellow-600 text-black font-semibold rounded-md hover:bg-yellow-700 transition">Verify authenticator code</button>
-				<p id="setup2fa-error" class="text-red-500 text-sm mt-2 hidden"></p>
-			</div>
-		</div>
-	`;
+  return `
+    <div class="max-w-md mx-auto mt-12 bg-gray-800 bg-opacity-50 backdrop-blur rounded-xl shadow-lg overflow-hidden">
+      <div class="px-6 py-4 bg-gradient-to-r from-[#2C3E50] to-[#4CA1AF]">
+        <h2 class="text-2xl font-bold text-gray-100">Configurer la 2FA</h2>
+      </div>
+      <div class="px-6 py-4 space-y-4 text-center">
+        <p class="text-gray-200">Scan this QR code with your authenticator app :</p>
+        <img src="${chartUrl}" alt="QR Code 2FA" class="mx-auto w-48 h-48 rounded shadow-md" />
+        <p class="text-gray-200">Or manually enter this code :</p>
+        <code class="block bg-gray-900 bg-opacity-30 p-2 rounded font-mono text-sm text-gray-200">${base32}</code>
+      </div>
+      <div class="px-6 pb-6 space-y-2">
+        <input
+          id="2fa-setup-code"
+          placeholder="Enter 2FA code"
+          class="w-full bg-gray-900 text-gray-200 border-gray-600 rounded-md shadow-sm p-2 focus:ring-[#4CA1AF] focus:border-[#4CA1AF]"
+        />
+        <button
+          id="verify-setup-2fa-btn"
+          class="w-full py-2 px-4 bg-gradient-to-r from-[#2C3E50] to-[#4CA1AF] text-gray-100 font-semibold rounded-md hover:from-[#1E2B38] hover:to-[#35707A] transition"
+        >
+          Verify authenticator code
+        </button>
+        <p id="setup2fa-error" class="text-red-500 text-sm mt-2 hidden"></p>
+      </div>
+    </div>
+  `;
 }
 
 /**

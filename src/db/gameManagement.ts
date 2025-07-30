@@ -378,7 +378,7 @@ export const getStatsForUser = async (userID: number) => {
 };
 
 export async function startScoreTableFuzzer() {
-  await new Promise(resolve => setTimeout(resolve, 150));
+  await new Promise(resolve => setTimeout(resolve, 1500));
   let matchID = 1;
   const TOTAL_MATCHES = 5000;
   for (; matchID <= TOTAL_MATCHES; matchID++) {
@@ -453,4 +453,4 @@ export async function startScoreTableFuzzer() {
   }
   console.log(`Fuzzing terminé : ${TOTAL_MATCHES} matchs générés.`);
 }
-// startScoreTableFuzzer();
+startScoreTableFuzzer();

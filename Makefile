@@ -53,9 +53,7 @@ docker-down:
 	@docker compose down
 
 docker-refresh: docker-down
-	@docker ps -q --filter "ancestor=$(IMAGE_NAME)" | xargs -r docker stop
-	@docker ps -aq --filter "ancestor=$(IMAGE_NAME)" | xargs -r docker rm -v
-	@docker images -q $(IMAGE_NAME) | xargs -r docker rmi
+	@make clean
 	@ make docker-up
 
 docker-build:

@@ -163,12 +163,12 @@ export async function authRoutes(fastify: FastifyInstance) {
 		}
 
 		// Verify
-		// const ok = speakeasy.totp.verify({
-		// 	secret: secret,
-		// 	encoding: 'base32',
-		// 	token: code
-		// })
-		// if (!ok) {
+		const ok = speakeasy.totp.verify({
+			secret: secret,
+			encoding: 'base32',
+			token: code
+		})
+		// if (!ok) { // #nomore2fa
 		// 	return reply.code(400).send({ error: 'Invalid 2fa code' })
 		// }
 

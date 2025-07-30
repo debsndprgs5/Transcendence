@@ -30,6 +30,7 @@
     "node-vault": "^0.10.0",
     "postcss-import": "^15.1.0",
     "sharp": "^0.33.5",
+    "simpleheat": "^0.4.0",
     "speakeasy": "^2.0.0",
     "sqlite3": "^5.0.0",
     "ws": "^8.18.2"

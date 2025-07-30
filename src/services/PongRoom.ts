@@ -13,6 +13,8 @@ import {
 import { getUnameByIndex } from '../db/userManagement'
 import { Tournament } from './tournament'
 import { getNamePerGameID } from '../db/gameManagement'
+import { saveMatchStats } from '../db/gameManagement'
+import { insertBallBounceHistory } from '../db/Stats'
 
 /**
  * A lightweight container for one running Pong match.
@@ -34,9 +36,9 @@ export class PongRoom {
 	private totalPausedTime = 0;
 
 	private pauseState = {
-        isPaused: false,
-        pausedPlayers: new Set<number>(),        // Track all paused players
-    };
+		isPaused: false,
+		pausedPlayers: new Set<number>(),        // Track all paused players
+	};
 	private loop?: NodeJS.Timeout
 
 	constructor(
@@ -77,18 +79,18 @@ export class PongRoom {
 		}
 
 		// Position paddles just inside walls
-    const wallTh = 0.25;
-    for (const p of players) {
-      const pad = this.paddles.get(p.userID)!.paddleInterface;
-      const halfW = pad.width  / 2;
-      const halfL = pad.length / 2;
-      switch (p.playerSide) {
-        case 'left':   pad.x = -this.WIDTH/2 + wallTh + halfW; pad.y = 0; break;
-        case 'right':  pad.x =  this.WIDTH/2 - wallTh - halfW; pad.y = 0; break;
-        case 'top':    pad.x = 0; pad.y =  this.HEIGHT/2 - wallTh - halfL; break;
-        case 'bottom': pad.x = 0; pad.y = -this.HEIGHT/2 + wallTh + halfL; break;
-      }
-    }
+	const wallTh = 0.25;
+	for (const p of players) {
+	  const pad = this.paddles.get(p.userID)!.paddleInterface;
+	  const halfW = pad.width  / 2;
+	  const halfL = pad.length / 2;
+	  switch (p.playerSide) {
+		case 'left':   pad.x = -this.WIDTH/2 + wallTh + halfW; pad.y = 0; break;
+		case 'right':  pad.x =  this.WIDTH/2 - wallTh - halfW; pad.y = 0; break;
+		case 'top':    pad.x = 0; pad.y =  this.HEIGHT/2 - wallTh - halfL; break;
+		case 'bottom': pad.x = 0; pad.y = -this.HEIGHT/2 + wallTh + halfL; break;
+	  }
+	}
 
 
 		// Create ball
@@ -153,7 +155,7 @@ export class PongRoom {
 
 //PRIVATE METHODS 
 
-private frame() {
+private async  frame() {
 	if (this.pauseState.isPaused) {
 		this.broadcast()
 		return; // Skip frame if paused
@@ -166,7 +168,9 @@ private frame() {
 			this.bounceArena(ball);
 		}
 	// Win check
-	this.checkWinCondition()
+	const stop  = await this.checkWinCondition();
+	if(stop)
+		this.stop();
 	// Broadcast
 	this.broadcast()
 }
@@ -174,61 +178,77 @@ private frame() {
 
 /** Bounce or score on arena walls, with angle caps */
 private bounceArena(ball: ballClass) {
-		const W      = this.WIDTH/2;
-		const H      = this.HEIGHT/2;
-		const R      = ball.radius;
-		const maxA   = Math.tan(75 * Math.PI/180);
-		const minA   = Math.tan(15 * Math.PI/180);
+	const W      = this.WIDTH/2;
+	const H      = this.HEIGHT/2;
+	const R      = ball.radius;
+	const maxA   = Math.tan(75 * Math.PI/180);
+	const minA   = Math.tan(15 * Math.PI/180);
 
-		if (this.game.mode === 'duo') {
-			// goals
-			if (ball.x - R <= -W) { this.handleWallScore('left', ball); return; }
-			if (ball.x + R >=  W) { this.handleWallScore('right', ball); return; }
+	const logBounce = async (typeof_bounce: 0|1|2) => {
+		if (typeof_bounce === 2 && !ball.last_bounce) return;
+		await insertBallBounceHistory(
+			this.gameID,
+			ball.last_bounce?.paddleInterface.userID ?? null,
+			typeof_bounce,
+			ball.speed,
+			ball.x,
+			ball.y,
+			Math.atan2(ball.vector[1], ball.vector[0]),
+			Date.now()
+		);
+	};
 
-			// bounce on top wall
-			if (ball.y + R >= H && ball.vector[1] > 0) {
-				// push ball out the wall
-				ball.y = H - R - 1e-3;
-				// invert (Y)
-				ball.vector[1] *= -1;
+	if (this.game.mode === 'duo') {
+		// goals
+		if (ball.x - R <= -W) { logBounce(2); this.handleWallScore('left', ball); return; }
+		if (ball.x + R >=  W) { logBounce(2); this.handleWallScore('right', ball); return; }
 
-				// angle clamp
-				//    ratio = vx/vy
-				let ratio = ball.vector[0] / ball.vector[1];
-				const sign = Math.sign(ratio) || 1;
+		// bounce on top wall
+		if (ball.y + R >= H && ball.vector[1] > 0) {
+			logBounce(0);
+			// push ball out the wall
+			ball.y = H - R - 1e-3;
+			// invert (Y)
+			ball.vector[1] *= -1;
 
-				ratio = Math.min(maxA, Math.max(minA, Math.abs(ratio))) * sign;
+			// angle clamp
+			//    ratio = vx/vy
+			let ratio = ball.vector[0] / ball.vector[1];
+			const sign = Math.sign(ratio) || 1;
 
-				// recalc vx from vy
-				ball.vector[0] = ratio * ball.vector[1];
+			ratio = Math.min(maxA, Math.max(minA, Math.abs(ratio))) * sign;
 
-				// 4) renorm to ||v||=1
-				const len = Math.hypot(ball.vector[0], ball.vector[1]);
-				ball.vector[0] /= len;
-				ball.vector[1] /= len;
-			}
+			// recalc vx from vy
+			ball.vector[0] = ratio * ball.vector[1];
 
-			// bounce on bottom wall
-			if (ball.y - R <= -H && ball.vector[1] < 0) {
-				ball.y = -H + R + 1e-3;
-				ball.vector[1] *= -1;
-
-				let ratio = ball.vector[0] / ball.vector[1];
-				const sign = Math.sign(ratio) || 1;
-				ratio = Math.min(maxA, Math.max(minA, Math.abs(ratio))) * sign;
-				ball.vector[0] = ratio * ball.vector[1];
-				const len = Math.hypot(ball.vector[0], ball.vector[1]);
-				ball.vector[0] /= len;
-				ball.vector[1] /= len;
-			}
+			// 4) renorm to ||v||=1
+			const len = Math.hypot(ball.vector[0], ball.vector[1]);
+			ball.vector[0] /= len;
+			ball.vector[1] /= len;
 		}
-		else {
-			// 4p: score on all walls
-			if (ball.x - R <= -W) { this.handleWallScore('left', ball); return }
-			if (ball.x + R >=  W) { this.handleWallScore('right', ball); return }
-			if (ball.y - R <= -H) { this.handleWallScore('bottom', ball); return }
-			if (ball.y + R >=  H) { this.handleWallScore('top', ball); return }
+
+		// bounce on bottom wall
+		if (ball.y - R <= -H && ball.vector[1] < 0) {
+			logBounce(0);
+			ball.y = -H + R + 1e-3;
+			ball.vector[1] *= -1;
+
+			let ratio = ball.vector[0] / ball.vector[1];
+			const sign = Math.sign(ratio) || 1;
+			ratio = Math.min(maxA, Math.max(minA, Math.abs(ratio))) * sign;
+			ball.vector[0] = ratio * ball.vector[1];
+			const len = Math.hypot(ball.vector[0], ball.vector[1]);
+			ball.vector[0] /= len;
+			ball.vector[1] /= len;
 		}
+	}
+	else {
+		// 4p: score on all walls
+		if (ball.x - R <= -W) { logBounce(2); this.handleWallScore('left', ball); return }
+		if (ball.x + R >=  W) { logBounce(2); this.handleWallScore('right', ball); return }
+		if (ball.y - R <= -H) { logBounce(2); this.handleWallScore('bottom', ball); return }
+		if (ball.y + R >=  H) { logBounce(2); this.handleWallScore('top', ball); return }
+	}
 	}
 
 
@@ -239,8 +259,8 @@ private ballsMove(b: ballClass) {
 	  const n = Math.ceil(remaining / maxStep);
 	  const step = remaining / n;
 	  for (let i = 0; i < n; i++) {
-	    b.x += b.vector[0] * step;
-	    b.y += b.vector[1] * step;
+		b.x += b.vector[0] * step;
+		b.y += b.vector[1] * step;
 	  }
 }
 
@@ -250,9 +270,9 @@ private bounce_player(ball: ballClass, paddle: paddleClass) {
   const pi   = paddle.paddleInterface;
   const R    = ball.radius;
   const left = pi.x - pi.width / 2,
-        right  = pi.x + pi.width / 2,
-        top    = pi.y - pi.length / 2,
-        bottom = pi.y + pi.length / 2;
+		right  = pi.x + pi.width / 2,
+		top    = pi.y - pi.length / 2,
+		bottom = pi.y + pi.length / 2;
 
   const cx = Math.max(left, Math.min(ball.x, right));
   const cy = Math.max(top,  Math.min(ball.y, bottom));
@@ -261,23 +281,34 @@ private bounce_player(ball: ballClass, paddle: paddleClass) {
 
   const maxAngle = 75 * Math.PI / 180;
 
-  if (pi.type === 'H') {                         // raquette gauche / droite
-    const rel = (ball.y - pi.y) / (pi.length/2); // centre direct
-    const angle = Math.max(-1, Math.min(1, rel)) * maxAngle;
+  insertBallBounceHistory(
+	this.gameID,
+	pi.userID,
+	1,
+	ball.speed,
+	ball.x,
+	ball.y,
+	Math.atan2(ball.vector[1], ball.vector[0]),
+	Date.now()
+  );
 
-    const dirX = (pi.x < 0) ? 1 : -1;            // gauche => +X, droite => -X
-    ball.vector[0] =  dirX * Math.cos(angle);
-    ball.vector[1] =  Math.sin(angle);
-    ball.x += ball.vector[0] * 0.01;             // sortir du paddle
+  if (pi.type === 'H') {                         // raquette gauche / droite
+	const rel = (ball.y - pi.y) / (pi.length/2); // centre direct
+	const angle = Math.max(-1, Math.min(1, rel)) * maxAngle;
+
+	const dirX = (pi.x < 0) ? 1 : -1;            // gauche => +X, droite => -X
+	ball.vector[0] =  dirX * Math.cos(angle);
+	ball.vector[1] =  Math.sin(angle);
+	ball.x += ball.vector[0] * 0.01;             // sortir du paddle
 
   } else {                                       // raquette haut / bas
-    const rel = (ball.x - pi.x) / (pi.width/2);
-    const angle = Math.max(-1, Math.min(1, rel)) * maxAngle;
+	const rel = (ball.x - pi.x) / (pi.width/2);
+	const angle = Math.max(-1, Math.min(1, rel)) * maxAngle;
 
-    const dirY = (pi.y < 0) ? 1 : -1;            // bas => +Y, haut => -Y
-    ball.vector[0] =  Math.sin(angle);
-    ball.vector[1] =  dirY * Math.cos(angle);
-    ball.y += ball.vector[1] * 0.01;
+	const dirY = (pi.y < 0) ? 1 : -1;            // bas => +Y, haut => -Y
+	ball.vector[0] =  Math.sin(angle);
+	ball.vector[1] =  dirY * Math.cos(angle);
+	ball.y += ball.vector[1] * 0.01;
   }
 
   // normalise
@@ -298,10 +329,10 @@ private resetBallPosition(sideHit: 'left'|'right'|'top'|'bottom', ball: ballClas
   const rad = (Math.random() * 2 * maxServeDeg - maxServeDeg) * Math.PI / 180;
 
   switch (sideHit) {
-    case 'left':   ball.vector = [  Math.cos(rad),  Math.sin(rad)]; break; // vers +X
-    case 'right':  ball.vector = [ -Math.cos(rad),  Math.sin(rad)]; break;
-    case 'top':    ball.vector = [  Math.sin(rad), -Math.cos(rad)]; break;
-    case 'bottom': ball.vector = [  Math.sin(rad),  Math.cos(rad)]; break;
+	case 'left':   ball.vector = [  Math.cos(rad),  Math.sin(rad)]; break; // vers +X
+	case 'right':  ball.vector = [ -Math.cos(rad),  Math.sin(rad)]; break;
+	case 'top':    ball.vector = [  Math.sin(rad), -Math.cos(rad)]; break;
+	case 'bottom': ball.vector = [  Math.sin(rad),  Math.cos(rad)]; break;
   }
 
   const l = Math.hypot(ball.vector[0], ball.vector[1]);
@@ -359,7 +390,7 @@ private  handleWallScore(sideHit: 'left'|'right'|'top'|'bottom', ball: ballClass
 	}
 
 	/** Check and trigger end */
-	private checkWinCondition(): boolean {
+	private async checkWinCondition():Promise <boolean> {
 		const elapsedMs = Date.now() - this.clock - this.totalPausedTime;
 		if (this.game.winCondition==='time' && elapsedMs >= this.game.limit*1000) {
 			this.endCleanMatch(); return true
@@ -374,6 +405,34 @@ private  handleWallScore(sideHit: 'left'|'right'|'top'|'bottom', ball: ballClass
 
 	private async endCleanMatch() {
 
+		function getResultForPlayer(userID: number, scoreMap: Map<number, number>): 0|1|2 {
+			const scores = Array.from(scoreMap.values());
+			const maxScore = Math.max(...scores);
+			const playerScore = scoreMap.get(userID) || 0;
+			const winners = scores.filter(s => s === maxScore).length;
+			if (playerScore === maxScore) {
+				if (winners === 1) return 1; // win
+				if (winners > 1) return 2;  // tie
+			}
+			return 0; // lose
+		}
+
+		const duration = Math.floor((Date.now() - this.clock - this.totalPausedTime) / 1000);
+		 console.log(`[STATS] duration: ${duration}s, ${this.players[0].userID}`);
+		await saveMatchStats(
+			this.gameID,
+			this.players[0].tournamentID || null,
+			this.game.paddleSpeed,
+			this.game.ballSpeed,
+			this.game.limit,
+			this.game.winCondition,
+			this.players.map(p => ({
+				userID: p.userID,
+				score: this.scoreMap.get(p.userID) || 0,
+				result: getResultForPlayer(p.userID, this.scoreMap)
+			})),
+			duration
+		);
 
 		const playermapped = new Map<string, number>();
 		for (const [userID, score] of this.scoreMap) {

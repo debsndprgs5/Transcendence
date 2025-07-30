@@ -1,4 +1,188 @@
 import { isAuthenticated } from './api';
+import { fetchAccountStats, state } from './pong_socket';
+import { showBallPositionsHeatmap, showWallBouncesHeatmap, showPaddleBouncesHeatmap, showGoalsHeatmap } from './heatmaps';
+
+function updateStatsChart(stats: { win: number, lose: number, tie: number }) {
+  const canvas = document.getElementById('stats-chart');
+  const legendEl = document.getElementById('stats-legend');
+  if (!canvas || !(canvas instanceof HTMLCanvasElement) || !stats) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  const data = [
+    { label: 'Win', value: stats.win, color: '#10B981' },
+    { label: 'Lose', value: stats.lose, color: '#EF4444' },
+    { label: 'Tie', value: stats.tie, color: '#F59E0B' }
+  ];
+  const filteredData = data.filter(item => item.value > 0);
+  if (filteredData.length === 0) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#6B7280';
+    ctx.font = '16px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('No games played', canvas.width / 2, canvas.height / 2);
+    if (legendEl) legendEl.innerHTML = '<span class="text-gray-500">No data available</span>';
+    return;
+  }
+  const total = filteredData.reduce((sum, item) => sum + item.value, 0);
+  let currentAngle = -Math.PI / 2; // commencer en haut
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const centerX = canvas.width / 2;
+  const centerY = canvas.height / 2;
+  const radius = Math.min(centerX, centerY) - 10;
+  filteredData.forEach(item => {
+    const sliceAngle = (item.value / total) * 2 * Math.PI;
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
+    ctx.closePath();
+    ctx.fillStyle = item.color;
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    currentAngle += sliceAngle;
+  });
+  if (legendEl) {
+    legendEl.innerHTML = filteredData.map(item => 
+      `<span class="inline-block mr-4">
+        <span class="inline-block w-3 h-3 rounded-full mr-1" style="background-color: ${item.color}"></span>
+        ${item.label}: ${item.value}%
+      </span>`
+    ).join('');
+  }
+}
+
+(window as any).updateStatsDisplay = updateStatsDisplay;
+
+function updateStatsDisplay(data: any) {
+  console.log('[updateStatsDisplay] Received data:', data);
+  if (data.winPercentage) {
+    updateStatsChart(data.winPercentage);
+    const totalWins = Math.round((data.winPercentage.win / 100) * getTotalGames(data));
+    const totalLosses = Math.round((data.winPercentage.lose / 100) * getTotalGames(data));
+    const totalTies = Math.round((data.winPercentage.tie / 100) * getTotalGames(data));
+    updateElementText('wins-count', totalWins.toString());
+    updateElementText('losses-count', totalLosses.toString());
+    updateElementText('ties-count', totalTies.toString());
+    updateElementText('total-games', getTotalGames(data).toString());
+    updateElementText('win-rate', `${data.winPercentage.win}%`);
+  }
+  if (data.matchHistory) {
+    updateMatchHistory(data.matchHistory);
+    calculateAdvancedStats(data.matchHistory);
+  }
+}
+
+function updateElementText(id: string, text: string) {
+  const element = document.getElementById(id);
+  if (element) {
+    element.textContent = text;
+  }
+}
+
+function getTotalGames(data: any): number {
+  if (data.matchHistory && Array.isArray(data.matchHistory)) {
+    return data.matchHistory.length;
+  }
+  return 0;
+}
+
+let matchHistoryDisplayCount = 30;
+let matchHistoryCache: any[] = [];
+
+function updateMatchHistory(matchHistory: any[]) {
+  const tableBody = document.getElementById('match-history-table');
+  const showMoreBtnId = 'show-more-matches-btn';
+  if (!tableBody || !Array.isArray(matchHistory)) return;
+  matchHistoryCache = matchHistory;
+  // affiche que les x premiers matchs
+  const toDisplay = matchHistory.slice(0, matchHistoryDisplayCount);
+  tableBody.innerHTML = toDisplay.map(match => {
+    const resultClass = match.result === 1 ? 'text-green-600 font-semibold' : match.result === 0 ? 'text-red-600 font-semibold' : 'text-yellow-600 font-semibold';
+    const resultText = match.result === 1 ? 'Win' : match.result === 0 ? 'Loss' : 'Tie';
+    const date = match.started_at ? new Date(match.started_at).toLocaleDateString() : 'N/A';
+    const duration = match.duration ? formatDuration(match.duration) : 'N/A';
+    const mode = match.rulesCondition === 1 ? 'Score' : 'Time';
+    return `
+      <tr class="hover:bg-gray-50">
+        <td class="px-4 py-3 text-sm text-gray-700">${date}</td>
+        <td class="px-4 py-3 text-sm text-gray-700">${match.score || 0}</td>
+        <td class="px-4 py-3 text-sm ${resultClass}">${resultText}</td>
+        <td class="px-4 py-3 text-sm text-gray-700">${duration}</td>
+        <td class="px-4 py-3 text-sm text-gray-700">${mode}</td>
+      </tr>
+    `;
+  }).join('');
+
+  // show more bouton
+  const holder = tableBody.closest('.overflow-x-auto');
+  let showMoreBtn = document.getElementById(showMoreBtnId);
+  if (matchHistory.length > matchHistoryDisplayCount) {
+    if (!showMoreBtn) {
+      showMoreBtn = document.createElement('button');
+      showMoreBtn.id = showMoreBtnId;
+      showMoreBtn.textContent = 'Show more';
+      showMoreBtn.className = 'mt-4 mb-2 px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition';
+      showMoreBtn.style.display = 'block';
+      showMoreBtn.onclick = () => {
+        matchHistoryDisplayCount += 30;
+        updateMatchHistory(matchHistoryCache);
+      };
+      const flexDiv = document.createElement('div');
+      flexDiv.className = 'flex justify-center';
+      flexDiv.appendChild(showMoreBtn);
+      holder?.appendChild(flexDiv);
+    } else {
+      showMoreBtn.style.display = 'block';
+    }
+  } else if (showMoreBtn) {
+    showMoreBtn.style.display = 'none';
+  }
+}
+
+function calculateAdvancedStats(matchHistory: any[]) {
+  if (!Array.isArray(matchHistory) || matchHistory.length === 0) return;
+  //score moyen
+  const totalScore = matchHistory.reduce((sum, match) => sum + (match.score || 0), 0);
+  const avgScore = (totalScore / matchHistory.length).toFixed(1);
+  updateElementText('avg-score', avgScore);
+  //meilleur score
+  const bestScore = Math.max(...matchHistory.map(match => match.score || 0));
+  updateElementText('best-score', bestScore.toString());
+  //duree moyenne
+  const durations = matchHistory.filter(match => match.duration).map(match => match.duration);
+  if (durations.length > 0) {
+    const avgDuration = durations.reduce((sum, dur) => sum + dur, 0) / durations.length;
+    updateElementText('avg-duration', formatDuration(Math.round(avgDuration)));
+  }
+  // streak la plus longue
+  let currentStreak = 0;
+  let maxStreak = 0;
+  matchHistory.forEach(match => {
+    if (match.result === 1) {
+      currentStreak++;
+      maxStreak = Math.max(maxStreak, currentStreak);
+    } else {
+      currentStreak = 0;
+    }
+  });
+  updateElementText('win-streak', maxStreak.toString());
+  // victoires en tournoi
+  const tournamentWins = matchHistory.filter(match => match.tourID && match.result === 1).length;
+  updateElementText('tournament-wins', tournamentWins.toString());
+  // dernier match
+  if (matchHistory.length > 0) {
+    const lastMatch = matchHistory[0];
+    const lastGameDate = lastMatch.started_at ? new Date(lastMatch.started_at).toLocaleDateString() : 'N/A';
+    updateElementText('last-game', lastGameDate);
+  }
+}
+
+function formatDuration(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+}
 
 /**
  * Renders the given HTML string into the #app element.
@@ -12,10 +196,16 @@ export function render(html: string): void {
 
 // ─── VIEWS ────────────────────────────────────────────────────────────────────
 
+function preventBodyScroll(): void {
+  document.body.style.margin = '0';
+  document.body.style.padding = '0';
+  document.body.style.overflow = 'hidden';
+}
 /**
  * Returns the HTML for the home view, depending on authentication.
  */
 export function HomeView(): string {
+	//preventBodyScroll();
     if (!isAuthenticated()) {
       return `
         <main class="min-h-screen flex items-center justify-center px-4 py-8">
@@ -141,6 +331,7 @@ export function HomeView(): string {
  * Returns the HTML for the login view.
  */
 export function LoginView(): string {
+	//preventBodyScroll();
   return `
     <div id="Container" class="w-full h-full flex items-center justify-center">
       <!-- this wrapper holds the form + rays + base -->
@@ -175,6 +366,7 @@ export function LoginView(): string {
  * Returns the HTML for the register view.
  */
 export function RegisterView(): string {
+ // preventBodyScroll();
   return `
     <div id="Container" class="w-full h-full flex items-center justify-center">
       <!-- wrapper identical to login -->
@@ -234,6 +426,7 @@ export function RegisterView(): string {
  * @param base32 The manual entry code.
  */
 export function Setup2FAView(otpauthUrl: string, base32: string): string {
+//	preventBodyScroll();
 	const chartUrl = `https://quickchart.io/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(otpauthUrl)}`;
 	return `
 		<div class="max-w-md mx-auto mt-12 bg-white shadow-lg rounded-lg overflow-hidden">
@@ -259,6 +452,7 @@ export function Setup2FAView(otpauthUrl: string, base32: string): string {
  * Returns the HTML for the 2FA verification view.
  */
 export function Verify2FAView(): string {
+//	preventBodyScroll();
   return `
     <div id="Container" class="w-full h-full flex items-center justify-center">
       <form id="verifyForm" class="v2fa-form">
@@ -291,117 +485,217 @@ export function Verify2FAView(): string {
  * Returns the HTML for the account view.
  */
 
-export function AccountView(user: any, friends: any[] = [], history2: any[] = [], history4: any[] = []): string {
-	const username = user.username || '';
-	const style = /^\d+$/.test(username)
+export function AccountView(user: any, friends: any[] = []): string {
+  // console.log('stats for user:', user);
+  // console.log('user_id:', user.userId);
+  if (user && user.userId) {
+    // if (window.location.hash === '#account' || document.body.getAttribute('data-current-view') === 'account') {
+    //   return '';
+    // }
+    fetchAccountStats(user.userId);
+    document.body.setAttribute('data-current-view', 'account');
+  }
+
+  const username = user.username || '';
+  const style = /^\d+$/.test(username)
     ? 'bottts'
     : 'initials';
 	const avatar = user.avatarUrl || `https://api.dicebear.com/9.x/${style}/svg`
-								    + `?seed=${encodeURIComponent(username)}`
-									+ `&backgroundType=gradientLinear`
-  									+ `&backgroundColor=919bff,133a94`  
-  								    + `&size=64`
-								    + `&radius=50`
+                + `?seed=${encodeURIComponent(username)}`
+                + `&backgroundType=gradientLinear`
+                + `&backgroundColor=919bff,133a94`  
+                + `&size=64`
+                + `&radius=50`;
+
+  const heatmaps = [
+    { id: 'heatmap-pos', label: 'Ball Positions', onClick: showBallPositionsHeatmap },
+    { id: 'heatmap-wall', label: 'Wall Bounces', onClick: showWallBouncesHeatmap },
+    { id: 'heatmap-paddle', label: 'Paddle Bounces', onClick: showPaddleBouncesHeatmap },
+    { id: 'heatmap-goal', label: 'Goals', onClick: () => showGoalsHeatmap([{x: 1, y: 2, value: 3}]) },
+    // #moooooore heatmaps
+  ];
+
+  setTimeout(() => {
+    heatmaps.forEach(hm => {
+      const btn = document.querySelector(`button[data-heatmap="${hm.id}"]`);
+      if (btn) {
+        btn.addEventListener('click', hm.onClick);
+      }
+    });
+  }, 0);
 
 	return `
-		<div class="min-h-screen flex items-center justify-center py-10">
-			<div class="bg-white rounded-xl shadow-xl max-w-lg w-full">
-				<div class="px-8 py-8 flex flex-col items-center bg-indigo-50 rounded-t-xl">
-					<img src="${avatar}" id="account-avatar" alt="Avatar" class="w-24 h-24 rounded-full shadow-lg border-4 border-indigo-200 mb-4 cursor-pointer">
-					<input type="file" id="avatarInput" class="hidden" accept="image/*">
-					<h2 class="text-2xl font-bold text-indigo-700 mb-1">${username}</h2>
-				</div>
-				<div class="px-8 py-6">
-					<form id="profileForm" class="space-y-3">
+		<div class="min-h-screen bg-gray-100 py-8">
+			<div class="max-w-6xl mx-auto px-4">
+				<!-- Header avec avatar et nom -->
+				<div class="bg-white rounded-xl shadow-lg mb-8">
+					<div class="px-8 py-8 flex items-center bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-t-xl">
+						<img src="${avatar}" id="account-avatar" alt="Avatar" class="w-24 h-24 rounded-full shadow-lg border-4 border-white mr-6 cursor-pointer">
+						<input type="file" id="avatarInput" class="hidden" accept="image/*">
 						<div>
-							<label for="newPassword" class="block text-sm font-medium">New password</label>
-							<input type="password" id="newPassword" name="newPassword" class="mt-1 block w-full rounded p-2 border border-gray-300">
+							<h1 class="text-3xl font-bold">${username}</h1>
+							<p class="text-lg opacity-90">Player Dashboard</p>
 						</div>
-						<button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded">Change password</button>
-					</form>
-					<button id="setup2faBtn" class="mt-3 w-full bg-yellow-500 text-black py-2 rounded">Re-config 2FA</button>
-				</div>
-				<div class="px-8 py-4 border-t border-gray-200">
-					<h3 class="text-lg font-semibold text-indigo-700 mb-2">My good ol' friends</h3>
-					<ul id="friendsList" class="space-y-2">
-						${friends.map(friend => `
-							<li class="py-1 border-b flex justify-between items-center">
-								<span class="flex-1 text-clip">
-									${friend.username}
-									<span class="friend-status ml-2 text-xs align-middle" data-userid="${friend.our_index}"></span>
-								</span>
-								<span class="flex gap-2">
-									<button class="chat-friend-btn text-xl" data-username="${friend.username}" data-userid="${friend.our_index}" title="Chat">💬</button>
-									<button class="profile-friend-btn text-xl" data-username="${friend.username}" title="Profile">👤</button>
-									<button class="remove-friend-btn text-xl text-red-500" data-username="${friend.username}" title="Remove">❌</button>
-								</span>
-							</li>
-						`).join('')}
-					</ul>
-				</div>
-				<div class="px-8 py-4 border-t border-gray-200 ">
-					<div class="flex items-center justify-between mb-4">
-					  <h3 class="text-lg font-semibold text-indigo-700">Match history</h3>
-					  <div class="space-x-2">
-					    <button id="button-2-p" class="py-2 px-2 bg-yellow-500 border rounded-lg">Show Four Players History</button>
-					    <button id="button-4-p" class="py-2 px-2 bg-orange-500 hidden border rounded-lg">Show Two Players History</button>
-					  </div>
 					</div>
-					<table id="tab-2-p" class="text-sm h-full w-full justify-items-center table-auto px-10 py-4 border black-200">
-						<thead class="sticky top-0">
-							<tr class="table w-full table-fixed justify-between">
-								<th class="text-clip overflow-hidden border">Date</th>
-								<th class="text-clip overflow-hidden border">Player 1</th>
-								<th class="text-clip overflow-hidden border">Player 2</th>
-								<th class="text-clip overflow-hidden border">Score 1</th>
-								<th class="text-clip overflow-hidden border">Score 2</th>
-							</tr>
-						</thead>
-						<tbody class="block overflow-y-auto h-32">
-							${history2.map(history2 => `
-								<tr class="table w-full table-fixed">
-									<td class="text-clip overflow-hidden text-center border">${history2.played_at}</td>
-									<td class="text-clip overflow-hidden text-center border">${history2.playerA}</td>
-									<td class="text-clip overflow-hidden text-center border">${history2.playerB}</td>
-									<td class="text-clip overflow-hidden text-center border">${history2.scoreA}</td>
-									<td class="text-clip overflow-hidden text-center border">${history2.scoreB}</td>
-								</tr>
-							`).join('')}
-						</tbody>
-					</table>
-					<table id="tab-4-p" class="text-clip overflow-hidden text-sm tab-4-p h-full w-full justify-items-center table-auto px-10 py-4 border black-200 hidden">
-						<thead class="sticky top-0">
-							<tr class="table w-full table-fixed justify-between">
-								<th class="text-clip overflow-hidden border">Date</th>
-								<th class="text-clip overflow-hidden border">Player 1</th>
-								<th class="text-clip overflow-hidden border">Player 2</th>
-								<th class="text-clip overflow-hidden border">Player 3</th>
-								<th class="text-clip overflow-hidden border">Player 4</th>
-								<th class="text-clip overflow-hidden border">Score 1</th>
-								<th class="text-clip overflow-hidden border">Score 2</th>
-								<th class="text-clip overflow-hidden border">Score 3</th>
-								<th class="text-clip overflow-hidden border">Score 4</th>
-							</tr>
-						</thead>
-						<tbody class="block overflow-y-auto h-32">
-							${history4.map(history4 => `
-								<tr class="table w-full table-fixed">
-									<td class="text-clip overflow-hidden text-center border">${history4.played_at}</td>
-									<td class="text-clip overflow-hidden text-center border">${history4.playerA}</td>
-									<td class="text-clip overflow-hidden text-center border">${history4.playerB}</td>
-									<td class="text-clip overflow-hidden text-center border">${history4.playerC}</td>
-									<td class="text-clip overflow-hidden text-center border">${history4.playerD}</td>
-									<td class="text-clip overflow-hidden text-center border">${history4.scoreA}</td>
-									<td class="text-clip overflow-hidden text-center border">${history4.scoreB}</td>
-									<td class="text-clip overflow-hidden text-center border">${history4.scoreC}</td>
-									<td class="text-clip overflow-hidden text-center border">${history4.scoreD}</td>
-								</tr>
-							`).join('')}
-						</tbody>
-					</table>
 				</div>
-				<div class="px-8 pb-8">
-					<button id="backHomeBtn" class="mt-6 w-full py-2 px-4 bg-gray-200 text-indigo-700 rounded hover:bg-gray-300 transition">← Go back</button>
+
+				<!-- Grille de statistiques -->
+				<div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+					
+					<!-- Statistiques globales -->
+					<div class="lg:col-span-2 bg-white rounded-xl shadow-lg p-6">
+						<h2 class="text-2xl font-bold text-gray-800 mb-6">Game Statistics</h2>
+						
+						<!-- Graphique circulaire -->
+						<div class="flex flex-col lg:flex-row items-center mb-8">
+							<div class="lg:w-1/2 mb-4 lg:mb-0">
+								<canvas id="stats-chart" width="250" height="250" class="mx-auto"></canvas>
+								<div id="stats-legend" class="mt-4 text-center text-sm"></div>
+							</div>
+							<div class="lg:w-1/2 lg:pl-8">
+								<div class="grid grid-cols-2 gap-4">
+									<div class="bg-green-50 p-4 rounded-lg text-center">
+										<div class="text-2xl font-bold text-green-600" id="wins-count">-</div>
+										<div class="text-sm text-gray-600">Wins</div>
+									</div>
+									<div class="bg-red-50 p-4 rounded-lg text-center">
+										<div class="text-2xl font-bold text-red-600" id="losses-count">-</div>
+										<div class="text-sm text-gray-600">Losses</div>
+									</div>
+									<div class="bg-yellow-50 p-4 rounded-lg text-center">
+										<div class="text-2xl font-bold text-yellow-600" id="ties-count">-</div>
+										<div class="text-sm text-gray-600">Ties</div>
+									</div>
+									<div class="bg-blue-50 p-4 rounded-lg text-center">
+										<div class="text-2xl font-bold text-blue-600" id="total-games">-</div>
+										<div class="text-sm text-gray-600">Total Games</div>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<!-- Statistiques avancées -->
+						<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+							<div class="bg-gray-50 p-4 rounded-lg">
+								<h3 class="text-lg font-semibold text-gray-700 mb-2">Average Score</h3>
+								<div class="text-2xl font-bold text-indigo-600" id="avg-score">-</div>
+							</div>
+							<div class="bg-gray-50 p-4 rounded-lg">
+								<h3 class="text-lg font-semibold text-gray-700 mb-2">Best Score</h3>
+								<div class="text-2xl font-bold text-green-600" id="best-score">-</div>
+							</div>
+							<div class="bg-gray-50 p-4 rounded-lg">
+								<h3 class="text-lg font-semibold text-gray-700 mb-2">Avg Game Duration</h3>
+								<div class="text-2xl font-bold text-purple-600" id="avg-duration">-</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Section profil et préférences -->
+					<div class="space-y-6">
+						<!-- Paramètres du compte -->
+						<div class="bg-white rounded-xl shadow-lg p-6">
+							<h2 class="text-xl font-bold text-gray-800 mb-4">Account Settings</h2>
+							<form id="profileForm" class="space-y-4">
+								<div>
+									<label for="newPassword" class="block text-sm font-medium text-gray-700">New Password</label>
+									<input type="password" id="newPassword" name="newPassword" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2">
+								</div>
+								<button type="submit" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition">Update Password</button>
+							</form>
+							<button id="setup2faBtn" class="mt-4 w-full bg-yellow-500 text-black py-2 px-4 rounded-md hover:bg-yellow-600 transition">Re-config 2FA</button>
+						</div>
+
+						<!-- Statistiques rapides -->
+						<div class="bg-white rounded-xl shadow-lg p-6">
+							<h2 class="text-xl font-bold text-gray-800 mb-4">Quick Stats</h2>
+							<div class="space-y-3">
+								<div class="flex justify-between">
+									<span class="text-gray-600">Win Rate</span>
+									<span class="font-semibold" id="win-rate">-%</span>
+								</div>
+								<div class="flex justify-between">
+									<span class="text-gray-600">Longest Win Streak</span>
+									<span class="font-semibold" id="win-streak">-</span>
+								</div>
+								<div class="flex justify-between">
+									<span class="text-gray-600">Tournament Wins</span>
+									<span class="font-semibold" id="tournament-wins">-</span>
+								</div>
+								<div class="flex justify-between">
+									<span class="text-gray-600">Last Game</span>
+									<span class="font-semibold" id="last-game">-</span>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+        <!-- Panel Heatmaps -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+          <h2 class="text-2xl font-bold text-gray-800 mb-6">Ball Heatmaps</h2>
+          <div class="flex flex-wrap gap-4 mb-6" id="heatmap-btn-panel">
+            ${heatmaps.map(hm => `
+              <button class="heatmap-btn px-4 py-2 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 transition font-semibold" data-heatmap="${hm.id}">${hm.label}</button>
+            `).join('')}
+          </div>
+          <div id="heatmap-holder" class="w-full min-h-[320px] flex items-center justify-center bg-gray-50 rounded-lg border border-gray-200">
+            <!-- Heatmap canvas or SVG will be injected here -->
+            <span class="text-gray-400">Select a heatmap to display ball stats.</span>
+          </div>
+        </div>
+
+				<!-- Historique des matchs -->
+				<div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+					<h2 class="text-2xl font-bold text-gray-800 mb-6">Match History</h2>
+					<div class="overflow-x-auto max-h-96 overflow-y-auto border border-gray-200 rounded-lg">
+						<table class="w-full">
+							<thead class="sticky top-0 bg-gray-50 z-10">
+								<tr>
+									<th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Date</th>
+									<th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Score</th>
+									<th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Result</th>
+									<th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Duration</th>
+									<th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Mode</th>
+								</tr>
+							</thead>
+							<tbody id="match-history-table" class="divide-y divide-gray-200">
+								<!-- Les matchs seront ajoutés ici dynamiquement -->
+							</tbody>
+						</table>
+					</div>
+				</div>
+
+				<!-- Liste des amis -->
+				<div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+					<h2 class="text-2xl font-bold text-gray-800 mb-6">Friends</h2>
+					<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+						${friends.map(friend => `
+							<div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
+								<div class="flex items-center justify-between">
+									<div class="flex items-center">
+										<div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center mr-3">
+											<span class="text-indigo-600 font-semibold">${friend.username.charAt(0).toUpperCase()}</span>
+										</div>
+										<div>
+											<div class="font-medium text-gray-900">${friend.username}</div>
+											<span class="friend-status text-xs text-gray-500" data-userid="${friend.our_index}">Offline</span>
+										</div>
+									</div>
+									<div class="flex gap-2">
+										<button class="chat-friend-btn text-blue-600 hover:text-blue-800" data-username="${friend.username}" data-userid="${friend.our_index}" title="Chat">💬</button>
+										<button class="profile-friend-btn text-gray-600 hover:text-gray-800" data-username="${friend.username}" title="Profile">👤</button>
+										<button class="remove-friend-btn text-red-600 hover:text-red-800" data-username="${friend.username}" title="Remove">❌</button>
+									</div>
+								</div>
+							</div>
+						`).join('')}
+					</div>
+				</div>
+
+				<!-- Bouton retour -->
+				<div class="text-center">
+					<button id="backHomeBtn" class="px-8 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition shadow-md">← Back to Home</button>
 				</div>
 			</div>
 		</div>
@@ -411,17 +705,17 @@ export function AccountView(user: any, friends: any[] = [], history2: any[] = []
 /**
  * Returns the HTML for the profile view.
  */
-export function ProfileView(profileUser: any, history2: any[] = [], history4: any[] = []): string {
+export function ProfileView(profileUser: any): string {
 	const username = profileUser.username || '';
 	const style = /^\d+$/.test(username)
     ? 'bottts'
     : 'initials';
 	const avatar = profileUser.avatarUrl || `https://api.dicebear.com/9.x/${style}/svg`
-								    + `?seed=${encodeURIComponent(username)}`
-									+ `&backgroundType=gradientLinear`
-  									+ `&backgroundColor=919bff,133a94`  
-  								    + `&size=64`
-								    + `&radius=50`
+                + `?seed=${encodeURIComponent(username)}`
+                + `&backgroundType=gradientLinear`
+                + `&backgroundColor=919bff,133a94`  
+                + `&size=64`
+                + `&radius=50`
 
 	return `
 		<div class="min-h-screen flex items-center justify-center py-10">
@@ -436,65 +730,10 @@ export function ProfileView(profileUser: any, history2: any[] = [], history4: an
 						<p class="text-gray-500">(Stats placeholder)</p>
 					</div>
 					<div id="game-history" class="mt-6">
-						<div class="flex items-center justify-between mb-4">
 						  <h3 class="text-lg font-semibold">Recent Games</h3>
-						    <div class="space-x-2">
-						      <button id="button-2-p" class="py-2 px-2 bg-yellow-500 border rounded-lg">Show Four Players History</button>
-						      <button id="button-4-p" class="py-2 px-2 bg-orange-500 hidden border rounded-lg">Show Two Players History</button>
-						    </div>
-						</div>
-						<table id="tab-2-p" class="text-sm h-full w-full justify-items-center table-auto px-10 py-4 border black-200">
-							<thead class="sticky top-0">
-								<tr class="table w-full table-fixed justify-between">
-									<th class="text-clip overflow-hidden border">Date</th>
-									<th class="text-clip overflow-hidden border">Player 1</th>
-									<th class="text-clip overflow-hidden border">Player 2</th>
-									<th class="text-clip overflow-hidden border">Score 1</th>
-									<th class="text-clip overflow-hidden border">Score 2</th>
-								</tr>
-							</thead>
-							<tbody class="block overflow-y-auto h-32">
-								${history2.map(history2 => `
-									<tr class="table w-full table-fixed">
-										<td class="text-clip overflow-hidden text-center border">${history2.played_at}</td>
-										<td class="text-clip overflow-hidden text-center border">${history2.playerA}</td>
-										<td class="text-clip overflow-hidden text-center border">${history2.playerB}</td>
-										<td class="text-clip overflow-hidden text-center border">${history2.scoreA}</td>
-										<td class="text-clip overflow-hidden text-center border">${history2.scoreB}</td>
-									</tr>
-								`).join('')}
-							</tbody>
-						</table>
-						<table id="tab-4-p" class="text-clip overflow-hidden text-sm tab-4-p h-full w-full justify-items-center table-auto px-10 py-4 border black-200 hidden">
-							<thead class="sticky top-0">
-								<tr class="table w-full table-fixed justify-between">
-									<th class="text-clip overflow-hidden border">Date</th>
-									<th class="text-clip overflow-hidden border">Player 1</th>
-									<th class="text-clip overflow-hidden border">Player 2</th>
-									<th class="text-clip overflow-hidden border">Player 3</th>
-									<th class="text-clip overflow-hidden border">Player 4</th>
-									<th class="text-clip overflow-hidden border">Score 1</th>
-									<th class="text-clip overflow-hidden border">Score 2</th>
-									<th class="text-clip overflow-hidden border">Score 3</th>
-									<th class="text-clip overflow-hidden border">Score 4</th>
-								</tr>
-							</thead>
-							<tbody class="block overflow-y-auto h-32">
-								${history4.map(history4 => `
-									<tr class="table w-full table-fixed">
-										<td class="text-clip overflow-hidden text-center border">${history4.played_at}</td>
-										<td class="text-clip overflow-hidden text-center border">${history4.playerA}</td>
-										<td class="text-clip overflow-hidden text-center border">${history4.playerB}</td>
-										<td class="text-clip overflow-hidden text-center border">${history4.playerC}</td>
-										<td class="text-clip overflow-hidden text-center border">${history4.playerD}</td>
-										<td class="text-clip overflow-hidden text-center border">${history4.scoreA}</td>
-										<td class="text-clip overflow-hidden text-center border">${history4.scoreB}</td>
-										<td class="text-clip overflow-hidden text-center border">${history4.scoreC}</td>
-										<td class="text-clip overflow-hidden text-center border">${history4.scoreD}</td>
-									</tr>
-								`).join('')}
-							</tbody>
-						</table>
+						<ul class="list-disc list-inside text-gray-500">
+							<li>Game history placeholder</li>
+            </ul>
 					</div>
 				</div>
 				<div class="px-8 pb-8">

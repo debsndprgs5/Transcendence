@@ -19,6 +19,8 @@ export const pongState =
 	localMapRenderer: null as any | null
 };
 
+export { state };
+
 export async function initGameSocket(): Promise<void> {
 	if (!state.authToken) return;
 
@@ -182,7 +184,11 @@ async function handleEvents(
 	  }
 	  await handleReconnection(socket, typedSocket, data);
 	});
-	
+	typedSocket.on('statsResult', (_socket: WebSocket, data: any) => {
+		if (typeof (window as any).updateStatsDisplay === 'function') {
+			(window as any).updateStatsDisplay(data);
+		}
+	});
 }
 
 export async function handleInit(data:Interfaces.SocketMessageMap['init'], gameSocket:WebSocket){
@@ -614,4 +620,9 @@ export async function handleReconnection(socket:WebSocket, typedSocket:TypedSock
 			type: 'info',
 		});
 	}
+}
+
+export function fetchAccountStats(userID: number) {
+  if (!state?.typedSocket) return;
+  state.typedSocket.send('getStats', { userID });
 }

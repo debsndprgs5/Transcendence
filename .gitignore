@@ -11,3 +11,5 @@ vault_data_local/
 /vault/data/*
 .env.vault
 .vault-keys
+
+.github/

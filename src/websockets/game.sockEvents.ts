@@ -18,12 +18,16 @@ const jwtSecret = getJwtSecret();
 //Map of pending invite for timeout and duplicates managment
 const PendingInvites = new Map<number, { inviterID: number; timeout: NodeJS.Timeout }>();
 
-//ADD event here if needed for gameSocket
 export function handleAllEvents(typedSocket:TypedSocket, player:Interfaces.playerInterface) {
    typedSocket.on('init', async (socket:WebSocket, data:Interfaces.SocketMessageMap['init']) => {
      handleInit(data, player);
    });
-
+  typedSocket.on('getStats', async (socket:WebSocket, data:{ userID?: number }) => {
+    if (data.userID) {
+      const stats = await GameManagement.getStatsForUser(data.userID);
+      typedSocket.send('statsResult', stats);
+    }
+  });
   typedSocket.on('joinGame', async (socket:WebSocket, data:Interfaces.SocketMessageMap['joinGame']) => {
     handleJoin(data, player);
   });
@@ -245,12 +249,12 @@ export async function  handleReconnect(parsed:any ,player: Interfaces.playerInte
 	if (parsed.userID !== player.userID) {
 		console.warn(`[RECONNECT] Mismatch: received ${parsed.userID}, expected ${player.userID}. Reinitializing...`);
 
-		player.typedSocket.send('init', {
-			userID: player.userID,
-			username: player.username,
-			state: 'init',
-			success: true,
-		});
+    player.typedSocket.send('init', {
+      userID: player.userID,
+      username: player.username,
+      state: 'init',
+      success: true,
+    });
     Helpers.updatePlayerState(player, 'init');
 		return;
 	}
@@ -283,8 +287,8 @@ export async function  handleReconnect(parsed:any ,player: Interfaces.playerInte
 		state: player.state,
 		gameID: player.gameID ?? null,
 		tournamentID: player.tournamentID ?? null,
-    isTourOwner:player.isTourOwner ?? false,
-    hasStarted:hasStarted,
+    	isTourOwner:player.isTourOwner ?? false,
+    	hasStarted:hasStarted,
 		message: resumed ? 'Game resumed' : 'No game to resume',
 	});
 }

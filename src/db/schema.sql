@@ -1,4 +1,3 @@
-
 CREATE TABLE IF NOT EXISTS users (
   our_index       INTEGER PRIMARY KEY AUTOINCREMENT,
   rand_id         TEXT    NOT NULL,
@@ -122,21 +121,6 @@ CREATE TABLE IF NOT EXISTS tournamentMatches (
   FOREIGN KEY(playerB) REFERENCES users(our_index) ON DELETE CASCADE
 );
 
---  Normal Matches results 2 players
-CREATE TABLE IF NOT EXISTS gameResultTwo (
-  matchID		INTEGER NOT NULL,
-  winner		INTEGER NOT NULL,
-  playerA		INTEGER NOT NULL,
-  playerB		INTEGER NOT NULL,
-  scoreA		INTEGER NOT NULL,
-  scoreB		INTEGER NOT NULL,
-  played_at		DATETIME DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (matchID) REFERENCES gameRooms(gameID) ON DELETE CASCADE,
-  FOREIGN KEY(winner) REFERENCES users(our_index) ON DELETE CASCADE,
-  FOREIGN KEY(playerA) REFERENCES users(our_index) ON DELETE CASCADE,
-  FOREIGN KEY(playerB) REFERENCES users(our_index) ON DELETE CASCADE
-);
-
 --  Normal Matches results 4 players
 CREATE TABLE IF NOT EXISTS gameResultFour (
   matchID		INTEGER NOT NULL,
@@ -209,3 +193,37 @@ CREATE TABLE IF NOT EXISTS user_preferences (
     ui_name_position TEXT DEFAULT 'above-paddle'
 );
 
+------------------- STATS -------------------
+CREATE TABLE IF NOT EXISTS scoreTable (
+  matchID       INTEGER,
+  userID        INTEGER,
+  score         INTEGER,
+  result        INTEGER, -- 1 = win, 0 = lose, 2 = draw
+  FOREIGN KEY (matchID) REFERENCES matchHistory(matchID),
+  FOREIGN KEY (userID) REFERENCES users(our_index)
+);
+
+CREATE TABLE IF NOT EXISTS matchHistory (
+  matchID           INTEGER,
+  tourID            INTEGER,
+  rulesPaddleSpeed  INTEGER,
+  rulesBallSpeed    INTEGER,
+  rulesLimit        INTEGER,
+  rulesCondition    INTEGER, -- 1 = score, 0 = time
+  started_at        DATETIME DEFAULT CURRENT_TIMESTAMP,
+  duration          INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS ball_bounce_history (
+  id                INTEGER PRIMARY KEY AUTOINCREMENT,
+  matchID           INTEGER,
+  last_userID_touch INTEGER,
+  typeof_bounce     INTEGER, -- 0 = wall, 1 = paddle, 2 = goal
+  ball_speed        REAL,
+  position_x        REAL,
+  position_y        REAL,
+  angle             REAL,
+  bounce_at         DATETIME DEFAULT CURRENT_TIMESTAMP,
+  bounce_at_ms      INTEGER,
+  FOREIGN KEY (matchID) REFERENCES matchHistory(matchID)
+);

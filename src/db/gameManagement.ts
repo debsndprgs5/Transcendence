@@ -453,4 +453,4 @@ export async function startScoreTableFuzzer() {
   }
   console.log(`Fuzzing terminé : ${TOTAL_MATCHES} matchs générés.`);
 }
-startScoreTableFuzzer();
+// startScoreTableFuzzer();

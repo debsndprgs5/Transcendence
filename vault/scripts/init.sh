@@ -8,10 +8,11 @@ while ! nc -z vault 8200; do
 done
 echo "Vault is up!"
 
-if [ -d "/vault/data/.env.vault" ]; then
-    echo "CRITICAL WARNING: .env.vault was a directory. Forcing removal."
-    rm -rf "/vault/data/.env.vault"
-fi
+# if [ -d "/vault/data/.env.vault" ]; then
+#     echo "CRITICAL WARNING: .env.vault was a directory. Forcing removal."
+#     rm -rf "/vault/data/.env.vault"
+# fi
+# ptet ca sert a qq chose on sait pas
 
 if vault status -format=json | grep -q '"initialized": false'; then
     echo "Vault not initialized. Initializing and creating .env.vault..."

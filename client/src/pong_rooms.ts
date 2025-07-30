@@ -259,13 +259,23 @@ export function drawMainMenu(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
   ctx.fillText("3D Pong", width/2, height/5 + 50);
   ctx.shadowBlur = 0;
 
+
+  const space = 60;
+  const startY = height / 2 - space;
   const labels = [
-	{ action: 'Create Game', y: height/2 - 40 },
-	{ action: 'Join Game',   y: height/2 + 20 },
-	{ action: 'Tournament',  y: height/2 + 80 },
-	{ action: 'Settings',    y: height/2 + 140 },
-	{ action: 'Local Game', y: height/2 + 200},
+	{ action: 'Create Game', y: startY + space * 0 },
+	{ action: 'Join Game',   y: startY + space * 1 },
+	{ action: 'Tournament',  y: startY + space * 2 },
+	// { action: 'Settings',    y: startY + space * 3 },
+	{ action: 'Local Game', y: startY + space * 3 },
   ];
+//   const labels = [
+// 	{ action: 'Create Game', y: height/2 - 40 },
+// 	{ action: 'Join Game',   y: height/2 + 20 },
+// 	{ action: 'Tournament',  y: height/2 + 80 },
+// 	{ action: 'Settings',    y: height/2 + 140 },
+// 	{ action: 'Local Game', y: height/2 + 200},
+//   ];
   ctx.font = `${Math.floor(height/20)}px 'Orbitron', sans-serif`;
 
   const btnW = 260, btnH = 50;

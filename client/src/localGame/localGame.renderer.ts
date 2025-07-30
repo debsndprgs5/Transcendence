@@ -100,7 +100,7 @@ export class LocalGameRenderer
 		this.activeUI = ui;
 		
 		const overlay = new GUI.Rectangle();
-		overlay.background = "rgba(0,0,0,0.7)";
+		overlay.background = "rgba(0, 0, 0, 0.16)";
 		overlay.width = "100%";
 		overlay.height = "100%";
 		overlay.thickness = 0;
@@ -116,7 +116,7 @@ export class LocalGameRenderer
 		overlay.addControl(mainContainer);
 		
 		const titleText = new GUI.TextBlock();
-		titleText.text = "🏆 GAME OVER 🏆";
+		titleText.text = "🤌 Endgame 🤌";
 		titleText.color = "#38bdf8";
 		titleText.fontSize = "36px";
 		titleText.fontWeight = "bold";

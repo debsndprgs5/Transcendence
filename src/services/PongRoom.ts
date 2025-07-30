@@ -13,6 +13,7 @@ import {
 import { getUnameByIndex } from '../db/userManagement'
 import { Tournament } from './tournament'
 import { saveMatchStats } from '../db/gameManagement'
+import { insertBallBounceHistory } from '../db/Stats'
 
 /**
  * A lightweight container for one running Pong match.
@@ -180,61 +181,77 @@ private frame() {
 
 /** Bounce or score on arena walls, with angle caps */
 private bounceArena(ball: ballClass) {
-		const W      = this.WIDTH/2;
-		const H      = this.HEIGHT/2;
-		const R      = ball.radius;
-		const maxA   = Math.tan(75 * Math.PI/180);
-		const minA   = Math.tan(15 * Math.PI/180);
+	const W      = this.WIDTH/2;
+	const H      = this.HEIGHT/2;
+	const R      = ball.radius;
+	const maxA   = Math.tan(75 * Math.PI/180);
+	const minA   = Math.tan(15 * Math.PI/180);
 
-		if (this.game.mode === 'duo') {
-			// goals
-			if (ball.x - R <= -W) { this.handleWallScore('left', ball); return; }
-			if (ball.x + R >=  W) { this.handleWallScore('right', ball); return; }
+	const logBounce = async (typeof_bounce: 0|1|2) => {
+		if (typeof_bounce === 2 && !ball.last_bounce) return;
+		await insertBallBounceHistory(
+			this.gameID,
+			ball.last_bounce?.paddleInterface.userID ?? null,
+			typeof_bounce,
+			ball.speed,
+			ball.x,
+			ball.y,
+			Math.atan2(ball.vector[1], ball.vector[0]),
+			Date.now()
+		);
+	};
 
-			// bounce on top wall
-			if (ball.y + R >= H && ball.vector[1] > 0) {
-				// push ball out the wall
-				ball.y = H - R - 1e-3;
-				// invert (Y)
-				ball.vector[1] *= -1;
+	if (this.game.mode === 'duo') {
+		// goals
+		if (ball.x - R <= -W) { logBounce(2); this.handleWallScore('left', ball); return; }
+		if (ball.x + R >=  W) { logBounce(2); this.handleWallScore('right', ball); return; }
 
-				// angle clamp
-				//    ratio = vx/vy
-				let ratio = ball.vector[0] / ball.vector[1];
-				const sign = Math.sign(ratio) || 1;
+		// bounce on top wall
+		if (ball.y + R >= H && ball.vector[1] > 0) {
+			logBounce(0);
+			// push ball out the wall
+			ball.y = H - R - 1e-3;
+			// invert (Y)
+			ball.vector[1] *= -1;
 
-				ratio = Math.min(maxA, Math.max(minA, Math.abs(ratio))) * sign;
+			// angle clamp
+			//    ratio = vx/vy
+			let ratio = ball.vector[0] / ball.vector[1];
+			const sign = Math.sign(ratio) || 1;
 
-				// recalc vx from vy
-				ball.vector[0] = ratio * ball.vector[1];
+			ratio = Math.min(maxA, Math.max(minA, Math.abs(ratio))) * sign;
 
-				// 4) renorm to ||v||=1
-				const len = Math.hypot(ball.vector[0], ball.vector[1]);
-				ball.vector[0] /= len;
-				ball.vector[1] /= len;
-			}
+			// recalc vx from vy
+			ball.vector[0] = ratio * ball.vector[1];
 
-			// bounce on bottom wall
-			if (ball.y - R <= -H && ball.vector[1] < 0) {
-				ball.y = -H + R + 1e-3;
-				ball.vector[1] *= -1;
-
-				let ratio = ball.vector[0] / ball.vector[1];
-				const sign = Math.sign(ratio) || 1;
-				ratio = Math.min(maxA, Math.max(minA, Math.abs(ratio))) * sign;
-				ball.vector[0] = ratio * ball.vector[1];
-				const len = Math.hypot(ball.vector[0], ball.vector[1]);
-				ball.vector[0] /= len;
-				ball.vector[1] /= len;
-			}
+			// 4) renorm to ||v||=1
+			const len = Math.hypot(ball.vector[0], ball.vector[1]);
+			ball.vector[0] /= len;
+			ball.vector[1] /= len;
 		}
-		else {
-			// 4p: score on all walls
-			if (ball.x - R <= -W) { this.handleWallScore('left', ball); return }
-			if (ball.x + R >=  W) { this.handleWallScore('right', ball); return }
-			if (ball.y - R <= -H) { this.handleWallScore('bottom', ball); return }
-			if (ball.y + R >=  H) { this.handleWallScore('top', ball); return }
+
+		// bounce on bottom wall
+		if (ball.y - R <= -H && ball.vector[1] < 0) {
+			logBounce(0);
+			ball.y = -H + R + 1e-3;
+			ball.vector[1] *= -1;
+
+			let ratio = ball.vector[0] / ball.vector[1];
+			const sign = Math.sign(ratio) || 1;
+			ratio = Math.min(maxA, Math.max(minA, Math.abs(ratio))) * sign;
+			ball.vector[0] = ratio * ball.vector[1];
+			const len = Math.hypot(ball.vector[0], ball.vector[1]);
+			ball.vector[0] /= len;
+			ball.vector[1] /= len;
 		}
+	}
+	else {
+		// 4p: score on all walls
+		if (ball.x - R <= -W) { logBounce(2); this.handleWallScore('left', ball); return }
+		if (ball.x + R >=  W) { logBounce(2); this.handleWallScore('right', ball); return }
+		if (ball.y - R <= -H) { logBounce(2); this.handleWallScore('bottom', ball); return }
+		if (ball.y + R >=  H) { logBounce(2); this.handleWallScore('top', ball); return }
+	}
 	}
 
 
@@ -266,6 +283,17 @@ private bounce_player(ball: ballClass, paddle: paddleClass) {
   if (dx*dx + dy*dy > R*R) return;               // pas de contact
 
   const maxAngle = 75 * Math.PI / 180;
+
+  insertBallBounceHistory(
+	this.gameID,
+	pi.userID,
+	1,
+	ball.speed,
+	ball.x,
+	ball.y,
+	Math.atan2(ball.vector[1], ball.vector[0]),
+	Date.now()
+  );
 
   if (pi.type === 'H') {                         // raquette gauche / droite
 	const rel = (ball.y - pi.y) / (pi.length/2); // centre direct

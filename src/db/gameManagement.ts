@@ -5,6 +5,7 @@ import * as chatType from '../types/chat';
 import { PreferencesRow } from '../shared/gameTypes'
 import { run, get, getAll } from './userManagement';
 import { getPlayerByUserID } from '../websockets/game.socket';
+import * as Stats from './Stats';
 
 // ########################
 // #       GAME ROOMS     #
@@ -339,45 +340,33 @@ export const setBackDefPref = async (userID: number) => {
 };
 
 export const getStatsForUser = async (userID: number) => {
-	const results = await getAll<{
-	  matchID: number;
-	  tourID: number | null;
-	  rulesPaddleSpeed: number;
-	  rulesBallSpeed: number;
-	  rulesLimit: number;
-	  rulesCondition: number;
-	  started_at: string;
-	  duration: number;
-	  score: number;
-	  result: number;
-	}>(
-	  `SELECT
-		mh.matchID, mh.tourID, mh.rulesPaddleSpeed, mh.rulesBallSpeed, mh.rulesLimit, mh.rulesCondition, mh.started_at, mh.duration,
-		st.score, st.result
-	  FROM scoreTable st
-	  JOIN matchHistory mh ON st.matchID = mh.matchID
-	  WHERE st.userID = ?`,
-	//   ORDER BY mh.started_at DESC`,
-	  [userID]
-	);
-	if (!results || results.length === 0) {
-	  return { winPercentage: { win: 0, lose: 0, tie: 0 }, matchHistory: [] };
-	}
-	let wins = 0;
-	let losses = 0;
-	let ties = 0;
-	for (const match of results) {
-	  if (match.result === 1) wins++;
-	  else if (match.result === 0) losses++;
-	  else if (match.result === 2) ties++;
-	}
-	const winPercentage = {
-	  win: Number(((wins / results.length) * 100).toFixed(1)),
-	  lose: Number(((losses / results.length) * 100).toFixed(1)),
-	  tie: Number(((ties / results.length) * 100).toFixed(1)),
-	};
-	return { winPercentage, matchHistory: results };
-  };
+  const results = await getAll<{
+	matchID: number;
+	tourID: number | null;
+	rulesPaddleSpeed: number;
+	rulesBallSpeed: number;
+	rulesLimit: number;
+	rulesCondition: number;
+	started_at: string;
+	duration: number;
+	score: number;
+	result: number;
+  }>(
+	`SELECT
+	  mh.matchID, mh.tourID, mh.rulesPaddleSpeed, mh.rulesBallSpeed, mh.rulesLimit, mh.rulesCondition, mh.started_at, mh.duration,
+	  st.score, st.result
+	FROM scoreTable st
+	JOIN matchHistory mh ON st.matchID = mh.matchID
+	WHERE st.userID = ?`,
+	[userID]
+  );
+  if (!results || results.length === 0) {
+	  return { winPercentage: { win: 0, lose: 0, tie: 0 }, matchHistory: []};
+  }
+  const winPercentage = Stats.getWinPercentage(results);
+  // console.log(`[getStatsForUser] goals: ${goals.length}, goals: ${JSON.stringify(goals)}`);
+  return { winPercentage: winPercentage, matchHistory: results};
+};
 
 export async function startScoreTableFuzzer() {
   await new Promise(resolve => setTimeout(resolve, 15000));

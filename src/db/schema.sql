@@ -209,59 +209,20 @@ CREATE TABLE IF NOT EXISTS matchHistory (
   rulesBallSpeed    INTEGER,
   rulesLimit        INTEGER,
   rulesCondition    INTEGER, -- 1 = score, 0 = time
-  started_at        DATETIME DEFAULT CURRENT_TIMESTAMP, -- date et heure de début du match
-  duration          INTEGER -- durée du match en secondes
+  started_at        DATETIME DEFAULT CURRENT_TIMESTAMP,
+  duration          INTEGER
 );
 
--- -- Données de test pour scoreTable (matchs entre userId 1 et 2)
--- INSERT INTO scoreTable (matchID, userID, score, result) VALUES
---   (1, 1, 10, 1), (1, 2, 5, 0),
---   (2, 1, 7, 0),  (2, 2, 11, 1),
---   (3, 1, 8, 0),  (3, 2, 12, 1),
---   (4, 1, 15, 1), (4, 2, 3, 0),
---   (5, 1, 6, 0),  (5, 2, 9, 1),
---   (6, 1, 13, 1), (6, 2, 7, 0),
---   (7, 1, 4, 0),  (7, 2, 16, 1),
---   (8, 1, 12, 1), (8, 2, 8, 0),
---   (9, 1, 10, 2), (9, 2, 10, 2),
---   (10, 1, 14, 1), (10, 2, 6, 0),
---   (11, 1, 9, 0),  (11, 2, 11, 1),
---   (12, 1, 5, 0),  (12, 2, 15, 1),
---   (13, 1, 11, 1), (13, 2, 9, 0),
---   (14, 1, 8, 0),  (14, 2, 12, 1),
---   (15, 1, 10, 2), (15, 2, 10, 2),
---   (16, 1, 14, 1), (16, 2, 6, 0),
---   (17, 1, 9, 0),  (17, 2, 11, 1),
---   (18, 1, 5, 0),  (18, 2, 15, 1),
---   (19, 1, 11, 1), (19, 2, 9, 0),
---   (20, 1, 8, 0),  (20, 2, 12, 1),
---   (21, 1, 10, 2), (21, 2, 10, 2),
---   (22, 1, 14, 1), (22, 2, 6, 0),
---   (23, 1, 9, 0),  (23, 2, 11, 1),
---   (24, 1, 5, 0),  (24, 2, 15, 1),
---   (25, 1, 11, 1), (25, 2, 9, 0),
---   (26, 1, 8, 0),  (26, 2, 12, 1),
---   (27, 1, 10, 2), (27, 2, 10, 2),
---   (28, 1, 14, 1), (28, 2, 6, 0),
---   (29, 1, 9, 0),  (29, 2, 11, 1),
---   (30, 1, 5, 0),  (30, 2, 15, 1),
---   (31, 1, 11, 1), (31, 2, 9, 0),
---   (32, 1, 8, 0),  (32, 2, 12, 1),
---   (33, 1, 10, 2), (33, 2, 10, 2),
---   (34, 1, 14, 1), (34, 2, 6, 0),
---   (35, 1, 9, 0),  (35, 2, 11, 1);
-
--- -- userID 1 : 13 victoires
--- -- userID 2 : 17 victoires
--- -- Egalités : 5
-
--- INSERT INTO scoreTable (matchID, userID, score, result) VALUES
---   (1, 1, 10, 1), (1, 2, 5, 0), (1, 3, 5, 0), (1, 4, 10, 1),
---   (2, 1, 7, 0),  (2, 2, 11, 1), (2, 3, 7, 0), (2, 4, 11, 1);
-
-
--- INSERT INTO scoreTable (matchID, userID, score, result) VALUES
---   (3, 1, 8, 1),  (3, 3, 3, 0),
---   (4, 1, 6, 0),  (4, 4, 14, 1),
---   (5, 1, 100, 2), (5, 2, 100, 2);
-  
+CREATE TABLE IF NOT EXISTS ball_bounce_history (
+  id                INTEGER PRIMARY KEY AUTOINCREMENT,
+  matchID           INTEGER,
+  last_userID_touch INTEGER,
+  typeof_bounce     INTEGER, -- 0 = wall, 1 = paddle, 2 = goal
+  ball_speed        REAL,
+  position_x        REAL,
+  position_y        REAL,
+  angle             REAL,
+  bounce_at         DATETIME DEFAULT CURRENT_TIMESTAMP,
+  bounce_at_ms      INTEGER,
+  FOREIGN KEY (matchID) REFERENCES matchHistory(matchID)
+);

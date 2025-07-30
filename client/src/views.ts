@@ -1,5 +1,6 @@
 import { isAuthenticated } from './api';
 import { fetchAccountStats, state } from './pong_socket';
+import { showBallPositionsHeatmap, showWallBouncesHeatmap, showPaddleBouncesHeatmap, showGoalsHeatmap } from './heatmaps';
 
 function updateStatsChart(stats: { win: number, lose: number, tie: number }) {
   const canvas = document.getElementById('stats-chart');
@@ -500,8 +501,8 @@ export function Verify2FAView(): string {
  */
 
 export function AccountView(user: any, friends: any[] = []): string {
-  // console.log('Fetching account stats for user:', user);
-  // console.log('Rendering account view for user_id:', user.userId);
+  // console.log('stats for user:', user);
+  // console.log('user_id:', user.userId);
   if (user && user.userId) {
     if (window.location.hash === '#account' || document.body.getAttribute('data-current-view') === 'account') {
       return '';
@@ -519,7 +520,24 @@ export function AccountView(user: any, friends: any[] = []): string {
                 + `&backgroundType=gradientLinear`
                 + `&backgroundColor=919bff,133a94`  
                 + `&size=64`
-                + `&radius=50`
+                + `&radius=50`;
+
+  const heatmaps = [
+    { id: 'heatmap-pos', label: 'Ball Positions', onClick: showBallPositionsHeatmap },
+    { id: 'heatmap-wall', label: 'Wall Bounces', onClick: showWallBouncesHeatmap },
+    { id: 'heatmap-paddle', label: 'Paddle Bounces', onClick: showPaddleBouncesHeatmap },
+    { id: 'heatmap-goal', label: 'Goals', onClick: () => showGoalsHeatmap([{x: 1, y: 2, value: 3}]) },
+    // #moooooore heatmaps
+  ];
+
+  setTimeout(() => {
+    heatmaps.forEach(hm => {
+      const btn = document.querySelector(`button[data-heatmap="${hm.id}"]`);
+      if (btn) {
+        btn.addEventListener('click', hm.onClick);
+      }
+    });
+  }, 0);
 
 	return `
 		<div class="min-h-screen bg-gray-100 py-8">
@@ -627,6 +645,20 @@ export function AccountView(user: any, friends: any[] = []): string {
 						</div>
 					</div>
 				</div>
+
+        <!-- Panel Heatmaps -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+          <h2 class="text-2xl font-bold text-gray-800 mb-6">Ball Heatmaps</h2>
+          <div class="flex flex-wrap gap-4 mb-6" id="heatmap-btn-panel">
+            ${heatmaps.map(hm => `
+              <button class="heatmap-btn px-4 py-2 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 transition font-semibold" data-heatmap="${hm.id}">${hm.label}</button>
+            `).join('')}
+          </div>
+          <div id="heatmap-holder" class="w-full min-h-[320px] flex items-center justify-center bg-gray-50 rounded-lg border border-gray-200">
+            <!-- Heatmap canvas or SVG will be injected here -->
+            <span class="text-gray-400">Select a heatmap to display ball stats.</span>
+          </div>
+        </div>
 
 				<!-- Historique des matchs -->
 				<div class="bg-white rounded-xl shadow-lg p-6 mb-8">

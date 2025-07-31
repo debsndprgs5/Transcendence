@@ -4,7 +4,7 @@ import * as gameMgr from '../db/gameManagement';
 export async function tournamentRoutes(fastify: FastifyInstance) {
 	// Create tournament
 	fastify.post('/tournament/:userID', async (request: FastifyRequest, reply: FastifyReply) => {
-		console.log('[TOURNAMENT][ROUTES][POST][CREATETOURNAMENT]');
+		
 		try {
 			const userID = Number((request.params as any).userID);
 			const body = request.body as {
@@ -56,7 +56,7 @@ export async function tournamentRoutes(fastify: FastifyInstance) {
 
 	// List all tournaments
 	fastify.get('/tournament/list', async (request: FastifyRequest, reply: FastifyReply) => {
-		console.log('[TOURNAMENT][ROUTES][GET][LISTTournaments]');
+		
 		try {
 			const all = await gameMgr.getAllTournaments();
 			return reply.send({
@@ -81,7 +81,7 @@ export async function tournamentRoutes(fastify: FastifyInstance) {
 
 	// Get tournament details (infos + members list + eventually matches)
 	fastify.get('/tournament/:tournamentID', async (request: FastifyRequest, reply: FastifyReply) => {
-		console.log('[TOURNAMENT][ROUTES][GET][GETTOURNAMENTDATA]');
+		
 		try {
 			const tournamentID = Number((request.params as any).tournamentID);
 			const info = await gameMgr.getTournamentById(tournamentID);
@@ -113,7 +113,7 @@ export async function tournamentRoutes(fastify: FastifyInstance) {
 
 	// Delete tournament
 	fastify.delete('/tournament/:tournamentID', async (request: FastifyRequest, reply: FastifyReply) => {
-		console.log('[TOURNAMENT][ROUTES][DELETE][DELTournament]');
+		
 		try {
 			const tournamentID = Number((request.params as any).tournamentID);
 			await gameMgr.delTournament(tournamentID);
@@ -126,7 +126,7 @@ export async function tournamentRoutes(fastify: FastifyInstance) {
 
 	// Add a member to a tournament
 	fastify.post('/tournament/:tournamentID/join/:userID', async (request: FastifyRequest, reply: FastifyReply) => {
-		console.log('[TOURNAMENT][ROUTES][POST][JOINTOURNAMENT]');
+		
 		try {
 			const tournamentID = Number((request.params as any).tournamentID);
 			const userID = Number((request.params as any).userID);
@@ -148,7 +148,7 @@ export async function tournamentRoutes(fastify: FastifyInstance) {
 
 	// List a specific tournament's players
 	fastify.get('/tournament/:tournamentID/members', async (request: FastifyRequest, reply: FastifyReply) => {
-		console.log('[TOURNAMENT][ROUTES][GET][GETMEMBERS]');
+		
 		try {
 			const tournamentID = Number((request.params as any).tournamentID);
 			const members = await gameMgr.getAllTournamentMembers(tournamentID);
@@ -162,7 +162,7 @@ export async function tournamentRoutes(fastify: FastifyInstance) {
 	// Keep match's results
 	//    expected : { playerA, playerB, scoreA, scoreB }
 	fastify.post('/tournament/:tournamentID/match', async (request: FastifyRequest, reply: FastifyReply) => {
-		console.log('[TOURNAMENT][ROUTES][POST][CREATEMATCH]');
+		
 		try {
 			const tournamentID = Number((request.params as any).tournamentID);
 			const body = request.body as { playerA: number; playerB: number; scoreA: number; scoreB: number };
@@ -233,7 +233,7 @@ export async function tournamentRoutes(fastify: FastifyInstance) {
 
 	// List a specific tournament's matches
 	fastify.get('/tournament/:tournamentID/matches', async (request: FastifyRequest, reply: FastifyReply) => {
-		console.log('[TOURNAMENT][ROUTES][GET][LISTMATCHES]');
+		
 		try {
 			const tournamentID = Number((request.params as any).tournamentID);
 			const matches = await gameMgr.getAllMatches(tournamentID);
@@ -257,7 +257,7 @@ export async function tournamentRoutes(fastify: FastifyInstance) {
 	});
 	// Get the linked chat room ID of a tournament
 fastify.get('/tournaments/chat/:tournamentID', async (request, reply) => {
-	console.log('[TOURNAMENT][ROUTES][GET][GETCHATID]');
+	
 	try {
 		const tournamentID = Number((request.params as any).tournamentID);
 		const tournament = await gameMgr.getChatIDbyTourID(tournamentID);

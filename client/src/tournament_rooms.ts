@@ -163,9 +163,6 @@ export async function handleCreateTournament(): Promise<void> {
     isTourOwner:state.playerInterface!.isTourOwner
   });
   
-  // notify that this user is the tournament's creator
-  //state.isTournamentCreator = true;
-
   } catch (err) {
     console.error('Error creating tournament:', err);
     showNotification({ message: 'Failed to create', type: 'error' });
@@ -225,7 +222,6 @@ export async function handleLeaveTournament(islegit:boolean, duringGame?:boolean
   // clean up state & storage
   state.currentTournamentName    = undefined;
   state.currentTournamentPlayers = undefined;
- // state.isTournamentCreator = false;
   state.playerInterface!.isTourOwner = false;
   state.playerInterface!.tournamentID = undefined;
   localStorage.removeItem('tournament_view');

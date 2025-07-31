@@ -40,7 +40,6 @@ export default async function accountRoutes(fastify: FastifyInstance) {
 
 	  const avatarUrl = `/avatars/${filename}`;
 	  await UserManagement.setAvatarUrl(user.our_index, avatarUrl);
-	  console.log('Sending avatarUrl:', avatarUrl);
 
 	  reply.send({ avatarUrl });
 	});
@@ -57,7 +56,6 @@ export default async function accountRoutes(fastify: FastifyInstance) {
 			return reply.send({
 				avatar_url: obj.avatar_url
 			});
-			console.log('AVATAR EN BACK = ', obj!.avatar_url)
 		} catch (error) {
 			console.error('Error getting avatar : ', error);
 			return reply.code(500).send({ error: 'Internal server error' });

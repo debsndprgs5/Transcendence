@@ -7,10 +7,10 @@ import * as Interfaces from '../shared/gameTypes';
 
 export async function gameRoutes(fastify: FastifyInstance) {
 
-	console.log('[GAME][ROUTES]');
+	
 	//UserID create a game 
 	fastify.post('/pong/:userID', async(request,reply) => {
-		console.log('[GAME][ROUTES][POST][CREATEGAME]');
+		
 		try{
 			await createGameRoom(request,reply);
 		}

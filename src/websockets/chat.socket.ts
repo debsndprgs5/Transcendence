@@ -32,7 +32,6 @@ async function getRightSockets(authorID: number): Promise<Map<number, WebSocket>
 }
 
 export async function sendSystemMessage(chatRoomID:number, content:string){
-	console.log(`[BACK][Stsm] ${content}`)
 	if(chatRoomID <= 0 || !chatRoomID){
 		SendGeneralMessage(0, content); //A VOIR SI CA MARCHE CA MAIS TFACON ON ENVOYE R EN GENERALE JE PENSE
 		return ;
@@ -297,22 +296,15 @@ async function  handleFriendStatus(parsed:any, ws:WebSocket){
 		//from front A send update
 		//Back send live update to any one friends with A, A has B for friends, B join the app, A is "notify"
 	case 'update': {
-		// Validate inputs
-		// if (typeof userID !== 'number' || typeof parsed.status !== 'string') {
-		// 	ws.send(JSON.stringify({ error: 'Invalid update data' }));
-		// 	return;
-		// }
-		console.log(`[CHAT][PLAYERUPDATE] data.state : ${parsed.state}`)
+
 		try {
 			// 1) Get all user-IDs who have 'userID' as a friend
 			const relatedFriends = await chatManagement.getAllUsersWhoHaveMeAsFriend(userID) ?? [];
 
 			// 2) For each friend, if they have a connected socket, send them the update
 			for (const friendID of relatedFriends) {
-				console.log(`friend ID:${friendID} found to friend woth userID:${userID}`)
 				const friendSocket = MappedClients.get(friendID);
 				if (friendSocket) {
-					console.log(`friendSocket FOUND sending state updated`)
 					friendSocket.send(JSON.stringify({
 					type: 'friendStatus',
 					action: 'updateStatus',
@@ -321,7 +313,6 @@ async function  handleFriendStatus(parsed:any, ws:WebSocket){
 					status:cleanState(parsed.state)
 					}));
 				}
-				console.log(`NO SOCKET FOUND FOR FRIEND`)
 			}
 		} catch (err) {
 			console.error('Failed to update friend status:', err);

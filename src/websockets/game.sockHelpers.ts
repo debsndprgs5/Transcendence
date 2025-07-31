@@ -123,7 +123,6 @@ export async function beginGame(gameID: number, players: Interfaces.playerInterf
     console.error(`[beginGame] GameID ${gameID} expected ${expectedCount} players for mode '${mode}'`);
     return;
   }
-  console.warn('bleep bloop bleep bloopbleep bloop bleep bloopbleep bloop bleep bloopbleep bloop bleep bloopbleep bloop bleep bloop');
   const shuffled = [...players].sort(() => Math.random() - 0.5);
   const sides = mode === 'quator'
     ? ['left', 'right', 'top', 'bottom'] as const
@@ -214,7 +213,7 @@ export async function tryStartGameIfReady(gameID: number) {
   }
 
   const playersInGameRoom = getAllMembersFromGameID(gameID) ?? [];
-  console.log(playersInGameRoom);
+  
 
   if (playersInGameRoom.length > maxPlayers) {
     const playerToKick = await GameManagement.getLastAddedToRoom(gameID);
@@ -236,7 +235,6 @@ export async function tryStartGameIfReady(gameID: number) {
       playerObjs.forEach(p => {
         updatePlayerState(p, 'playing');  // Event-driven status update
       });
-      console.log(`[TryStartGameIfReady] calling beginGame on gameID ${gameID}`);
       // start the game (send first render and start game loop)
       beginGame(gameID, playerObjs);
     }
@@ -289,14 +287,6 @@ export async function kickFromGameRoom(
       updatePlayerState(p, 'init');
       p.gameID = undefined;
 
-      // if (!isTriggeringPlayer) {
-      //   // ✅ Step 1: Check if player is in tournament
-      //   if (kickedPlayer.tournamentID !== undefined) {
-      //     console.log(`[kickFromGameRoom] Player ${kickedPlayer.userID} was in tournament ${kickedPlayer.tournamentID}`);
-      //     const tour = Tournament.MappedTour.get(kickedPlayer.tournamentID);
-      //     tour!.matchGaveUp(kickedPlayer.tournamentID, triggering.userID);
-      //   }
-      // }
     }
 
     // Cleanup room after all kicked

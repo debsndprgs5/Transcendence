@@ -169,7 +169,7 @@ private async  frame() {
 		}
 	// Win check
 	const stop  = await this.checkWinCondition();
-	if(stop)
+	if(stop === true)
 		this.stop();
 	// Broadcast
 	this.broadcast()
@@ -418,7 +418,7 @@ private  handleWallScore(sideHit: 'left'|'right'|'top'|'bottom', ball: ballClass
 		}
 
 		const duration = Math.floor((Date.now() - this.clock - this.totalPausedTime) / 1000);
-		 console.log(`[STATS] duration: ${duration}s, ${this.players[0].userID}`);
+		 console.log(`[STATS] duration: ${duration}s, ${this.players[0].gameID}`);
 		await saveMatchStats(
 			this.gameID,
 			this.players[0].tournamentID || null,

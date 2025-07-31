@@ -24,7 +24,6 @@ export async function handleJoinTournament(player:Interfaces.playerInterface, da
 			});
 			player.tournamentID = data.tournamentID;
 			player.isTourOwner = data.isTourOwner;
-			console.log(`${player.username} just joined tournament ID : ${data.tournamentID} | ${data.isTourOwner}`);
 			updateTourPlayerList(player, data.tournamentID, false);
 			Helpers.updatePlayerState(player, 'waitingTournament');	
 		}
@@ -64,24 +63,23 @@ export async function updateTourPlayerList(joiner: Interfaces.playerInterface, t
 export async function handleLeaveTournament(player: Interfaces.playerInterface, data: any) {
 	// Tournament ends cleanly: not user-triggered
 	if (data.islegit) {
-	console.log('[TOUR END] is Legit !');
 	const tour = Tournament.MappedTour.get(player.tournamentID!);
-
 	if (tour) {
-		console.log(`[TOUR][LEGIT END] Player ${player.username} left tournament ${player.tournamentID!}`);
+		
 		if (tour.leftPlayers.has(player.userID!)) {
 			console.warn(`[TOUR][ALREADY LEFT] Player ${player.username} already left tournament ${player.tournamentID!}`);
 			return;
 		}
 		tour.leftPlayers.add(player.userID!);
 
-		player.tournamentID = undefined;
+		
 		Helpers.updatePlayerState(player, 'init');
-
+		
 		const members = await GameManagement.getAllTournamentMembers(player.tournamentID!);
+		player.tournamentID = undefined;
 
 		if (tour.leftPlayers.size >= members.length) {
-			console.log(`[TOUR][LEGIT END] All players left tournament ${tour.tourID}, deleting...`);
+			
 			for (const m of members) {
 				await GameManagement.delMemberFromTournament(tour.tourID, m.userID);
 			}
@@ -118,7 +116,6 @@ export async function handleLeaveTournament(player: Interfaces.playerInterface, 
 	Helpers.updatePlayerState(player, 'init');
 	// 5. If no player remains, clean
 	if (members!.length < 1) {
-		console.log(`[TOUR][LEFT]{No members left deleting room}`)
 		GameManagement.delTournament(leftTourID!);
 		await broadcastTourList();
 	}
@@ -131,7 +128,6 @@ export async function handleLeaveTournament(player: Interfaces.playerInterface, 
 		});
 	}
 
-	console.log(`${player.username} left tournament ID: ${leftTourID}`);
 }
 
 
@@ -186,12 +182,10 @@ export async function handleMatchFinish(data:any){
 	if(!tour)
 		return;
 	await tour.onMatchFinished(data.tourID, data.a_ID, data.b_ID, data.a_score, data.b_score, data.userID);
-	console.log(`[MATCHFINISH] regular call`)
-	if(tour.current_round === tour.max_round){
-		console.log(`[MATCHFINSIH][AutoReady] for userID:${data.userID}`);
+
+	if(tour.current_round === tour.max_round)
 		await tour.isReadyForNextRound(data.userID);
-		console.log('PASSED...')
-	}
+	
 }
 
 export async function handleReadyNextRound(data:any){
@@ -207,9 +201,7 @@ export async function reloadTourRound(data:any){
 		console.warn(`[reloadTourRound] No tournament found for id ${data.tournamentID}`);
 	}
 	const score = await tour?.extractScore();
-	console.log(`[reloadTourRound] Extracted score:`, score);
 	const player = getPlayerByUserID(data.userID);
-	console.log(`TOURSCORE:` ,score);
 	player!.typedSocket.send('updateTourScore', {
 		tournamentID:data.tournamentID,
 		score:score

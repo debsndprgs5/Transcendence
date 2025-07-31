@@ -180,7 +180,6 @@ public async matchGaveUp(tourID: number, quitterID: number) {
 	tour.removeMemberFromTourID(quitterID);
 
 	sendPrivateSystemMessage(this.chatID, opponent.userID, `Your opponent ${quitter.username} gave up. You receive 5 points.`);
-	console.log(`[GAVE UP] Player ${quitterID} removed from tournament ${tourID}`);
 }
 
 public removeMemberFromTourID(userID: number): boolean {
@@ -220,7 +219,6 @@ public removeMemberFromTourID(userID: number): boolean {
 
 	const player = getPlayerByUserID(userID);
 	player!.tournamentID = undefined;
-	console.log(`[REMOVE] userID=${userID} successfully removed from tournament ${this.tourID}`);
 	return true;
 }
 
@@ -269,10 +267,9 @@ public async onMatchFinished(
   reporters.add(userID);
 
   // Wait for both players to report
-  if (reporters.size < 2) {
-    console.log(`[MATCH FINISH] Waiting for second report for match=${matchKey}`);
+  if (reporters.size < 2) 
     return;
-  }
+  
 
   // Both reports received → determine outcome
   const WIN_POINTS = 10, DRAW_POINTS = 5, LOSS_POINTS = 0;
@@ -318,25 +315,20 @@ public async onMatchFinished(
     tour.waitingPairs.push(tour.playingPairs[idx]);
     tour.playingPairs.splice(idx, 1);
   }
-
-  // Increment endedMatchesCount and check if all matches are done
-//   tour.endedMatchesCount++;
-//   if (tour.endedMatchesCount >= tour.totalMatchesCount) {
-//     console.log(`[Tournament] All ${tour.totalMatchesCount} matches finished, starting next round.`);
-//     // Reset counters before next round
-//     tour.endedMatchesCount = 0;
-//     tour.totalMatchesCount = 0;
-//     await tour.nextRound();
-//   }
+	const score = await tour.extractScore();
+	for(const[a,b] of tour.waitingPairs){
+		a.typedSocket.send('updateTourScore', {tournamentID:tour.tourID, score:score});
+		if(a != b)
+			b.typedSocket.send('updateTourScore', {tournamentID:tour.tourID, score:score});
+	}
 }
 
 public async isReadyForNextRound(userID: number) {
 	const tour = Tournament.MappedTour.get(this.tourID)!;
 
-	if (tour.readyPlayers.has(userID)) {
-		console.warn(`[isReadyForNextRound] Duplicate ready signal from userID=${userID}`);
+	if (tour.readyPlayers.has(userID)) 
 		return; // ignore repeated ready signal
-	}
+	
 	// Add to ready set
 	tour.readyPlayers.add(userID);
 
@@ -349,7 +341,6 @@ public async isReadyForNextRound(userID: number) {
 	}
 
 	if (tour.readyPlayers.size >= totalWaitingUsers.size && this.playingPairs.length < 1) {
-		console.log(`[Tournament] All players ready for next round.`);
 
 		// Clear ready state before starting next round
 		tour.readyPlayers.clear();
@@ -393,7 +384,7 @@ private async endTournament() {
 	}
 	const chat = await gameMgr.getChatIDbyTourID(this.tourID);
 	sendSystemMessage(chat!.chatID , `Tournament is over now, who's the boss ? `)
-	Tournament.MappedTour.delete(this.tourID);
+	//Tournament.MappedTour.delete(this.tourID);
 
 }
 
@@ -402,7 +393,7 @@ public async giveBye(member: Member) {
 	const player = member.player;
 
 	// 1. Award points for the bye (half a win ? full win ? )
-	const BYE_POINTS = 10;
+	const BYE_POINTS = 5;
 	Tournament.MappedTour.get(player.tournamentID!)?.points.set(userID,
 		Tournament.MappedTour.get(player.tournamentID!)?.points.get(userID)! + BYE_POINTS
 	);

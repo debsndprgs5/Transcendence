@@ -184,6 +184,17 @@ function formatDuration(seconds: number): string {
   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 }
 
+
+
+
+
+
+
+
+
+
+
+
 /**
  * Renders the given HTML string into the #app element.
  */
@@ -428,24 +439,33 @@ export function RegisterView(): string {
 export function Setup2FAView(otpauthUrl: string, base32: string): string {
 //	preventBodyScroll();
 	const chartUrl = `https://quickchart.io/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(otpauthUrl)}`;
-	return `
-		<div class="max-w-md mx-auto mt-12 bg-white shadow-lg rounded-lg overflow-hidden">
-			<div class="px-6 py-4 bg-yellow-50">
-				<h2 class="text-2xl font-bold text-yellow-700">Configurer la 2FA</h2>
-			</div>
-			<div class="px-6 py-4 space-y-4 text-center">
-				<p class="text-gray-700">Scan this QR code with your authenticator app :</p>
-				<img src="${chartUrl}" alt="QR Code 2FA" class="mx-auto w-48 h-48" />
-				<p class="text-gray-700">Or manually enter this code :</p>
-				<code class="block bg-gray-100 p-2 rounded font-mono text-sm">${base32}</code>
-			</div>
-			<div class="px-6 pb-6 space-y-2">
-				<input id="2fa-setup-code" placeholder="Enter 2FA code" class="w-full border-gray-300 rounded-md shadow-sm p-2 focus:ring-yellow-500 focus:border-yellow-500" />
-				<button id="verify-setup-2fa-btn" class="w-full py-2 px-4 bg-yellow-600 text-black font-semibold rounded-md hover:bg-yellow-700 transition">Verify authenticator code</button>
-				<p id="setup2fa-error" class="text-red-500 text-sm mt-2 hidden"></p>
-			</div>
-		</div>
-	`;
+  return `
+    <div class="max-w-md mx-auto mt-12 bg-gray-800 bg-opacity-50 backdrop-blur rounded-xl shadow-lg overflow-hidden">
+      <div class="px-6 py-4 bg-gradient-to-r from-[#2C3E50] to-[#4CA1AF]">
+        <h2 class="text-2xl font-bold text-gray-100">Configurer la 2FA</h2>
+      </div>
+      <div class="px-6 py-4 space-y-4 text-center">
+        <p class="text-gray-200">Scan this QR code with your authenticator app :</p>
+        <img src="${chartUrl}" alt="QR Code 2FA" class="mx-auto w-48 h-48 rounded shadow-md" />
+        <p class="text-gray-200">Or manually enter this code :</p>
+        <code class="block bg-gray-900 bg-opacity-30 p-2 rounded font-mono text-sm text-gray-200">${base32}</code>
+      </div>
+      <div class="px-6 pb-6 space-y-2">
+        <input
+          id="2fa-setup-code"
+          placeholder="Enter 2FA code"
+          class="w-full bg-gray-900 text-gray-200 border-gray-600 rounded-md shadow-sm p-2 focus:ring-[#4CA1AF] focus:border-[#4CA1AF]"
+        />
+        <button
+          id="verify-setup-2fa-btn"
+          class="w-full py-2 px-4 bg-gradient-to-r from-[#2C3E50] to-[#4CA1AF] text-gray-100 font-semibold rounded-md hover:from-[#1E2B38] hover:to-[#35707A] transition"
+        >
+          Verify authenticator code
+        </button>
+        <p id="setup2fa-error" class="text-red-500 text-sm mt-2 hidden"></p>
+      </div>
+    </div>
+  `;
 }
 
 /**
@@ -524,182 +544,203 @@ export function AccountView(user: any, friends: any[] = []): string {
     });
   }, 0);
 
-	return `
-		<div class="min-h-screen bg-gray-100 py-8">
-			<div class="max-w-6xl mx-auto px-4">
-				<!-- Header avec avatar et nom -->
-				<div class="bg-white rounded-xl shadow-lg mb-8">
-					<div class="px-8 py-8 flex items-center bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-t-xl">
-						<img src="${avatar}" id="account-avatar" alt="Avatar" class="w-24 h-24 rounded-full shadow-lg border-4 border-white mr-6 cursor-pointer">
-						<input type="file" id="avatarInput" class="hidden" accept="image/*">
-						<div>
-							<h1 class="text-3xl font-bold">${username}</h1>
-							<p class="text-lg opacity-90">Player Dashboard</p>
-						</div>
-					</div>
-				</div>
-
-				<!-- Grille de statistiques -->
-				<div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-					
-					<!-- Statistiques globales -->
-					<div class="lg:col-span-2 bg-white rounded-xl shadow-lg p-6">
-						<h2 class="text-2xl font-bold text-gray-800 mb-6">Game Statistics</h2>
-						
-						<!-- Graphique circulaire -->
-						<div class="flex flex-col lg:flex-row items-center mb-8">
-							<div class="lg:w-1/2 mb-4 lg:mb-0">
-								<canvas id="stats-chart" width="250" height="250" class="mx-auto"></canvas>
-								<div id="stats-legend" class="mt-4 text-center text-sm"></div>
-							</div>
-							<div class="lg:w-1/2 lg:pl-8">
-								<div class="grid grid-cols-2 gap-4">
-									<div class="bg-green-50 p-4 rounded-lg text-center">
-										<div class="text-2xl font-bold text-green-600" id="wins-count">-</div>
-										<div class="text-sm text-gray-600">Wins</div>
-									</div>
-									<div class="bg-red-50 p-4 rounded-lg text-center">
-										<div class="text-2xl font-bold text-red-600" id="losses-count">-</div>
-										<div class="text-sm text-gray-600">Losses</div>
-									</div>
-									<div class="bg-yellow-50 p-4 rounded-lg text-center">
-										<div class="text-2xl font-bold text-yellow-600" id="ties-count">-</div>
-										<div class="text-sm text-gray-600">Ties</div>
-									</div>
-									<div class="bg-blue-50 p-4 rounded-lg text-center">
-										<div class="text-2xl font-bold text-blue-600" id="total-games">-</div>
-										<div class="text-sm text-gray-600">Total Games</div>
-									</div>
-								</div>
-							</div>
-						</div>
-
-						<!-- Statistiques avancées -->
-						<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-							<div class="bg-gray-50 p-4 rounded-lg">
-								<h3 class="text-lg font-semibold text-gray-700 mb-2">Average Score</h3>
-								<div class="text-2xl font-bold text-indigo-600" id="avg-score">-</div>
-							</div>
-							<div class="bg-gray-50 p-4 rounded-lg">
-								<h3 class="text-lg font-semibold text-gray-700 mb-2">Best Score</h3>
-								<div class="text-2xl font-bold text-green-600" id="best-score">-</div>
-							</div>
-							<div class="bg-gray-50 p-4 rounded-lg">
-								<h3 class="text-lg font-semibold text-gray-700 mb-2">Avg Game Duration</h3>
-								<div class="text-2xl font-bold text-purple-600" id="avg-duration">-</div>
-							</div>
-						</div>
-					</div>
-
-					<!-- Section profil et préférences -->
-					<div class="space-y-6">
-						<!-- Paramètres du compte -->
-						<div class="bg-white rounded-xl shadow-lg p-6">
-							<h2 class="text-xl font-bold text-gray-800 mb-4">Account Settings</h2>
-							<form id="profileForm" class="space-y-4">
-								<div>
-									<label for="newPassword" class="block text-sm font-medium text-gray-700">New Password</label>
-									<input type="password" id="newPassword" name="newPassword" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2">
-								</div>
-								<button type="submit" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition">Update Password</button>
-							</form>
-							<button id="setup2faBtn" class="mt-4 w-full bg-yellow-500 text-black py-2 px-4 rounded-md hover:bg-yellow-600 transition">Re-config 2FA</button>
-						</div>
-
-						<!-- Statistiques rapides -->
-						<div class="bg-white rounded-xl shadow-lg p-6">
-							<h2 class="text-xl font-bold text-gray-800 mb-4">Quick Stats</h2>
-							<div class="space-y-3">
-								<div class="flex justify-between">
-									<span class="text-gray-600">Win Rate</span>
-									<span class="font-semibold" id="win-rate">-%</span>
-								</div>
-								<div class="flex justify-between">
-									<span class="text-gray-600">Longest Win Streak</span>
-									<span class="font-semibold" id="win-streak">-</span>
-								</div>
-								<div class="flex justify-between">
-									<span class="text-gray-600">Tournament Wins</span>
-									<span class="font-semibold" id="tournament-wins">-</span>
-								</div>
-								<div class="flex justify-between">
-									<span class="text-gray-600">Last Game</span>
-									<span class="font-semibold" id="last-game">-</span>
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
-
-        <!-- Panel Heatmaps -->
-        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
-          <h2 class="text-2xl font-bold text-gray-800 mb-6">Ball Heatmaps</h2>
-          <div class="flex flex-wrap gap-4 mb-6" id="heatmap-btn-panel">
-            ${heatmaps.map(hm => `
-              <button class="heatmap-btn px-4 py-2 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 transition font-semibold" data-heatmap="${hm.id}">${hm.label}</button>
-            `).join('')}
+return `
+  <div class="min-h-screen bg-transparent text-gray-200 py-8">
+    <div class="max-w-6xl mx-auto px-4">
+      <!-- Header with avatar and name -->
+      <div class="bg-gray-800 bg-opacity-50 backdrop-blur rounded-xl shadow-lg mb-8">
+        <div class="px-8 py-8 flex items-center bg-gradient-to-r from-[#2C3E50] to-[#4CA1AF] text-white rounded-t-xl">
+          <img src="${avatar}" id="account-avatar" alt="Avatar"
+               class="w-24 h-24 rounded-full shadow-xl border-2 border-indigo-700 mr-6 cursor-pointer">
+          <input type="file" id="avatarInput" class="hidden" accept="image/*">
+          <div>
+            <h1 class="text-3xl font-bold">${username}</h1>
+            <p class="text-lg opacity-80">Player Dashboard</p>
           </div>
-          <div id="heatmap-holder" class="w-full min-h-[320px] flex items-center justify-center bg-gray-50 rounded-lg border border-gray-200">
-            <!-- Heatmap canvas or SVG will be injected here -->
-            <span class="text-gray-400">Select a heatmap to display ball stats.</span>
+        </div>
+      </div>
+
+      <!-- Statistics grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+        
+        <!-- Global stats -->
+        <div class="lg:col-span-2 bg-gray-800 bg-opacity-50 backdrop-blur rounded-xl shadow-lg p-6">
+          <h2 class="text-2xl font-bold text-gray-200 mb-6">Game Statistics</h2>
+          
+          <!-- Pie chart -->
+          <div class="flex flex-col lg:flex-row items-center mb-8">
+            <div class="lg:w-1/2 mb-4 lg:mb-0">
+              <canvas id="stats-chart" width="250" height="250" class="mx-auto"></canvas>
+              <div id="stats-legend" class="mt-4 text-center text-sm text-gray-400"></div>
+            </div>
+            <div class="lg:w-1/2 lg:pl-8">
+              <div class="grid grid-cols-2 gap-4">
+                <div class="bg-green-900 bg-opacity-30 p-4 rounded-lg text-center">
+                  <div class="text-2xl font-bold text-green-400" id="wins-count">-</div>
+                  <div class="text-sm text-gray-400">Wins</div>
+                </div>
+                <div class="bg-red-900 bg-opacity-30 p-4 rounded-lg text-center">
+                  <div class="text-2xl font-bold text-red-400" id="losses-count">-</div>
+                  <div class="text-sm text-gray-400">Losses</div>
+                </div>
+                <div class="bg-yellow-900 bg-opacity-30 p-4 rounded-lg text-center">
+                  <div class="text-2xl font-bold text-yellow-300" id="ties-count">-</div>
+                  <div class="text-sm text-gray-400">Ties</div>
+                </div>
+                <div class="bg-blue-900 bg-opacity-30 p-4 rounded-lg text-center">
+                  <div class="text-2xl font-bold text-blue-300" id="total-games">-</div>
+                  <div class="text-sm text-gray-400">Total Games</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Advanced stats -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-gray-800 bg-opacity-30 p-4 rounded-lg">
+              <h3 class="text-lg font-semibold text-gray-300 mb-2">Average Score</h3>
+              <div class="text-2xl font-bold text-indigo-400" id="avg-score">-</div>
+            </div>
+            <div class="bg-gray-800 bg-opacity-30 p-4 rounded-lg">
+              <h3 class="text-lg font-semibold text-gray-300 mb-2">Best Score</h3>
+              <div class="text-2xl font-bold text-green-400" id="best-score">-</div>
+            </div>
+            <div class="bg-gray-800 bg-opacity-30 p-4 rounded-lg">
+              <h3 class="text-lg font-semibold text-gray-300 mb-2">Avg Game Duration</h3>
+              <div class="text-2xl font-bold text-purple-400" id="avg-duration">-</div>
+            </div>
           </div>
         </div>
 
-				<!-- Historique des matchs -->
-				<div class="bg-white rounded-xl shadow-lg p-6 mb-8">
-					<h2 class="text-2xl font-bold text-gray-800 mb-6">Match History</h2>
-					<div class="overflow-x-auto max-h-96 overflow-y-auto border border-gray-200 rounded-lg">
-						<table class="w-full">
-							<thead class="sticky top-0 bg-gray-50 z-10">
-								<tr>
-									<th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Date</th>
-									<th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Score</th>
-									<th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Result</th>
-									<th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Duration</th>
-									<th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Mode</th>
-								</tr>
-							</thead>
-							<tbody id="match-history-table" class="divide-y divide-gray-200">
-								<!-- Les matchs seront ajoutés ici dynamiquement -->
-							</tbody>
-						</table>
-					</div>
-				</div>
+        <!-- Profile & preferences -->
+        <div class="space-y-6">
+          <!-- Account settings -->
+          <div class="bg-gray-800 bg-opacity-50 backdrop-blur rounded-xl shadow-lg p-6">
+            <h2 class="text-xl font-bold text-gray-200 mb-4">Account Settings</h2>
+            <form id="profileForm" class="space-y-4">
+              <div>
+                <label for="newPassword" class="block text-sm font-medium text-gray-300">New Password</label>
+                <input type="password" id="newPassword" name="newPassword"
+                       class="mt-1 block w-full rounded-md border-gray-600 bg-gray-900 text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2">
+              </div>
+              <!-- Styled Update Password button -->
+              <button type="submit"
+                      class="w-full bg-gradient-to-r from-[#1E2B38] via-[#2C6B72] to-[#35707A] text-white py-2 px-4 rounded-2xl shadow-lg hover:from-[#121820] hover:via-[#1B424D] hover:to-[#1E4042] transition">
+                Update Password
+              </button>
+            </form>
+            <!-- Styled Re-config 2FA button -->
+            <button id="setup2faBtn"
+                    class="mt-4 w-full bg-gradient-to-r from-[#1E2B38] via-[#2C6B72] to-[#35707A] text-white py-2 px-4 rounded-2xl shadow-lg hover:from-[#121820] hover:via-[#1B424D] hover:to-[#1E4042] transition">
+              Re-config 2FA
+            </button>
+          </div>
 
-				<!-- Liste des amis -->
-				<div class="bg-white rounded-xl shadow-lg p-6 mb-8">
-					<h2 class="text-2xl font-bold text-gray-800 mb-6">Friends</h2>
-					<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-						${friends.map(friend => `
-							<div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
-								<div class="flex items-center justify-between">
-									<div class="flex items-center">
-										<div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center mr-3">
-											<span class="text-indigo-600 font-semibold">${friend.username.charAt(0).toUpperCase()}</span>
-										</div>
-										<div>
-											<div class="font-medium text-gray-900">${friend.username}</div>
-											<span class="friend-status text-xs text-gray-500" data-userid="${friend.our_index}">Offline</span>
-										</div>
-									</div>
-									<div class="flex gap-2">
-										<button class="chat-friend-btn text-blue-600 hover:text-blue-800" data-username="${friend.username}" data-userid="${friend.our_index}" title="Chat">💬</button>
-										<button class="profile-friend-btn text-gray-600 hover:text-gray-800" data-username="${friend.username}" title="Profile">👤</button>
-										<button class="remove-friend-btn text-red-600 hover:text-red-800" data-username="${friend.username}" title="Remove">❌</button>
-									</div>
-								</div>
-							</div>
-						`).join('')}
-					</div>
-				</div>
+          <!-- Quick stats -->
+          <div class="bg-gray-800 bg-opacity-50 backdrop-blur rounded-xl shadow-lg p-6">
+            <h2 class="text-xl font-bold text-gray-200 mb-4">Quick Stats</h2>
+            <div class="space-y-3">
+              <div class="flex justify-between">
+                <span class="text-gray-400">Win Rate</span>
+                <span class="font-semibold" id="win-rate">-%</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-400">Longest Win Streak</span>
+                <span class="font-semibold" id="win-streak">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-400">Tournament Wins</span>
+                <span class="font-semibold" id="tournament-wins">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-400">Last Game</span>
+                <span class="font-semibold" id="last-game">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-				<!-- Bouton retour -->
-				<div class="text-center">
-					<button id="backHomeBtn" class="px-8 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition shadow-md">← Back to Home</button>
-				</div>
-			</div>
-		</div>
-	`;
+      <!-- Heatmap panel -->
+      <div class="bg-gray-800 bg-opacity-50 backdrop-blur rounded-xl shadow-lg p-6 mb-8">
+        <h2 class="text-2xl font-bold text-gray-200 mb-6">Ball Heatmaps</h2>
+        <div class="flex flex-wrap gap-4 mb-6" id="heatmap-btn-panel">
+          ${heatmaps.map(hm => `
+            <!-- Styled heatmap buttons -->
+            <button class="heatmap-btn px-4 py-2 bg-gradient-to-r from-[#1E2B38] via-[#2C6B72] to-[#35707A] text-white py-2 px-4 rounded-2xl shadow-lg hover:from-[#121820] hover:via-[#1B424D] hover:to-[#1E4042] transition font-semibold"
+                    data-heatmap="${hm.id}">${hm.label}</button>
+          `).join('')}
+        </div>
+        <div id="heatmap-holder"
+             class="w-full min-h-[320px] flex items-center justify-center bg-gray-900 border border-gray-700 rounded-lg">
+          <!-- Heatmap canvas or SVG will be injected here -->
+          <span class="text-gray-500">Select a heatmap to display ball stats.</span>
+        </div>
+      </div>
+
+      <!-- Match history -->
+      <div class="bg-gray-800 bg-opacity-50 backdrop-blur rounded-xl shadow-lg p-6 mb-8">
+        <h2 class="text-2xl font-bold text-gray-200 mb-6">Match History</h2>
+        <div class="overflow-x-auto max-h-96 overflow-y-auto border border-gray-700 rounded-lg">
+          <table class="w-full">
+            <thead class="sticky top-0 bg-gray-700 z-10">
+              <tr>
+                <th class="px-4 py-3 text-left text-sm font-medium text-gray-200">Date</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-gray-200">Score</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-gray-200">Result</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-gray-200">Duration</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-gray-200">Mode</th>
+              </tr>
+            </thead>
+            <tbody id="match-history-table" class="divide-y divide-gray-700">
+              <!-- Matches will be added here dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Friends list -->
+      <div class="bg-gray-800 bg-opacity-50 backdrop-blur rounded-xl shadow-lg p-6 mb-8">
+        <h2 class="text-2xl font-bold text-gray-200 mb-6">Friends</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          ${friends.map(friend => `
+            <div class="border border-gray-700 rounded-lg p-4 transition bg-gray-900 hover:shadow-lg hover:shadow-purple-900">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                  <div class="w-10 h-10 bg-indigo-700 rounded-full flex items-center justify-center mr-3">
+                    <span class="text-indigo-200 font-semibold">${friend.username.charAt(0).toUpperCase()}</span>
+                  </div>
+                  <div>
+                    <div class="font-medium text-gray-200">${friend.username}</div>
+                    <span class="friend-status text-xs text-gray-500" data-userid="${friend.our_index}">Offline</span>
+                  </div>
+                </div>
+                <div class="flex gap-2">
+                  <!-- Styled chat/profile/remove buttons -->
+                  <button class="chat-friend-btn p-2 bg-gradient-to-r from-[#1E2B38] via-[#2C6B72] to-[#35707A] text-white py-2 px-4 rounded-2xl shadow-lg hover:from-[#121820] hover:via-[#1B424D] hover:to-[#1E4042] transition"
+                          data-username="${friend.username}" data-userid="${friend.our_index}" title="Chat">💬</button>
+                  <button class="profile-friend-btn p-2 bg-gradient-to-r from-[#1E2B38] via-[#2C6B72] to-[#35707A] text-white py-2 px-4 rounded-2xl shadow-lg hover:from-[#121820] hover:via-[#1B424D] hover:to-[#1E4042] transition"
+                          data-username="${friend.username}" title="Profile">👤</button>
+                  <button class="remove-friend-btn p-2 bg-gradient-to-r from-[#1E2B38] via-[#2C6B72] to-[#35707A] text-white py-2 px-4 rounded-2xl shadow-lg hover:from-[#121820] hover:via-[#1B424D] hover:to-[#1E4042] transition"
+                          data-username="${friend.username}" title="Remove">❌</button>
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- Back button -->
+      <div class="text-center">
+        <button id="backHomeBtn"
+                class="px-8 py-3 bg-gradient-to-r from-[#1E2B38] via-[#2C6B72] to-[#35707A] text-white py-2 px-4 rounded-2xl shadow-lg hover:from-[#121820] hover:via-[#1B424D] hover:to-[#1E4042] transition">
+          ← Back to Home
+        </button>
+      </div>
+    </div>
+  </div>
+`;
+
 }
 
 /**

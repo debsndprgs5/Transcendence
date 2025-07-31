@@ -6,7 +6,7 @@ import { drawCreateGameView,
     drawWaitingTournamentView } from './pong_views';
 import { showNotification } from './notifications';
 import { pongState } from './pong_socket';
-import { PongRenderer } from './pong_render'
+import { PongRenderer } from './NEW_pong_render'
 import { TypedSocket } from './shared/gameTypes';
 import { resizePongCanvas } from './handlers';
 import { PongButton, showPongMenu } from './pong_rooms';

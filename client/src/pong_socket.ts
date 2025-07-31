@@ -1,6 +1,6 @@
 import { showNotification, showUserActionsBubble } from './notifications';
 import { isAuthenticated, apiFetch, state } from './api';
-import { PongRenderer } from './pong_render';
+import { PongRenderer } from './NEW_pong_render';
 import {settingsRenderer} from './settings_render';
 import * as Interfaces from './shared/gameTypes';
 import {createTypedEventSocket} from './shared/gameEventWrapper';

@@ -132,7 +132,7 @@ export class PongRenderer{
 		}, this.scene);
 
 		const groundMaterial = new BABYLON.StandardMaterial("groundMat", this.scene);
-		const texture = new BABYLON.Texture("https://assets.babylonjs.com/environments/grass.jpg", this.scene);
+		const texture = new BABYLON.Texture("https://assets.babylonjs.com/environments/valleygrass.png", this.scene);
 		texture.uScale = 8;
 		texture.vScale = 8;
 
@@ -140,20 +140,34 @@ export class PongRenderer{
 		ground.material = groundMaterial;
 	}
 	
-	private createSkybox() {
+	// private createSkybox() {
+	// 	const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 700.0 }, this.scene);
+	// 	const skyboxMaterial = new BABYLON.StandardMaterial("skyBoxMaterial", this.scene);
+	// 	skyboxMaterial.backFaceCulling = false;
+	// 	skyboxMaterial.disableLighting = true;
 
-		const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 1000.0 }, this.scene);
-		const skyboxMaterial = new BABYLON.StandardMaterial("skyBoxMaterial", this.scene);
-		skyboxMaterial.backFaceCulling = false;
-		skyboxMaterial.disableLighting = true;
-		skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("https://playground.babylonjs.com/textures/skybox", this.scene);
-		skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
-		skybox.material = skyboxMaterial;
+	// 	const reflectionTex = new BABYLON.CubeTexture("./assets/360Universe.jpeg", this.scene);
+	// 	skyboxMaterial.reflectionTexture = reflectionTex;
+	// 	skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+
+	// 	skybox.material = skyboxMaterial;
+	// }
+	private createSkybox() {
+		const dome = new BABYLON.PhotoDome(
+			"skyDome",
+			"../assets/milkyWay.jpg", // Your 360° image path
+			{
+				resolution: 64,     // Higher = smoother sphere
+				size: 1000          // Controls dome size
+			},
+			this.scene
+		);
 	}
+
 
 	
 	addTrees() {
-	const treeCount = 60;
+	const treeCount = 100;
 	const minRadius = 28; // avoid center (up to arena+margin)
 	const maxRadius = 38; // near edge of 80x80 ground
 
@@ -190,7 +204,13 @@ export class PongRenderer{
 
 		tree.position.x = x;
 		tree.position.z = z;
-	}
+		tree.computeWorldMatrix(true); // ensure bounding info is up to date
+		const boundingInfo = tree.getBoundingInfo();
+		const minY = boundingInfo.boundingBox.minimumWorld.y;
+
+		// move tree upward so base is at y = 0
+		tree.position.y = -minY;
+			}
 }
 
 

@@ -47,6 +47,7 @@ services:
       - db_volume:/app/db
       - avatars_volume:/app/client/avatars
       - shared_volume:/app/client/shared
+      - asset_volume:/app/client/assets
       - vault_secrets:/app/vault
     restart: always
     env_file:
@@ -134,6 +135,13 @@ volumes:
       type: none
       device: ./client/avatars
       o: bind
+  asset_volume:
+    name: asset_volume
+    driver: local
+    driver_opts:
+     type: none
+     device: ./client/assets
+     o: bind
   shared_volume:
    name: shared_volume
    driver: local

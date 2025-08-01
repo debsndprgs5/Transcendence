@@ -8,7 +8,7 @@ export function QuickTree(
 	trunkMaterial: BABYLON.Material,
 	leafMaterial: BABYLON.Material
 ): BABYLON.Mesh {
-	const tree = new BABYLON.Mesh("tree", scene);
+	let tree = new BABYLON.Mesh("tree", scene);
 
 	const leaves = BABYLON.MeshBuilder.CreateSphere("sphere", {
 		segments: 2,
@@ -82,12 +82,18 @@ export function QuickTree(
 
 	trunk.material = trunkMaterial;
 	trunk.convertToFlatShadedMesh();
-
-	leaves.parent = tree;
-	trunk.parent = tree;
+	
 	leaves.position.y = (sizeTrunk + sizeBranch) / 2 - 2;
 
+	// Parent everything to a container first (optional)
+	leaves.parent = null;
+	trunk.parent = null;
+
+	 tree = BABYLON.Mesh.MergeMeshes([trunk, leaves], true, true, undefined, false, true)!;
+	tree.name = "tree";
+
 	return tree;
+
 }
 
 export function simplePine(
@@ -144,11 +150,14 @@ export function simplePine(
 	leaves.material = leafMaterial;
 	trunk.material = trunkMaterial;
 
-	const tree = BABYLON.Mesh.CreateBox("invisibleBox", 1, scene);
+	let tree = BABYLON.Mesh.CreateBox("invisibleBox", 1, scene);
 	tree.isVisible = false;
 
-	leaves.parent = tree;
-	trunk.parent = tree;
+	leaves.parent = null;
+	trunk.parent = null;
+
+	 tree = BABYLON.Mesh.MergeMeshes([trunk, leaves], true, true, undefined, false, true)!;
+	tree.name = "tree";
 
 	return tree;
 }

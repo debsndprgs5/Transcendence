@@ -13,8 +13,11 @@
     "start": "node dist/main.js"
   },
   "dependencies": {
+
+    "@babylonjs/materials": "^6.0.0",
     "@babylonjs/core": "^6.0.0",
     "@babylonjs/gui": "^6.0.0",
+    "@babylonjs/loaders": "^6.0.0",
     "@fastify/cookie": "^7.0.0",
     "@fastify/cors": "^8.0.0",
     "@fastify/multipart": "^7.7.3",

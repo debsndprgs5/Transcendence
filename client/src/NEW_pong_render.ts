@@ -6,6 +6,8 @@ import * as BABYLON from '@babylonjs/core';
 import { TerrainMaterial } from "@babylonjs/materials/terrain"
 import * as LIMIT from './shared/gameTypes';
 import * as GUI from '@babylonjs/gui';
+import { CSG } from "@babylonjs/core/Meshes/csg";
+import "@babylonjs/core/Meshes/Builders/boxBuilder";
 import * as Generator from './BabylonObj'
 import { handleLeaveTournament } from './tournament_rooms';
 
@@ -20,11 +22,16 @@ export class PongRenderer{
 
 	private socket: TypedSocket;
 
-	private paddles: BABYLON.Mesh[] = [];
-	private paddleMap: Record<'left'|'right'|'top'|'bottom', BABYLON.Mesh | undefined>;
+	private paddles: BABYLON.InstancedMesh[] = [];
+	 private paddleMap: Record<'left'|'right'|'top'|'bottom', BABYLON.InstancedMesh | undefined> = {
+    left: undefined,
+    right: undefined,
+    top: undefined,
+    bottom: undefined
+  };
 	private balls: BABYLON.Mesh[] = [];
-	private frontWalls: (BABYLON.InstancedMesh)[] = [];
-	private sideWalls: (BABYLON.InstancedMesh)[] = [];
+	private frontWalls: BABYLON.InstancedMesh[] = [];
+	private sideWalls: BABYLON.InstancedMesh[] = [];
 
 
 	private guiTexture!: GUI.AdvancedDynamicTexture;
@@ -78,7 +85,11 @@ export class PongRenderer{
 	// Create core engine/scene
 	this.engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: false, stencil: true });
 	this.scene = new BABYLON.Scene(this.engine);
+	this.setupGame()
 
+}
+
+	async setupGame(){
 	// Setup core visuals
 	this.createSkybox();        // add background
 	this.createFloor();         // Add floor 
@@ -87,27 +98,21 @@ export class PongRenderer{
 	this.setupCamera();         // Free camera
 	this.setupLighting();       // Scene lights
 	this.createWalls();         // Pong arena walls
-	
-
-//	this.createBottomLayers()
-	//this.addTrees();            // procedural trees
 
 	// Create paddles, balls, etc.
-	this.createGameObjects();
-
-	//Map paddles to their sides
+	await this.createGameObjects();
 	this.paddleMap = {
-		left:   this.paddles[0],
-		right:  this.paddles[1],
-		top:    this.paddles[2],
-		bottom: this.paddles[3],
-	};
-
+		left:   this.paddles.find(m => m.name.startsWith("left")),
+		right:  this.paddles.find(m => m.name.startsWith("right")),
+		top:    this.paddles.find(m => m.name.startsWith("top")),
+		bottom: this.paddles.find(m => m.name.startsWith("bottom")),
+	}
+	console.log(`${this.paddleMap.left} | ${this.paddleMap['left']}`);
 	this.setupInitialPositions();  // Move paddles into place
 	this.initInputListeners();     // Set up input handling
 	this.startRenderLoop();        // Start rendering
 	this.handleResize();           // React to window resizes
-}
+	}
 
 	setupGUI(){
 	
@@ -132,129 +137,158 @@ export class PongRenderer{
 
 	}
 
-	private async createWalls() {
-  const width2P = LIMIT.arenaWidth2p;
-  const depth2P = LIMIT.arenaLength2p;
-  const width4P = LIMIT.arenaWidth4p;
-  const depth4P = LIMIT.arenaWidth4p;
 
-  const width = this.playerCount === 2 ? width2P : width4P;
-  const depth = this.playerCount === 2 ? depth2P : depth4P;
+private async createWalls(): Promise<void> {
+  const baseMesh = await this.loadWallMesh("../assets/", "old_wall_coast02.glb");
 
-  return new Promise<void>((resolve, reject) => {
-    BABYLON.SceneLoader.ImportMesh("", "../assets/", "old_wall_coast02.glb", this.scene, (meshes) => {
-      if (meshes.length === 0) {
-        reject("Wall mesh failed to load");
-        return;
-      }
+  // Arena dimensions
+  const width = this.playerCount === 2 ? LIMIT.arenaWidth2p : LIMIT.arenaWidth4p;
+  const depth = this.playerCount === 2 ? LIMIT.arenaLength2p : LIMIT.arenaLength4p;
 
-      // Find the main wall mesh to instance (assumes one mesh as base)
-      const baseWallMesh = meshes.find(
-		m => m instanceof BABYLON.Mesh && m.getTotalVertices() > 0
-		) as BABYLON.Mesh;
-      if (!baseWallMesh) {
-        reject("No suitable mesh found in wall model");
-        return;
-      }
-	  baseWallMesh.rotation.x = -Math.PI / 2;
-	  baseWallMesh.refreshBoundingInfo();
-	  baseWallMesh.showBoundingBox = true;
-      baseWallMesh.isVisible = true; // Hide original
+  // Hide the source mesh
+  baseMesh.isVisible = false;
+  const baseYaw = -Math.PI / 2;
 
-	  // Compute segment length (assuming the model is a horizontal block)
-const bb = baseWallMesh.getBoundingInfo().boundingBox;
-const size = bb.maximum.subtract(bb.minimum);
+  // Compute uniform tile size from mesh depth (local Z)
+  const bb       = baseMesh.getBoundingInfo().boundingBox;
+  const tileSize = (bb.maximum.z - bb.minimum.z) * baseMesh.scaling.z;
 
-const segmentLength = Math.max(
-  Math.abs(size.x * baseWallMesh.scaling.x),
-  Math.abs(size.z * baseWallMesh.scaling.z)
-);
+  const halfW = width  / 2;
+  const halfD = depth  / 2;
 
-const segmentDepth = Math.min(
-  Math.abs(size.x * baseWallMesh.scaling.x),
-  Math.abs(size.z * baseWallMesh.scaling.z)
-);
-    //  // Compute segment length from bounding box and scale
-    //   const bb = baseWallMesh.getBoundingInfo().boundingBox;
-    //   const segmentLength = (bb.maximum.x - bb.minimum.x) * baseWallMesh.scaling.x;
-    //   const segmentDepth = (bb.maximum.z - bb.minimum.z) * baseWallMesh.scaling.z;
+  // Setup each side
+  const sides = [
+	{ name: 'top',    origin: new BABYLON.Vector3(-halfW, 0, +halfD), length: width,  axis: 'x', dir: +1, yawOff: Math.PI,        target: this.frontWalls },
+	{ name: 'bottom', origin: new BABYLON.Vector3(+halfW, 0, -halfD), length: width,  axis: 'x', dir: -1, yawOff: 0,              target: this.frontWalls },
+	{ name: 'left',   origin: new BABYLON.Vector3(-halfW, 0, -halfD), length: depth,  axis: 'z', dir: +1, yawOff: Math.PI/2,    target: this.sideWalls  },
+	{ name: 'right',  origin: new BABYLON.Vector3(+halfW, 0, +halfD), length: depth,  axis: 'z', dir: -1, yawOff:-Math.PI/2,    target: this.sideWalls  }
+  ];
 
-      const wallOffset = segmentDepth / 2;
-	  console.log("Mesh:", baseWallMesh.name);
-		console.log("Vertices:", baseWallMesh.getTotalVertices());
-		console.log("Scaling:", baseWallMesh.scaling);
-		console.log("Bounding box X size:", bb.maximum.x - bb.minimum.x);
-		console.log("SegmentLength:", segmentLength);
-		console.log("SegementDepth:", segmentDepth);
-//       // Helper function to create instances along an axis
-	const tileWallInstances = (
-	prefix: string,
-	count: number,
-	basePos: BABYLON.Vector3,
-	axis: "x" | "z",
-	rotationY: number,
-	targetArray: (BABYLON.InstancedMesh)[]
-) => {
-	for (let i = 0; i < count; i++) {
-		const instance = baseWallMesh.createInstance(`${prefix}_instance_${i}`);
-		const offset = i * segmentLength;
+  for (const side of sides) {
+	const fullCount = Math.floor(side.length / tileSize);
+	const leftover  = side.length - fullCount * tileSize;
+	const halfGap   = leftover / 2;
 
-		instance.position = basePos.add(
-			axis === "x"
-				? new BABYLON.Vector3(offset, 0, 0)    // tiles laid along X (top/bottom)
-				: new BABYLON.Vector3(0, 0, offset)    // tiles laid along Z (sides)
-		);
-
-		instance.rotation.y = rotationY;
-		instance.isVisible = true;
-		targetArray.push(instance);
+	// Place full tiles centered with even half-gap at both ends
+	for (let i = 0; i < fullCount; i++) {
+	  const inst = baseMesh.createInstance(`${side.name}_tile_${i}`);
+	  const offset = side.dir * (halfGap + (i + 0.5) * tileSize);
+	  inst.position = side.axis === 'x'
+		? side.origin.add(new BABYLON.Vector3(offset, 0, 0))
+		: side.origin.add(new BABYLON.Vector3(0, 0, offset));
+	  inst.rotationQuaternion = BABYLON.Quaternion.RotationAxis(
+		BABYLON.Axis.Y,
+		baseYaw + side.yawOff
+	  );
+	  inst.isVisible = true;
+	  side.target.push(inst);
 	}
-};
 
-
-//       // Number of tiles needed to cover each side
-      const topCount = Math.ceil(width / segmentLength);
-      const bottomCount = topCount;
-	
-      const leftCount = Math.ceil(depth / segmentLength);
-      const rightCount = leftCount;
-
-	console.warn(`LEFT COUNT:${leftCount}, TOP:${topCount} SegmentLength:${segmentLength}`);
-
-     // Create instances for each wall side
-	// TOP wall — at +Z, spans X axis, faces inward (no rotation needed)
-tileWallInstances("top", topCount,
-	new BABYLON.Vector3(-width / 2, 0, depth / 2 + wallOffset),
-	"x", 0, this.frontWalls);
-
-// BOTTOM wall — at -Z, spans X axis, faces inward (rotated 180°)
-tileWallInstances("bottom", bottomCount,
-	new BABYLON.Vector3(-width / 2, 0, -depth / 2 - wallOffset),
-	"x", Math.PI, this.frontWalls);
-
-// LEFT wall — at -X, spans Z axis, faces inward (rotated -90°)
-tileWallInstances("left", leftCount,
-	new BABYLON.Vector3(-width / 2 - wallOffset, 0, -depth / 2),
-	"z", -Math.PI / 2, this.sideWalls);
-
-// RIGHT wall — at +X, spans Z axis, faces inward (rotated +90°)
-tileWallInstances("right", rightCount,
-	new BABYLON.Vector3(width / 2 + wallOffset, 0, -depth / 2),
-	"z", Math.PI / 2, this.sideWalls);
-
-
-      resolve();
-    }, undefined, (scene, msg, exception) => {
-      console.error("Failed to load wall model:", msg, exception);
-      reject(msg);
-    });
-  });
+	// OPTIONAL: two end fillers of half-gap
+	if (halfGap > 0.01) {
+	  for (const end of [0, 1]) {
+		const inst = baseMesh.createInstance(`${side.name}_filler_${end}`);
+		const gapCenterOffset = side.dir * ((end === 0 ? halfGap / 2 : side.length - halfGap / 2));
+		const pos = side.axis === 'x'
+		  ? side.origin.add(new BABYLON.Vector3(gapCenterOffset, 0, 0))
+		  : side.origin.add(new BABYLON.Vector3(0, 0, gapCenterOffset));
+		// scale only along length axis
+		const scale = halfGap / tileSize;
+		inst.scaling = side.axis === 'x'
+		  ? new BABYLON.Vector3(1, 1, scale)
+		  : new BABYLON.Vector3(1, 1, scale);
+		inst.position = pos;
+		inst.rotationQuaternion = BABYLON.Quaternion.RotationAxis(
+		  BABYLON.Axis.Y,
+		  baseYaw + side.yawOff
+		);
+		inst.isVisible = true;
+		side.target.push(inst);
+	  }
+	}
+  }
 }
 
 
 
+private loadWallMesh(path: string, file: string): Promise<BABYLON.Mesh> {
+	return new Promise((resolve, reject) => {
+		BABYLON.SceneLoader.ImportMesh("", path, file, this.scene, (meshes) => {
+			const mesh = meshes.find(m => m instanceof BABYLON.Mesh && m.getTotalVertices() > 0) as BABYLON.Mesh;
+			if (!mesh) return reject("No valid wall mesh found.");
+			resolve(mesh);
+		}, undefined, (_, msg, err) => {
+			console.error("Wall load failed:", msg, err);
+			reject(msg);
+		});
+	});
+}
 
+	private async createPaddles(): Promise<void> {
+		// Load the GLB paddle mesh
+		const basePaddle = await this.loadWallMesh("../assets/", "horse_bone.glb");
+		basePaddle.isVisible = false;
 
+		// Determine backend target length for this paddle
+		const targetLength = LIMIT.paddleSize;
+
+		const targetWidth = LIMIT.paddleWidth;
+
+		// Compute mesh's local-length (assumed along X axis)
+		const bb = basePaddle.getBoundingInfo().boundingBox;
+		console.log('DEBUG basePaddle boundingBox:', bb);
+		console.log('DEBUG basePaddle scaling before:', basePaddle.scaling);
+		const sizes = {
+			x: (bb.maximum.x - bb.minimum.x) * basePaddle.scaling.x,
+			y: (bb.maximum.y - bb.minimum.y) * basePaddle.scaling.y,
+			z: (bb.maximum.z - bb.minimum.z) * basePaddle.scaling.z
+			};
+			console.log('DEBUG measured sizes:', sizes);
+		const meshLength = (bb.maximum.x - bb.minimum.x) * basePaddle.scaling.x;
+		const meshWidth = (bb.maximum.y - bb.minimum.y) * basePaddle.scaling.y;
+
+		// Compute scale factor to stretch to target length
+		const lengthScale = targetLength / meshLength;
+		const widthScale = targetWidth / meshWidth;
+
+		// Apply non-uniform scaling: stretch X axis, preserve Y/Z
+		basePaddle.scaling.x *= lengthScale;
+		basePaddle.scaling.y *= widthScale;
+
+		// Create one instance per side
+		let sides: Array<'left'|'right'|'top'|'bottom'> = [];
+		if(this.playerCount === 4)
+			sides =  ['left','right','top','bottom'];
+		else 
+			sides = ['left', 'right'];
+		for (const side of sides) {
+		const paddleName = `${side}_paddle`;
+		const inst = basePaddle.createInstance(paddleName);
+
+		// Position by side
+		switch (side) {
+			case 'left':
+			inst.position = new BABYLON.Vector3(-LIMIT.arenaWidth2p/2, 1, 0);
+			break;
+			case 'right':
+			inst.position = new BABYLON.Vector3(+LIMIT.arenaWidth2p/2, 1, 0);
+			break;
+			case 'top':
+			inst.position = new BABYLON.Vector3(0, 1, +LIMIT.arenaLength2p/2);
+			inst.rotationQuaternion = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Y, Math.PI/2);
+			break;
+			case 'bottom':
+			inst.position = new BABYLON.Vector3(0, 1, -LIMIT.arenaLength2p/2);
+			inst.rotationQuaternion = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Y, -Math.PI/2);
+			break;
+		}
+		inst.isVisible = true;
+		console.log('DEBUG creating paddle for side', side, inst);
+		console.log('DEBUG position before setting:', inst.position);
+		this.paddles.push(inst);
+		}
+		return;
+	}
 	private async createFloor() {
 		const terrain = BABYLON.MeshBuilder.CreateGroundFromHeightMap(
 		"planetTerrain",
@@ -317,61 +351,62 @@ tileWallInstances("right", rightCount,
 	
 private async spawnUFOs(count: number = 5) {
   return new Promise<void>((resolve, reject) => {
-    BABYLON.SceneLoader.ImportMesh("", "../assets/", "spaceship.glb", this.scene, (meshes) => {
-      if (meshes.length === 0) {
-        reject("No meshes loaded");
-        return;
-      }
+	BABYLON.SceneLoader.ImportMesh("", "../assets/", "spaceship.glb", this.scene, (meshes) => {
+	  if (meshes.length === 0) {
+		reject("No meshes loaded");
+		return;
+	  }
 
-      // Create a root node to hold the original UFO model
-      const baseUFORoot = new BABYLON.TransformNode("baseUFORoot", this.scene);
-      meshes.forEach(mesh => {
-        if (mesh instanceof BABYLON.Mesh) {
-          mesh.parent = baseUFORoot;
-        }
-      });
+	  // Create a root node to hold the original UFO model
+	  const baseUFORoot = new BABYLON.TransformNode("baseUFORoot", this.scene);
+	  meshes.forEach(mesh => {
+		if (mesh instanceof BABYLON.Mesh) {
+		  mesh.parent = baseUFORoot;
+		}
+	  });
 
-      baseUFORoot.setEnabled(false); // Hide original model if false
+	  baseUFORoot.setEnabled(false); // Hide original model if false
 
-      for (let i = 0; i < count; i++) {
-        const ufoCloneRoot = new BABYLON.TransformNode("ufo_" + i, this.scene);
+	  for (let i = 0; i < count; i++) {
+		const ufoCloneRoot = new BABYLON.TransformNode("ufo_" + i, this.scene);
 
-        meshes.forEach(mesh => {
-          if (mesh instanceof BABYLON.Mesh) {
-            const clonedMesh = mesh.clone(mesh.name + "_clone_" + i);
-            if (clonedMesh) {
-              clonedMesh.parent = ufoCloneRoot;
-              clonedMesh.isVisible = true;
-            }
-          }
-        });
+		meshes.forEach(mesh => {
+		  if (mesh instanceof BABYLON.Mesh) {
+			const clonedMesh = mesh.clone(mesh.name + "_clone_" + i);
+			if (clonedMesh) {
+			  clonedMesh.parent = ufoCloneRoot;
+			  clonedMesh.isVisible = true;
+			}
+		  }
+		});
 
-        ufoCloneRoot.setEnabled(true);
-        ufoCloneRoot.scaling.scaleInPlace(0.005);
+		ufoCloneRoot.setEnabled(true);
+		ufoCloneRoot.scaling.scaleInPlace(0.005);
 
-        const x = Math.random() * 100 - 50; // wider spread (was -100 to +100, now -200 to +200)
+		const x = Math.random() * 100 - 50; // wider spread (was -100 to +100, now -200 to +200)
 		const z = Math.random() * 100 - 50;
 
 		const y = 30 + Math.random() * 10; // lower height (was 80–100, now 30–40)
-        ufoCloneRoot.position = new BABYLON.Vector3(x, y, z);
+		ufoCloneRoot.position = new BABYLON.Vector3(x, y, z);
 
-        this.scene.registerBeforeRender(() => {
-          ufoCloneRoot.rotation.y += 0.001;
-        });
-      }
+		this.scene.registerBeforeRender(() => {
+		  ufoCloneRoot.rotation.y += 0.001;
+		});
+	  }
 
-      resolve();
-    }, undefined, (scene, message, exception) => {
-      console.error("Failed to load UFO:", message, exception);
-      reject(message);
-    });
+	  resolve();
+	}, undefined, (scene, message, exception) => {
+	  console.error("Failed to load UFO:", message, exception);
+	  reject(message);
+	});
   });
 }
 
 
 
-	createGameObjects(){
-	
+	private async createGameObjects(){
+		await  this.createPaddles();
+		
 	}
 
 	setupInitialPositions(){
@@ -423,7 +458,7 @@ private async spawnUFOs(count: number = 5) {
 			if (!mesh) return;
 
 			if (side === 'left' || side === 'right') {
-			mesh.position.z = pos;
+			mesh.position.z = 0;
 			} else {
 			mesh.position.x = pos;
 			}

@@ -163,8 +163,8 @@ async function handleEvents(
 			}));
 	});
 	typedSocket.on('giveSide', async (socket:WebSocket, data:Interfaces.SocketMessageMap['giveSide']) => {
-		if (state.playerInterface) {
-			state.playerInterface.playerSide = data.side;
+		if (pongState.pongRenderer) {
+			pongState.pongRenderer.setSide(data.side);
 		}
 	});
 	typedSocket.on('renderData',async(socket:WebSocket, data:Interfaces.SocketMessageMap['renderData']) =>{

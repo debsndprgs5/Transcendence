@@ -1,58 +1,89 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import * as gameMgr from '../db/gameManagement';
+import * as chatMgr from '../db/chatManagement';          // <— add this
+import { get } from '../db/userManagement';               // <— to check existence
 
 export async function tournamentRoutes(fastify: FastifyInstance) {
-	// Create tournament
-	fastify.post('/tournament/:userID', async (request: FastifyRequest, reply: FastifyReply) => {
-		console.log('[TOURNAMENT][ROUTES][POST][CREATETOURNAMENT]');
-		try {
-			const userID = Number((request.params as any).userID);
-			const body = request.body as {
-				name: string;
-				status:string;
-				paddleSpeed:number;
-				ballSpeed:number;
-				limit:number;
-				chatID:number;
-			};
+  // Create tournament
+  fastify.post('/tournament/:userID', async (request: FastifyRequest, reply: FastifyReply) => {
+    console.log('[TOURNAMENT][ROUTES][POST][CREATETOURNAMENT]');
+    try {
+      const userID = Number((request.params as any).userID);
+      const body = request.body as {
+        name: string;
+        status: 'waiting';
+        paddleSpeed: number;
+        ballSpeed: number;
+        limit: number;
+        chatID?: number; // optional now
+      };
 
-			if (
-				typeof body.name !== 'string' ||
-				typeof body.paddleSpeed !== 'number' ||
-				typeof body.ballSpeed !== 'number' ||
-				typeof body.limit !== 'number' ||
-				(body.status !== 'waiting')
-			) {
-				return reply.code(400).send({ success: false, message: 'Invalid payload' });
-			}
+      // Basic payload validation
+      if (
+        typeof body.name !== 'string' ||
+        typeof body.paddleSpeed !== 'number' ||
+        typeof body.ballSpeed !== 'number' ||
+        typeof body.limit !== 'number' ||
+        body.status !== 'waiting'
+      ) {
+        return reply.code(400).send({ success: false, message: 'Invalid payload' });
+      }
 
-			const result = await gameMgr.createTournament(
-				body.name,
-				userID,
-				0,
-				body.status,
-				body.paddleSpeed,
-				body.ballSpeed,
-				body.limit,
-				body.chatID
-			);
-			const newTournamentID = (result as any).lastID as number;
+      // ensure the creator exists, or the FK tournaments.createdBy will fail
+      const creator = await get<{ our_index: number }>(
+        `SELECT our_index FROM users WHERE our_index = ?`,
+        [userID]
+      );
+      if (!creator) {
+        return reply.code(400).send({ success: false, message: `User ${userID} does not exist` });
+      }
 
-			return reply.status(201).send({
-				success: true,
-				tournament: {
-					tournamentID: newTournamentID,
-					name: body.name,
-					createdBy: userID,
-					status: body.status,
-					chatID:body.chatID
-				}
-			});
-		} catch (error) {
-			console.error('Error in POST /api/tournament/:userID:', error);
-			return reply.code(500).send({ success: false, message: 'Server error' });
-		}
-	});
+      // ensure we have a valid chat room id; otherwise create one owned by the creator
+      let chatID = Number.isInteger(body.chatID as number) ? Number(body.chatID) : NaN;
+
+      // If provided chatID doesn't exist, ignore and create a fresh room
+      if (Number.isNaN(chatID)) {
+        const res = await chatMgr.createChatRoom(userID, `Tournament: ${body.name}`); // owner = creator
+        chatID = (res as any).lastID ?? (res as any).roomID ?? res;
+      } else {
+        const room = await get<{ roomID: number }>(
+          `SELECT roomID FROM chatRooms WHERE roomID = ?`,
+          [chatID]
+        );
+        if (!room) {
+          const res = await chatMgr.createChatRoom(userID, `Tournament: ${body.name}`);
+          chatID = (res as any).lastID ?? (res as any).roomID ?? res;
+        }
+      }
+
+      const result = await gameMgr.createTournament(
+        body.name,
+        userID,               // createdBy (FK -> users.our_index)
+        0,                    // playersCount
+        body.status,
+        body.paddleSpeed,
+        body.ballSpeed,
+        body.limit,
+        chatID                // FK -> chatRooms.roomID (must exist)
+      );
+
+      const newTournamentID = (result as any).lastID as number;
+
+      return reply.status(201).send({
+        success: true,
+        tournament: {
+          tournamentID: newTournamentID,
+          name: body.name,
+          createdBy: userID,
+          status: body.status,
+          chatID
+        }
+      });
+    } catch (error) {
+      console.error('Error in POST /api/tournament/:userID:', error);
+      return reply.code(500).send({ success: false, message: 'Server error' });
+    }
+  });
 
 	// List all tournaments
 	fastify.get('/tournament/list', async (request: FastifyRequest, reply: FastifyReply) => {

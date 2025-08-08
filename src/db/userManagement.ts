@@ -6,6 +6,13 @@ let db: sqlite3.Database;
 
 export function setDb(database: sqlite3.Database) {
   db = database;
+
+  db.exec(`
+    PRAGMA journal_mode=WAL;
+    PRAGMA synchronous=NORMAL;
+    PRAGMA foreign_keys=ON;
+    PRAGMA busy_timeout=3000;
+  `);
 }
 
 function run(query: string, params: any[] = []): Promise<any> {

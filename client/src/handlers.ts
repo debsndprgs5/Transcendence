@@ -305,6 +305,20 @@ export async function createDirectMessageWith(friendUsername: string): Promise<v
 	}
 }
 
+
+export async function handleInviteButton(friendUsername: string): Promise<void> {
+		const friendUserId = await apiFetch<{ userId: number }>(
+					`/users/by-username/${encodeURIComponent(friendUsername)}`,
+					{ headers: { Authorization: `Bearer ${state.authToken}` } }
+				).then(data => data.userId);
+		state.playerInterface!.typedSocket.send('invite', {
+				action: 'send', 
+				userID: state.userId,
+				targetID: friendUserId
+		});
+}
+
+
 // Little helper to resize canvas
 export function resizePongCanvas(): void {
   const wrapper = document.getElementById('pongWrapper');
@@ -315,6 +329,34 @@ export function resizePongCanvas(): void {
   canvas.width  = Math.round(width);
   canvas.height = Math.round(height);
 	console.log('Wrapper size:', wrapper.getBoundingClientRect());
+}
+
+
+function wireUsernameClickDelegation() {
+  if ((window as any).__usernameBubbleWired) return;
+  (window as any).__usernameBubbleWired = true;
+
+  document.addEventListener('click', (e: MouseEvent) => {
+    // English: normalize target (handle text nodes)
+    const raw = e.target as Node | null;
+    const baseEl = (raw && (raw as any).closest) 
+      ? (raw as Element)
+      : (raw && (raw as any).parentElement) 
+        ? (raw as any).parentElement as Element
+        : null;
+    if (!baseEl) return;
+
+    // English: look for any element with data-username, but ensure it's inside #chat
+    const clickable = baseEl.closest<HTMLElement>('[data-username]');
+    if (!clickable) return;
+    const chatRoot = document.getElementById('chat');
+    if (chatRoot && !chatRoot.contains(clickable)) return;
+
+    const username = clickable.getAttribute('data-username')?.trim();
+    if (!username) return;
+
+    showUserActionsBubble(clickable, username);
+  });
 }
 
 // =======================
@@ -384,19 +426,24 @@ export async function setupHomeHandlers(): Promise<void> {
 			
 		});
 	}
+	wireUsernameClickDelegation();
 
 	// Clickable usernames listener
 	const chatDiv = document.getElementById('chat');
 	if (chatDiv && !chatDiv.classList.contains('bubble-listener-added')) {
-		chatDiv.classList.add('bubble-listener-added');
-		chatDiv.addEventListener('click', (e: MouseEvent) => {
-			const target = e.target as HTMLElement;
-			if (target.classList.contains('username-link')) {
-				const username = target.getAttribute('data-username')!;
-				if (!username) return;
-				showUserActionsBubble(target, username);
-			}
-		});
+	  chatDiv.classList.add('bubble-listener-added');
+
+	  chatDiv.addEventListener('click', (e: MouseEvent) => {
+	    // Use closest() so clicks on children still work
+	    const link = (e.target as HTMLElement).closest('.username-link') as HTMLElement | null;
+	    if (!link || !chatDiv.contains(link)) return;
+
+	    // Prefer data-username; fallback to text content
+	    const username = (link.dataset.username || link.getAttribute('data-username') || link.textContent || '').trim();
+	    if (!username) return;
+
+	    showUserActionsBubble(link, username);
+	  });
 	}
 
 

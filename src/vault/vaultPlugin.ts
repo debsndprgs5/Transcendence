@@ -50,8 +50,10 @@ async function configPlugin(fastify: FastifyInstance) {
     fastify.log.info('Vault secrets loaded and attached to Fastify instance.');
 
   } catch (err) {
-    fastify.log.error('Failed to load secrets from Vault:', err);
-    throw err;
+    // ensure we pass an Error first, then the message
+    const error = err instanceof Error ? err : new Error(String(err));
+    fastify.log.error(error, 'Failed to load secrets from Vault');
+    throw error;
   }
 }
 

@@ -142,15 +142,16 @@ export default async function chatRoutes(fastify: FastifyInstance) {
 	});
 
 	fastify.post('/chat/rooms', async (request, reply) => {
-		let ownerId = getUserId(request, reply);
-		if (ownerId === undefined) return;
-		const { name , isTourLink} = request.body as { name?: string; isTourLink: boolean;};
-		if(isTourLink === true)
-			ownerId = -1;
-		const result = await chatMgr.createChatRoom(ownerId, name ?? 'Room');
-		return reply.code(201).send({ roomID: (result as any).lastID });
-	});
+	  const ownerId = getUserId(request, reply);
+	  if (ownerId === undefined) return;
 
+	  const { name, isTourLink } = request.body as { name?: string; isTourLink?: boolean };
+
+	  const roomName = name ?? (isTourLink ? 'Tournament room' : 'Room');
+
+	  const result = await chatMgr.createChatRoom(ownerId, roomName);
+	  return reply.code(201).send({ roomID: (result as any).lastID });
+	});
 	fastify.post('/chat/rooms/dm', async (request, reply) => {
 		const ownerId = getUserId(request, reply);
 		if (ownerId === undefined) return;

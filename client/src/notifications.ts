@@ -1,4 +1,4 @@
-import { createDirectMessageWith, router } from './handlers';
+import { createDirectMessageWith, router , handleInviteButton} from './handlers';
 
 // ─── NOTIFICATIONS ────────────────────────────────────────────────────────────────
 
@@ -167,74 +167,82 @@ export function showNotification({
 
 // Show a floating action bubble below the clicked username
 export function showUserActionsBubble(target: Element, username: string): void {
-	// Remove any old bubble
-	document.querySelectorAll('.user-action-bubble').forEach(el => el.remove());
+  // Remove any previous bubble
+  document.querySelectorAll('.user-action-bubble').forEach(el => el.remove());
 
-	const chatDiv = document.getElementById('chat');
-	const parent = chatDiv?.parentElement;
+  const bubble = document.createElement('div');
+  bubble.className = 'user-action-bubble';
+  bubble.innerHTML = `
+    <svg class="user-action-bubble__arrow" viewBox="0 0 28 13" fill="none">
+      <path d="M14 13L0 0h28L14 13z" fill="#fff" stroke="#a5b4fc" stroke-width="1.5"/>
+    </svg>
+    <button data-action="profile">👤 <span>Profile</span></button>
+    <button data-action="dm">💬 <span>Direct Message</span></button>
+    <button data-action="invite">🎮 <span>Invite Game</span></button>
+  `;
 
-	if (parent && window.getComputedStyle(parent).position === 'static') {
-		parent.style.position = 'relative';
-	}
+  // Append to body to avoid clipping/overflow issues
+  document.body.appendChild(bubble);
 
-	const bubble = document.createElement('div');
-	bubble.className = 'user-action-bubble';
-	bubble.innerHTML = `
-		<svg class="user-action-bubble__arrow" viewBox="0 0 28 13" fill="none">
-			<path d="M14 13L0 0h28L14 13z" fill="#fff" stroke="#a5b4fc" stroke-width="1.5"/>
-		</svg>
-		<button data-action="profile">👤 <span>Profile</span></button>
-		<button data-action="dm">💬 <span>Direct Message</span></button>
-		<button data-action="invite" disabled>🎮 <span>Invite Game</span></button>
-	`;
+  // Compute positions in viewport coordinates then offset by page scroll
+  const targetRect = (target as HTMLElement).getBoundingClientRect();
+  const bubbleRect = bubble.getBoundingClientRect();
 
-	parent?.appendChild(bubble);
+  // Position below the username, clamp to viewport
+  const top = window.scrollY + targetRect.bottom + 12;
+  let left = window.scrollX + targetRect.left + (targetRect.width - bubbleRect.width) / 2;
 
-	const parentRect = parent!.getBoundingClientRect();
-	const targetRect = (target as Element).getBoundingClientRect();
-	const bubbleRect = bubble.getBoundingClientRect();
+  const viewportRight = window.scrollX + document.documentElement.clientWidth;
+  const minLeft = window.scrollX + 8;
+  const maxLeft = viewportRight - bubbleRect.width - 12;
 
-	const top = targetRect.bottom - parentRect.top + parent!.scrollTop + 12;
-	let left = targetRect.left - parentRect.left + parent!.scrollLeft - 18;
-	const maxLeft = parent!.offsetWidth - bubbleRect.width - 12;
-	if (left > maxLeft) left = maxLeft;
-	if (left < 8) left = 8;
-	bubble.style.top = `${top}px`;
-	bubble.style.left = `${left}px`;
+  if (left < minLeft) left = minLeft;
+  if (left > maxLeft) left = maxLeft;
 
-	const arrow = bubble.querySelector<SVGElement>('.user-action-bubble__arrow');
-	if (arrow) {
-		let arrowLeft = targetRect.left - parentRect.left + targetRect.width / 2 - left - 14;
-		if (arrowLeft < 8) arrowLeft = 8;
-		arrow.style.left = `${arrowLeft}px`;
-	}
+  bubble.style.position = 'absolute';
+  bubble.style.top = `${top}px`;
+  bubble.style.left = `${left}px`;
 
-	// Close bubble on outside click
-	setTimeout(() => {
-		document.addEventListener('mousedown', function onClickOutside(e) {
-			if (!bubble.contains(e.target as Node)) {
-				bubble.remove();
-				document.removeEventListener('mousedown', onClickOutside);
-			}
-		});
-	}, 20);
+  // Arrow alignment (center under the username; clamp inside bubble)
+  const arrow = bubble.querySelector<SVGElement>('.user-action-bubble__arrow');
+  if (arrow) {
+    // arrow width ≈ 28, so subtract half (14) to center its tip
+    let arrowLeft = (window.scrollX + targetRect.left + targetRect.width / 2) - left - 14;
+    const maxArrowLeft = bubbleRect.width - 28 - 8; // keep some padding inside
+    if (arrowLeft < 8) arrowLeft = 8;
+    if (arrowLeft > maxArrowLeft) arrowLeft = maxArrowLeft;
+    arrow.style.left = `${arrowLeft}px`;
+  }
 
-	// Actions
-	bubble.addEventListener('click', async (e: MouseEvent) => {
-		const btn = (e.target as HTMLElement).closest('button');
-		const action = btn?.getAttribute('data-action');
-		if (!action) return;
+  // Close bubble on outside click (use mousedown to feel instant)
+  setTimeout(() => {
+    document.addEventListener('mousedown', function onClickOutside(e) {
+      if (!bubble.contains(e.target as Node)) {
+        bubble.remove();
+        document.removeEventListener('mousedown', onClickOutside);
+      }
+    });
+  }, 20);
 
-		if (action === 'profile') {
-			history.pushState(null, '', `/profile/${encodeURIComponent(username)}`);
-			router();
-			bubble.remove();
-		} else if (action === 'dm') {
-			await createDirectMessageWith(username);
-			bubble.remove();
-		}
-		// else if (action === 'invite'){
-		// 	await handleInviteButton()
-		// }
-	});
+  // Actions
+  bubble.addEventListener('click', async (e: MouseEvent) => {
+    const btn = (e.target as HTMLElement).closest('button');
+    const action = btn?.getAttribute('data-action');
+    if (!action) return;
+
+    // NOTE: these functions must exist in your scope/router
+    if (action === 'profile') {
+      history.pushState(null, '', `/profile/${encodeURIComponent(username)}`);
+      router();
+      bubble.remove();
+    } else if (action === 'dm') {
+      await createDirectMessageWith(username);
+      bubble.remove();
+    } else if (action === 'invite') {
+      await handleInviteButton(username);
+      bubble.remove();
+    }
+  });
 }
+
+

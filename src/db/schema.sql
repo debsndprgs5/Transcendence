@@ -142,88 +142,84 @@ CREATE TABLE IF NOT EXISTS gameResultFour (
 );
 
 CREATE TABLE IF NOT EXISTS user_preferences (
-    userID INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-
-    -- Camera
-    camera_mode TEXT DEFAULT '3D',
-    camera_angle REAL DEFAULT 0,
-    camera_focus TEXT DEFAULT 'center',
-    camera_pos_x REAL DEFAULT -50,
-    camera_pos_y REAL DEFAULT 50,
-    camera_pos_z REAL DEFAULT 0,
-
-    -- Lighting
-    light_intensity REAL DEFAULT 1.0,
-
-    --Player Paddle
-    paddle_color TEXT DEFAULT '#00ff00',
-    paddle_texture TEXT,
-    paddle_material TEXT DEFAULT 'default',
-    --Opponent Paddle
-    op_paddle_color TEXT DEFAULT '#ff0000',
-    op_paddle_texture TEXT,
-    op_paddle_material TEXT DEFAULT 'default',
-    -- Ball
-    ball_color TEXT DEFAULT '#ffffff',
-    ball_texture TEXT,
-    ball_material TEXT DEFAULT 'default',
-    ball_trail_enabled INTEGER DEFAULT 0,
-
-    -- Walls
-    wall_color TEXT DEFAULT '#999999',
-    wall_texture TEXT,
-    wall_material TEXT DEFAULT 'default',
-
-    -- Sound
-    sound_wall_bounce INTEGER DEFAULT 1,
-    sound_paddle_bounce INTEGER DEFAULT 1,
-    sound_point_win TEXT DEFAULT 'default_win.wav',
-    sound_point_lose TEXT DEFAULT 'default_lose.wav',
-
-    -- UI & Avatar
-    avatar_enabled INTEGER DEFAULT 1,
-    avatar_follow_paddle INTEGER DEFAULT 0,
-    avatar_offset REAL DEFAULT 0.5,
-    avatar_size REAL DEFAULT 1.0,
-    ui_font TEXT DEFAULT 'Roboto',
-    ui_font_size INTEGER DEFAULT 16,
-    ui_font_color TEXT DEFAULT '#ffffff',
-    ui_scale REAL DEFAULT 1.0,
-    ui_score_position TEXT DEFAULT 'top-center',
-    ui_name_position TEXT DEFAULT 'above-paddle'
+  userID INTEGER PRIMARY KEY REFERENCES users(our_index) ON DELETE CASCADE,
+  -- Camera
+  camera_mode TEXT DEFAULT '3D',
+  camera_angle REAL DEFAULT 0,
+  camera_focus TEXT DEFAULT 'center',
+  camera_pos_x REAL DEFAULT -50,
+  camera_pos_y REAL DEFAULT 50,
+  camera_pos_z REAL DEFAULT 0,
+  -- Lighting
+  light_intensity REAL DEFAULT 1.0,
+  -- Player Paddle
+  paddle_color TEXT DEFAULT '#00ff00',
+  paddle_texture TEXT,
+  paddle_material TEXT DEFAULT 'default',
+  -- Opponent Paddle
+  op_paddle_color TEXT DEFAULT '#ff0000',
+  op_paddle_texture TEXT,
+  op_paddle_material TEXT DEFAULT 'default',
+  -- Ball
+  ball_color TEXT DEFAULT '#ffffff',
+  ball_texture TEXT,
+  ball_material TEXT DEFAULT 'default',
+  ball_trail_enabled INTEGER DEFAULT 0,
+  -- Walls
+  wall_color TEXT DEFAULT '#999999',
+  wall_texture TEXT,
+  wall_material TEXT DEFAULT 'default',
+  -- Sound
+  sound_wall_bounce INTEGER DEFAULT 1,
+  sound_paddle_bounce INTEGER DEFAULT 1,
+  sound_point_win TEXT DEFAULT 'default_win.wav',
+  sound_point_lose TEXT DEFAULT 'default_lose.wav',
+  -- UI & Avatar
+  avatar_enabled INTEGER DEFAULT 1,
+  avatar_follow_paddle INTEGER DEFAULT 0,
+  avatar_offset REAL DEFAULT 0.5,
+  avatar_size REAL DEFAULT 1.0,
+  ui_font TEXT DEFAULT 'Roboto',
+  ui_font_size INTEGER DEFAULT 16,
+  ui_font_color TEXT DEFAULT '#ffffff',
+  ui_scale REAL DEFAULT 1.0,
+  ui_score_position TEXT DEFAULT 'top-center',
+  ui_name_position TEXT DEFAULT 'above-paddle'
 );
 
 ------------------- STATS -------------------
 CREATE TABLE IF NOT EXISTS scoreTable (
-  matchID       INTEGER,
-  userID        INTEGER,
-  score         INTEGER,
-  result        INTEGER, -- 1 = win, 0 = lose, 2 = draw
-  FOREIGN KEY (matchID) REFERENCES matchHistory(matchID),
-  FOREIGN KEY (userID) REFERENCES users(our_index)
+  matchID  INTEGER NOT NULL,
+  userID   INTEGER NOT NULL,
+  score    INTEGER NOT NULL,
+  result   INTEGER NOT NULL,                        -- 1 win, 0 lose, 2 draw
+  PRIMARY KEY (matchID, userID),                    -- avoid duplicates per match
+  FOREIGN KEY (matchID) REFERENCES matchHistory(matchID) ON DELETE CASCADE,
+  FOREIGN KEY (userID)  REFERENCES users(our_index) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS matchHistory (
-  matchID           INTEGER,
+  matchID           INTEGER PRIMARY KEY,            -- parent PK
   tourID            INTEGER,
-  rulesPaddleSpeed  INTEGER,
-  rulesBallSpeed    INTEGER,
-  rulesLimit        INTEGER,
-  rulesCondition    INTEGER, -- 1 = score, 0 = time
+  rulesPaddleSpeed  INTEGER NOT NULL,
+  rulesBallSpeed    INTEGER NOT NULL,
+  rulesLimit        INTEGER NOT NULL,
+  rulesCondition    INTEGER NOT NULL,               -- 1 = score, 0 = time
   started_at        DATETIME DEFAULT CURRENT_TIMESTAMP,
-  duration          INTEGER
+  duration          INTEGER,
+  FOREIGN KEY (tourID) REFERENCES tournaments(tournamentID) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS ball_bounce_history (
   id                INTEGER PRIMARY KEY AUTOINCREMENT,
-  matchID           INTEGER,
+  matchID           INTEGER NOT NULL,
   last_userID_touch INTEGER,
-  typeof_bounce     INTEGER, -- 0 = wall, 1 = paddle, 2 = goal
+  typeof_bounce     INTEGER,       -- 0 wall, 1 paddle, 2 goal
   ball_speed        REAL,
   position_x        REAL,
   position_y        REAL,
   angle             REAL,
   bounce_at         DATETIME DEFAULT CURRENT_TIMESTAMP,
   bounce_at_ms      INTEGER,
-  FOREIGN KEY (matchID) REFERENCES matchHistory(matchID)
+  FOREIGN KEY (matchID) REFERENCES matchHistory(matchID) ON DELETE CASCADE
 );

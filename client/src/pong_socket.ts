@@ -1,6 +1,6 @@
 import { showNotification, showUserActionsBubble } from './notifications';
 import { isAuthenticated, apiFetch, state } from './api';
-import { PongRenderer } from './NEW_pong_render';
+import { PongRenderer } from './render/NEW_pong_render';
 import {settingsRenderer} from './settings_render';
 import * as Interfaces from './shared/gameTypes';
 import {createTypedEventSocket} from './shared/gameEventWrapper';
@@ -11,6 +11,7 @@ import * as BABYLON from "@babylonjs/core";
 import * as Tournament from './tournament_socket'
 import { handleLogout } from './handlers'
 import { LocalGameView } from './localGame/localGame.view';
+import { Side} from './render/NEW_pong_render'
 
 export const pongState = 
 {
@@ -164,8 +165,9 @@ async function handleEvents(
 	});
 	typedSocket.on('giveSide', async (socket:WebSocket, data:Interfaces.SocketMessageMap['giveSide']) => {
 		if (pongState.pongRenderer) {
-			pongState.pongRenderer.setSide(data.side);
+			await pongState.pongRenderer.setSide(data.side);
 		}
+		state.playerInterface!.playerSide = data.side;
 	});
 	typedSocket.on('renderData',async(socket:WebSocket, data:Interfaces.SocketMessageMap['renderData']) =>{
 		await handleRenderData(data);
@@ -405,8 +407,9 @@ export async function handleStartGame(data: Interfaces.SocketMessageMap['startGa
 	localStorage.setItem('pong_view', 'playingGame');
 	console.log(`USERSTATE:${state.playerInterface.state}| Uname: ${state.playerInterface.username}`)
 	const count = Object.keys(data.usernames).length
+	const side:Side = data.side;
 	pongState.pongRenderer = new PongRenderer(canvas, state.typedSocket,
-		count, data.gameName,state.playerInterface.playerSide!, data.usernames);
+		count, data.gameName,side, data.usernames);
 	state.playerInterface.gameID = data.gameID;
 	showPongMenu();
 	}

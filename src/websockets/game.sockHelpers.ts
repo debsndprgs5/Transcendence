@@ -117,14 +117,14 @@ export async function createQuickGameAndAddPlayers(inviterID: number, inviteeID:
 export async function beginGame(gameID: number, players: Interfaces.playerInterface[]) {
   const modeRow = await GameManagement.getModePerGameID(gameID);
   const mode = modeRow?.mode || 'duo';
-  const expectedCount = mode === 'quator' ? 4 : 2;
+  const expectedCount = mode === 'quatuor' ? 4 : 2;
 
   if (players.length !== expectedCount) {
     console.error(`[beginGame] GameID ${gameID} expected ${expectedCount} players for mode '${mode}'`);
     return;
   }
   const shuffled = [...players].sort(() => Math.random() - 0.5);
-  const sides = mode === 'quator'
+  const sides = mode === 'quatuor'
     ? ['left', 'right', 'top', 'bottom'] as const
     : ['left', 'right'] as const;
 
@@ -158,13 +158,8 @@ export async function beginGame(gameID: number, players: Interfaces.playerInterf
     updatePlayerState(player, 'playing');
 
     // Send side assignment
-    const sideMsg: Interfaces.SocketMessageMap['giveSide'] = {
-      type: 'giveSide',
-      userID: player.userID,
-      gameID,
-      side,
-    };
-    player.typedSocket.send('giveSide', sideMsg);
+  
+
   });
   let gameName = await GameManagement.getNamePerGameID(gameID);
   if(!gameName!.name)
@@ -179,8 +174,15 @@ export async function beginGame(gameID: number, players: Interfaces.playerInterf
       win_condition: gameDesc.winCondition,
       limit: gameDesc.limit,
       usernames: sideToUsername,
+      side:player.playerSide!
     };
     player.typedSocket.send('startGame', startMsg);
+    player.typedSocket.send('giveSide', {
+      type: 'giveSide',
+      userID: player.userID,
+      gameID:gameID,
+      side:player.playerSide
+    });
   });
 
   const existingGame = PongRoom.rooms.get(gameID)
@@ -203,7 +205,7 @@ export async function tryStartGameIfReady(gameID: number) {
     case 'duo':
       maxPlayers = 2;
       break;
-    case 'quator':
+    case 'quatuor':
       maxPlayers = 4;
       break;
     default:
@@ -227,6 +229,7 @@ export async function tryStartGameIfReady(gameID: number) {
   }
 
   if (playersInGameRoom.length === maxPlayers) {
+    console.log(`Starting game : Players length:${playersInGameRoom.length} | Max players: ${maxPlayers}`)
     const playerObjs = playersInGameRoom
       .map(p => getPlayerByUserID(p.userID))
       .filter((p): p is Interfaces.playerInterface => !!p);

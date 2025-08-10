@@ -132,6 +132,7 @@ export type SocketMessageMap = {
 				userID:number;
 				gameID:number;
 				gameName:string;
+				side:'left'|'right'|'top'|'bottom';
 				win_condition:string;
 				limit:number; 
 				usernames: Record<'left' | 'right' | 'top' | 'bottom', string>; 

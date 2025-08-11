@@ -5,7 +5,7 @@ import type { TypedSocket } from '../shared/gameTypes';
 import * as GUI from '@babylonjs/gui';
 import { setupLighting, setupCamera, createSkybox, createFloor, spawnUFOs, stopUfoLoop } from './world';
 import { createWalls, createPaddles, createBall } from './gameObj';
-import { setupGUI } from './ui';
+import { setupGUI, setupPauseUI, updatePauseUI} from './ui';
 import { registerInput, startRenderLoop, attachResize, processNetworkUpdate, type UpdatePayload } from './coreRender';
 
 export type Side = 'left' | 'right' | 'top' | 'bottom';
@@ -46,6 +46,7 @@ export interface RendererCtx {
 	playerCount: number;
 	playerSide: Side;
 	gameName: string;
+	isPaused:boolean;
 
 	// game objects
 	frontWalls: BABYLON.InstancedMesh[];
@@ -105,7 +106,7 @@ export class PongRenderer {
 			ufos: [],
 			inputState: { left: false, right: false },
 			currentDir: 'stop',
-			//isPaused: false,
+			isPaused: false,
 			playersInfo: usernames,
 			socket: typedSocket,
 		};
@@ -132,9 +133,10 @@ export class PongRenderer {
 		await createPaddles(ctx);   // sets ctx.paddles & ctx.paddleRoots
 		await createBall(ctx);      // sets ctx.ballObj
 
-		// UI (stubs for now, still useful for pause overlay later)
-		setupGUI(ctx);              // safe no-op stub you can expand
-		//setupPauseUI(ctx);          // sets ctx.pauseUI later
+		// UI 
+		setupGUI(ctx);            
+		setupPauseUI(ctx);          // sets ctx.pauseUI later
+		updatePauseUI(ctx); // sync initial state
 
 		// Input + loop + resize
 		registerInput(ctx);
@@ -154,7 +156,8 @@ export class PongRenderer {
 	public resumeRenderLoop() {
 		this.ctx.engine.stopRenderLoop();
 		startRenderLoop(this.ctx);
-		//this.ctx.isPaused = false;
+		this.ctx.isPaused = false;
+		updatePauseUI(this.ctx);
 		//if (this.ctx.pauseUI?.container) this.ctx.pauseUI.container.isVisible = false;
 	}
 

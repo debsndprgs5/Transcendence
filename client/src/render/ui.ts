@@ -2,6 +2,9 @@
 import * as BABYLON from '@babylonjs/core';
 import * as GUI from '@babylonjs/gui';
 import type { RendererCtx, Side } from './NEW_pong_render';
+import { state } from '../api';
+import { showNotification } from '../notifications';
+import { handleLeaveTournament } from '../tournament_rooms';
 
 // ---------- layout constants ----------
 const STRIP_HEIGHT = 72;   // px
@@ -164,7 +167,7 @@ export function setupGUI(ctx: RendererCtx) {
   // TOP: [ LeftChip | spacer* | center* (GameName : Time) | RightChip | Leave(px) ]
   const topGrid = makeGrid([
     { px: 150 },
-    { star: 1 },
+    { px: 10 },
     { star: 1 },
     { px: 150 },
     { px: 80 },
@@ -174,9 +177,9 @@ export function setupGUI(ctx: RendererCtx) {
   // BOTTOM: [ BottomChip | spacer* | Scoreboard* | spacer* | TopChip ]
   const botGrid = makeGrid([
     { px: 150 },
+    { px: 10 },
     { star: 1 },
-    { star: 1 },
-    { star: 1 },
+    { px: 10 },
     { px: 150 },
   ]);
   bot.addControl(botGrid);
@@ -233,18 +236,59 @@ export function setupGUI(ctx: RendererCtx) {
   center.addControl(timeTxt);
   topGrid.addControl(center, 0, 2);
 
-  // Leave button (emit an app-level event; handle pause/confirm elsewhere)
-  const leave = GUI.Button.CreateSimpleButton('leave-btn', 'Leave');
-  leave.width = '110px';
-  leave.height = '38px';
-  leave.color = '#fff';
-  leave.fontSize = 16;
-  leave.cornerRadius = 10;
-  leave.thickness = 0;
-  leave.background = '#DC4646';
-  leave.onPointerUpObservable.add(() => {
-    window.dispatchEvent(new CustomEvent('game:leave-click'));
-  });
+	// Leave button — same flow as old Escape handler
+	const leave = GUI.Button.CreateSimpleButton('leave-btn', 'Leave');
+	leave.width = '80px';              // matches your topGrid's { px: 80 }
+	leave.height = '38px';
+	leave.color = '#fff';
+	leave.fontSize = 16;
+	leave.cornerRadius = 10;
+	leave.thickness = 0;
+	leave.background = '#DC4646';
+
+	leave.onPointerUpObservable.add(() => {
+		const player = state.playerInterface;
+		if (!player || player.state !== 'playing') return;
+
+		if (ctx.isPaused) return;
+		ctx.isPaused = true;
+
+		state.typedSocket.send('pause', {
+			userID: state.userId,
+			gameID: player.gameID
+		});
+
+		showNotification({
+			type: 'confirm',
+			message: 'Do you really want to leave the game?',
+			onConfirm: async () => {
+				state.typedSocket.send('leaveGame', {
+					userID: state.userId!,
+					gameID: player.gameID,
+					isLegit: false,
+				});
+
+				if (state.playerInterface?.tournamentID) {
+					const tourID = state.playerInterface.tournamentID;
+					state.typedSocket.send('leaveTournament', {
+						userID: state.userId!,
+						tournamentID: tourID,
+						islegit: false,
+						duringGame: true
+					});
+					handleLeaveTournament(false, true);
+				}
+			},
+			onCancel: () => {
+				state.typedSocket.send('resume', {
+					userID: state.userId,
+					gameID: player.gameID
+				});
+				ctx.isPaused = false;
+			},
+		});
+	});
+
   topGrid.addControl(leave, 0, 4);
 
   // Bottom center scoreboard (we’ll fill it from updateHUD)
@@ -258,7 +302,7 @@ export function setupGUI(ctx: RendererCtx) {
   chips.top!.container.isVisible    = is4;
   chips.bottom!.container.isVisible = is4;
 
-  // Store refs on ctx (no WeakMap)
+  // Store refs on ctx 
   ctx.ui = {
     adt,
     topBar: top,
@@ -274,6 +318,43 @@ export function setupGUI(ctx: RendererCtx) {
     },
     scoreboard,
   };
+}
+
+export function setupPauseUI(ctx: RendererCtx) {
+  if (!ctx.ui) return; // make sure setupGUI ran first
+
+  const banner = new GUI.Rectangle("pauseBanner");
+  banner.width = "360px";
+  banner.height = "72px";
+  banner.thickness = 0;
+  banner.cornerRadius = 14;
+  banner.background = "rgba(0,0,0,0.70)";
+  banner.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+  banner.verticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+  banner.zIndex = 900;
+  banner.isVisible = false; // start hidden
+
+  const txt = new GUI.TextBlock();
+  txt.text = "Game is paused";
+  txt.color = "#FFFFFF";
+  txt.fontSize = 24;
+  txt.fontWeight = "700";
+  txt.height = "36px"; // px to avoid StackPanel warnings
+  banner.addControl(txt);
+
+  ctx.ui.adt.addControl(banner);
+  // stash a ref so we can toggle it later
+  (ctx.ui as any).pauseBanner = banner;
+}
+
+export function updatePauseUI(ctx: RendererCtx) {
+
+	console.warn(`[PauseUpdate] ${ctx.isPaused}`);
+  const banner = (ctx.ui as any)?.pauseBanner as GUI.Rectangle | undefined;
+  if (banner){
+		console.log(`Banner found`);
+		banner.isVisible = ctx.isPaused;
+	}
 }
 
 
@@ -322,5 +403,6 @@ export function updateHUD(
 	}
 
 	ui.scoreboard.text = text;
+	updatePauseUI(ctx);
 }
 

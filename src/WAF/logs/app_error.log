@@ -1,1 +1,0 @@
-2025/08/11 20:50:59 [error] 7#7: *10 client intended to send too large body: 3308181 bytes, client: 172.19.0.1, server: _, request: "POST /api/users/me/avatar HTTP/2.0", host: "172.25.100.48:1400", referrer: "https://172.25.100.48:1400/account"

@@ -18,21 +18,22 @@ export interface BallState {
 	light: BABYLON.PointLight;
 }
 
-export interface MY_UI{
-	adt: GUI.AdvancedDynamicTexture;
-	topBar: GUI.Rectangle;
-	bottomBar: GUI.Rectangle;
-	timeText: GUI.TextBlock;
-	gameNameText: GUI.TextBlock;
-	leaveBtn: GUI.Button;
-	chips: Partial<Record<Side, {
-		container: GUI.Rectangle;
-		avatarHolder: GUI.Control;
-		name: GUI.TextBlock;
-		score: GUI.TextBlock;
-	}>>;
-	scoreboard: GUI.TextBlock;
+export interface MY_UI {
+  adt: GUI.AdvancedDynamicTexture;
+  topBar: GUI.Rectangle;
+  bottomBar: GUI.Rectangle;
+  timeText: GUI.TextBlock;
+  gameNameText: GUI.TextBlock;
+  leaveBtn: GUI.Button;
+  chips: Partial<Record<Side, {
+    container: GUI.Rectangle;
+    avatarHolder: GUI.Rectangle;  // <= was GUI.Control
+    name: GUI.TextBlock;
+    score: GUI.TextBlock;
+  }>>;
+  scoreboard: GUI.TextBlock;
 }
+
 
 export interface RendererCtx {
 	// core

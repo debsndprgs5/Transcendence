@@ -18,13 +18,7 @@ export function registerInput(ctx: RendererCtx) {
     const k = e.key.toLowerCase();
     if (k === 'a') inputState.left  = true;
     if (k === 'd') inputState.right = true;
-    // if (k === 'escape' || k === 'esc') {
-    //   // your pause UI flow can go here later
-    //   ctx.isPaused = true;
-    //   if (state.playerInterface?.gameID && state.userId) {
-    //     state.typedSocket.send('pause', { userID: state.userId, gameID: state.playerInterface.gameID });
-    //   }
-    // }
+    
   };
   const keyup = (e: KeyboardEvent) => {
     const k = e.key.toLowerCase();

@@ -79,7 +79,7 @@ export class PongRoom {
 		}
 
 		// Position paddles just inside walls
-	const wallTh = 0.25;
+	const wallTh = 1;
 	for (const p of players) {
 	  const pad = this.paddles.get(p.userID)!.paddleInterface;
 	  const halfW = pad.width  / 2;

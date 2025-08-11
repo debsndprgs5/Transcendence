@@ -92,7 +92,7 @@ export function showPongMenu(): void {
 		const savedGameId = localStorage.getItem('pong_game_id');
 		if (savedGameId) {
 		  if (!state.playerInterface) state.playerInterface = {} as any; // English: lightweight ensure
-		  state.playerInterface.gameID = Number(savedGameId);
+		  state.playerInterface!.gameID = Number(savedGameId);
 		}
 		resizePongCanvas();
 		const ctx = canvas.getContext('2d');
@@ -614,7 +614,7 @@ async function handleCreateGameButton(action: string): Promise<void> {
 
 			state.currentGameName   = gameName;
 			state.currentPlayers    = usernames;
-			state.playerInterface.state = 'waitingGame';
+			state.playerInterface!.state = 'waitingGame';
 			state.canvasViewState = 'waitingGame';
 			state.playerInterface.gameID = gameID;
 			// Persist game id
@@ -639,7 +639,7 @@ async function handleJoinRandom(): Promise<void> {
 		const oldest = rooms.reduce((a, b) => a.roomID < b.roomID ? a : b);
 
 		state.typedSocket.send('joinGame', { userID: state.userId, gameID: oldest.roomID, gameName: oldest.roomName });
-		state.playerInterface.gameID = oldest.roomID;
+		state.playerInterface!.gameID = oldest.roomID;
 		// Persist game id
 		localStorage.setItem('pong_game_id', String(oldest.roomID));
 

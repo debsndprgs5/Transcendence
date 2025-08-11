@@ -361,7 +361,7 @@ export async function setupHomeHandlers(): Promise<void> {
 
 	  if (savedGameId) {
 	    if (!state.playerInterface) state.playerInterface = {} as any; // ensure object exists
-	    state.playerInterface.gameID = Number(savedGameId);
+	    state.playerInterface!.gameID = Number(savedGameId);
 	  }
 	}
   showPongMenu();

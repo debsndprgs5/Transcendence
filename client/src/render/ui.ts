@@ -19,7 +19,7 @@ async function resolveAvatarURL(username: string): Promise<string> {
 
   // Try backend
   try {
-    const res = await fetch(`/users/${encodeURIComponent(username)}/avatar`, { credentials: 'include' });
+    const res = await fetch(`/api/users/${encodeURIComponent(username)}/avatar`, { credentials: 'include' });
     if (res.ok) {
       const json = await res.json() as { avatar_url?: string };
       if (json?.avatar_url) {
@@ -148,160 +148,144 @@ function makeChip(side: Side, username: string) {
   return { container, avatarHolder, name, score };
 }
 
-
-
-// ---------- UI refs stored per scene ----------
-type UIRefs = {
-	adt: GUI.AdvancedDynamicTexture;
-	topBar: GUI.Rectangle;
-	bottomBar: GUI.Rectangle;
-	timeText: GUI.TextBlock;
-	gameNameText: GUI.TextBlock;
-	leaveBtn: GUI.Button;
-	chips: Partial<Record<Side, {
-		container: GUI.Rectangle;
-		avatarHolder: GUI.Rectangle;
-		name: GUI.TextBlock;
-		score: GUI.TextBlock;
-	}>>;
-	scoreboard: GUI.TextBlock;
-};
-
-const UI = new WeakMap<BABYLON.Scene, UIRefs>();
-
 // ---------- public API ----------
 export function setupGUI(ctx: RendererCtx) {
-	const adt = GUI.AdvancedDynamicTexture.CreateFullscreenUI('UI', true, ctx.scene);
-	// Make GUI crisp on HiDPI and when engine uses hardware scaling.
-	const dpr = window.devicePixelRatio || 1;
-	const hw  = ctx.scene.getEngine().getHardwareScalingLevel(); // often 1/dpr
-	adt.renderScale = Math.max(1, Math.round(dpr / hw));
+  const adt = GUI.AdvancedDynamicTexture.CreateFullscreenUI('UI', true, ctx.scene);
 
+  // Crisp GUI on HiDPI / hardware scaling
+  const dpr = window.devicePixelRatio || 1;
+  const hw  = ctx.scene.getEngine().getHardwareScalingLevel(); // often 1/dpr
+  adt.renderScale = Math.max(1, Math.round(dpr / hw));
 
-	// Strips
-	const top = makeStrip(adt, 'top');
-	const bot = makeStrip(adt, 'bottom');
+  // Strips
+  const top = makeStrip(adt, 'top');
+  const bot = makeStrip(adt, 'bottom');
 
-	// TOP: [ LeftChip | spacer* | center* (GameName : Time) | RightChip | Leave(px) ]
-	const topGrid = makeGrid([
-		{ px: 150 },
-		{ star: 1 },
-		{ star: 1 },
-		{ px: 150 },
-		{ px: 80 },
-	]);
-	top.addControl(topGrid);
+  // TOP: [ LeftChip | spacer* | center* (GameName : Time) | RightChip | Leave(px) ]
+  const topGrid = makeGrid([
+    { px: 150 },
+    { star: 1 },
+    { star: 1 },
+    { px: 150 },
+    { px: 80 },
+  ]);
+  top.addControl(topGrid);
 
-	// BOTTOM: [ BottomChip | spacer* | Scoreboard* | spacer* | TopChip ]
-	const botGrid = makeGrid([
-		{ px: 150 },
-		{ star: 1 },
-		{ star: 1 },
-		{ star: 1 },
-		{ px: 150 },
-	]);
-	bot.addControl(botGrid);
+  // BOTTOM: [ BottomChip | spacer* | Scoreboard* | spacer* | TopChip ]
+  const botGrid = makeGrid([
+    { px: 150 },
+    { star: 1 },
+    { star: 1 },
+    { star: 1 },
+    { px: 150 },
+  ]);
+  bot.addControl(botGrid);
 
-	// Chips
-	const chips: UIRefs['chips'] = {};
-	const uname = ctx.playersInfo;
+  // Chips
+  const chips: Partial<Record<Side, ReturnType<typeof makeChip>>> = {};
+  const uname = ctx.playersInfo;
 
-	chips.left   = makeChip('left',   uname.left);
-	chips.right  = makeChip('right',  uname.right);
-	chips.top    = makeChip('top',    uname.top);
-	chips.bottom = makeChip('bottom', uname.bottom);
+  chips.left   = makeChip('left',   uname.left);
+  chips.right  = makeChip('right',  uname.right);
+  chips.top    = makeChip('top',    uname.top);
+  chips.bottom = makeChip('bottom', uname.bottom);
 
-	// Kick off avatar loads (fire-and-forget)
-	(async () => {
-		const map: Array<[Side, string | undefined]> = [
-			['left',   uname.left],
-			['right',  uname.right],
-			['top',    uname.top],
-			['bottom', uname.bottom],
-		];
-		for (const [side, u] of map) {
-			if (!u) continue;
-			const chip = chips[side];
-			if (!chip) continue;
-			setAvatarInto(chip.avatarHolder, u);
-		}
-	})();
+  // Load avatars (fire-and-forget)
+  (async () => {
+    const map: Array<[Side, string | undefined]> = [
+      ['left',   uname.left],
+      ['right',  uname.right],
+      ['top',    uname.top],
+      ['bottom', uname.bottom],
+    ];
+    for (const [side, u] of map) {
+      if (!u) continue;
+      const chip = chips[side];
+      if (!chip) continue;
+      setAvatarInto(chip.avatarHolder, u);
+    }
+  })();
 
-	// Place chips
-	topGrid.addControl(chips.left!.container,  0, 0);
-	topGrid.addControl(chips.right!.container, 0, 3);
-	botGrid.addControl(chips.bottom!.container, 0, 0);
-	botGrid.addControl(chips.top!.container,    0, 4);
+  // Place chips
+  topGrid.addControl(chips.left!.container,   0, 0);
+  topGrid.addControl(chips.right!.container,  0, 3);
+  botGrid.addControl(chips.bottom!.container, 0, 0);
+  botGrid.addControl(chips.top!.container,    0, 4);
 
-	// Center cluster: GameName : Time
-	const center = new GUI.StackPanel();
-	center.isVertical = false;
-	center.spacing = 1;
-	center.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-	center.verticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+  // Center cluster: GameName : Time
+  const center = new GUI.StackPanel();
+  center.isVertical = false;
+  center.spacing = 1;
+  center.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+  center.verticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
 
-	const gameName = label(ctx.gameName ?? 'Match', 18, '#EAF2FF', '600');
-	const sep = label(':', 18, '#EAF2FF', '600');
-	const timeTxt = label("0:00's", 18, '#FFFFFF', 'normal');
-	[gameName, sep, timeTxt].forEach(t => {
-		t.width = 'auto';
-		t.resizeToFit = true;
-	});
-	center.addControl(gameName);
-	center.addControl(sep);
-	center.addControl(timeTxt);
+  const gameName = label(ctx.gameName ?? 'Match', 18, '#EAF2FF', '600');
+  const sep      = label(':', 18, '#EAF2FF', '600');
+  const timeTxt  = label("0:00's", 18, '#FFFFFF', 'normal');
 
-	topGrid.addControl(center, 0, 2);
+  [gameName, sep, timeTxt].forEach(t => {
+    t.width = 'auto';
+    t.resizeToFit = true;
+  });
 
-	// Leave button
-	const leave = GUI.Button.CreateSimpleButton('leave-btn', 'Leave');
-	leave.width = '110px';
-	leave.height = '38px';
-	leave.color = '#fff';
-	leave.fontSize = 16;
-	leave.cornerRadius = 10;
-	leave.thickness = 0;
-	leave.background = '#DC4646';
-	leave.onPointerUpObservable.add(() => {
-		//show a confirm UI + pause the game.
-		window.dispatchEvent(new CustomEvent('game:leave-click'));
-	});
-	topGrid.addControl(leave, 0, 4);
+  center.addControl(gameName);
+  center.addControl(sep);
+  center.addControl(timeTxt);
+  topGrid.addControl(center, 0, 2);
 
-	// Bottom center scoreboard
-	const scoreboard = label('', 16, '#E6F0FF');
-	scoreboard.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-	scoreboard.textVerticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-	botGrid.addControl(scoreboard, 0, 2);
+  // Leave button (emit an app-level event; handle pause/confirm elsewhere)
+  const leave = GUI.Button.CreateSimpleButton('leave-btn', 'Leave');
+  leave.width = '110px';
+  leave.height = '38px';
+  leave.color = '#fff';
+  leave.fontSize = 16;
+  leave.cornerRadius = 10;
+  leave.thickness = 0;
+  leave.background = '#DC4646';
+  leave.onPointerUpObservable.add(() => {
+    window.dispatchEvent(new CustomEvent('game:leave-click'));
+  });
+  topGrid.addControl(leave, 0, 4);
 
-	// Initial 2P / 4P visibility
-	const is4 = ctx.playerCount === 4;
-	chips.top!.container.isVisible = is4;
-	chips.bottom!.container.isVisible = is4;
+  // Bottom center scoreboard (we’ll fill it from updateHUD)
+  const scoreboard = label('', 16, '#E6F0FF');
+  scoreboard.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+  scoreboard.textVerticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+  botGrid.addControl(scoreboard, 0, 2);
 
-	// Store refs per scene
-	UI.set(ctx.scene, {
-		adt,
-		topBar: top,
-		bottomBar: bot,
-		timeText: timeTxt,
-		gameNameText: gameName,
-		leaveBtn: leave,
-		chips,
-		scoreboard,
-	});
+  // 2P / 4P visibility
+  const is4 = ctx.playerCount === 4;
+  chips.top!.container.isVisible    = is4;
+  chips.bottom!.container.isVisible = is4;
+
+  // Store refs on ctx (no WeakMap)
+  ctx.ui = {
+    adt,
+    topBar: top,
+    bottomBar: bot,
+    timeText: timeTxt,
+    gameNameText: gameName,
+    leaveBtn: leave,
+    chips: {
+      left:   chips.left!,
+      right:  chips.right!,
+      top:    chips.top!,
+      bottom: chips.bottom!,
+    },
+    scoreboard,
+  };
 }
+
 
 export function updateHUD(
 	ctx: RendererCtx,
 	elapsedSeconds: number,
 	scores: Partial<Record<Side, number>>
 ) {
-	const ui = UI.get(ctx.scene);
-	if (!ui) return;
+	const ui = ctx.ui;
+  if (!ui) return;
 
-	// Time
-	ui.timeText.text = `${elapsedSeconds.toFixed(1)} 's`;
+  ui.timeText.text = `${elapsedSeconds.toFixed(1)} 's`;
 
 	// Per-chip scores
 	(['left','right','top','bottom'] as Side[]).forEach(side => {

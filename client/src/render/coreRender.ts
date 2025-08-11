@@ -73,6 +73,7 @@ export function attachResize(ctx: RendererCtx) {
 }
 
 export function processNetworkUpdate(ctx: RendererCtx, update: UpdatePayload) {
+  ctx.isPaused = update.isPaused;
   // paddles: move ROOTS so lights & children follow
   Object.values(update.paddles).forEach(({ side, pos }) => {
     const root = ctx.paddleRoots[side];

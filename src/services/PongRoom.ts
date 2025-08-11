@@ -19,6 +19,7 @@ import { insertBallBounceHistory } from '../db/Stats'
 /**
  * A lightweight container for one running Pong match.
  */
+
 export class PongRoom {
 	public static rooms = new Map<number, PongRoom>()
 
@@ -118,7 +119,7 @@ export class PongRoom {
 	}
 	/* Pause the loop */
 	pause(userID: number) {
-		if (this.pauseState.isPaused) {
+		if (this.pauseState.isPaused === true) {
 			this.pauseState.pausedPlayers.add(userID);
 			return;
 		}
@@ -129,7 +130,7 @@ export class PongRoom {
 		};
 
 		this.pauseStartTime = Date.now(); // Mark pause start time
-
+		this.broadcast();
 		if (this.loop) clearInterval(this.loop);
 	}
 
@@ -385,7 +386,7 @@ private  handleWallScore(sideHit: 'left'|'right'|'top'|'bottom', ball: ballClass
 			const balls: Record<number,{x:number;y:number}> = {}
 			this.balls.forEach((b,i)=> balls[i]={x:b.x,y:b.y})
 			for (const p of this.players) {
-				p.typedSocket.send('renderData',{ paddles, balls, elapsed, isPaused })
+				p.typedSocket.send('renderData',{ paddles:paddles, balls:balls, elapsed:elapsed, isPaused:isPaused })
 			}
 	}
 

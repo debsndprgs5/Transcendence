@@ -509,10 +509,6 @@ export function AccountView(user: any, friends: any[] = []): string {
   // console.log('stats for user:', user);
   // console.log('user_id:', user.userId);
   if (user && user.userId) {
-    // if (window.location.hash === '#account' || document.body.getAttribute('data-current-view') === 'account') {
-    //   return '';
-    // }
-    fetchAccountStats(user.userId);
     document.body.setAttribute('data-current-view', 'account');
   }
 

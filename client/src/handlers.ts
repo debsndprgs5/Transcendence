@@ -11,7 +11,7 @@ import {
 import { isAuthenticated, apiFetch, initWebSocket, state, resetState } from './api';
 import { showNotification, showUserActionsBubble } from './notifications';
 import { showPongMenu } from './pong_rooms';
-import { initGameSocket } from './pong_socket';
+import { initGameSocket, fetchAccountStats } from './pong_socket';
 import { handleLeaveTournament } from './tournament_rooms';
 //import { WebSocket } from 'ws';
 
@@ -343,22 +343,28 @@ export async function setupHomeHandlers(): Promise<void> {
     const ro = new ResizeObserver(onResize);
     ro.observe(wrapper);
   }
-  showPongMenu();
 	// Get back the pong view state
-	const savedView = localStorage.getItem('pong_view');
-	if (savedView === 'waitingGame') {
-		state.canvasViewState = 'waitingGame';
-		state.currentGameName = localStorage.getItem('pong_room') || undefined;
-		try {
-			state.currentPlayers = JSON.parse(localStorage.getItem('pong_players') || '[]');
-		} catch {
-			state.currentPlayers = [];
-		}
-	} else if (savedView === 'localGameMap') {
-		// Au refresh pendant un jeu local, retourner au menu principal
-		localStorage.removeItem('pong_view');
-		state.canvasViewState = 'mainMenu';
+	const savedView = localStorage.getItem('pong_view');         // 'waitingGame' | 'playingGame' | 'mainMenu' | ...
+	const savedRoom = localStorage.getItem('pong_room');         // string
+	const savedPlayers = localStorage.getItem('pong_players');   // JSON array
+	const savedGameId = localStorage.getItem('pong_game_id');    // number as string
+
+	if (savedView) {
+	  state.canvasViewState = savedView as any;
+	  if (savedRoom) state.currentGameName = savedRoom;
+
+	  try {
+	    if (savedPlayers) state.currentPlayers = JSON.parse(savedPlayers);
+	  } catch {
+	    state.currentPlayers = [];
+	  }
+
+	  if (savedGameId) {
+	    if (!state.playerInterface) state.playerInterface = {} as any; // ensure object exists
+	    state.playerInterface.gameID = Number(savedGameId);
+	  }
 	}
+  showPongMenu();
 
 	const savedTView = localStorage.getItem('tournament_view');
 	if (savedTView === 'waitingTournament') {
@@ -1239,31 +1245,40 @@ export async function router(): Promise<void> {
 			break;
 
 		case '/account':
-			if (!isAuthenticated()) {
-				history.pushState(null, '', '/login');
-				render(LoginView());
-				setupLoginHandlers();
-			} else {
-				try {
-					const user = await apiFetch('/api/users/me', { headers: { Authorization: `Bearer ${state.authToken}` } });
-					const friends = await apiFetch('/api/friends', { headers: { Authorization: `Bearer ${state.authToken}` } });
-					const view = AccountView(user, friends);
-					if (view === '') {
-						break;
-					}
-					render(view);
-					if (!state.socket || state.socket.readyState === WebSocket.CLOSED)
-						initWebSocket();
-					if (!state.playerInterface?.socket || state.playerInterface?.socket.readyState === WebSocket.CLOSED)
-						initGameSocket();
-					setupAccountHandlers(user, friends);
-				} catch (e: any) {
-					showNotification({ message: 'Error during account loading: ' + e.message, type: 'error', duration: 5000 });
-					history.pushState(null, '', '/');
-					router();
-				}
-			}
-			break;
+		  if (!isAuthenticated()) {
+		    history.pushState(null, '', '/login');
+		    render(LoginView());
+		    setupLoginHandlers();
+		  } else {
+		    try {
+		      const user = await apiFetch('/api/users/me', { headers: { Authorization: `Bearer ${state.authToken}` } });
+		      const friends = await apiFetch('/api/friends', { headers: { Authorization: `Bearer ${state.authToken}` } });
+
+		      render(AccountView(user, friends));
+
+		      // Ensure sockets are ready before using them
+		      if (!state.socket || state.socket.readyState === WebSocket.CLOSED)
+		        await initWebSocket();
+		      if (!state.playerInterface?.socket || state.playerInterface?.socket.readyState === WebSocket.CLOSED)
+		        await initGameSocket();
+
+		      setupAccountHandlers(user, friends);
+
+		      // ensure DOM nodes exist before updating them
+		      const runStats = () => fetchAccountStats(user.userId);
+		      if (state.playerInterface?.socket?.readyState === WebSocket.OPEN) {
+		        requestAnimationFrame(runStats);
+		      } else {
+		        // just in case initGameSocket resolves before 'OPEN'
+		        state.playerInterface?.socket?.addEventListener('open', () => requestAnimationFrame(runStats), { once: true });
+		      }
+		    } catch (e: any) {
+		      showNotification({ message: 'Error during account loading: ' + e.message, type: 'error', duration: 5000 });
+		      history.pushState(null, '', '/');
+		      router();
+		    }
+		  }
+		  break;
 
 		default:
 			render(HomeView());

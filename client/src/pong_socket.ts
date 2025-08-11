@@ -73,7 +73,16 @@ export async function initGameSocket(): Promise<void> {
 				typedSocket.send('init', { userID });
 				localStorage.setItem('userID', userID.toString());
 			}
-
+			const pend = localStorage.getItem('pending_leave');
+			const pendG = localStorage.getItem('pending_leave_gid');
+			if (pend && pendG) {
+			  try {
+			    typedSocket.send('leaveGame', { userID, gameID: Number(pendG), islegit: false });
+			  } finally {
+			    localStorage.removeItem('pending_leave');
+			    localStorage.removeItem('pending_leave_gid');
+			  }
+			}
 			handleEvents(typedSocket, gameSocket);
 			resolve(); // RESOLVE once connected and initialized
 		};
@@ -530,99 +539,138 @@ export async function handleKicked(data: Interfaces.SocketMessageMap['kicked']) 
 	showPongMenu();
 }
 
-export async function handleReconnection(socket:WebSocket, typedSocket:TypedSocket, data: Interfaces.SocketMessageMap['reconnected']) {
-	console.log(`[FRONT][GAMESOCKET] Reconnected as user ${data.userID} with state: ${data.state}`);
+export async function handleReconnection(
+  socket: WebSocket,
+  typedSocket: TypedSocket,
+  data: Interfaces.SocketMessageMap['reconnected']
+) {
+  console.log(`[FRONT][GAMESOCKET] Reconnected as user ${data.userID} with state: ${data.state}`);
 
-	// Always recreate playerInterface from server data
-	state.gameSocket = socket;
-	state.typedSocket = typedSocket;
-	state.userId = data.userID;
-	state.playerInterface = {
-		userID: data.userID,
-		username: data.username,
-		socket: state.gameSocket!,
-		typedSocket: state.typedSocket!,
-		state: data.state!,
-		gameID: data.gameID ?? undefined,
-		tournamentID: data.tournamentID ?? undefined,
-		isTourOwner:data.isTourOwner ?? false,
-	};
-	
-	localStorage.setItem('userID', data.userID.toString());
+  // Recreate client-side interface from server data
+  state.gameSocket = socket;
+  state.typedSocket = typedSocket;
+  state.userId = data.userID;
+  state.playerInterface = {
+    userID: data.userID,
+    username: data.username,
+    socket,
+    typedSocket,
+    state: data.state!,
+    gameID: data.gameID ?? undefined,
+    tournamentID: data.tournamentID ?? undefined,
+    isTourOwner: data.isTourOwner ?? false,
+  };
 
-	// CASE 1: Game is active & Renderer exists → Resume it
-	if (data.gameID && data.state === 'playing' && pongState.pongRenderer !== null) {
-		if (pongState.pongRenderer.getScene()?.isDisposed) {
-		
-			pongState.pongRenderer = null;
-		} else {
-	
-			pongState.pongRenderer.resumeRenderLoop?.();
-			state.canvasViewState = 'playingGame';
-			return;
-		}
-	}
+  localStorage.setItem('userID', String(data.userID));
 
-	// CASE 2: Game is active & Renderer is missing → Offer to restore it
-	if (data.gameID && data.state === 'playing' && pongState.pongRenderer === null) {
+  // Persist/clear gameID locally (used for refresh/leave fallback)
+  if (data.gameID) localStorage.setItem('pong_game_id', String(data.gameID));
+  else localStorage.removeItem('pong_game_id');
 
-		const playerCount = Number(localStorage.getItem('playerCount'));
-		const side = localStorage.getItem('playerSide') as 'left' | 'right' | 'top' | 'bottom';
+  // If server says game already started but we aren't "playing" yet ⇒ show waiting lobby
+  if (data.gameID && data.hasStarted === true) {
+    state.canvasViewState = 'waitingGame';
+  }
 
-		let usernamesRaw = localStorage.getItem('usernames');
-		let usernames: Record<'left' | 'right' | 'top' | 'bottom', string> = {
-			left: '', right: '', top: '', bottom: ''
-		};
-		try {
-			if (usernamesRaw) {
-				usernames = JSON.parse(usernamesRaw);
-			}
-		} catch (e) {
-			console.error('[RECONNECT] Failed to parse usernames from localStorage', e);
-		}
+  // ── CASE 1: Game is active & renderer exists → resume immediately
+  if (data.gameID && data.state === 'playing' && pongState.pongRenderer !== null) {
+    if (pongState.pongRenderer.getScene()?.isDisposed) {
+      pongState.pongRenderer = null; // disposed, we will rebuild below if needed
+    } else {
+      // Renderer is intact: just resume
+      pongState.pongRenderer.resumeRenderLoop?.();
+      state.canvasViewState = 'playingGame';
+      showPongMenu();
+      return;
+    }
+  }
 
-		const canvas = document.getElementById('babylon-canvas');
-		if (!canvas || !(canvas instanceof HTMLCanvasElement)) {
-			console.error('Canvas element not found or not a valid canvas.');
-			return;
-		}
-		let oldGameName = localStorage.getItem('gameName');
-		if(!oldGameName)
-			oldGameName = 'Name was lost during reconnection'
-		pongState.pongRenderer = new PongRenderer(canvas, state.typedSocket, playerCount, oldGameName! ,side, usernames);
-		state.canvasViewState = 'playingGame';
-		showPongMenu();
+  // ── CASE 2: Game is active & renderer missing → rebuild from localStorage snapshot
+  if (data.gameID && data.state === 'playing' && pongState.pongRenderer === null) {
+    const playerCount = Number(localStorage.getItem('playerCount'));
+    const side = (localStorage.getItem('playerSide') as 'left' | 'right' | 'top' | 'bottom') || 'left';
 
-	return;
-	}
-	//User was in tournament but not playing
-	if(data.tournamentID){
-		console.log('[RECONNECT] No active game but active tournament');
-		if(data.hasStarted === true){
-			state.playerInterface!.typedSocket.send('reloadTourRound', {
-				tournamentID:state.playerInterface.tournamentID,
-				userID:state.userId!
-			});
-			//state.canvasViewState = 'waitingTournamentRounds';
-		}
-		else{
-			state.canvasViewState = 'waitingTournament';
-			showPongMenu();
-		}
-		return;
-	}
+    let usernames: Record<'left' | 'right' | 'top' | 'bottom', string> = { left: '', right: '', top: '', bottom: '' };
+    try {
+      const raw = localStorage.getItem('usernames');
+      if (raw) usernames = JSON.parse(raw);
+    } catch (e) {
+      console.error('[RECONNECT] Failed to parse usernames from localStorage', e);
+    }
 
+    const canvas = document.getElementById('babylon-canvas');
+    if (!canvas || !(canvas instanceof HTMLCanvasElement)) {
+      console.error('Canvas element not found or not a valid canvas.');
+      // fallback to lobby if we cannot restore renderer
+      state.canvasViewState = 'waitingGame';
+      showPongMenu();
+      return;
+    }
 
-	// CASE 3: User is not in a game → Return to main menu or lobby
-	if (!data.gameID || data.state !== 'playing') {
-		console.log('[RECONNECT] No active game. Returning to main menu.');
-		state.canvasViewState = 'mainMenu';
+    let oldGameName = localStorage.getItem('gameName') || 'Name was lost during reconnection';
 
-		showNotification({
-			message: data.message ?? 'Reconnected successfully.',
-			type: 'info',
-		});
-	}
+    pongState.pongRenderer = new PongRenderer(canvas, state.typedSocket, playerCount, oldGameName, side, usernames);
+    state.canvasViewState = 'playingGame';
+    showPongMenu();
+    return;
+  }
+
+  // ── CASE 3: Tournament reconnection while not playing a match
+  if (data.tournamentID) {
+    console.log('[RECONNECT] No active match but active tournament');
+    if (data.hasStarted === true) {
+      state.playerInterface!.typedSocket.send('reloadTourRound', {
+        tournamentID: state.playerInterface!.tournamentID!,
+        userID: state.userId!,
+      });
+      // View will be updated on next server push
+    } else {
+      state.canvasViewState = 'waitingTournament';
+      showPongMenu();
+    }
+    return;
+  }
+
+  // ── CASE 4: Game lobby (waiting): we have a gameID but state is not 'playing'
+  if (data.gameID && data.state !== 'playing') {
+    // English: hydrate lobby UI (players + room name) so Leave/Join are usable after refresh
+    try {
+      const players = await apiFetch(`/api/pong/${encodeURIComponent(data.gameID)}/list`, {
+        headers: { Authorization: `Bearer ${state.authToken}` },
+      });
+      state.currentPlayers = (players as { username: string }[]).map(p => p.username);
+      localStorage.setItem('pong_players', JSON.stringify(state.currentPlayers));
+    } catch (e) {
+      console.warn('[RECONNECT] players list fetch failed', e);
+    }
+
+    try {
+      // English: optional endpoint; if you don't have it, we fallback to localStorage
+      const info = await apiFetch(`/api/pong/${encodeURIComponent(data.gameID)}/info`, {
+        headers: { Authorization: `Bearer ${state.authToken}` },
+      }).catch(() => null as any);
+      state.currentGameName = (info as any)?.name || localStorage.getItem('pong_room') || 'Room';
+      localStorage.setItem('pong_room', state.currentGameName!);
+    } catch {
+      /* ignore */
+    }
+
+    state.canvasViewState = 'waitingGame';
+    localStorage.setItem('pong_view', 'waitingGame');
+    showPongMenu();
+    return;
+  }
+
+  // ── DEFAULT: Not in any game nor tournament → back to main menu
+  console.log('[RECONNECT] No active game. Returning to main menu.');
+  state.canvasViewState = 'mainMenu';
+  localStorage.setItem('pong_view', 'mainMenu');
+  showPongMenu();
+
+  showNotification({
+    message: data.message ?? 'Reconnected successfully.',
+    type: 'info',
+  });
 }
 
 export function fetchAccountStats(userID: number) {

@@ -89,7 +89,11 @@ export function showPongMenu(): void {
 		canvas.onmouseup = handlePongMenuMouseUp;
 		canvas.onmouseleave = handlePongMenuMouseUp;
 		window.addEventListener('mouseup', handlePongMenuMouseUp);
-
+		const savedGameId = localStorage.getItem('pong_game_id');
+		if (savedGameId) {
+		  if (!state.playerInterface) state.playerInterface = {} as any; // English: lightweight ensure
+		  state.playerInterface.gameID = Number(savedGameId);
+		}
 		resizePongCanvas();
 		const ctx = canvas.getContext('2d');
 		if (!ctx) return;
@@ -497,7 +501,8 @@ async function handleJoinGameClick(canvas: HTMLCanvasElement, x: number, y: numb
 
 		state.typedSocket.send('joinGame',{ userID: state.userId, gameID: roomID, gameName: roomName });
 		state.playerInterface.gameID = roomID;
-
+		// Persist game id for reloads
+		localStorage.setItem('pong_game_id', String(roomID));
 		let usernames: string[] = [];
 		try {
 			const playerslist = await apiFetch(`/api/pong/${encodeURIComponent(roomID)}/list`, { headers: { Authorization: `Bearer ${state.authToken}` } });
@@ -506,10 +511,11 @@ async function handleJoinGameClick(canvas: HTMLCanvasElement, x: number, y: numb
 			console.error('Error getting players list:', err);
 			showNotification({ message: 'Error getting players list', type: 'error' });
 		}
-
+		state.canvasViewState = 'waitingGame';
 		state.currentGameName = roomName;
 		state.currentPlayers = usernames;
 		localStorage.setItem('pong_room', roomName);
+		localStorage.setItem('pong_view', 'waitingGame');
 		localStorage.setItem('pong_players', JSON.stringify(usernames));
 
 		showPongMenu();
@@ -608,8 +614,11 @@ async function handleCreateGameButton(action: string): Promise<void> {
 
 			state.currentGameName   = gameName;
 			state.currentPlayers    = usernames;
-			state.canvasViewState   = 'waitingGame';
-
+			state.playerInterface.state = 'waitingGame';
+			state.canvasViewState = 'waitingGame';
+			state.playerInterface.gameID = gameID;
+			// Persist game id
+			localStorage.setItem('pong_game_id', String(gameID));
 			localStorage.setItem('pong_view', 'waitingGame');
 			localStorage.setItem('pong_room', gameName);
 			localStorage.setItem('pong_players', JSON.stringify(usernames));
@@ -629,11 +638,10 @@ async function handleJoinRandom(): Promise<void> {
 	} else {
 		const oldest = rooms.reduce((a, b) => a.roomID < b.roomID ? a : b);
 
-		state.typedSocket.send('joinGame', {
-			userID: state.userId,
-			gameID: oldest.roomID,
-			gameName: oldest.roomName
-		});
+		state.typedSocket.send('joinGame', { userID: state.userId, gameID: oldest.roomID, gameName: oldest.roomName });
+		state.playerInterface.gameID = oldest.roomID;
+		// Persist game id
+		localStorage.setItem('pong_game_id', String(oldest.roomID));
 
 		state.currentGameName  = oldest.roomName;
 		const list = await apiFetch(`/api/pong/${oldest.roomID}/list`, {
@@ -688,30 +696,45 @@ function handlePongMenuMouseUp(): void {
 }
 		
 async function handleLeaveGame(): Promise<void> {
-	
-	const uID= state.userId;
-	const gID = state.playerInterface?.gameID;
+  const uID = state.userId;
+  const gID = state.playerInterface?.gameID ?? Number(localStorage.getItem('pong_game_id') || 'NaN');
 
-	try {
-		if (!state.playerInterface?.typedSocket) throw new Error('TYPEDsocket unavailable');
-		state.typedSocket.send('leaveGame', {
-			userID: uID!,
-			gameID: gID!,
-			islegit: false,
-		});
+  // ---- UI first: never block the user ----
+  state.canvasViewState = 'mainMenu';
+  state.currentGameName = undefined;
+  state.currentPlayers  = undefined;
+  localStorage.removeItem('pong_view');
+  localStorage.removeItem('pong_room');
+  localStorage.removeItem('pong_players');
+  localStorage.removeItem('pong_game_id');
+  showPongMenu();
 
-		console.log(`[LEAVE][INFO] User ${uID} sent leaveGame for room ${gID}`);
-	} catch (err) {
-		console.error('[LEAVE][ERROR] Failed to send leaveGame:', err);
-		showNotification({ message: 'Error leaving game', type: 'error' });
-		return;
-	}
+  // ---- Network best-effort ----
+  try {
+    if (!Number.isFinite(gID)) throw new Error('no gameID');
+    await waitForGameSocketOpen(800);   // English: short wait for socket
+    if (!state.typedSocket) throw new Error('no typedSocket');
+    state.typedSocket.send('leaveGame', { userID: uID!, gameID: gID, islegit: false });
+  } catch (err) {
+    console.warn('[LEAVE] deferred:', err);
+    // English: queue a deferred leave to send on next connect (optional)
+    localStorage.setItem('pending_leave', '1');
+    if (Number.isFinite(gID)) localStorage.setItem('pending_leave_gid', String(gID));
+  }
+}
 
-	// cleanup local state & storage
-	state.canvasViewState   = 'mainMenu';
-	state.currentGameName   = undefined;
-	state.currentPlayers    = undefined;
-	localStorage.removeItem('pong_view');
-	localStorage.removeItem('pong_room');
-	localStorage.removeItem('pong_players');
+
+function waitForGameSocketOpen(timeoutMs = 800): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const ws = state.gameSocket;
+    if (ws && ws.readyState === WebSocket.OPEN) return resolve();
+    const start = performance.now();
+    const tick = () => {
+      const ok = state.gameSocket && state.gameSocket.readyState === WebSocket.OPEN;
+      if (ok) return resolve();
+      if (performance.now() - start > timeoutMs) return reject(new Error('socket timeout'));
+      requestAnimationFrame(tick);
+    };
+    tick();
+  });
 }

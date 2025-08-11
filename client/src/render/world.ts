@@ -40,7 +40,7 @@ export async function createFloor(scene: BABYLON.Scene, onReady?: () => void) {
 	mat.diffuseTexture2.uScale = mat.diffuseTexture2.vScale = 5;
 	mat.diffuseTexture3.uScale = mat.diffuseTexture3.vScale = 10;
 	mat.specularColor = BABYLON.Color3.Black();
-	mat.maxSimultaneousLights = 8;
+	mat.maxSimultaneousLights = 20;
 
 	terrain.material = mat;
 	terrain.position.y = 0;

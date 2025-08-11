@@ -2,6 +2,7 @@
 import * as BABYLON from '@babylonjs/core';
 import { state } from '../api';
 import type { RendererCtx, Side } from './NEW_pong_render';
+import { updateHUD } from './ui';
 
 export type UpdatePayload = {
   paddles: Record<number, { pos: number; side: Side; score: number }>;
@@ -17,13 +18,13 @@ export function registerInput(ctx: RendererCtx) {
     const k = e.key.toLowerCase();
     if (k === 'a') inputState.left  = true;
     if (k === 'd') inputState.right = true;
-    if (k === 'escape' || k === 'esc') {
-      // your pause UI flow can go here later
-      ctx.isPaused = true;
-      if (state.playerInterface?.gameID && state.userId) {
-        state.typedSocket.send('pause', { userID: state.userId, gameID: state.playerInterface.gameID });
-      }
-    }
+    // if (k === 'escape' || k === 'esc') {
+    //   // your pause UI flow can go here later
+    //   ctx.isPaused = true;
+    //   if (state.playerInterface?.gameID && state.userId) {
+    //     state.typedSocket.send('pause', { userID: state.userId, gameID: state.playerInterface.gameID });
+    //   }
+    // }
   };
   const keyup = (e: KeyboardEvent) => {
     const k = e.key.toLowerCase();
@@ -58,7 +59,7 @@ function processInput(ctx: RendererCtx) {
     : inputState.left ? 'left' : 'right';
 
   // invert for right/bottom
-  if ((playerSide === 'right' || playerSide === 'bottom') && dir !== 'stop') {
+  if ((playerSide === 'left' || playerSide === 'top') && dir !== 'stop') {
     dir = dir === 'left' ? 'right' : 'left';
   }
 
@@ -94,7 +95,17 @@ export function processNetworkUpdate(ctx: RendererCtx, update: UpdatePayload) {
   const firstBall = Object.values(update.balls)[0];
   if (firstBall && ctx.ballObj) applyBallKinetics(ctx, new BABYLON.Vector3(firstBall.x, 0, firstBall.y));
 
-  ctx.isPaused = update.isPaused;
+    // scores aggregation
+  const scores: Partial<Record<Side, number>> = { left:0, right:0, top:0, bottom:0 };
+  Object.values(update.paddles).forEach(({ side, score }) => {
+    if (ctx.playerCount === 2 && (side === 'left' || side === 'right')) {
+      scores[side] = score;
+    } else if (ctx.playerCount === 4) {
+      scores[side] = score;
+    }
+  });
+
+  updateHUD(ctx, update.elapsed, scores);
 }
 
 // “smart ball” kinetic feel

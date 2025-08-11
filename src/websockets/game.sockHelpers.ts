@@ -154,7 +154,7 @@ export async function beginGame(gameID: number, players: Interfaces.playerInterf
     const side = sides[index];
     player.playerSide = side;
     sideToUsername[side] = player.username!;
-
+    console.log('[USERNAME for render] :',sideToUsername[side])
     updatePlayerState(player, 'playing');
 
     // Send side assignment

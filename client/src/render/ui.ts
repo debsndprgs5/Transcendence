@@ -2,6 +2,9 @@
 import * as BABYLON from '@babylonjs/core';
 import * as GUI from '@babylonjs/gui';
 import type { RendererCtx, Side } from './NEW_pong_render';
+import { state } from '../api';
+import { showNotification } from '../notifications';
+import { handleLeaveTournament } from '../tournament_rooms';
 
 // ---------- layout constants ----------
 const STRIP_HEIGHT = 72;   // px
@@ -68,47 +71,47 @@ async function setAvatarInto(holder: GUI.Rectangle, username: string) {
 }
 
 function makeGrid(
-	cols: GridDef[],
-	rows: GridDef[] = [{ star: 1 }]
+  cols: GridDef[],
+  rows: GridDef[] = [{ star: 1 }]
 ) {
-	const grid = new GUI.Grid();
-	cols.forEach(c => grid.addColumnDefinition(c.px ?? (c.star ?? 1), !!c.px));
-	rows.forEach(r => grid.addRowDefinition(r.px ?? (r.star ?? 1), !!r.px));
-	grid.width = "100%";
-	grid.height = "100%";
-	return grid;
+  const grid = new GUI.Grid();
+  cols.forEach(c => grid.addColumnDefinition(c.px ?? (c.star ?? 1), !!c.px));
+  rows.forEach(r => grid.addRowDefinition(r.px ?? (r.star ?? 1), !!r.px));
+  grid.width = "100%";
+  grid.height = "100%";
+  return grid;
 }
 
 function makeStrip(adt: GUI.AdvancedDynamicTexture, align: 'top' | 'bottom') {
-	const rect = new GUI.Rectangle(`strip-${align}`);
-	rect.width = "96%";
-	rect.height = `${STRIP_HEIGHT}px`;
-	rect.thickness = 0;
-	rect.background = rgba(STRIP_ALPHA);
-	rect.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-	rect.verticalAlignment = align === 'top'
-		? GUI.Control.VERTICAL_ALIGNMENT_TOP
-		: GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
-	rect.cornerRadius = STRIP_RADIUS;
-	rect.zIndex = 100;
-	adt.addControl(rect);
-	return rect;
+  const rect = new GUI.Rectangle(`strip-${align}`);
+  rect.width = "96%";
+  rect.height = `${STRIP_HEIGHT}px`;
+  rect.thickness = 0;
+  rect.background = rgba(STRIP_ALPHA);
+  rect.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+  rect.verticalAlignment = align === 'top'
+    ? GUI.Control.VERTICAL_ALIGNMENT_TOP
+    : GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+  rect.cornerRadius = STRIP_RADIUS;
+  rect.zIndex = 100;
+  adt.addControl(rect);
+  return rect;
 }
 
 
 
 function label(text: string, size = 16, color = '#fff', weight: string = 'normal', hpx?: number) {
-	const t = new GUI.TextBlock();
-	t.text = text;
-	t.color = color;
-	t.fontSize = size;
-	t.fontWeight = weight;
-	t.height = `${hpx ?? Math.round(size * 1.6)}px`;
-	t.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-	t.textVerticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-	t.resizeToFit = false;
-	t.textWrapping = GUI.TextWrapping.Clip;
-	return t;
+  const t = new GUI.TextBlock();
+  t.text = text;
+  t.color = color;
+  t.fontSize = size;
+  t.fontWeight = weight;
+  t.height = `${hpx ?? Math.round(size * 1.6)}px`;
+  t.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+  t.textVerticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+  t.resizeToFit = false;
+  t.textWrapping = GUI.TextWrapping.Clip;
+  return t;
 }
 
 
@@ -164,7 +167,7 @@ export function setupGUI(ctx: RendererCtx) {
   // TOP: [ LeftChip | spacer* | center* (GameName : Time) | RightChip | Leave(px) ]
   const topGrid = makeGrid([
     { px: 150 },
-    { star: 1 },
+    { px: 10 },
     { star: 1 },
     { px: 150 },
     { px: 80 },
@@ -174,9 +177,9 @@ export function setupGUI(ctx: RendererCtx) {
   // BOTTOM: [ BottomChip | spacer* | Scoreboard* | spacer* | TopChip ]
   const botGrid = makeGrid([
     { px: 150 },
+    { px: 10 },
     { star: 1 },
-    { star: 1 },
-    { star: 1 },
+    { px: 10 },
     { px: 150 },
   ]);
   bot.addControl(botGrid);
@@ -233,18 +236,59 @@ export function setupGUI(ctx: RendererCtx) {
   center.addControl(timeTxt);
   topGrid.addControl(center, 0, 2);
 
-  // Leave button (emit an app-level event; handle pause/confirm elsewhere)
+  // Leave button — same flow as old Escape handler
   const leave = GUI.Button.CreateSimpleButton('leave-btn', 'Leave');
-  leave.width = '110px';
+  leave.width = '80px';              // matches your topGrid's { px: 80 }
   leave.height = '38px';
   leave.color = '#fff';
   leave.fontSize = 16;
   leave.cornerRadius = 10;
   leave.thickness = 0;
   leave.background = '#DC4646';
+
   leave.onPointerUpObservable.add(() => {
-    window.dispatchEvent(new CustomEvent('game:leave-click'));
+    const player = state.playerInterface;
+    if (!player || player.state !== 'playing') return;
+
+    if (ctx.isPaused) return;
+    ctx.isPaused = true;
+
+    state.typedSocket.send('pause', {
+      userID: state.userId,
+      gameID: player.gameID
+    });
+
+    showNotification({
+      type: 'confirm',
+      message: 'Do you really want to leave the game?',
+      onConfirm: async () => {
+        state.typedSocket.send('leaveGame', {
+          userID: state.userId!,
+          gameID: player.gameID,
+          isLegit: false,
+        });
+
+        if (state.playerInterface?.tournamentID) {
+          const tourID = state.playerInterface.tournamentID;
+          state.typedSocket.send('leaveTournament', {
+            userID: state.userId!,
+            tournamentID: tourID,
+            islegit: false,
+            duringGame: true
+          });
+          handleLeaveTournament(false, true);
+        }
+      },
+      onCancel: () => {
+        state.typedSocket.send('resume', {
+          userID: state.userId,
+          gameID: player.gameID
+        });
+        ctx.isPaused = false;
+      },
+    });
   });
+
   topGrid.addControl(leave, 0, 4);
 
   // Bottom center scoreboard (we’ll fill it from updateHUD)
@@ -258,7 +302,7 @@ export function setupGUI(ctx: RendererCtx) {
   chips.top!.container.isVisible    = is4;
   chips.bottom!.container.isVisible = is4;
 
-  // Store refs on ctx (no WeakMap)
+  // Store refs on ctx 
   ctx.ui = {
     adt,
     topBar: top,
@@ -276,51 +320,89 @@ export function setupGUI(ctx: RendererCtx) {
   };
 }
 
+export function setupPauseUI(ctx: RendererCtx) {
+  if (!ctx.ui) return; // make sure setupGUI ran first
+
+  const banner = new GUI.Rectangle("pauseBanner");
+  banner.width = "360px";
+  banner.height = "72px";
+  banner.thickness = 0;
+  banner.cornerRadius = 14;
+  banner.background = "rgba(0,0,0,0.70)";
+  banner.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+  banner.verticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+  banner.zIndex = 900;
+  banner.isVisible = false; // start hidden
+
+  const txt = new GUI.TextBlock();
+  txt.text = "Game is paused";
+  txt.color = "#FFFFFF";
+  txt.fontSize = 24;
+  txt.fontWeight = "700";
+  txt.height = "36px"; // px to avoid StackPanel warnings
+  banner.addControl(txt);
+
+  ctx.ui.adt.addControl(banner);
+  // stash a ref so we can toggle it later
+  (ctx.ui as any).pauseBanner = banner;
+}
+
+export function updatePauseUI(ctx: RendererCtx) {
+
+  console.warn(`[PauseUpdate] ${ctx.isPaused}`);
+  const banner = (ctx.ui as any)?.pauseBanner as GUI.Rectangle | undefined;
+  if (banner){
+    console.log(`Banner found`);
+    banner.isVisible = ctx.isPaused;
+  }
+}
+
 
 export function updateHUD(
-	ctx: RendererCtx,
-	elapsedSeconds: number,
-	scores: Partial<Record<Side, number>>
+  ctx: RendererCtx,
+  elapsedSeconds: number,
+  scores: Partial<Record<Side, number>>
 ) {
-	const ui = ctx.ui;
+  const ui = ctx.ui;
   if (!ui) return;
 
   ui.timeText.text = `${elapsedSeconds.toFixed(1)} 's`;
 
-	// Per-chip scores
-	(['left','right','top','bottom'] as Side[]).forEach(side => {
-		const chip = ui.chips[side];
-		if (!chip) return;
-		const val = scores[side] ?? 0;
-		chip.score.text = `Score: ${val}`;
-	});
+  // Per-chip scores
+  (['left','right','top','bottom'] as Side[]).forEach(side => {
+    const chip = ui.chips[side];
+    if (!chip) return;
+    const val = scores[side] ?? 0;
+    chip.score.text = `Score: ${val}`;
+  });
 
-	// Leaderboard: show only the top scorer.
-	// If tie, show first 2 chars of each tied username + score.
-	const sides: Side[] = ctx.playerCount === 2
-		? ['left', 'right']
-		: ['left', 'right', 'top', 'bottom'];
+  // Leaderboard: show only the top scorer.
+  // If tie, show first 2 chars of each tied username + score.
+  const sides: Side[] = ctx.playerCount === 2
+    ? ['left', 'right']
+    : ['left', 'right', 'top', 'bottom'];
 
-	const candidates = sides.map(side => ({
-		side,
-		uname: (ctx.playersInfo?.[side] ?? side.toUpperCase()),
-		score: scores[side] ?? 0,
-	}));
+  const candidates = sides.map(side => ({
+    side,
+    uname: (ctx.playersInfo?.[side] ?? side.toUpperCase()),
+    score: scores[side] ?? 0,
+  }));
 
-	const maxScore = Math.max(...candidates.map(c => c.score));
-	const winners = candidates.filter(c => c.score === maxScore);
+  const maxScore = Math.max(...candidates.map(c => c.score));
+  const winners = candidates.filter(c => c.score === maxScore);
 
-	let text: string;
-	if (winners.length <= 1) {
-		const w = winners[0] ?? candidates[0];
-		text = `First :${w.uname} has ${w.score} points`;
-	} else {
-		text = `TIE: ${winners[0].score} points for :`
-		text += winners
-				.map(w => `${(w.uname || '')}`)
-			.join(' & ');
-	}
+  let text: string;
+  if (winners.length <= 1) {
+    const w = winners[0] ?? candidates[0];
+    text = `First :${w.uname} has ${w.score} points`;
+  } else {
+    text = `TIE: ${winners[0].score} points for :`
+    text += winners
+        .map(w => `${(w.uname || '')}`)
+      .join(' & ');
+  }
 
-	ui.scoreboard.text = text;
+  ui.scoreboard.text = text;
+  updatePauseUI(ctx);
 }
 

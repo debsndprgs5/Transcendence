@@ -52,12 +52,11 @@ function processInput(ctx: RendererCtx) {
     inputState.left === inputState.right ? 'stop'
     : inputState.left ? 'left' : 'right';
 
-  // invert for right/bottom
+  // invert when needed
   if ((playerSide === 'left' || playerSide === 'top') && dir !== 'stop') {
     dir = dir === 'left' ? 'right' : 'left';
   }
 
-  // Always send (server handles 'stop' cheaply)
   sendMove(dir);
   ctx.currentDir = dir;
 }

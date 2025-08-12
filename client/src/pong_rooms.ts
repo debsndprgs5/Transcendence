@@ -173,22 +173,16 @@ export function showPongMenu(): void {
 						);
 						break;
 
-				case 'playingGame': 
+				case 'playingGame':
 					const r = babylonCanvas.getBoundingClientRect();
 					babylonCanvas.width  = Math.floor(r.width);
 					babylonCanvas.height = Math.floor(r.height);
 
-					if (pongState.pongRenderer) {
-						pongState.pongRenderer.handleResize();
+					if (!state.playerInterface?.typedSocket) {
+						console.error('No socket for PongRenderer');
+						return;
 					}
-					else {
-					console.log(`HELLO NOOB IF YOU"RE HERE YOU'RE COOKED`)
-						if (!state.playerInterface?.typedSocket) {
-							console.error('No socket for PongRenderer');
-							return;
-						}
-					}
-					break;
+				break;
 
 		case 'localGameConfig':
 			ctx.clearRect(0, 0, canvas.width, canvas.height);

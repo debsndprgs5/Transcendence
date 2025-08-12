@@ -240,7 +240,7 @@ export class LocalGameEngine
 	{
 		const R = LIMIT.ballSize / 2;
 		const arenaHalfWidth = LIMIT.arenaWidth2p / 2;
-		const wallThickness = 0.25;
+		const wallThickness = 1.5;
 		const paddleHalfWidth = LIMIT.paddleWidth / 2;
 		
 		const isLeft = side === 'left';

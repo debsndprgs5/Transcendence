@@ -164,7 +164,6 @@ async function handleEvents(
 		if (state.playerInterface) {
 			state.playerInterface.state = data.newState;
 		}
-		console.log(`DATA STATE on update : ${data.newState}`);
 		state.socket?.send(JSON.stringify({
 				type: 'friendStatus',
 				action: 'update',
@@ -203,6 +202,12 @@ async function handleEvents(
 	typedSocket.on('serverReady',async( data:Interfaces.SocketMessageMap['serverReady'])=>{
 		if(pongState.pongRenderer)
 			pongState.pongRenderer.setWaiting(false);
+	});
+		typedSocket.on('updateGameList',async( data:Interfaces.SocketMessageMap['updateGameList'])=>{
+			await handleGameList(data);
+	});
+		typedSocket.on('updateGameRooms',async( data:Interfaces.SocketMessageMap['updateGameRooms'])=>{
+			await handleGameRooms(data);
 	});
 }
 
@@ -424,6 +429,7 @@ export async function handleStartGame(data: Interfaces.SocketMessageMap['startGa
 	pongState.pongRenderer = new PongRenderer(canvas, state.typedSocket,
 		count, data.gameName,side, data.usernames);
 	state.playerInterface.gameID = data.gameID;
+	showNotification({ message: 'Game is loading please wait', type: 'success' });
 	await pongState.pongRenderer.loadGame();
 	state.playerInterface!.typedSocket.send('clientReady', {gameID:data.gameID, userID:state.userId});
 	showPongMenu();
@@ -470,9 +476,9 @@ export async function handleEndMatch(
 
 	const [winnerName, winnerScore] = entries[0];
 	const [loserName,  loserScore ] = entries[1];
+	renderer.dispose();
+	pongState.pongRenderer = null;
 	if (state.playerInterface!.tournamentID) {
-				renderer.dispose();
-				pongState.pongRenderer = null;
 				state.playerInterface!.a_ID = data.a_ID
 				state.playerInterface!.b_ID = data.b_ID
 				state.playerInterface!.a_score = data.a_score
@@ -496,8 +502,6 @@ export async function handleEndMatch(
 			{ username: winnerName, score: winnerScore },
 			{ username: loserName,  score: loserScore  },
 			() => {
-				renderer.dispose();
-				pongState.pongRenderer = null;
 				state.canvasViewState = 'mainMenu';
 				localStorage.setItem('pong_view','mainMenu');
 				showPongMenu();
@@ -617,7 +621,8 @@ export async function handleReconnection(
     let oldGameName = localStorage.getItem('gameName') || 'Name was lost during reconnection';
 
     pongState.pongRenderer = new PongRenderer(canvas, state.typedSocket, playerCount, oldGameName, side, usernames);
-    await pongState.pongRenderer.loadGame();
+    showNotification({ message: 'Game is loading please wait', type: 'success' });
+	await pongState.pongRenderer.loadGame();
 	pongState.pongRenderer.setWaiting(false);
 	state.playerInterface!.typedSocket.send('resume',{gameID:data.gameID, userID:state.userId})
 
@@ -654,18 +659,6 @@ export async function handleReconnection(
     } catch (e) {
       console.warn('[RECONNECT] players list fetch failed', e);
     }
-
-    try {
-      // optional endpoint; if you don't have it, we fallback to localStorage
-      const info = await apiFetch(`/api/pong/${encodeURIComponent(data.gameID)}/info`, {
-        headers: { Authorization: `Bearer ${state.authToken}` },
-      }).catch(() => null as any);
-      state.currentGameName = (info as any)?.name || localStorage.getItem('pong_room') || 'Room';
-      localStorage.setItem('pong_room', state.currentGameName!);
-    } catch {
-      /* ignore */
-    }
-
     state.canvasViewState = 'waitingGame';
     localStorage.setItem('pong_view', 'waitingGame');
     showPongMenu();
@@ -683,6 +676,23 @@ export async function handleReconnection(
     type: 'info',
   });
 }
+
+async function handleGameList(data: Interfaces.SocketMessageMap['updateGameList']){
+	console.warn(`[GAMELIST->] ${data.list[0]}`);
+	if(state.canvasViewState === 'waitingGame' && data.gameID === state.playerInterface!.gameID){
+		state.currentPlayers = data.list;
+		showPongMenu();
+	}
+}
+
+async function handleGameRooms(data: Interfaces.SocketMessageMap['updateGameRooms']){
+	console.warn(`[GAMEROOM->] ${data.list[0]}`);
+	//if(state.canvasViewState = 'joinGame'){
+		state.availableRooms = data.list;
+		showPongMenu();
+	//}
+}
+
 
 export function fetchAccountStats(userID: number) {
   if (!state?.typedSocket) return;

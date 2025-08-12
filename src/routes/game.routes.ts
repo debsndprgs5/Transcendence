@@ -3,7 +3,7 @@ import * as chatMgr from '../db/chatManagement';
 import * as UserManagement from '../db/userManagement';
 import * as gameMgr from '../db/gameManagement';
 import * as Interfaces from '../shared/gameTypes';
-
+import { updateList } from '../websockets/game.sockHelpers';
 
 export async function gameRoutes(fastify: FastifyInstance) {
 
@@ -124,6 +124,7 @@ export async function createGameRoom(request: FastifyRequest, reply: FastifyRepl
         createdBy: body.userID
       }
     });
+	await updateList();
   } catch (error) {
     console.error('Error in createGameRoom:', error);
     reply.status(500).send({ success: false, message: 'Server error' });

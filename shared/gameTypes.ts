@@ -278,6 +278,18 @@ export type SocketMessageMap = {
 					gameID:number;
 					userID:number;
 	};
+	updateGameList:{	type:'updateGameList';
+						userID:number;
+						gameID:number;
+						list:string[];
+	};
+	updateGameRooms:{	type:'updateGameRooms';
+						userID:number;
+						list:{
+							roomID:number;
+							roomName:string;
+						}[];
+	};
 };
 
 export type SocketMessage = SocketMessageMap[keyof SocketMessageMap];

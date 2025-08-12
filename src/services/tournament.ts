@@ -87,7 +87,7 @@ export class Tournament {
 
 		// 3) Traitement immédiat des byes
 		const realPairs: [playerInterface, playerInterface][] = [];
-		const BYE_POINTS = 10;
+		const BYE_POINTS = 5;
 		for (const [pA, pB] of this.playingPairs) {
 		  if (pA.userID === pB.userID) {
 			// – award bye points
@@ -116,9 +116,9 @@ export class Tournament {
 			'tournament','init','duo',
 			gameRulesStr, gameName, 0, this.tourID
 		  );
-		  await pA.typedSocket.send('startNextRound', { userID: pA.userID, gameID, gameName });
+		  await pA.typedSocket.send('startNextRound', { userID: pA.userID, gameID:gameID, gameName:gameName });
 		  sendPrivateSystemMessage(this.chatID, pA.userID, `You play against ${pB.username}`);
-		  await pB.typedSocket.send('startNextRound', { userID: pB.userID, gameID, gameName });
+		  await pB.typedSocket.send('startNextRound', { userID: pB.userID, gameID:gameID, gameName:gameName });
 		  sendPrivateSystemMessage(this.chatID, pB.userID, `You play against ${pA.username}`);
 		}
 	}

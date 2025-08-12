@@ -191,7 +191,6 @@ export class PongRenderer {
 		startRenderLoop(this.ctx);
 		this.ctx.isPaused = false;
 		updatePauseUI(this.ctx);
-		//if (this.ctx.pauseUI?.container) this.ctx.pauseUI.container.isVisible = false;
 	}
 
 	public getScene(): BABYLON.Scene {

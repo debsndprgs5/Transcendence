@@ -1,7 +1,7 @@
 import * as Interfaces from '../shared/gameTypes'
 import * as GameManagement from '../db/gameManagement'
 import {createTypedEventSocket} from '../shared/gameEventWrapper'
-import {getPlayerBySocket, getPlayerByUserID, getAllMembersFromGameID} from './game.socket'
+import {getPlayerBySocket, getPlayerByUserID, getAllMembersFromGameID, getAllInitPlayers} from './game.socket'
 // import{stopMockGameLoop, startMockGameLoop} from '../services/pong'
 import { PongRoom } from '../services/PongRoom'
 import { Tournament } from '../services/tournament'
@@ -173,17 +173,12 @@ export async function beginGame(gameID: number, players: Interfaces.playerInterf
       side:player.playerSide!
     };
     player.typedSocket.send('startGame', startMsg);
-    player.typedSocket.send('giveSide', {
-      type: 'giveSide',
-      userID: player.userID,
-      gameID:gameID,
-      side:player.playerSide
-    });
   });
 
   const existingGame = PongRoom.rooms.get(gameID)
-  if(!existingGame)
-    new PongRoom(gameDesc, shuffled);
+  if(!existingGame){
+   const room = new PongRoom(gameDesc, shuffled);
+  }
 }
 
 
@@ -314,3 +309,39 @@ export async function kickFromGameRoom(
   }
 }
 
+//Send update to all players in a room
+export async function updateRoom(gameID:number) {
+  const players = await GameManagement.getAllMembersFromGameRoom(gameID);
+  const list:string[] = [];
+  for(const p of players){
+    list.push(p.username);
+  }
+  if(players.length > 0){
+    for(const p of players){
+      let pObj = getPlayerByUserID(p.userID);
+      if(!pObj) continue;
+      pObj!.typedSocket.send('updateGameList',{
+        userID:pObj!.userID,
+        gameID:gameID,
+        list:list
+      });
+    }
+  }
+  
+}
+
+//Send update to all players in init state
+export async function updateList(){
+
+    const list = await GameManagement.getAllPublicGames();
+    const players = await getAllInitPlayers();
+    if(players !== undefined && players.length > 0){
+     for(const p of players)
+      p.typedSocket.send('updateGameRooms',{
+        list:list.map(room => ({
+          roomID:room.gameID,
+          roomName:room.name
+        }))
+      });
+    }
+}

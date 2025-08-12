@@ -16,12 +16,54 @@ export async function createWalls(ctx: RendererCtx) {
   const bb = baseMesh.getBoundingInfo().boundingBox;
   const tileSize = (bb.maximum.z - bb.minimum.z) * baseMesh.scaling.z; // local Z
 
-  const sides = [
-    { name: 'top',    origin: new BABYLON.Vector3(-halfW, -3, +halfD), length: width,  axis: 'x', dir: +1, yawOff: Math.PI,     target: ctx.frontWalls },
-    { name: 'bottom', origin: new BABYLON.Vector3(+halfW, -3, -halfD), length: width,  axis: 'x', dir: -1, yawOff: 0,           target: ctx.frontWalls },
-    { name: 'left',   origin: new BABYLON.Vector3(-halfW, -3, -halfD), length: depth,  axis: 'z', dir: +1, yawOff: Math.PI / 2, target: ctx.sideWalls  },
-    { name: 'right',  origin: new BABYLON.Vector3(+halfW, -3, +halfD), length: depth,  axis: 'z', dir: -1, yawOff: -Math.PI / 2, target: ctx.sideWalls }
-  ];
+  // depths
+const wallDeep = -3;
+const wallPlayerSideDeep = -6;
+
+type SideName = 'top' | 'bottom' | 'left' | 'right';
+
+// helper to choose how deep to bury this wall
+const yFor = (sideName: SideName) =>
+  sideName === ctx.playerSide ? wallPlayerSideDeep : wallDeep;
+
+const sides = [
+  {
+    name: 'top' as const,
+    origin: new BABYLON.Vector3(-halfW, yFor('top'), +halfD),
+    length: width,
+    axis: 'x' as const,
+    dir: +1 as const,
+    yawOff: Math.PI,
+    target: ctx.frontWalls,
+  },
+  {
+    name: 'bottom' as const,
+    origin: new BABYLON.Vector3(+halfW, yFor('bottom'), -halfD),
+    length: width,
+    axis: 'x' as const,
+    dir: -1 as const,
+    yawOff: 0,
+    target: ctx.frontWalls,
+  },
+  {
+    name: 'left' as const,
+    origin: new BABYLON.Vector3(-halfW, yFor('left'), -halfD),
+    length: depth,
+    axis: 'z' as const,
+    dir: +1 as const,
+    yawOff: Math.PI / 2,
+    target: ctx.sideWalls,
+  },
+  {
+    name: 'right' as const,
+    origin: new BABYLON.Vector3(+halfW, yFor('right'), +halfD),
+    length: depth,
+    axis: 'z' as const,
+    dir: -1 as const,
+    yawOff: -Math.PI / 2,
+    target: ctx.sideWalls,
+  },
+];
 
   const baseYaw = -Math.PI / 2;
 
@@ -96,22 +138,26 @@ export async function createPaddles(ctx: RendererCtx) {
     const root = cloneHierarchy(scene, template, `${side}_paddle`);
     root.rotationQuaternion = null;
 
+    const wallTh = 1.5;
+    const halfW = LIMIT.paddleWidth/2;
+    const halfL = LIMIT.paddleSize/2;
+
     switch (side) {
       case 'left':
         root.rotation = new BABYLON.Vector3(0,  Math.PI / 2, 0);
-        root.position = new BABYLON.Vector3(-(width / 2 - 4), 0, 0);
+        root.position = new BABYLON.Vector3(-width / 2 + wallTh + halfW, 0, 0);
         break;
       case 'right':
         root.rotation = new BABYLON.Vector3(0, -Math.PI / 2, 0);
-        root.position = new BABYLON.Vector3( (width / 2 - 4), 0, 0);
+        root.position = new BABYLON.Vector3( width / 2 - wallTh - halfW, 0, 0);
         break;
       case 'top':
         root.rotation = new BABYLON.Vector3(0, Math.PI, 0);
-        root.position = new BABYLON.Vector3(0, 0,  (depth / 2 - 4));
+        root.position = new BABYLON.Vector3(0, 0,  depth / 2 - wallTh - halfL);
         break;
       case 'bottom':
         root.rotation = new BABYLON.Vector3(0, 0, 0);
-        root.position = new BABYLON.Vector3(0, 0, -(depth / 2 - 4));
+        root.position = new BABYLON.Vector3(0, 0, -depth / 2 + wallTh + halfL);
         break;
     }
 

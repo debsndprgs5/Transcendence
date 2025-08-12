@@ -324,15 +324,15 @@ export async function updateRoom(gameID:number) {
     console.log(`NO PLAYERS DUDE WTF ?`)
   if(players.length > 0){
     for(const p of players){
-      console.log(`UID:`, p.userID);
       let pObj = getPlayerByUserID(p.userID);
-      if(!pObj) continue;
-      pObj!.typedSocket.send('updateGameList',{
-        userID:pObj!.userID,
-        gameID:gameID,
-        list:list
+      // (add a one-line structured log):
+      console.log('[WS->] updateGameList',
+        { to:pObj!.userID, gameID, listLen: list.length, sample:list[0] });
+      pObj!.typedSocket.send('updateGameList', {
+        userID: pObj!.userID,
+        gameID,
+        list
       });
-      console.log(`SOCJET SEND`);
     }
   }
   
@@ -346,12 +346,11 @@ export async function updateList(){
           roomID:room.gameID,
           roomName:room.name
         }));
-    console.log(`MAPPED LIST :`, mappedList);
     const players = await getAllInitPlayers();
     if(players !== undefined && players.length > 0){
-     for(const p of players)
-      p.typedSocket.send('updateGameRooms',{
-        list:mappedList
-      });
+     for(const p of players){
+      const payload = { userID: p.userID, list: mappedList };
+      p.typedSocket.send('updateGameRooms', payload);
+    }
     }
 }

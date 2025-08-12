@@ -102,8 +102,8 @@ export interface ballInterface{
 export interface gameRoomInterface{
 	gameID:number,
 	winCondition:string, //'score' || 'time'
-	limit:number ,//score limit or seconds limit
-	mode:string,//2p 4p ...
+	limit:number, //score limit or seconds limit
+	mode:string, //2p 4p ...
 	settings?:string,
 	created_at?:string
 }
@@ -139,12 +139,12 @@ export type SocketMessageMap = {
 		};
 	statusUpdate:{	type:'statusUpdate';
 					userID:number;
-					newState:string
+					newState:string;
 			};
 	playerMove:{ type:'playerMove';
 				 gameID:number;
 				 userID:number;
-				 direction:string
+				 direction:string;
 			};
 	renderData: {	type: 'renderData';
 					paddles: Record<number, { pos: number; side: 'left' | 'right' | 'top' | 'bottom'; score:number}>;
@@ -174,12 +174,12 @@ export type SocketMessageMap = {
 	leaveGame:{	type:'leaveGame';
 				userID:number;
 				gameID:number;
-				islegit:boolean
+				islegit:boolean;
 			};
 	giveSide:{	type:'giveSide';
 				userID:number;
 				gameID:number;
-				side:'right'|'left'| 'top'| 'bottom'
+				side:'right'|'left'| 'top'| 'bottom';
 			};
 	kicked:{	type:'kicked';
 				userID:number;

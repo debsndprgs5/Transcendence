@@ -199,14 +199,14 @@ async function handleEvents(
 			(window as any).updateStatsDisplay(data);
 		}
 	});
-	typedSocket.on('serverReady',async( data:Interfaces.SocketMessageMap['serverReady'])=>{
+	typedSocket.on('serverReady',async(socket:WebSocket, data:Interfaces.SocketMessageMap['serverReady'])=>{
 		if(pongState.pongRenderer)
 			pongState.pongRenderer.setWaiting(false);
 	});
-		typedSocket.on('updateGameList',async( data:Interfaces.SocketMessageMap['updateGameList'])=>{
+		typedSocket.on('updateGameList',async(socket:WebSocket, data:Interfaces.SocketMessageMap['updateGameList'])=>{
 			await handleGameList(data);
 	});
-		typedSocket.on('updateGameRooms',async( data:Interfaces.SocketMessageMap['updateGameRooms'])=>{
+		typedSocket.on('updateGameRooms',async(socket:WebSocket, data:Interfaces.SocketMessageMap['updateGameRooms'])=>{
 			await handleGameRooms(data);
 	});
 }
@@ -678,7 +678,6 @@ export async function handleReconnection(
 }
 
 async function handleGameList(data: Interfaces.SocketMessageMap['updateGameList']){
-	console.warn(`[GAMELIST->]`,data.list);
 	if(state.canvasViewState === 'waitingGame' && data.gameID === state.playerInterface!.gameID){
 		state.currentPlayers = data.list;
 		showPongMenu();
@@ -686,11 +685,8 @@ async function handleGameList(data: Interfaces.SocketMessageMap['updateGameList'
 }
 
 async function handleGameRooms(data: Interfaces.SocketMessageMap['updateGameRooms']){
-	console.warn(`[GAMEROOM->]`, data.list);
-	//if(state.canvasViewState = 'joinGame'){
 		state.availableRooms = data.list;
 		showPongMenu();
-	//}
 }
 
 

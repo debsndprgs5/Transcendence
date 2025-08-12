@@ -68,12 +68,13 @@ export async function initGameSocket(ws: WebSocket, request: any) {
 			message: oldPlayer.state === 'playing' ? 'Reconnected' : 'No game to resume',
 		});
     updatePlayerState(oldPlayer, oldPlayer.state);
-    if (oldPlayer.gameID) {
-      const room = PongRoom.rooms.get(oldPlayer.gameID);
-        if (room) {
-          room.resume(oldPlayer.userID);
-        }
-    }
+    //FRONT SEND RESUME WHEN RENDER IS READY 
+    // if (oldPlayer.gameID) {
+    //   const room = PongRoom.rooms.get(oldPlayer.gameID);
+    //     if (room) {
+    //      // room.resume(oldPlayer.userID);
+    //     }
+    // }
 	} else {
 		//  First-time connection — create new player
 		const user = await UserManagement.getUnameByIndex(userID);

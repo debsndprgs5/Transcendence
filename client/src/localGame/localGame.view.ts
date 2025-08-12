@@ -35,8 +35,13 @@ export class LocalGameView
 		};
 		
 		window.addEventListener('keydown', this.escapeKeyHandler, true);
+		this.startRender();
 	}
 	
+	private async startRender(){
+		await this.localGameRenderer.start();
+	}
+
 	public transitionOut(): void
 	{
 		this.dispose();

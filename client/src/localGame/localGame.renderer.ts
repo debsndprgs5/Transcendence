@@ -41,16 +41,26 @@ export class LocalGameRenderer
 			'left',
 			usernames
 		);
-		
+		this.baseRenderer.loadGame();
+		this.baseRenderer.setWaiting(false);
 		this.gameEngine = new LocalGameEngine(
 			config,
 			(gameState) => this.updateRenderer(gameState),
 			(winner, scores) => this.handleGameEnd(winner, scores)
 		);
 		window.addEventListener('pong:local-leave', this._onLocalLeave);
-		this.gameEngine.start();
+		
 	}
 	
+	private async startRender(){
+		await this.baseRenderer.loadGame();
+		await this.baseRenderer.setWaiting(false);
+		this.gameEngine.start();
+	}
+
+	public async start(){
+		await this.startRender();
+	}
 	
 	private updateRenderer(gameState: LocalGameState): void
 	{

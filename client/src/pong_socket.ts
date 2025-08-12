@@ -585,6 +585,7 @@ export async function handleReconnection(
     } else {
       // Renderer is intact: just resume
       pongState.pongRenderer.resumeRenderLoop?.();
+	  state.playerInterface.typedSocket.send('resume', {gameID:data.gameID, userID:data.userID});
       state.canvasViewState = 'playingGame';
       showPongMenu();
       return;
@@ -617,7 +618,9 @@ export async function handleReconnection(
 
     pongState.pongRenderer = new PongRenderer(canvas, state.typedSocket, playerCount, oldGameName, side, usernames);
     await pongState.pongRenderer.loadGame();
-	state.playerInterface!.typedSocket.send('clientReady', {gameID:data.gameID, userID:state.userId});
+	pongState.pongRenderer.setWaiting(false);
+	state.playerInterface!.typedSocket.send('resume',{gameID:data.gameID, userID:state.userId})
+
 	state.canvasViewState = 'playingGame';
     showPongMenu();
     return;

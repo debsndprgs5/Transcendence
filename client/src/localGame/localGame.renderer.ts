@@ -1,6 +1,7 @@
 import { PongRenderer } from '../render/NEW_pong_render';
 import { LocalGameEngine, LocalGameState } from './localGame.engine';
 import { state } from '../api';
+import { showNotification } from '../notifications';
 import { showPongMenu } from '../pong_rooms';
 import { pongState } from '../pong_socket';
 import { cleanupLocalGameConfig } from './localGame.manager';
@@ -41,8 +42,6 @@ export class LocalGameRenderer
 			'left',
 			usernames
 		);
-		this.baseRenderer.loadGame();
-		this.baseRenderer.setWaiting(false);
 		this.gameEngine = new LocalGameEngine(
 			config,
 			(gameState) => this.updateRenderer(gameState),
@@ -53,6 +52,7 @@ export class LocalGameRenderer
 	}
 	
 	private async startRender(){
+		showNotification({ message: 'Game is loading please wait', type: 'success' });
 		await this.baseRenderer.loadGame();
 		await this.baseRenderer.setWaiting(false);
 		this.gameEngine.start();

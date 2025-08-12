@@ -3,6 +3,7 @@ import * as BABYLON from '@babylonjs/core';
 import { state } from '../api';
 import type { RendererCtx, Side } from './NEW_pong_render';
 import { updateHUD } from './ui';
+import {TypedSocket } from '../shared/gameTypes'
 
 export type UpdatePayload = {
   paddles: Record<number, { pos: number; side: Side; score: number }>;
@@ -33,12 +34,23 @@ export function registerInput(ctx: RendererCtx) {
   scene.onBeforeRenderObservable.add(() => {
     processInput(ctx);
   });
+   const beforeRenderToken = scene.onBeforeRenderObservable.add(() => {
+    processInput(ctx);
+  });
+  // auto-clean when this scene is disposed (new renderer, route change, etc.)
+  scene.onDisposeObservable.add(() => {
+    window.removeEventListener('keydown', keydown);
+    window.removeEventListener('keyup', keyup);
+    scene.onBeforeRenderObservable.remove(beforeRenderToken);
+  });
 }
 
-function sendMove(dir: 'left'|'right'|'stop') {
-  if (state.playerInterface?.gameID !== undefined && state.userId !== undefined) {
-    state.typedSocket.send('playerMove', {
-      gameID: state.playerInterface.gameID,
+function sendMove(dir: 'left'|'right'|'stop', socket:TypedSocket) {
+  console.warn(`[SENDMOVE] : ${socket}`);
+  if (state.playerInterface!.gameID !== undefined && state.userId !== undefined) {
+      console.warn(`gameID${state.playerInterface!.gameID} | ${state.userId}`)
+      socket.send('playerMove', {
+      gameID: state.playerInterface!.gameID,
       userID: state.userId,
       direction: dir,
     });
@@ -57,7 +69,7 @@ function processInput(ctx: RendererCtx) {
     dir = dir === 'left' ? 'right' : 'left';
   }
 
-  sendMove(dir);
+  sendMove(dir, ctx.socket);
   ctx.currentDir = dir;
 }
 

@@ -273,8 +273,8 @@ export function setupGUI(ctx: RendererCtx) {
           isLegit: false,
         });
 
-        if (state.playerInterface?.tournamentID) {
-          const tourID = state.playerInterface.tournamentID;
+        if (state.playerInterface!.tournamentID) {
+          const tourID = state.playerInterface!.tournamentID;
           state.typedSocket.send('leaveTournament', {
             userID: state.userId!,
             tournamentID: tourID,

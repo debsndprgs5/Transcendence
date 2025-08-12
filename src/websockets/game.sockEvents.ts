@@ -147,6 +147,7 @@ export async function handleJoin(
       gameName,
       userID:userID,
     });
+    Helpers.updateRoom(gameID);
   } catch (err) {
     console.error('handleJoin error', err);
     player.typedSocket.send('joinGame', {

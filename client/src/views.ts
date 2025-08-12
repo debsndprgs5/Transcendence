@@ -774,12 +774,7 @@ export function ProfileView(profileUser: any): string {
   return `
   <div class="min-h-screen relative text-gray-200">
     <!-- space/dark layered background -->
-    <div class="absolute inset-0 bg-gradient-to-b from-[#0b1021] via-[#0f172a] to-[#030712]"></div>
-    <div class="absolute inset-0 opacity-30 pointer-events-none"
-         style="background:
-           radial-gradient(ellipse at 20% 10%, rgba(88,28,135,.35), transparent 50%),
-           radial-gradient(ellipse at 80% 0%, rgba(59,130,246,.25), transparent 40%),
-           radial-gradient(ellipse at 50% 80%, rgba(16,185,129,.2), transparent 45%);">
+    <div class="absolute inset-0 opacity-30 pointer-events-none">
     </div>
 
     <div class="relative z-10 max-w-6xl mx-auto px-4 py-8">

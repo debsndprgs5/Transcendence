@@ -1,7 +1,7 @@
 import { showNotification, showUserActionsBubble } from './notifications';
 import { isAuthenticated, apiFetch, state } from './api';
 import { PongRenderer } from './render/NEW_pong_render';
-import {settingsRenderer} from './settings_render';
+// import {settingsRenderer} from './settings_render';
 import * as Interfaces from './shared/gameTypes';
 import {createTypedEventSocket} from './shared/gameEventWrapper';
 import { showPongMenu } from './pong_rooms';
@@ -16,7 +16,7 @@ import { Side} from './render/NEW_pong_render'
 export const pongState = 
 {
 	pongRenderer: null as PongRenderer | null,
-	settingsRenderer: null as settingsRenderer|null,
+	// settingsRenderer: null as settingsRenderer|null,
 	localMapRenderer: null as any | null
 };
 
@@ -644,7 +644,7 @@ export async function handleReconnection(
 
   // ── CASE 4: Game lobby (waiting): we have a gameID but state is not 'playing'
   if (data.gameID && data.state !== 'playing') {
-    // English: hydrate lobby UI (players + room name) so Leave/Join are usable after refresh
+    // hydrate lobby UI (players + room name) so Leave/Join are usable after refresh
     try {
       const players = await apiFetch(`/api/pong/${encodeURIComponent(data.gameID)}/list`, {
         headers: { Authorization: `Bearer ${state.authToken}` },
@@ -656,7 +656,7 @@ export async function handleReconnection(
     }
 
     try {
-      // English: optional endpoint; if you don't have it, we fallback to localStorage
+      // optional endpoint; if you don't have it, we fallback to localStorage
       const info = await apiFetch(`/api/pong/${encodeURIComponent(data.gameID)}/info`, {
         headers: { Authorization: `Bearer ${state.authToken}` },
       }).catch(() => null as any);

@@ -83,12 +83,9 @@ export function updateNav(): void {
     `;
 
     document.getElementById('logoutNavBtn')!
-      .addEventListener('click', () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('username');
-        history.pushState(null, '', '/');
-        router();
-      });
+	  .addEventListener('click', async () => {
+	    await handleLogout();
+	  });
   }
 }
 
@@ -1135,70 +1132,50 @@ window.addEventListener('storage', (event: StorageEvent) => {
  * Clears all auth state, closes socket and renders Home.
  */
 export async function handleLogout(): Promise<void> {
-  // ---- 1) Remove token early (as requested) ----
-  try {
-    localStorage.removeItem('token');
-    localStorage.removeItem('username');
-  } catch {}
-
-  // ---- 2) Snapshot what we need before wiping state ----
-  const uID     = state.userId;
   const gameID  = state.playerInterface?.gameID;
   const tourID  = state.playerInterface?.tournamentID;
   const isOwner = !!state.playerInterface?.isTourOwner;
 
-  // ---- 3) Notify tournament/game over WebSocket (no token needed) ----
+  try {
+		if (state.socket?.readyState === WebSocket.OPEN) {
+			console.warn(`CLOSING CHAT socket`)
+			state.socket?.send(JSON.stringify({
+				type: 'friendStatus',
+				action: 'update',
+				state: 'offline',
+				userID: state.userId,
+			}));
+			state.socket?.close();
+		}
+  } catch {}
+
   try {
     const ts = state.playerInterface?.typedSocket;
     const gameWSOpen = state.playerInterface?.socket?.readyState === WebSocket.OPEN;
-
     if (ts && gameWSOpen) {
-      // a) leave tournament first (so brackets/chat stay consistent)
       if (tourID) {
         ts.send('leaveTournament', {
-          userID: uID,
-          tournamentID: tourID,
-          islegit: false,
-          duringGame: Boolean(gameID),
-          isTourOwner: isOwner,
+          userID: state.userId, tournamentID: tourID, islegit: false,
+          duringGame: Boolean(gameID), isTourOwner: isOwner,
         });
       }
-      // b) then leave current game (if any)
       if (gameID) {
-        ts.send('leaveGame', {
-          userID: uID,
-          gameID,
-          islegit: false,
-        });
+        ts.send('leaveGame', { userID: state.userId, gameID, islegit: false });
       }
-
-      // English: give server a tick to process the messages
       await new Promise(res => setTimeout(res, 40));
     }
   } catch (e) {
     console.warn('[LOGOUT] graceful WS notify failed:', e);
   }
 
-  // ---- 4) Presence on friend socket (best effort) ----
   try {
-    if (state.socket?.readyState === WebSocket.OPEN) {
-      state.socket.send(JSON.stringify({
-        type: 'friendStatus',
-        action: 'update',
-        state: 'offline',
-        userID: uID,
-      }));
-    }
+    localStorage.removeItem('token');
+    localStorage.removeItem('username');
   } catch {}
 
-  // ---- 5) Close sockets ----
   try { state.socket?.close(); } catch {}
   try { state.playerInterface?.socket?.close(); } catch {}
-
-  // ---- 6) Cleanup runtime + storage ----
   resetState();
-
-  // English: clear gameplay/tournament local keys
   try {
     localStorage.removeItem('pong_view');
     localStorage.removeItem('pong_room');
@@ -1208,10 +1185,8 @@ export async function handleLogout(): Promise<void> {
     localStorage.removeItem('tournament_name');
     localStorage.removeItem('tournament_players');
     localStorage.removeItem('tournament_id');
-    // If you still want full nuke, do it last:
-    // localStorage.clear();
+    localStorage.removeItem('userID');
   } catch {}
-
   updateNav();
   window.location.href = '/';
 }

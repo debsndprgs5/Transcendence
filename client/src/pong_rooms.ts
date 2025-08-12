@@ -9,7 +9,6 @@ import { drawCreateGameView,
 import { showNotification } from './notifications';
 import { pongState } from './pong_socket';
 import { PongRenderer } from './render/NEW_pong_render'
-import { settingsRenderer } from './settings_render';
 import { TypedSocket } from './shared/gameTypes';
 import { resizePongCanvas } from './handlers';
 import { handleTournamentClick, 
@@ -104,7 +103,6 @@ export function showPongMenu(): void {
 		}
 
 		if (state.canvasViewState === 'playingGame'
-				|| state.canvasViewState === 'Settings'
 				|| state.canvasViewState === 'localGameMap'
 			){
 			const wrapper = canvas.parentElement!;
@@ -226,25 +224,11 @@ export function showPongMenu(): void {
 				pongState.localMapRenderer.handleResize();
 			}
 		}
-		break;
-
-case 'Settings':
-    {
-        const rect = babylonCanvas.getBoundingClientRect();
-        babylonCanvas.width = Math.floor(rect.width);
-        babylonCanvas.height = Math.floor(rect.height);
-
-        if (!pongState.settingsRenderer) {
-            pongState.settingsRenderer = new settingsRenderer(babylonCanvas);
-        } else {
-            pongState.settingsRenderer.handleResize();
-        }
-    }
-    break;
-				default:
-					drawMainMenu(canvas, ctx);
-					break;
-			}
+			break;
+		default:
+			drawMainMenu(canvas, ctx);
+			break;
+	}
 }
 
 export function drawMainMenu(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D): void {
@@ -270,16 +254,8 @@ export function drawMainMenu(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
 	{ action: 'Create Game', y: startY + space * 0 },
 	{ action: 'Join Game',   y: startY + space * 1 },
 	{ action: 'Tournament',  y: startY + space * 2 },
-	// { action: 'Settings',    y: startY + space * 3 },
 	{ action: 'Local Game', y: startY + space * 3 },
   ];
-//   const labels = [
-// 	{ action: 'Create Game', y: height/2 - 40 },
-// 	{ action: 'Join Game',   y: height/2 + 20 },
-// 	{ action: 'Tournament',  y: height/2 + 80 },
-// 	{ action: 'Settings',    y: height/2 + 140 },
-// 	{ action: 'Local Game', y: height/2 + 200},
-//   ];
   ctx.font = `${Math.floor(height/20)}px 'Orbitron', sans-serif`;
 
   const btnW = 260, btnH = 50;
@@ -409,10 +385,6 @@ async function handleMainMenuClick(canvas: HTMLCanvasElement, x: number, y: numb
 		case 'Tournament':
 			state.availableTournaments = await fetchOpenTournaments();
 			state.canvasViewState = 'tournament';
-			showPongMenu();
-			break;
-		case 'Settings':
-			state.canvasViewState = 'Settings';
 			showPongMenu();
 			break;
 		default:

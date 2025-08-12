@@ -5,6 +5,7 @@ import speakeasy from 'speakeasy' // lib that supports 2fa using time based one-
 import * as UserManagement from '../db/userManagement';
 import * as GameManagement from '../db/gameManagement'
 import * as dotenv from 'dotenv';
+import { getPlayerState } from '../websockets/game.socket';
 import path from 'path';
 
 dotenv.config({
@@ -62,7 +63,10 @@ export async function authRoutes(fastify: FastifyInstance) {
 							return reply.code(401).send({ error: 'Invalid credentials' });
 					}
 
-					// Création du token avec le bon format
+					const uid = await UserManagement.getIndexByUname(username);
+					if (getPlayerState(uid!) === 'online') {
+							return reply.code(401).send({ error: 'User already connected !' });
+					}
 					const token = jwt.sign(
 							{ 
 									sub: user.rand_id,

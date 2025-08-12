@@ -286,6 +286,7 @@ export async function kickFromGameRoom(
     // Cleanup room after all kicked
     await GameManagement.deleteGameRoom(gameID);
     const room = PongRoom.rooms.get(gameID);
+    if(!room) await updateList();
     if (room) room.stop();
     return;
   }

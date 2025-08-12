@@ -46,9 +46,7 @@ export function registerInput(ctx: RendererCtx) {
 }
 
 function sendMove(dir: 'left'|'right'|'stop', socket:TypedSocket) {
-  console.warn(`[SENDMOVE] : ${socket}`);
   if (state.playerInterface!.gameID !== undefined && state.userId !== undefined) {
-      console.warn(`gameID${state.playerInterface!.gameID} | ${state.userId}`)
       socket.send('playerMove', {
       gameID: state.playerInterface!.gameID,
       userID: state.userId,

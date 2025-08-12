@@ -302,21 +302,26 @@ export async function  handleReconnect(parsed:any ,player: Interfaces.playerInte
 }
 
 export async function handleDisconnect(player: Interfaces.playerInterface) {
-	if (!player || player.hasDisconnected) return;
+  if (!player || player.hasDisconnected) return;
 
-	player.hasDisconnected = true;
+  player.hasDisconnected = true;
 
-	if (!player.gameID) return; // Not in a game? Do nothing
+  try { Helpers.updatePlayerState(player, 'offline'); } catch {}
 
-  // Pause the game
-	const room = PongRoom.rooms.get(player.gameID)
-	if (room) room.pause(player.userID)
+  if (player.gameID) {
+    const room = PongRoom.rooms.get(player.gameID);
+    if (room) room.pause(player.userID);
 
-  // Start 15s timeout
+    player.disconnectTimeOut = setTimeout(() => {
+      const r = PongRoom.rooms.get(player.gameID!);
+      if (r) r.stop();
+      Helpers.kickFromGameRoom(player.gameID!, player, `${player.username} timed out`);
+      delPlayer(player.userID);
+    }, 15000);
+    return;
+  }
+
   player.disconnectTimeOut = setTimeout(() => {
-    const room = PongRoom.rooms.get(player.gameID!)
-	if(room) room.stop()
-	Helpers.kickFromGameRoom(player.gameID!, player, `${player.username} timed out`);
-	  delPlayer(player.userID);
-  }, 15000);
+    delPlayer(player.userID);
+  }, 30000);
 }

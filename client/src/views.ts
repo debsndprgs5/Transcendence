@@ -743,40 +743,158 @@ return `
  * Returns the HTML for the profile view.
  */
 export function ProfileView(profileUser: any): string {
-	const username = profileUser.username || '';
-	const style = /^\d+$/.test(username)
-    ? 'bottts'
-    : 'initials';
-	const avatar = profileUser.avatarUrl || `https://api.dicebear.com/9.x/${style}/svg`
-                + `?seed=${encodeURIComponent(username)}`
-                + `&backgroundType=gradientLinear`
-                + `&backgroundColor=919bff,133a94`  
-                + `&size=64`
-                + `&radius=50`
+  const username = profileUser.username || '';
+  const style = /^\d+$/.test(username) ? 'bottts' : 'initials';
+  const avatar =
+    profileUser.avatarUrl ||
+    `https://api.dicebear.com/9.x/${style}/svg` +
+      `?seed=${encodeURIComponent(username)}` +
+      `&backgroundType=gradientLinear` +
+      `&backgroundColor=919bff,133a94` +
+      `&size=64` +
+      `&radius=50`;
 
-	return `
-		<div class="min-h-screen flex items-center justify-center py-10">
-			<div class="bg-white rounded-xl shadow-xl max-w-lg w-full">
-				<div class="px-8 py-8 flex flex-col items-center bg-indigo-50 rounded-t-xl">
-					<img src="${avatar}" alt="${username}" class="w-24 h-24 rounded-full shadow-lg border-4 border-indigo-200 mb-4">
-					<h2 class="text-2xl font-bold text-indigo-700 mb-1">${username}</h2>
-				</div>
-				<div class="px-8 py-6">
-					<div id="profile-stats" class="space-y-2">
-						<h3 class="text-lg font-semibold">Stats</h3>
-						<p class="text-gray-500">(Stats placeholder)</p>
-					</div>
-					<div id="game-history" class="mt-6">
-						  <h3 class="text-lg font-semibold">Recent Games</h3>
-						<ul class="list-disc list-inside text-gray-500">
-							<li>Game history placeholder</li>
-            </ul>
-					</div>
-				</div>
-				<div class="px-8 pb-8">
-					<button id="backBtnProfile" class="mt-6 w-full py-2 px-4 bg-gray-200 text-indigo-700 rounded hover:bg-gray-300 transition">← Back</button>
-				</div>
-			</div>
-		</div>
-	`;
+  /* After mount: fetch the profile's stats and paint the UI */
+  setTimeout(async () => {
+    try {
+      // If your fetch signature differs (e.g. needs a token), adapt this call.
+      const stats = await fetchAccountStats(profileUser.userId);
+      updateStatsDisplay(stats);
+    } catch (err) {
+      console.error('[ProfileView] Failed to load stats for profile:', err);
+    }
+
+    // Optional: simple back button behavior
+    const backBtn = document.getElementById('backBtnProfile');
+    if (backBtn) {
+      backBtn.addEventListener('click', () => history.back());
+    }
+  }, 0);
+
+  return `
+  <div class="min-h-screen relative text-gray-200">
+    <!-- space/dark layered background -->
+    <div class="absolute inset-0 bg-gradient-to-b from-[#0b1021] via-[#0f172a] to-[#030712]"></div>
+    <div class="absolute inset-0 opacity-30 pointer-events-none"
+         style="background:
+           radial-gradient(ellipse at 20% 10%, rgba(88,28,135,.35), transparent 50%),
+           radial-gradient(ellipse at 80% 0%, rgba(59,130,246,.25), transparent 40%),
+           radial-gradient(ellipse at 50% 80%, rgba(16,185,129,.2), transparent 45%);">
+    </div>
+
+    <div class="relative z-10 max-w-6xl mx-auto px-4 py-8">
+      <!-- Header -->
+      <div class="overflow-hidden rounded-2xl shadow-2xl border border-white/10 backdrop-blur bg-white/5">
+        <div class="flex items-center gap-4 px-6 py-6 bg-gradient-to-r from-[#1f2937] via-[#0f172a] to-[#0b1021]">
+          <img src="${avatar}" alt="${username}"
+               class="w-20 h-20 rounded-full ring-2 ring-indigo-500/60 shadow-lg">
+          <div class="flex-1">
+            <h1 class="text-3xl font-bold tracking-tight">${username}</h1>
+            <p class="text-indigo-300/80">Player Profile</p>
+          </div>
+          <button id="backBtnProfile"
+                  class="px-4 py-2 rounded-xl bg-indigo-600/90 hover:bg-indigo-500 transition shadow">
+            ← Back
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats + Quick Stats -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
+        <!-- Game Statistics (same structure/IDs as AccountView) -->
+        <div class="lg:col-span-2 rounded-2xl border border-white/10 bg-white/5 backdrop-blur p-6 shadow-xl">
+          <h2 class="text-2xl font-semibold mb-6">Game Statistics</h2>
+
+          <div class="flex flex-col lg:flex-row items-center mb-8">
+            <div class="lg:w-1/2 mb-4 lg:mb-0">
+              <canvas id="stats-chart" width="250" height="250" class="mx-auto"></canvas>
+              <div id="stats-legend" class="mt-4 text-center text-sm text-gray-400"></div>
+            </div>
+            <div class="lg:w-1/2 lg:pl-8">
+              <div class="grid grid-cols-2 gap-4">
+                <div class="rounded-lg p-4 text-center bg-emerald-900/30">
+                  <div id="wins-count" class="text-2xl font-bold text-emerald-400">-</div>
+                  <div class="text-xs text-gray-400">Wins</div>
+                </div>
+                <div class="rounded-lg p-4 text-center bg-rose-900/30">
+                  <div id="losses-count" class="text-2xl font-bold text-rose-400">-</div>
+                  <div class="text-xs text-gray-400">Losses</div>
+                </div>
+                <div class="rounded-lg p-4 text-center bg-amber-900/30">
+                  <div id="ties-count" class="text-2xl font-bold text-amber-300">-</div>
+                  <div class="text-xs text-gray-400">Ties</div>
+                </div>
+                <div class="rounded-lg p-4 text-center bg-sky-900/30">
+                  <div id="total-games" class="text-2xl font-bold text-sky-300">-</div>
+                  <div class="text-xs text-gray-400">Total Games</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Advanced stats -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="rounded-lg p-4 bg-white/5">
+              <h3 class="text-sm font-medium text-gray-300 mb-1">Average Score</h3>
+              <div id="avg-score" class="text-2xl font-bold text-indigo-400">-</div>
+            </div>
+            <div class="rounded-lg p-4 bg-white/5">
+              <h3 class="text-sm font-medium text-gray-300 mb-1">Best Score</h3>
+              <div id="best-score" class="text-2xl font-bold text-emerald-400">-</div>
+            </div>
+            <div class="rounded-lg p-4 bg-white/5">
+              <h3 class="text-sm font-medium text-gray-300 mb-1">Avg Game Duration</h3>
+              <div id="avg-duration" class="text-2xl font-bold text-purple-400">-</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="space-y-6">
+          <div class="rounded-2xl border border-white/10 bg-white/5 backdrop-blur p-6 shadow-xl">
+            <h2 class="text-xl font-semibold mb-4">Quick Stats</h2>
+            <div class="space-y-3 text-sm">
+              <div class="flex justify-between">
+                <span class="text-gray-400">Win Rate</span>
+                <span id="win-rate" class="font-semibold">-%</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-400">Longest Win Streak</span>
+                <span id="win-streak" class="font-semibold">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-400">Tournament Wins</span>
+                <span id="tournament-wins" class="font-semibold">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-400">Last Game</span>
+                <span id="last-game" class="font-semibold">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Match History (same structure/IDs as AccountView) -->
+      <div class="rounded-2xl border border-white/10 bg-white/5 backdrop-blur p-6 shadow-xl mt-8">
+        <h2 class="text-2xl font-semibold mb-6">Match History</h2>
+        <div class="overflow-x-auto max-h-96 overflow-y-auto rounded-lg border border-white/10">
+          <table class="w-full">
+            <thead class="sticky top-0 z-10 bg-slate-800/80 backdrop-blur">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-300">Date</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-300">Score</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-300">Result</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-300">Duration</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-300">Mode</th>
+              </tr>
+            </thead>
+            <tbody id="match-history-table" class="divide-y divide-white/10">
+              <!-- Filled by updateMatchHistory() -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>`;
 }

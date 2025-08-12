@@ -90,7 +90,7 @@ export const delMemberFromGameRoom = (gameID: number, userID: number) =>
 
 export const getAllMembersFromGameRoom = (gameID: number) =>
  getAll<{ username: string , userID:number }>(
-		`SELECT u.username, u.our_index
+		`SELECT u.username, gm.userID
 		 FROM gameMembers gm
 		 JOIN users u ON gm.userID = u.our_index
 		 WHERE gm.gameID = ?`,

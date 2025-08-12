@@ -679,7 +679,7 @@ export async function handleReconnection(
 }
 
 async function handleGameList(data: Interfaces.SocketMessageMap['updateGameList']){
-	console.warn(`[GAMELIST->] ${data.list[0]}`);
+	console.warn(`[GAMELIST->]`,data.list);
 	if(state.canvasViewState === 'waitingGame' && data.gameID === state.playerInterface!.gameID){
 		state.currentPlayers = data.list;
 		showPongMenu();
@@ -687,7 +687,7 @@ async function handleGameList(data: Interfaces.SocketMessageMap['updateGameList'
 }
 
 async function handleGameRooms(data: Interfaces.SocketMessageMap['updateGameRooms']){
-	console.warn(`[GAMEROOM->] ${data.list[0]}`);
+	console.warn(`[GAMEROOM->]`, data.list);
 	//if(state.canvasViewState = 'joinGame'){
 		state.availableRooms = data.list;
 		showPongMenu();

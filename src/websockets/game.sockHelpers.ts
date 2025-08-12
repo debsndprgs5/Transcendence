@@ -316,8 +316,15 @@ export async function updateRoom(gameID:number) {
   for(const p of players){
     list.push(p.username);
   }
+  console.log(`updateRoom:${list}`);
+  console.log(`players`, players);
+  if(players.length === 0 )
+    console.log(`NO PLAYERS DUDE WTF ?`)
+  if(!players )
+    console.log(`NO PLAYERS DUDE WTF ?`)
   if(players.length > 0){
     for(const p of players){
+      console.log(`UID:`, p.userID);
       let pObj = getPlayerByUserID(p.userID);
       if(!pObj) continue;
       pObj!.typedSocket.send('updateGameList',{
@@ -325,6 +332,7 @@ export async function updateRoom(gameID:number) {
         gameID:gameID,
         list:list
       });
+      console.log(`SOCJET SEND`);
     }
   }
   
@@ -334,14 +342,16 @@ export async function updateRoom(gameID:number) {
 export async function updateList(){
 
     const list = await GameManagement.getAllPublicGames();
+    const mappedList = list.map(room => ({
+          roomID:room.gameID,
+          roomName:room.name
+        }));
+    console.log(`MAPPED LIST :`, mappedList);
     const players = await getAllInitPlayers();
     if(players !== undefined && players.length > 0){
      for(const p of players)
       p.typedSocket.send('updateGameRooms',{
-        list:list.map(room => ({
-          roomID:room.gameID,
-          roomName:room.name
-        }))
+        list:mappedList
       });
     }
 }

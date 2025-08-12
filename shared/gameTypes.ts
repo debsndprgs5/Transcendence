@@ -271,6 +271,13 @@ export type SocketMessageMap = {
 						userID:number;
 						score:string;
 	};
+	serverReady:{	type:'serverReady';
+					gameID:number;
+	};
+	clientReady:{	type:'clientReady';
+					gameID:number;
+					userID:number;
+	};
 };
 
 export type SocketMessage = SocketMessageMap[keyof SocketMessageMap];

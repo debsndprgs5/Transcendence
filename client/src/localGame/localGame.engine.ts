@@ -69,7 +69,7 @@ export class LocalGameEngine
 	
 	private handleKeyDown = (e: KeyboardEvent) =>
 	{
-		const gameKeys = ['q', 'Q', 'd', 'D', 'ArrowLeft', 'ArrowRight', 'p', 'P'];
+		const gameKeys = ['a', 'D', 'd', 'D', '4', '6', 'p', 'P'];
 		
 		if (gameKeys.includes(e.key))
 		{
@@ -79,12 +79,12 @@ export class LocalGameEngine
 		
 		switch (e.key)
 		{
-			case 'q':
-			case 'Q': this.inputState.player1Up = true; break;
+			case 'a':
+			case 'A': this.inputState.player1Up = true; break;
 			case 'd':
 			case 'D': this.inputState.player1Down = true; break;
-			case 'ArrowLeft': this.inputState.player2Up = true; break;
-			case 'ArrowRight': this.inputState.player2Down = true; break;
+			case '4': this.inputState.player2Up = true; break;
+			case '6': this.inputState.player2Down = true; break;
 			case 'p':
 			case 'P': this.togglePause(); break;
 		}
@@ -92,7 +92,7 @@ export class LocalGameEngine
 	
 	private handleKeyUp = (e: KeyboardEvent) =>
 	{
-		const gameKeys = ['q', 'Q', 'd', 'D', 'ArrowLeft', 'ArrowRight'];
+		const gameKeys = ['a', 'A', 'd', 'D', '4', '6'];
 		
 		if (gameKeys.includes(e.key))
 		{
@@ -102,12 +102,12 @@ export class LocalGameEngine
 		
 		switch (e.key)
 		{
-			case 'q':
-			case 'Q': this.inputState.player1Up = false; break;
+			case 'a':
+			case 'A': this.inputState.player1Up = false; break;
 			case 'd':
 			case 'D': this.inputState.player1Down = false; break;
-			case 'ArrowLeft': this.inputState.player2Up = false; break;
-			case 'ArrowRight': this.inputState.player2Down = false; break;
+			case '4': this.inputState.player2Up = false; break;
+			case '6': this.inputState.player2Down = false; break;
 		}
 	};
 	

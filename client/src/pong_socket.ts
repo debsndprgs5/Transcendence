@@ -200,6 +200,10 @@ async function handleEvents(
 			(window as any).updateStatsDisplay(data);
 		}
 	});
+	typedSocket.on('serverReady',async( data:Interfaces.SocketMessageMap['serverReady'])=>{
+		if(pongState.pongRenderer)
+			pongState.pongRenderer.setWaiting(false);
+	});
 }
 
 export async function handleInit(data:Interfaces.SocketMessageMap['init'], gameSocket:WebSocket){
@@ -420,6 +424,8 @@ export async function handleStartGame(data: Interfaces.SocketMessageMap['startGa
 	pongState.pongRenderer = new PongRenderer(canvas, state.typedSocket,
 		count, data.gameName,side, data.usernames);
 	state.playerInterface.gameID = data.gameID;
+	await pongState.pongRenderer.loadGame();
+	state.playerInterface!.typedSocket.send('clientReady', {gameID:data.gameID, userID:state.userId});
 	showPongMenu();
 	}
 }
@@ -579,6 +585,7 @@ export async function handleReconnection(
     } else {
       // Renderer is intact: just resume
       pongState.pongRenderer.resumeRenderLoop?.();
+	  state.playerInterface.typedSocket.send('resume', {gameID:data.gameID, userID:data.userID});
       state.canvasViewState = 'playingGame';
       showPongMenu();
       return;
@@ -610,7 +617,11 @@ export async function handleReconnection(
     let oldGameName = localStorage.getItem('gameName') || 'Name was lost during reconnection';
 
     pongState.pongRenderer = new PongRenderer(canvas, state.typedSocket, playerCount, oldGameName, side, usernames);
-    state.canvasViewState = 'playingGame';
+    await pongState.pongRenderer.loadGame();
+	pongState.pongRenderer.setWaiting(false);
+	state.playerInterface!.typedSocket.send('resume',{gameID:data.gameID, userID:state.userId})
+
+	state.canvasViewState = 'playingGame';
     showPongMenu();
     return;
   }

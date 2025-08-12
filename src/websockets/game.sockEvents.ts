@@ -79,16 +79,24 @@ export function handleAllEvents(typedSocket:TypedSocket, player:Interfaces.playe
     }
     
   });
+  
   typedSocket.on('pause', async(socket:WebSocket, data:Interfaces.SocketMessageMap['pause']) => {
     const pongRoom = PongRoom.rooms.get(data.gameID);
     pongRoom?.pause(data.userID);
   });
+  
   typedSocket.on('resume', async(socket:WebSocket, data:Interfaces.SocketMessageMap['resume']) => {
     const pongRoom = PongRoom.rooms.get(data.gameID);
     pongRoom?.resume(data.userID);
   });
+  
   typedSocket.on('reloadTourRound', async(socket:WebSocket, data:Interfaces.SocketMessageMap['reloadTourRound'])=> {
     Tournaments.reloadTourRound(data);
+  })
+  
+  typedSocket.on('clientReady', async(socket:WebSocket, data:Interfaces.SocketMessageMap['clientReady'])=>{
+    const pongRoom = PongRoom.rooms.get(data.gameID);
+    pongRoom?.setClientReady(data.userID);
   })
 }
 
@@ -264,11 +272,12 @@ export async function  handleReconnect(parsed:any ,player: Interfaces.playerInte
     clearTimeout(player.disconnectTimeOut);
     player.disconnectTimeOut = undefined;
   }
+  //Game Restart when render is ready not when socket connect
 	let resumed = false;
 	if (player.gameID) {
 		const room = PongRoom.rooms.get(player.gameID);
 		if (room) {
-			room.resume(player.userID);
+			//room.resume(player.userID);
 			resumed = true;
 		}
 	}
@@ -277,7 +286,6 @@ export async function  handleReconnect(parsed:any ,player: Interfaces.playerInte
     const tour = Tournament.MappedTour.get(player.tournamentID);
     if(tour)
       hasStarted = true;
-    
   }
 	// Always send back current player + state info
 	player.typedSocket.send('reconnected', {
@@ -288,7 +296,7 @@ export async function  handleReconnect(parsed:any ,player: Interfaces.playerInte
 		tournamentID: player.tournamentID ?? null,
     	isTourOwner:player.isTourOwner ?? false,
     	hasStarted:hasStarted,
-		message: resumed ? 'Game resumed' : 'No game to resume',
+		message: resumed ? 'Game will be resumed' : 'No game to resume',
 	});
 }
 

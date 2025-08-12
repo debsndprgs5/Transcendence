@@ -248,7 +248,12 @@ export function setupGUI(ctx: RendererCtx) {
 
   leave.onPointerUpObservable.add(() => {
     const player = state.playerInterface;
-    if (!player || player.state !== 'playing') return;
+		
+		//Local game: no server player => tell the host to leave
+		if (!player || player.state !== 'playing') {
+			window.dispatchEvent(new CustomEvent('pong:local-leave'));
+			return;
+		}
 
     if (ctx.isPaused) return;
     ctx.isPaused = true;
@@ -347,12 +352,43 @@ export function setupPauseUI(ctx: RendererCtx) {
   (ctx.ui as any).pauseBanner = banner;
 }
 
+export function setupWaitingUI(ctx: RendererCtx) {
+  if (!ctx.ui) return; // ensure setupGUI ran
+
+  const banner = new GUI.Rectangle("waitingBanner");
+  banner.width = "440px";
+  banner.height = "72px";
+  banner.thickness = 0;
+  banner.cornerRadius = 14;
+  banner.background = "rgba(0,0,0,0.70)";
+  banner.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+  banner.verticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+  banner.zIndex = 880;
+  banner.isVisible = false;
+
+  const txt = new GUI.TextBlock();
+  txt.text = "Game hasn't started yet";
+  txt.color = "#FFFFFF";
+  txt.fontSize = 22;
+  txt.fontWeight = "700";
+  txt.height = "36px";
+  banner.addControl(txt);
+
+  ctx.ui.adt.addControl(banner);
+  // store a ref (add to your MY_UI type if you want it typed)
+  (ctx.ui as any).waitingBanner = banner;
+}
+
+export function updateWaitingUI(ctx: RendererCtx, waiting: boolean) {
+  const b = (ctx.ui as any)?.waitingBanner as GUI.Rectangle | undefined;
+  if (b) b.isVisible = waiting;
+}
+
 export function updatePauseUI(ctx: RendererCtx) {
 
-  console.warn(`[PauseUpdate] ${ctx.isPaused}`);
+  
   const banner = (ctx.ui as any)?.pauseBanner as GUI.Rectangle | undefined;
   if (banner){
-    console.log(`Banner found`);
     banner.isVisible = ctx.isPaused;
   }
 }

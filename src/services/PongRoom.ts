@@ -35,7 +35,7 @@ export class PongRoom {
 	private readonly baseSpeed: number
 	private pauseStartTime: number | null = null;
 	private totalPausedTime = 0;
-
+	private readyPlayers: number[] = [];
 	private pauseState = {
 		isPaused: false,
 		pausedPlayers: new Set<number>(),        // Track all paused players
@@ -100,7 +100,7 @@ export class PongRoom {
 		// Start clock & loop
 		this.clock = Date.now();
 		PongRoom.rooms.set(this.gameID, this);
-		this.loop = setInterval(() => this.frame(), 1000/60);
+		//this.loop = setInterval(() => this.frame(), 1000/60);
 	}
 //PUBLIC METHODS 
 
@@ -151,6 +151,21 @@ export class PongRoom {
 			}
 
 			this.loop = setInterval(() => this.frame(), 1000 / 60);
+		}
+	}
+
+	setClientReady(userID:number){
+		
+		//Ignore repeats
+		for(const ready of this.readyPlayers){
+			if(ready === userID)
+				return;
+		}
+		this.readyPlayers.push(userID);
+		if(this.readyPlayers.length === this.players.length){
+			for(const p of this.players)
+				p.typedSocket.send('serverReady', {userID:p.userID, gameID:this.gameID});
+			this.loop = setInterval(() => this.frame(), 1000/60);
 		}
 	}
 

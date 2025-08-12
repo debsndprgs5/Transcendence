@@ -79,16 +79,24 @@ export function handleAllEvents(typedSocket:TypedSocket, player:Interfaces.playe
     }
     
   });
+  
   typedSocket.on('pause', async(socket:WebSocket, data:Interfaces.SocketMessageMap['pause']) => {
     const pongRoom = PongRoom.rooms.get(data.gameID);
     pongRoom?.pause(data.userID);
   });
+  
   typedSocket.on('resume', async(socket:WebSocket, data:Interfaces.SocketMessageMap['resume']) => {
     const pongRoom = PongRoom.rooms.get(data.gameID);
     pongRoom?.resume(data.userID);
   });
+  
   typedSocket.on('reloadTourRound', async(socket:WebSocket, data:Interfaces.SocketMessageMap['reloadTourRound'])=> {
     Tournaments.reloadTourRound(data);
+  })
+  
+  typedSocket.on('clientReady', async(socket:WebSocket, data:Interfaces.SocketMessageMap['clientReady'])=>{
+    const pongRoom = PongRoom.rooms.get(data.gameID);
+    pongRoom?.setClientReady(data.userID);
   })
 }
 

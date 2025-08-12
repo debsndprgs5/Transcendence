@@ -3,10 +3,32 @@ import '@babylonjs/loaders/glTF';
 import * as LIMIT from '../shared/gameTypes';
 import type { TypedSocket } from '../shared/gameTypes';
 import * as GUI from '@babylonjs/gui';
-import { setupLighting, setupCamera, createSkybox, createFloor, spawnUFOs, stopUfoLoop } from './world';
-import { createWalls, createPaddles, createBall } from './gameObj';
-import { setupGUI, setupPauseUI, updatePauseUI} from './ui';
-import { registerInput, startRenderLoop, attachResize, processNetworkUpdate, type UpdatePayload } from './coreRender';
+import {
+	setupLighting,
+	setupCamera,
+	createSkybox,
+	createFloor,
+	spawnUFOs,
+	stopUfoLoop } from './world';
+
+import {
+	createWalls,
+	createPaddles,
+	createBall } from './gameObj';
+
+import {
+	setupGUI,
+	setupPauseUI,
+	updatePauseUI,
+	setupWaitingUI,
+	updateWaitingUI } from './ui';
+
+import {
+	registerInput,
+	startRenderLoop,
+	attachResize,
+	processNetworkUpdate,
+	type UpdatePayload } from './coreRender';
 
 export type Side = 'left' | 'right' | 'top' | 'bottom';
 
@@ -110,10 +132,14 @@ export class PongRenderer {
 			playersInfo: usernames,
 			socket: typedSocket,
 		};
-		this.setupGame();
 	}
 
-	public async setupGame() {
+	//double await
+	public async loadGame(){
+		await this.setupGame();
+	}
+
+	private async setupGame() {
 		const { ctx } = this;
 
 		// World
@@ -135,8 +161,11 @@ export class PongRenderer {
 
 		// UI 
 		setupGUI(ctx);            
-		setupPauseUI(ctx);          // sets ctx.pauseUI later
-		updatePauseUI(ctx); // sync initial state
+		setupPauseUI(ctx);
+		setupWaitingUI(ctx);
+		updatePauseUI(ctx);
+		updateWaitingUI(ctx, true);   
+		
 
 		// Input + loop + resize
 		registerInput(ctx);
@@ -151,6 +180,10 @@ export class PongRenderer {
 
 	public async setSide(side: Side) {
 		this.ctx.playerSide = side;
+	}
+
+	public async setWaiting(waiting:boolean){
+		 updateWaitingUI(this.ctx, waiting);
 	}
 
 	public resumeRenderLoop() {

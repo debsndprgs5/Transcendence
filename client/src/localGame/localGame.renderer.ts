@@ -47,7 +47,7 @@ export class LocalGameRenderer
 			(gameState) => this.updateRenderer(gameState),
 			(winner, scores) => this.handleGameEnd(winner, scores)
 		);
-
+		window.addEventListener('pong:local-leave', this._onLocalLeave);
 		this.gameEngine.start();
 	}
 	
@@ -229,8 +229,13 @@ export class LocalGameRenderer
 			this.baseRenderer.dispose();
 		}
 	}
+
+	private _onLocalLeave = () => {
+		this.returnToLocalMenu();
+	}
 	
 	public dispose(): void {
+		window.removeEventListener('pong:local-leave', this._onLocalLeave);
 		if (this.isDisposing) return;
 		this.returnToLocalMenu();
 	}

@@ -250,7 +250,7 @@ export function setupGUI(ctx: RendererCtx) {
     const player = state.playerInterface;
 		
 		//Local game: no server player => tell the host to leave
-		if (!player || player.state !== 'playing') {
+		if (!player) {
 			window.dispatchEvent(new CustomEvent('pong:local-leave'));
 			return;
 		}

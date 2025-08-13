@@ -31,7 +31,7 @@ export class PongRoom {
 	private readonly scoreMap = new Map<number, number>()
 	private readonly WIDTH: number
 	private readonly HEIGHT: number
-	private readonly clock: number
+	private clock: number
 	private readonly baseSpeed: number
 	private pauseStartTime: number | null = null;
 	private totalPausedTime = 0;
@@ -98,7 +98,7 @@ export class PongRoom {
 		this.balls.push(new ballClass(0, 0, ballSize, this.baseSpeed));
 
 		// Start clock & loop
-		this.clock = Date.now();
+		this.clock = 0;
 		PongRoom.rooms.set(this.gameID, this);
 		//this.loop = setInterval(() => this.frame(), 1000/60);
 	}
@@ -165,6 +165,7 @@ export class PongRoom {
 		if(this.readyPlayers.length === this.players.length){
 			for(const p of this.players)
 				p.typedSocket.send('serverReady', {userID:p.userID, gameID:this.gameID});
+			this.clock = Date.now();
 			this.loop = setInterval(() => this.frame(), 1000/60);
 		}
 	}

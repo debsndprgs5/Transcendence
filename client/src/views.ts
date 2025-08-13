@@ -506,238 +506,293 @@ export function Verify2FAView(): string {
  */
 
 export function AccountView(user: any, friends: any[] = []): string {
-  // console.log('stats for user:', user);
-  // console.log('user_id:', user.userId);
   if (user && user.userId) {
     document.body.setAttribute('data-current-view', 'account');
   }
 
   const username = user.username || '';
-  const style = /^\d+$/.test(username)
-    ? 'bottts'
-    : 'initials';
-	const avatar = user.avatarUrl || `https://api.dicebear.com/9.x/${style}/svg`
-                + `?seed=${encodeURIComponent(username)}`
-                + `&backgroundType=gradientLinear`
-                + `&backgroundColor=919bff,133a94`  
-                + `&size=64`
-                + `&radius=50`;
+  const style = /^\d+$/.test(username) ? 'bottts' : 'initials';
+  const avatar =
+    user.avatarUrl ||
+    `https://api.dicebear.com/9.x/${style}/svg` +
+    `?seed=${encodeURIComponent(username)}` +
+    `&backgroundType=gradientLinear` +
+    `&backgroundColor=919bff,133a94` +
+    `&size=64` +
+    `&radius=50`;
 
   const heatmaps = [
     { id: 'heatmap-pos', label: 'Ball Positions', onClick: showBallPositionsHeatmap },
     { id: 'heatmap-wall', label: 'Wall Bounces', onClick: showWallBouncesHeatmap },
     { id: 'heatmap-paddle', label: 'Paddle Bounces', onClick: showPaddleBouncesHeatmap },
-    { id: 'heatmap-goal', label: 'Goals', onClick: () => showGoalsHeatmap([{x: 1, y: 2, value: 3}]) },
-    // #moooooore heatmaps
+    { id: 'heatmap-goal', label: 'Goals', onClick: () => showGoalsHeatmap([{ x: 1, y: 2, value: 3 }]) },
   ];
 
+  // Branche les boutons + hydrate les avatars amis APRÈS montage effectif
   setTimeout(() => {
+    // 1) boutons heatmap
     heatmaps.forEach(hm => {
       const btn = document.querySelector(`button[data-heatmap="${hm.id}"]`);
-      if (btn) {
-        btn.addEventListener('click', hm.onClick);
-      }
+      if (btn) btn.addEventListener('click', hm.onClick);
     });
+
+    // 2) attendre que #friends-grid existe, puis hydrater
+    const waitForGrid = () => {
+      const grid = document.getElementById('friends-grid');
+      if (!grid) {
+        requestAnimationFrame(waitForGrid);
+        return;
+      }
+
+      const seen = new Set<string>();
+
+      grid.querySelectorAll<HTMLImageElement>('img[data-username]').forEach(async (img) => {
+        const u = (img.dataset.username || '').trim();
+        if (!u || seen.has(u)) return;
+        seen.add(u);
+
+        // Si déjà remplacé par un custom, on ne touche pas.
+        const srcNow = img.getAttribute('src') || '';
+        if (srcNow && !srcNow.includes('dicebear.com')) return;
+
+        const setCustom = (url: string) => {
+          const abs = new URL(url, window.location.origin).toString();
+          img.src = abs + (abs.includes('?') ? '&' : '?') + 'v=' + Date.now(); // bust cache
+        };
+
+        // 1) endpoint profil qui renvoie { avatarUrl }
+        try {
+          const r = await fetch(`/users/username/${encodeURIComponent(u)}`, {
+            headers: { 'Accept': 'application/json' },
+            cache: 'no-store',
+          });
+          if (r.ok) {
+            const data = await r.json() as { avatarUrl?: string | null };
+            if (data?.avatarUrl) { setCustom(data.avatarUrl); return; }
+          }
+        } catch { /* on tente l’autre */ }
+
+        // 2) endpoint avatar direct qui renvoie { avatar_url }
+        try {
+          const r2 = await fetch(`/api/users/${encodeURIComponent(u)}/avatar`, {
+            headers: { 'Accept': 'application/json' },
+            cache: 'no-store',
+          });
+          if (r2.ok) {
+            const data2 = await r2.json() as { avatar_url?: string | null };
+            if (data2?.avatar_url) { setCustom(data2.avatar_url); return; }
+          }
+        } catch { /* on garde le fallback */ }
+      });
+    };
+
+    waitForGrid();
   }, 0);
 
-return `
-  <div class="min-h-screen bg-transparent text-gray-200 py-8">
-    <div class="max-w-6xl mx-auto px-4">
-      <!-- Header with avatar and name -->
-      <div class="bg-gray-800 bg-opacity-50 backdrop-blur rounded-xl shadow-lg mb-8">
-        <div class="px-8 py-8 flex items-center bg-gradient-to-r from-[#2C3E50] to-[#4CA1AF] text-white rounded-t-xl">
-          <img src="${avatar}" id="account-avatar" alt="Avatar"
-               class="w-24 h-24 rounded-full shadow-xl border-2 border-indigo-700 mr-6 cursor-pointer">
-          <input type="file" id="avatarInput" class="hidden" accept="image/*">
-          <div>
-            <h1 class="text-3xl font-bold">${username}</h1>
-            <p class="text-lg opacity-80">Player Dashboard</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Statistics grid -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-        
-        <!-- Global stats -->
-        <div class="lg:col-span-2 bg-gray-800 bg-opacity-50 backdrop-blur rounded-xl shadow-lg p-6">
-          <h2 class="text-2xl font-bold text-gray-200 mb-6">Game Statistics</h2>
-          
-          <!-- Pie chart -->
-          <div class="flex flex-col lg:flex-row items-center mb-8">
-            <div class="lg:w-1/2 mb-4 lg:mb-0">
-              <canvas id="stats-chart" width="250" height="250" class="mx-auto"></canvas>
-              <div id="stats-legend" class="mt-4 text-center text-sm text-gray-400"></div>
-            </div>
-            <div class="lg:w-1/2 lg:pl-8">
-              <div class="grid grid-cols-2 gap-4">
-                <div class="bg-green-900 bg-opacity-30 p-4 rounded-lg text-center">
-                  <div class="text-2xl font-bold text-green-400" id="wins-count">-</div>
-                  <div class="text-sm text-gray-400">Wins</div>
-                </div>
-                <div class="bg-red-900 bg-opacity-30 p-4 rounded-lg text-center">
-                  <div class="text-2xl font-bold text-red-400" id="losses-count">-</div>
-                  <div class="text-sm text-gray-400">Losses</div>
-                </div>
-                <div class="bg-yellow-900 bg-opacity-30 p-4 rounded-lg text-center">
-                  <div class="text-2xl font-bold text-yellow-300" id="ties-count">-</div>
-                  <div class="text-sm text-gray-400">Ties</div>
-                </div>
-                <div class="bg-blue-900 bg-opacity-30 p-4 rounded-lg text-center">
-                  <div class="text-2xl font-bold text-blue-300" id="total-games">-</div>
-                  <div class="text-sm text-gray-400">Total Games</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Advanced stats -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div class="bg-gray-800 bg-opacity-30 p-4 rounded-lg">
-              <h3 class="text-lg font-semibold text-gray-300 mb-2">Average Score</h3>
-              <div class="text-2xl font-bold text-indigo-400" id="avg-score">-</div>
-            </div>
-            <div class="bg-gray-800 bg-opacity-30 p-4 rounded-lg">
-              <h3 class="text-lg font-semibold text-gray-300 mb-2">Best Score</h3>
-              <div class="text-2xl font-bold text-green-400" id="best-score">-</div>
-            </div>
-            <div class="bg-gray-800 bg-opacity-30 p-4 rounded-lg">
-              <h3 class="text-lg font-semibold text-gray-300 mb-2">Avg Game Duration</h3>
-              <div class="text-2xl font-bold text-purple-400" id="avg-duration">-</div>
+  return `
+    <div class="min-h-screen bg-transparent text-gray-200 py-8">
+      <div class="max-w-6xl mx-auto px-4">
+        <!-- Header with avatar and name -->
+        <div class="bg-gray-800 bg-opacity-50 backdrop-blur rounded-xl shadow-lg mb-8">
+          <div class="px-8 py-8 flex items-center bg-gradient-to-r from-[#2C3E50] to-[#4CA1AF] text-white rounded-t-xl">
+            <img src="${avatar}" id="account-avatar" alt="Avatar"
+                 class="w-24 h-24 rounded-full shadow-xl border-2 border-indigo-700 mr-6 cursor-pointer">
+            <input type="file" id="avatarInput" class="hidden" accept="image/*">
+            <div>
+              <h1 class="text-3xl font-bold">${username}</h1>
+              <p class="text-lg opacity-80">Player Dashboard</p>
             </div>
           </div>
         </div>
 
-        <!-- Profile & preferences -->
-        <div class="space-y-6">
-          <!-- Account settings -->
-          <div class="bg-gray-800 bg-opacity-50 backdrop-blur rounded-xl shadow-lg p-6">
-            <h2 class="text-xl font-bold text-gray-200 mb-4">Account Settings</h2>
-            <form id="profileForm" class="space-y-4">
-              <div>
-                <label for="newPassword" class="block text-sm font-medium text-gray-300">New Password</label>
-                <input type="password" id="newPassword" name="newPassword"
-                       class="mt-1 block w-full rounded-md border-gray-600 bg-gray-900 text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2">
+        <!-- Statistics grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+          <div class="lg:col-span-2 bg-gray-800 bg-opacity-50 backdrop-blur rounded-xl shadow-lg p-6">
+            <h2 class="text-2xl font-bold text-gray-200 mb-6">Game Statistics</h2>
+            <div class="flex flex-col lg:flex-row items-center mb-8">
+              <div class="lg:w-1/2 mb-4 lg:mb-0">
+                <canvas id="stats-chart" width="250" height="250" class="mx-auto"></canvas>
+                <div id="stats-legend" class="mt-4 text-center text-sm text-gray-400"></div>
               </div>
-              <!-- Styled Update Password button -->
-              <button type="submit"
-                      class="w-full bg-gradient-to-r from-[#1E2B38] via-[#2C6B72] to-[#35707A] text-white py-2 px-4 rounded-2xl shadow-lg hover:from-[#121820] hover:via-[#1B424D] hover:to-[#1E4042] transition">
-                Update Password
+              <div class="lg:w-1/2 lg:pl-8">
+                <div class="grid grid-cols-2 gap-4">
+                  <div class="bg-green-900 bg-opacity-30 p-4 rounded-lg text-center">
+                    <div class="text-2xl font-bold text-green-400" id="wins-count">-</div>
+                    <div class="text-sm text-gray-400">Wins</div>
+                  </div>
+                  <div class="bg-red-900 bg-opacity-30 p-4 rounded-lg text-center">
+                    <div class="text-2xl font-bold text-red-400" id="losses-count">-</div>
+                    <div class="text-sm text-gray-400">Losses</div>
+                  </div>
+                  <div class="bg-yellow-900 bg-opacity-30 p-4 rounded-lg text-center">
+                    <div class="text-2xl font-bold text-yellow-300" id="ties-count">-</div>
+                    <div class="text-sm text-gray-400">Ties</div>
+                  </div>
+                  <div class="bg-blue-900 bg-opacity-30 p-4 rounded-lg text-center">
+                    <div class="text-2xl font-bold text-blue-300" id="total-games">-</div>
+                    <div class="text-sm text-gray-400">Total Games</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div class="bg-gray-800 bg-opacity-30 p-4 rounded-lg">
+                <h3 class="text-lg font-semibold text-gray-300 mb-2">Average Score</h3>
+                <div class="text-2xl font-bold text-indigo-400" id="avg-score">-</div>
+              </div>
+              <div class="bg-gray-800 bg-opacity-30 p-4 rounded-lg">
+                <h3 class="text-lg font-semibold text-gray-300 mb-2">Best Score</h3>
+                <div class="text-2xl font-bold text-green-400" id="best-score">-</div>
+              </div>
+              <div class="bg-gray-800 bg-opacity-30 p-4 rounded-lg">
+                <h3 class="text-lg font-semibold text-gray-300 mb-2">Avg Game Duration</h3>
+                <div class="text-2xl font-bold text-purple-400" id="avg-duration">-</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-6">
+            <div class="bg-gray-800 bg-opacity-50 backdrop-blur rounded-xl shadow-lg p-6">
+              <h2 class="text-xl font-bold text-gray-200 mb-4">Account Settings</h2>
+              <form id="profileForm" class="space-y-4">
+                <div>
+                  <label for="newPassword" class="block text-sm font-medium text-gray-300">New Password</label>
+                  <input type="password" id="newPassword" name="newPassword"
+                         class="mt-1 block w-full rounded-md border-gray-600 bg-gray-900 text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2">
+                </div>
+                <button type="submit"
+                        class="w-full bg-gradient-to-r from-[#1E2B38] via-[#2C6B72] to-[#35707A] text-white py-2 px-4 rounded-2xl shadow-lg hover:from-[#121820] hover:via-[#1B424D] hover:to-[#1E4042] transition">
+                  Update Password
+                </button>
+              </form>
+              <button id="setup2faBtn"
+                      class="mt-4 w-full bg-gradient-to-r from-[#1E2B38] via-[#2C6B72] to-[#35707A] text-white py-2 px-4 rounded-2xl shadow-lg hover:from-[#121820] hover:via-[#1B424D] hover:to-[#1E4042] transition">
+                Re-config 2FA
               </button>
-            </form>
-            <!-- Styled Re-config 2FA button -->
-            <button id="setup2faBtn"
-                    class="mt-4 w-full bg-gradient-to-r from-[#1E2B38] via-[#2C6B72] to-[#35707A] text-white py-2 px-4 rounded-2xl shadow-lg hover:from-[#121820] hover:via-[#1B424D] hover:to-[#1E4042] transition">
-              Re-config 2FA
-            </button>
-          </div>
+            </div>
 
-          <!-- Quick stats -->
-          <div class="bg-gray-800 bg-opacity-50 backdrop-blur rounded-xl shadow-lg p-6">
-            <h2 class="text-xl font-bold text-gray-200 mb-4">Quick Stats</h2>
-            <div class="space-y-3">
-              <div class="flex justify-between">
-                <span class="text-gray-400">Win Rate</span>
-                <span class="font-semibold" id="win-rate">-%</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-gray-400">Longest Win Streak</span>
-                <span class="font-semibold" id="win-streak">-</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-gray-400">Tournament Wins</span>
-                <span class="font-semibold" id="tournament-wins">-</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-gray-400">Last Game</span>
-                <span class="font-semibold" id="last-game">-</span>
+            <div class="bg-gray-800 bg-opacity-50 backdrop-blur rounded-xl shadow-lg p-6">
+              <h2 class="text-xl font-bold text-gray-200 mb-4">Quick Stats</h2>
+              <div class="space-y-3">
+                <div class="flex justify-between">
+                  <span class="text-gray-400">Win Rate</span>
+                  <span class="font-semibold" id="win-rate">-%</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-400">Longest Win Streak</span>
+                  <span class="font-semibold" id="win-streak">-</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-400">Tournament Wins</span>
+                  <span class="font-semibold" id="tournament-wins">-</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-400">Last Game</span>
+                  <span class="font-semibold" id="last-game">-</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Heatmap panel -->
-      <div class="bg-gray-800 bg-opacity-50 backdrop-blur rounded-xl shadow-lg p-6 mb-8">
-        <h2 class="text-2xl font-bold text-gray-200 mb-6">Ball Heatmaps</h2>
-        <div class="flex flex-wrap gap-4 mb-6" id="heatmap-btn-panel">
-          ${heatmaps.map(hm => `
-            <!-- Styled heatmap buttons -->
-            <button class="heatmap-btn px-4 py-2 bg-gradient-to-r from-[#1E2B38] via-[#2C6B72] to-[#35707A] text-white py-2 px-4 rounded-2xl shadow-lg hover:from-[#121820] hover:via-[#1B424D] hover:to-[#1E4042] transition font-semibold"
-                    data-heatmap="${hm.id}">${hm.label}</button>
-          `).join('')}
+        <!-- Heatmap panel -->
+        <div class="bg-gray-800 bg-opacity-50 backdrop-blur rounded-xl shadow-lg p-6 mb-8">
+          <h2 class="text-2xl font-bold text-gray-200 mb-6">Ball Heatmaps</h2>
+          <div class="flex flex-wrap gap-4 mb-6" id="heatmap-btn-panel">
+            ${heatmaps.map(hm => `
+              <button class="heatmap-btn px-4 py-2 bg-gradient-to-r from-[#1E2B38] via-[#2C6B72] to-[#35707A] text-white py-2 px-4 rounded-2xl shadow-lg hover:from-[#121820] hover:via-[#1B424D] hover:to-[#1E4042] transition font-semibold"
+                      data-heatmap="${hm.id}">${hm.label}</button>
+            `).join('')}
+          </div>
+          <div id="heatmap-holder"
+               class="w-full min-h-[320px] flex items-center justify-center bg-gray-900 border border-gray-700 rounded-lg">
+            <span class="text-gray-500">Select a heatmap to display ball stats.</span>
+          </div>
         </div>
-        <div id="heatmap-holder"
-             class="w-full min-h-[320px] flex items-center justify-center bg-gray-900 border border-gray-700 rounded-lg">
-          <!-- Heatmap canvas or SVG will be injected here -->
-          <span class="text-gray-500">Select a heatmap to display ball stats.</span>
-        </div>
-      </div>
 
-      <!-- Match history -->
-      <div class="bg-gray-800 bg-opacity-50 backdrop-blur rounded-xl shadow-lg p-6 mb-8">
-        <h2 class="text-2xl font-bold text-gray-200 mb-6">Match History</h2>
-        <div class="overflow-x-auto max-h-96 overflow-y-auto border border-gray-700 rounded-lg">
-          <table class="w-full">
-            <thead class="sticky top-0 bg-gray-700 z-10">
-              <tr>
-                <th class="px-4 py-3 text-left text-sm font-medium text-gray-200">Date</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-gray-200">Score</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-gray-200">Result</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-gray-200">Duration</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-gray-200">Mode</th>
-              </tr>
-            </thead>
-            <tbody id="match-history-table" class="divide-y divide-gray-700">
-              <!-- Matches will be added here dynamically -->
-            </tbody>
-          </table>
+        <!-- Match history -->
+        <div class="bg-gray-800 bg-opacity-50 backdrop-blur rounded-xl shadow-lg p-6 mb-8">
+          <h2 class="text-2xl font-bold text-gray-200 mb-6">Match History</h2>
+          <div class="overflow-x-auto max-h-96 overflow-y-auto border border-gray-700 rounded-lg">
+            <table class="w-full">
+              <thead class="sticky top-0 bg-gray-700 z-10">
+                <tr>
+                  <th class="px-4 py-3 text-left text-sm font-medium text-gray-200">Date</th>
+                  <th class="px-4 py-3 text-left text-sm font-medium text-gray-200">Score</th>
+                  <th class="px-4 py-3 text-left text-sm font-medium text-gray-200">Result</th>
+                  <th class="px-4 py-3 text-left text-sm font-medium text-gray-200">Duration</th>
+                  <th class="px-4 py-3 text-left text-sm font-medium text-gray-200">Mode</th>
+                </tr>
+              </thead>
+              <tbody id="match-history-table" class="divide-y divide-gray-700"></tbody>
+            </table>
+          </div>
         </div>
-      </div>
 
-      <!-- Friends list -->
-      <div class="bg-gray-800 bg-opacity-50 backdrop-blur rounded-xl shadow-lg p-6 mb-8">
-        <h2 class="text-2xl font-bold text-gray-200 mb-6">Friends</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          ${friends.map(friend => `
-            <div class="border border-gray-700 rounded-lg p-4 transition bg-gray-900 hover:shadow-lg hover:shadow-purple-900">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center">
-                  <div class="w-10 h-10 bg-indigo-700 rounded-full flex items-center justify-center mr-3">
-                    <span class="text-indigo-200 font-semibold">${friend.username.charAt(0).toUpperCase()}</span>
-                  </div>
-                  <div>
-                    <div class="font-medium text-gray-200">${friend.username}</div>
-                    <span class="friend-status text-xs text-gray-500" data-userid="${friend.our_index}">Offline</span>
+        <!-- Friends list -->
+        <div class="bg-gray-800 bg-opacity-50 backdrop-blur rounded-xl shadow-lg p-6 mb-8">
+          <h2 class="text-2xl font-bold text-gray-200 mb-6">Friends</h2>
+          <div id="friends-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            ${friends.map(friend => {
+              const s = /^\d+$/.test(friend.username) ? 'bottts' : 'initials';
+              const fallback =
+                `https://api.dicebear.com/9.x/${s}/svg` +
+                `?seed=${encodeURIComponent(friend.username)}` +
+                `&backgroundType=gradientLinear` +
+                `&backgroundColor=919bff,133a94` +
+                `&size=64` +
+                `&radius=50`;
+              const initial = friend.avatarUrl
+                ? `${friend.avatarUrl}${friend.avatarUrl.includes('?') ? '&' : '?'}v=${Date.now()}`
+                : fallback;
+
+              return `
+                <div class="border border-gray-700 rounded-lg p-4 transition bg-gray-900 hover:shadow-lg hover:shadow-purple-900">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                      <img
+                        src="${initial}"
+                        alt="${friend.username} avatar"
+                        class="w-10 h-10 rounded-full object-cover mr-3 bg-indigo-700/20"
+                        width="40" height="40"
+                        loading="lazy" decoding="async"
+                        data-username="${friend.username}"
+                        data-fallback="${fallback}"
+                        onerror="this.src=this.dataset.fallback"
+                      />
+                      <div>
+                        <div class="font-medium text-gray-200">${friend.username}</div>
+                        <span class="friend-status text-xs text-gray-500" data-userid="${friend.our_index}">Offline</span>
+                      </div>
+                    </div>
+                    <div class="flex gap-2">
+                      <button class="chat-friend-btn p-2 bg-gradient-to-r from-[#1E2B38] via-[#2C6B72] to-[#35707A] text-white rounded-2xl shadow-lg hover:from-[#121820] hover:via-[#1B424D] hover:to-[#1E4042] transition"
+                              data-username="${friend.username}" data-userid="${friend.our_index}" title="Chat">💬</button>
+                      <button class="profile-friend-btn p-2 bg-gradient-to-r from-[#1E2B38] via-[#2C6B72] to-[#35707A] text-white rounded-2xl shadow-lg hover:from-[#121820] hover:via-[#1B424D] hover:to-[#1E4042] transition"
+                              data-username="${friend.username}" title="Profile">👤</button>
+                      <button class="remove-friend-btn p-2 bg-gradient-to-r from-[#1E2B38] via-[#2C6B72] to-[#35707A] text-white rounded-2xl shadow-lg hover:from-[#121820] hover:via-[#1B424D] hover:to-[#1E4042] transition"
+                              data-username="${friend.username}" title="Remove">❌</button>
+                    </div>
                   </div>
                 </div>
-                <div class="flex gap-2">
-                  <!-- Styled chat/profile/remove buttons -->
-                  <button class="chat-friend-btn p-2 bg-gradient-to-r from-[#1E2B38] via-[#2C6B72] to-[#35707A] text-white py-2 px-4 rounded-2xl shadow-lg hover:from-[#121820] hover:via-[#1B424D] hover:to-[#1E4042] transition"
-                          data-username="${friend.username}" data-userid="${friend.our_index}" title="Chat">💬</button>
-                  <button class="profile-friend-btn p-2 bg-gradient-to-r from-[#1E2B38] via-[#2C6B72] to-[#35707A] text-white py-2 px-4 rounded-2xl shadow-lg hover:from-[#121820] hover:via-[#1B424D] hover:to-[#1E4042] transition"
-                          data-username="${friend.username}" title="Profile">👤</button>
-                  <button class="remove-friend-btn p-2 bg-gradient-to-r from-[#1E2B38] via-[#2C6B72] to-[#35707A] text-white py-2 px-4 rounded-2xl shadow-lg hover:from-[#121820] hover:via-[#1B424D] hover:to-[#1E4042] transition"
-                          data-username="${friend.username}" title="Remove">❌</button>
-                </div>
-              </div>
-            </div>
-          `).join('')}
+              `;
+            }).join('')}
+          </div>
         </div>
-      </div>
 
-      <!-- Back button -->
-      <div class="text-center">
-        <button id="backHomeBtn"
-                class="px-8 py-3 bg-gradient-to-r from-[#1E2B38] via-[#2C6B72] to-[#35707A] text-white py-2 px-4 rounded-2xl shadow-lg hover:from-[#121820] hover:via-[#1B424D] hover:to-[#1E4042] transition">
-          ← Back to Home
-        </button>
+        <!-- Back button -->
+        <div class="text-center">
+          <button id="backHomeBtn"
+                  class="px-8 py-3 bg-gradient-to-r from-[#1E2B38] via-[#2C6B72] to-[#35707A] text-white rounded-2xl shadow-lg hover:from-[#121820] hover:via-[#1B424D] hover:to-[#1E4042] transition">
+            ← Back to Home
+          </button>
+        </div>
       </div>
     </div>
-  </div>
-`;
-
+  `;
 }
+
 
 /**
  * Returns the HTML for the profile view.

@@ -122,11 +122,12 @@ export type SocketMessageMap = {
 				userID?:number
 		};
 	invite: {	type: 'invite'; 
-				action: 'reply' | 'receive'; 
+				action: 'reply' | 'receive' | 'send'; 
 				response?: string; 
 				userID?: number;
 				targetID?: number;
 				fromID?: number;
+				toID?: number;
 		};
 	startGame:{	type:'startGame';
 				userID:number;
@@ -190,6 +191,7 @@ export type SocketMessageMap = {
 						userID:number;
 						chatID?:number;
 						username?:string;
+						alias?:string;
 						tournamentID:number;
 						tourName:string;
 						success:boolean;

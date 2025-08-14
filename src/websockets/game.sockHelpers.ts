@@ -5,7 +5,7 @@ import {getPlayerBySocket, getPlayerByUserID, getAllMembersFromGameID, getAllIni
 // import{stopMockGameLoop, startMockGameLoop} from '../services/pong'
 import { PongRoom } from '../services/PongRoom'
 import { Tournament } from '../services/tournament'
-
+import { getAliasForUser } from './tournament.socket'
 
 
 //ALL STUFF THAT CAN HAPPENDS ANYWHERE
@@ -153,7 +153,7 @@ export async function beginGame(gameID: number, players: Interfaces.playerInterf
   shuffled.forEach((player, index) => {
     const side = sides[index];
     player.playerSide = side;
-    sideToUsername[side] = player.username!;
+    sideToUsername[side] = player.tournamentID? getAliasForUser(player.username!) :player.username!;
     console.log('[USERNAME for render] :',sideToUsername[side])
     updatePlayerState(player, 'playing');
   });

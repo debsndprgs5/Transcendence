@@ -161,75 +161,101 @@ export async function handleJoin(
 
   Helpers.tryStartGameIfReady(gameID);
 }
-
 export async function handleInvite(
-      parsed: any,
-      player: Interfaces.playerInterface,) {
-  const { actionRequested, userID, targetID } = parsed;
-    // === Safeguard: prevent self-invite ===
-  if (actionRequested === 'send' && userID === targetID) {
+  data: Interfaces.SocketMessageMap['invite'],
+  player: Interfaces.playerInterface,
+) {
+  // === Safeguard: prevent self-invite ===
+  if (data.action === 'send' && data.userID === data.targetID) {
     player.typedSocket.send('invite', {
       action: 'reply' as const,
       response: 'you cannot invite yourself',
-      targetID,
+      targetID: data.targetID,
     });
     return;
   }
-  if (actionRequested === 'send') {
-    const target = getPlayerByUserID(targetID);
 
-    if (!target) {
+  if (data.action === 'send') {
+    // always resolve to the *player* object (not raw WebSocket)
+    const inviterID = data.userID!;
+    const targetID  = data.targetID!;
+    const targetPlayer = getPlayerByUserID(targetID);
+
+    if (!targetPlayer) {
+      // notify inviter that target is offline
       player.typedSocket.send('invite', {
         action: 'reply' as const,
         response: 'offline',
-        targetID
+        targetID: targetID,
       });
       return;
     }
-    
-    // === Save pending invite and set timeout to auto-cancel after 15s ===
-    const timeout = setTimeout(() => {
-      const entry = PendingInvites.get(targetID);
-      if (entry && entry.inviterID === userID) {
-        PendingInvites.delete(targetID);
-        const inviter = getPlayerByUserID(userID)?.socket;
-        if (inviter) {
-          inviter.typedSocket.send('invite', {
-            action: 'reply' as const,
-            response: 'timeout',
-            targetID,
-          });
-        }
-        const target = getPlayerByUserID(targetID)?.socket;
-        if (target) {
-          target.typedSocket.send('invite', {
-            action: 'reply' as const,
-            response: 'timeout',
-            targetID,
-          });
-        }
 
-        // reset states (to check if not already handled inside helpers)
-        Helpers.updatePlayerState(player, 'init');
-        Helpers.updatePlayerState(target, 'init');
+    // (optional) dedup — avoid stacking multiple invites to same target
+    const existing = PendingInvites.get(targetID);
+    if (existing && existing.inviterID === inviterID) {
+      // already pending from same inviter -> ignore or refresh timer
+      clearTimeout(existing.timeout);
+      PendingInvites.delete(targetID);
+    }
+
+    // save pending invite and schedule auto-timeout
+    const timeout = setTimeout(() => {
+      try {
+        const entry = PendingInvites.get(targetID);
+        if (!entry || entry.inviterID !== inviterID) return; // already handled
+
+        PendingInvites.delete(targetID);
+
+        const inviterPlayer = getPlayerByUserID(inviterID);
+        const tgtPlayer     = getPlayerByUserID(targetID);
+
+        inviterPlayer?.typedSocket.send('invite', {
+          action: 'reply' as const,
+          response: 'timeout',
+          targetID,
+        });
+        tgtPlayer?.typedSocket.send('invite', {
+          action: 'reply' as const,
+          response: 'timeout',
+          targetID,
+        });
+
+        // reset states if still relevant
+        if (inviterPlayer) Helpers.updatePlayerState(inviterPlayer, 'init');
+        if (tgtPlayer)     Helpers.updatePlayerState(tgtPlayer,     'init');
+      } catch (e) {
+        console.error('[INVITE timeout] error:', e);
       }
     }, 15000);
 
-    PendingInvites.set(targetID, { inviterID: userID, timeout });
-    await Helpers.processInviteSend(player, target);
+    PendingInvites.set(targetID, { inviterID, timeout });
+
+    // send the "receive" event to the invitee (make sure it includes inviterID)
+    await Helpers.processInviteSend(player, targetPlayer);
+    return;
   }
 
-  if (actionRequested === 'reply') {
-    const { fromID, toID, response } = parsed;
-    const inviter = getPlayerByUserID(fromID);
-    const invitee = getPlayerByUserID(toID);
-        // === Clear timeout and pending entry ===
-    const pending = PendingInvites.get(toID);
-    if (pending && pending.inviterID === fromID) {
+  if (data.action === 'reply') {
+    // by convention
+    // - fromID = invitee (the one who received the invite, who is replying now)
+    // - toID   = inviter (the original sender)
+    const inviteeID = data.fromID!;
+    const inviterID = data.toID!;
+
+    const invitee = getPlayerByUserID(inviteeID);
+    const inviter = getPlayerByUserID(inviterID);
+
+    // clear timeout and pending entry keyed by inviteeID
+    const pending = PendingInvites.get(inviteeID);
+    if (pending && pending.inviterID === inviterID) {
       clearTimeout(pending.timeout);
-      PendingInvites.delete(toID);
-	}
-    await Helpers.processInviteReply(inviter!, invitee!, response);
+      PendingInvites.delete(inviteeID);
+    }
+
+    // process the reply (accept/decline)
+    await Helpers.processInviteReply(inviter!, invitee!, data.response!);
+    return;
   }
 }
 
@@ -306,7 +332,6 @@ export async function handleDisconnect(player: Interfaces.playerInterface) {
 
   player.hasDisconnected = true;
 
- // try { Helpers.updatePlayerState(player, 'offline'); } catch {}
 
   if (player.gameID) {
     const room = PongRoom.rooms.get(player.gameID);

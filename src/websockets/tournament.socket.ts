@@ -8,6 +8,36 @@ import { PongRoom } from '../services/PongRoom';
 import { tournamentRoutes } from '../routes/tournament.routes';
 import { Tournament } from '../services/tournament';
 
+//ALIAS MANAGMENT 
+// username -> alias
+const Aliases = new Map<string, string>();
+
+
+export function setAliasForUser(username: string, alias: string): void {
+  Aliases.set(username, alias);
+}
+
+export function getAliasForUser(username: string| undefined): string {
+	let ret = 'something';
+	if(username === undefined)
+		console.log('undefined Uname');
+	else{
+	 const tmp = Aliases.get(username);
+	 if(tmp) ret = tmp;
+	}
+  if (!ret || ret === undefined)
+	return (`NO ALIAS FOUND FOR ${username}`);
+  return ret;
+}
+
+export function hasAliasForUser(username: string): boolean {
+  return Aliases.has(username);
+}
+
+export function removeAliasForUser(username: string): boolean {
+  return Aliases.delete(username);
+}
+
 export async function handleJoinTournament(player:Interfaces.playerInterface, data:any){
 		//data.userID , data.tournamentID,
 		try{

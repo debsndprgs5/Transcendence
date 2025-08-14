@@ -239,37 +239,48 @@ export async function handleJoinGame(data:Interfaces.SocketMessageMap['joinGame'
 }
 
 export async function handleInvite(
-	data: Interfaces.SocketMessageMap['invite'],
+  data: Interfaces.SocketMessageMap['invite'],
 ) {
-	const { action, response, userID } = data;
+  // English: replies are just informational on the client for now
+  if (data.action === 'reply') {
+    if (data.response !== 'accept') {
+      console.log(`The user you tried to invite is ${data.response}`);
+    } else {
+      console.log('The user you invited just joined the GameRoom');
+    }
+    return;
+  }
 
-	if (action === 'reply') {
-	if (response !== 'accept') {
-		console.log(`The user you tried to invite is ${response}`);
-	} else {
-		console.log('The user you invited just joined the GameRoom');
-	}
-	}
+  if (data.action === 'receive') {
+    // English: be resilient if backend uses another field name
+    const inviterID = (data.userID ?? data.fromID ?? data.toID) as number | undefined;
+    if (!inviterID || Number.isNaN(inviterID)) {
+      console.warn('[INVITE] Missing inviterID in receive payload:', data);
+      return;
+    }
 
-	if (action === 'receive') {
-	const username = await apiFetch(`user/by-index/${userID}`); // Add await
-	showNotification({
-		message: `${username} invited you to play. Join?`,
-		type: 'confirm',
-		onConfirm: async () => {
-		state.typedSocket.send('invite', {
-			action: 'reply',
-			response: 'accept',
-		});
-		},
-		onCancel: async () => {
-		state.typedSocket.send('invite', {
-			action: 'reply',
-			response: 'decline',
-		});
-		},
-	});
-	}
+    const username = await apiFetch(`/user/by-index/${inviterID}`);
+    showNotification({
+      message: `${username} invited you to play. Join?`,
+      type: 'confirm',
+      onConfirm: async () => {
+        state.typedSocket.send('invite', {
+          action: 'reply',
+          response: 'accept',
+          fromID: state.userId, // invitee
+          toID: inviterID,      // inviter
+        });
+      },
+      onCancel: async () => {
+        state.typedSocket.send('invite', {
+          action: 'reply',
+          response: 'decline',
+          fromID: state.userId,
+          toID: inviterID,
+        });
+      },
+    });
+  }
 }
 
 

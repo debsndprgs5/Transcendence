@@ -160,7 +160,8 @@ export async function handleCreateTournament(): Promise<void> {
     userID:state.userId,
     tournamentID:reply.tournament.tournamentID,
     chatID:newRoom.roomID,
-    isTourOwner:state.playerInterface!.isTourOwner
+    isTourOwner:state.playerInterface!.isTourOwner,
+     alias:`alias of ${state.playerInterface!.username}`//PUT user Alias Promt Here
   });
   
   } catch (err) {
@@ -181,7 +182,8 @@ export async function handleJoinTournament(tourID: number): Promise<void> {
 	state.playerInterface!.typedSocket.send('joinTournament',  {
     userID:state.userId,
     tournamentID:tourID,
-    isTourOwner:state.playerInterface!.isTourOwner
+    isTourOwner:state.playerInterface!.isTourOwner,
+      alias:`alias of ${state.playerInterface!.username}`//PUT alias inpput here
   });
   //join linked chatRoom
   const { chatID } = await apiFetch(`/api/tournaments/chat/${tourID}`);

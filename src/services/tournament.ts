@@ -3,6 +3,7 @@ import * as gameMgr from '../db/gameManagement'
 import { getUnameByIndex } from '../db/userManagement'
 import { sendSystemMessage , sendPrivateSystemMessage} from '../websockets/chat.socket'
 import { getPlayerByUserID } from '../websockets/game.socket';
+import { getAliasForUser } from '../websockets/tournament.socket'
 
 type Member = {
 	player: playerInterface;
@@ -117,9 +118,9 @@ export class Tournament {
 			gameRulesStr, gameName, 0, this.tourID
 		  );
 		  await pA.typedSocket.send('startNextRound', { userID: pA.userID, gameID:gameID, gameName:gameName });
-		  sendPrivateSystemMessage(this.chatID, pA.userID, `You play against ${pB.username}`);
+		  sendPrivateSystemMessage(this.chatID, pA.userID, `You play against ${getAliasForUser(pB.username!)}`);
 		  await pB.typedSocket.send('startNextRound', { userID: pB.userID, gameID:gameID, gameName:gameName });
-		  sendPrivateSystemMessage(this.chatID, pB.userID, `You play against ${pA.username}`);
+		  sendPrivateSystemMessage(this.chatID, pB.userID, `You play against ${getAliasForUser(pA.username!)}`);
 		}
 	}
 
@@ -179,7 +180,7 @@ public async matchGaveUp(tourID: number, quitterID: number) {
 	// Remove quitter from tournament completely
 	tour.removeMemberFromTourID(quitterID);
 
-	sendPrivateSystemMessage(this.chatID, opponent.userID, `Your opponent ${quitter.username} gave up. You receive 5 points.`);
+	sendPrivateSystemMessage(this.chatID, opponent.userID, `Your opponent ${getAliasForUser(quitter.username!)}`);
 }
 
 public removeMemberFromTourID(userID: number): boolean {
@@ -357,7 +358,7 @@ public async extractScore(){
 		Array.from(this.points.entries()).map(async ([playerId, pts]) => {
 			const user = await getUnameByIndex(playerId);
 			return {
-				username: user!.username,
+				username:  getAliasForUser(user!.username!)!,
 				score: pts
 			};
 		})
@@ -377,7 +378,7 @@ private async endTournament() {
 			tourID: this.tourID,
 			tourName: tour!.name,
 			standings: standings.map(pl => ({
-				username: pl.username!,
+				username: getAliasForUser(pl.username!)!,
 				score: this.points.get(pl.userID)!
 			}))
 		});

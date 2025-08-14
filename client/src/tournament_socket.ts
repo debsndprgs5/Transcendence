@@ -21,7 +21,7 @@ export function handleJoinTournament(data: Interfaces.SocketMessageMap['joinTour
 
 	if (!state.currentTournamentPlayers.some(p => p.username === data.username!)) {
 		state.currentTournamentPlayers.push({
-			username: data.username!,
+			username: data.alias!,
 			score: 0
 		});
 	}

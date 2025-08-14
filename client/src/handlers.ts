@@ -302,6 +302,20 @@ export async function createDirectMessageWith(friendUsername: string): Promise<v
 	}
 }
 
+export async function handleInviteButton(friendUsername: string): Promise<void> {
+		const friendUserId = await apiFetch<{ userId: number }>(
+					`/users/by-username/${encodeURIComponent(friendUsername)}`,
+					{ headers: { Authorization: `Bearer ${state.authToken}` } }
+				).then(data => data.userId);
+		state.playerInterface!.typedSocket.send('invite', {
+				action: 'send', 
+				userID: state.userId,
+				targetID: friendUserId
+		});
+}
+
+
+
 // Little helper to resize canvas
 export function resizePongCanvas(): void {
   const wrapper = document.getElementById('pongWrapper');

@@ -302,17 +302,17 @@ export async function createDirectMessageWith(friendUsername: string): Promise<v
 	}
 }
 
-export async function handleInviteButton(friendUsername: string): Promise<void> {
-		const friendUserId = await apiFetch<{ userId: number }>(
-					`/users/by-username/${encodeURIComponent(friendUsername)}`,
-					{ headers: { Authorization: `Bearer ${state.authToken}` } }
-				).then(data => data.userId);
-		state.playerInterface!.typedSocket.send('invite', {
-				action: 'send', 
-				userID: state.userId,
-				targetID: friendUserId
-		});
-}
+// export async function handleInviteButton(friendUsername: string): Promise<void> {
+// 		const friendUserId = await apiFetch<{ userId: number }>(
+// 					`/users/by-username/${encodeURIComponent(friendUsername)}`,
+// 					{ headers: { Authorization: `Bearer ${state.authToken}` } }
+// 				).then(data => data.userId);
+// 		state.playerInterface!.typedSocket.send('invite', {
+// 				action: 'send', 
+// 				userID: state.userId,
+// 				targetID: friendUserId
+// 		});
+// }
 
 
 
@@ -1326,4 +1326,19 @@ export async function router(): Promise<void> {
 			}
 			break;
 	}
+}
+
+
+// Invite game handling
+
+export async function handleInviteButton(friendUsername: string): Promise<void> {
+		const friendUserId = await apiFetch<{ userId: number }>(
+					`/users/by-username/${encodeURIComponent(friendUsername)}`,
+					{ headers: { Authorization: `Bearer ${state.authToken}` } }
+				).then(data => data.userId);
+		state.playerInterface!.typedSocket.send('invite', {
+				action: 'send', 
+				userID: state.userId,
+				targetID: friendUserId
+		});
 }

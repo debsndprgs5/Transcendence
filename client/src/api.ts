@@ -540,12 +540,16 @@ export function appendMessageToChat(
 	// Prefix span (author)
 	const prefixSpan = document.createElement('span');
 	prefixSpan.className = isOwnMessage
-		? 'font-semibold'
-		: 'font-semibold cursor-pointer hover:underline';
+	  ? 'font-semibold'
+	  // add username-link so the click handler can detect it
+	  : 'font-semibold cursor-pointer hover:underline username-link';
 	prefixSpan.textContent = !isOwnMessage ? `${name}: ` : '';
 	if (!isOwnMessage) {
-		// English comment: store username for click handling
-		prefixSpan.setAttribute('data-username', safeUsername);
+	  // store username for click handling
+	  prefixSpan.setAttribute('data-username', safeUsername);
+	  // optional: improve a11y
+	  // prefixSpan.setAttribute('role', 'button');
+	  // prefixSpan.tabIndex = 0;
 	}
 
 	// Content span (message text)

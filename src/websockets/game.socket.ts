@@ -185,6 +185,7 @@ export function getAllMembersFromGameID(gameID:number): Interfaces.playerInterfa
 export function delPlayer(userID: number) {
   const player = MappedPlayers.get(userID);
   if (!player) return;
+  updatePlayerState(player, 'offline'); 
   // Close socket if still open
   if (player.socket && player.socket.readyState === WebSocket.OPEN) {
     player.socket.close();

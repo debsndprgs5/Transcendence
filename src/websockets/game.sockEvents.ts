@@ -306,7 +306,7 @@ export async function handleDisconnect(player: Interfaces.playerInterface) {
 
   player.hasDisconnected = true;
 
-  try { Helpers.updatePlayerState(player, 'offline'); } catch {}
+ // try { Helpers.updatePlayerState(player, 'offline'); } catch {}
 
   if (player.gameID) {
     const room = PongRoom.rooms.get(player.gameID);

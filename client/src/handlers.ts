@@ -1135,7 +1135,14 @@ export async function handleLogout(): Promise<void> {
   const gameID  = state.playerInterface?.gameID;
   const tourID  = state.playerInterface?.tournamentID;
   const isOwner = !!state.playerInterface?.isTourOwner;
-
+	try {
+	  const ts = state.playerInterface?.typedSocket;
+	  const gameWS = state.playerInterface?.socket;
+	  if (ts && gameWS?.readyState === WebSocket.OPEN) {
+	    ts.send('disconnected', {});
+	    await new Promise(res => setTimeout(res, 30)); // tiny grace period
+	  }
+	} catch {}
   try {
 		if (state.socket?.readyState === WebSocket.OPEN) {
 			console.warn(`CLOSING CHAT socket`)

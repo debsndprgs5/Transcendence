@@ -119,7 +119,6 @@ export async function initGameSocket(): Promise<void> {
 	});
 }
 
-
 async function handleEvents(
 	typedSocket:TypedSocket, ws:WebSocket){
 
@@ -130,29 +129,29 @@ async function handleEvents(
 		await handleJoinGame(data);
 	});
 	typedSocket.on('joinTournament', async(socket:WebSocket, data:Interfaces.SocketMessageMap['joinTournament'])=>{
-		 Tournament.handleJoinTournament(data);
+	 Tournament.handleJoinTournament(data);
 	});
 	typedSocket.on('updateTourPlayerList',async(socket:WebSocket, data:Interfaces.SocketMessageMap['updateTourPlayerList'])=>{
-		Tournament.handleUpdateTournamentPlayerList(data);
+	Tournament.handleUpdateTournamentPlayerList(data);
 	});
 	typedSocket.on('updateTourList',async(socket:WebSocket, data:Interfaces.SocketMessageMap['updateTourList'])=>{
-		Tournament.handleUpdateTournamentList(data);
+	Tournament.handleUpdateTournamentList(data);
 	});
 	typedSocket.on('updateTourScore', async(socket:WebSocket, data:Interfaces.SocketMessageMap['updateTourScore'])=>{
-		 Tournament.handleUpdateTourScore(data);
+	 Tournament.handleUpdateTourScore(data);
 	});
 	typedSocket.on('endTournament', async(socket:WebSocket, data:Interfaces.SocketMessageMap['endTournament'])=>{
-		 Tournament.handleEndTournament(data);
+	 Tournament.handleEndTournament(data);
 	});
 	typedSocket.on('startNextRound', async(socket:WebSocket, data:Interfaces.SocketMessageMap['startNextRound'])=>{
-		 Tournament.handleStartNextRound(data);
+	 Tournament.handleStartNextRound(data);
 	});
 	typedSocket.on('tourOwnerChange', async(socket:WebSocket, data:Interfaces.SocketMessageMap['tourOwnerChange'])=>{
-		if(data.newOwnerID === state.userId!){
-			state.playerInterface!.isTourOwner = true;
-			//state.canvasViewState='waitingTournament';
-			//showPongMenu();
-		}
+	if(data.newOwnerID === state.userId!){
+	state.playerInterface!.isTourOwner = true;
+	//state.canvasViewState='waitingTournament';
+	//showPongMenu();
+	}
 	})
 	typedSocket.on('invite', async(socket:WebSocket, data:Interfaces.SocketMessageMap['invite'])=>{
 		await handleInvite(data);
@@ -161,21 +160,21 @@ async function handleEvents(
 		await handleStartGame(data);
 	});
 	typedSocket.on('statusUpdate', async (socket:WebSocket, data:Interfaces.SocketMessageMap['statusUpdate']) => {
-		if (state.playerInterface) {
-			state.playerInterface.state = data.newState;
-		}
-		state.socket?.send(JSON.stringify({
-				type: 'friendStatus',
-				action: 'update',
-				state: data.newState,
-				userID: state.userId,
-			}));
+	if (state.playerInterface) {
+	state.playerInterface.state = data.newState;
+	}
+	state.socket?.send(JSON.stringify({
+	type: 'friendStatus',
+	action: 'update',
+	state: data.newState,
+	userID: state.userId,
+	}));
 	});
 	typedSocket.on('giveSide', async (socket:WebSocket, data:Interfaces.SocketMessageMap['giveSide']) => {
-		if (pongState.pongRenderer) {
-			await pongState.pongRenderer.setSide(data.side);
-		}
-		state.playerInterface!.playerSide = data.side;
+	if (pongState.pongRenderer) {
+		await pongState.pongRenderer.setSide(data.side);
+	}
+	state.playerInterface!.playerSide = data.side;
 	});
 	typedSocket.on('renderData',async(socket:WebSocket, data:Interfaces.SocketMessageMap['renderData']) =>{
 		await handleRenderData(data);
@@ -195,19 +194,19 @@ async function handleEvents(
 	  await handleReconnection(socket, typedSocket, data);
 	});
 	typedSocket.on('statsResult', (_socket: WebSocket, data: any) => {
-		if (typeof (window as any).updateStatsDisplay === 'function') {
-			(window as any).updateStatsDisplay(data);
-		}
+	if (typeof (window as any).updateStatsDisplay === 'function') {
+	(window as any).updateStatsDisplay(data);
+	}
 	});
 	typedSocket.on('serverReady',async(socket:WebSocket, data:Interfaces.SocketMessageMap['serverReady'])=>{
-		if(pongState.pongRenderer)
-			pongState.pongRenderer.setWaiting(false);
+	if(pongState.pongRenderer)
+	pongState.pongRenderer.setWaiting(false);
 	});
-		typedSocket.on('updateGameList',async(socket:WebSocket, data:Interfaces.SocketMessageMap['updateGameList'])=>{
-			await handleGameList(data);
+	typedSocket.on('updateGameList',async(socket:WebSocket, data:Interfaces.SocketMessageMap['updateGameList'])=>{
+		await handleGameList(data);
 	});
-		typedSocket.on('updateGameRooms',async(socket:WebSocket, data:Interfaces.SocketMessageMap['updateGameRooms'])=>{
-			await handleGameRooms(data);
+	typedSocket.on('updateGameRooms',async(socket:WebSocket, data:Interfaces.SocketMessageMap['updateGameRooms'])=>{
+		await handleGameRooms(data);
 	});
 }
 
@@ -239,39 +238,49 @@ export async function handleJoinGame(data:Interfaces.SocketMessageMap['joinGame'
 }
 
 export async function handleInvite(
-	data: Interfaces.SocketMessageMap['invite'],
+  data: Interfaces.SocketMessageMap['invite'],
 ) {
-	const { action, response, userID } = data;
+  // replies are just informational on the client for now
+  if (data.action === 'reply') {
+    if (data.response !== 'accept') {
+      console.log('The user you tried to invite is ${data.response}');
+    } else {
+      console.log('The user you invited just joined the GameRoom');
+    }
+    return;
+  }
 
-	if (action === 'reply') {
-	if (response !== 'accept') {
-		console.log(`The user you tried to invite is ${response}`);
-	} else {
-		console.log('The user you invited just joined the GameRoom');
-	}
-	}
+  if (data.action === 'receive') {
+    // be resilient if backend uses another field name
+    const inviterID = (data.userID ?? data.fromID ?? data.toID) as number | undefined;
+    if (!inviterID || Number.isNaN(inviterID)) {
+      console.warn('[INVITE] Missing inviterID in receive payload:', data);
+      return;
+    }
 
-	if (action === 'receive') {
-	const username = await apiFetch(`user/by-index/${userID}`); // Add await
-	showNotification({
-		message: `${username} invited you to play. Join?`,
-		type: 'confirm',
-		onConfirm: async () => {
-		state.typedSocket.send('invite', {
-			action: 'reply',
-			response: 'accept',
-		});
-		},
-		onCancel: async () => {
-		state.typedSocket.send('invite', {
-			action: 'reply',
-			response: 'decline',
-		});
-		},
-	});
-	}
+    const username = await apiFetch('/user/by-index/${inviterID}');
+    showNotification({
+      message: `${username} invited you to play. Join?`,
+      type: 'confirm',
+      onConfirm: async () => {
+        state.typedSocket.send('invite', {
+          action: 'reply',
+          response: 'accept',
+          fromID: state.userId, // invitee
+          toID: inviterID,      // inviter
+        });
+      },
+      onCancel: async () => {
+        state.typedSocket.send('invite', {
+          action: 'reply',
+          response: 'decline',
+          fromID: state.userId,
+          toID: inviterID,
+        });
+      },
+    });
+  }
 }
-
 
 async function showEndMatchOverlay(
 	scene: BABYLON.Scene,

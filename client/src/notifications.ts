@@ -1,4 +1,4 @@
-import { createDirectMessageWith, router } from './handlers';
+import { createDirectMessageWith, router, handleInviteButton } from './handlers';
 
 // ─── NOTIFICATIONS ────────────────────────────────────────────────────────────────
 
@@ -185,7 +185,7 @@ export function showUserActionsBubble(target: Element, username: string): void {
 		</svg>
 		<button data-action="profile">👤 <span>Profile</span></button>
 		<button data-action="dm">💬 <span>Direct Message</span></button>
-		<button data-action="invite" disabled>🎮 <span>Invite Game</span></button>
+		<button data-action="invite">🎮 <span>Invite Game</span></button>
 	`;
 
 	parent?.appendChild(bubble);
@@ -233,8 +233,9 @@ export function showUserActionsBubble(target: Element, username: string): void {
 			await createDirectMessageWith(username);
 			bubble.remove();
 		}
-		// else if (action === 'invite'){
-		// 	await handleInviteButton()
-		// }
+		else if (action === 'invite'){
+			await handleInviteButton();
+			bubble.remove();
+		}
 	});
 }

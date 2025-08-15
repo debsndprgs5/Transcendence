@@ -424,7 +424,7 @@ export async function handleWebSocketMessage(msg: WebSocketMsg): Promise<void> {
 
 					if (status === 'online' || status === 'init') {
 						dot.style.background = '#22c55e';
-					} else if (status === 'in-game' || status === 'playing') {
+					} else if (status === 'busy' || status === 'playing') {
 						dot.style.background = '#facc15';
 					} else {
 						dot.style.background = '#9ca3af';
@@ -468,7 +468,7 @@ export async function handleWebSocketMessage(msg: WebSocketMsg): Promise<void> {
 
 					if (msg.status === 'online') {
 						dot.style.background = '#22c55e';
-					} else if (msg.status === 'in-game') {
+					} else if (msg.status === 'busy') {
 						dot.style.background = '#facc15';
 					} else {
 						dot.style.background = '#9ca3af';

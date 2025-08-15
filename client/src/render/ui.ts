@@ -250,7 +250,7 @@ export function setupGUI(ctx: RendererCtx) {
     const player = state.playerInterface;
 		
 		//Local game: no server player => tell the host to leave
-		if (!player) {
+		if (ctx.isLocal === true) {
 			window.dispatchEvent(new CustomEvent('pong:local-leave'));
 			return;
 		}
@@ -260,7 +260,7 @@ export function setupGUI(ctx: RendererCtx) {
 
     state.typedSocket.send('pause', {
       userID: state.userId,
-      gameID: player.gameID
+      gameID: player!.gameID
     });
 
     showNotification({
@@ -269,7 +269,7 @@ export function setupGUI(ctx: RendererCtx) {
       onConfirm: async () => {
         state.typedSocket.send('leaveGame', {
           userID: state.userId!,
-          gameID: player.gameID,
+          gameID: player!.gameID,
           isLegit: false,
         });
 
@@ -287,7 +287,7 @@ export function setupGUI(ctx: RendererCtx) {
       onCancel: () => {
         state.typedSocket.send('resume', {
           userID: state.userId,
-          gameID: player.gameID
+          gameID: player!.gameID
         });
         ctx.isPaused = false;
       },

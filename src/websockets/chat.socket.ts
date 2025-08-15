@@ -324,13 +324,13 @@ async function  handleFriendStatus(parsed:any, ws:WebSocket){
 	}
 }
 
-function cleanState(OgState:string):'online'|'offline'|'in-game'{
+function cleanState(OgState:string):'online'|'offline'|'busy'{
 
 	if(!OgState || OgState === undefined || OgState === 'offline')
 		return('offline');
 	if(OgState === 'init' || OgState === 'online')
 		return ('online')
-	return ('in-game')
+	return ('busy')
 	
 }
 

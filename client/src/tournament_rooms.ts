@@ -135,7 +135,7 @@ export async function handleCreateTournament(): Promise<void> {
           state.socket?.send(JSON.stringify({
       type:'systemMessage',
       chatRoomID:newRoom.roomID,
-      content: `${localStorage.getItem('username')} just created tournament !`
+      content: `${localStorage.getItem('username')} just created tournament !`//PUT alias here
     }));
     // POST to create tournament
    const reply =  await apiFetch(`/api/tournament/${state.userId}`, {
@@ -213,6 +213,7 @@ export async function handleLeaveTournament(islegit:boolean, duringGame?:boolean
     content: `${localStorage.getItem('username')} just left tournament !`
   }));
   await rmMemberFromRoom(chatID, state.userId!);
+  //selectRoom(0);
   state.playerInterface!.typedSocket.send('leaveTournament', {
     userID:state.playerInterface!.userID,
     tournamentID:tourID,

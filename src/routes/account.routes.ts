@@ -62,24 +62,24 @@ export default async function accountRoutes(fastify: FastifyInstance) {
 		}
 	});
 
-	fastify.get('/users/:userID/avatar', async (request, reply) => {
-		try {
-			const { userID } = request.params as { userID: number };
-			if (!userID) {
-				return reply.code(400).send({ error: 'UserID required'});
-			}
-			const user = await UserManagement.getUnameByIndex(userID);
-			let obj = await UserManagement.getAvatarUrl(user!.username);
-			if (!obj)
-				return reply.code(404).send({ error: 'No avatar found'});
-			return reply.send({
-				avatar_url: obj.avatar_url
-			});
-		} catch (error) {
-			console.error('Error getting avatar : ', error);
-			return reply.code(500).send({ error: 'Internal server error' });
-		}
-	});
+	// fastify.get('/users/:userID/avatar', async (request, reply) => {
+	// 	try {
+	// 		const { userID } = request.params as { userID: number };
+	// 		if (!userID) {
+	// 			return reply.code(400).send({ error: 'UserID required'});
+	// 		}
+	// 		const user = await UserManagement.getUnameByIndex(userID);
+	// 		let obj = await UserManagement.getAvatarUrl(user!.username);
+	// 		if (!obj)
+	// 			return reply.code(404).send({ error: 'No avatar found'});
+	// 		return reply.send({
+	// 			avatar_url: obj.avatar_url
+	// 		});
+	// 	} catch (error) {
+	// 		console.error('Error getting avatar : ', error);
+	// 		return reply.code(500).send({ error: 'Internal server error' });
+	// 	}
+	// });
 
 	/*
 	fastify.get('/friends', async (request, reply) => {

@@ -265,7 +265,8 @@ export async function handleLeaveGame(parsed: any, player: Interfaces.playerInte
     console.warn(`handleLeaveGame: player ${player.userID} is not in a game`);
     return;
   }
-	if(parsed.islegit === true)
+  const room = PongRoom.rooms.get(gameID)
+	if(parsed.islegit === true || !room)
 		await Helpers.kickFromGameRoom(gameID, player);
 	else
   		await Helpers.kickFromGameRoom(gameID, player, `${player.username} left`);

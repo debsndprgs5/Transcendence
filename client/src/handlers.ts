@@ -1163,7 +1163,7 @@ export async function handleLogout(): Promise<void> {
 			state.socket?.send(JSON.stringify({
 				type: 'friendStatus',
 				action: 'update',
-				state: 'offline',
+				state: 'waiting connection',
 				userID: state.userId,
 			}));
 			state.socket?.close();

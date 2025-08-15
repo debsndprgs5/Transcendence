@@ -300,7 +300,7 @@ export async function kickFromGameRoom(
   await GameManagement.delMemberFromGameRoom(gameID, triggering.userID);
   updatePlayerState(triggering, 'init');
   triggering.gameID = undefined;
-
+  updateRoom(gameID);
   // Optionally cleanup room
   const remainingPlayers = getAllMembersFromGameID(gameID);
   if (!remainingPlayers || remainingPlayers.length === 0) {

@@ -69,6 +69,7 @@ export interface RendererCtx {
 	playerSide: Side;
 	gameName: string;
 	isPaused:boolean;
+	isLocal:boolean;
 
 	// game objects
 	frontWalls: BABYLON.InstancedMesh[];
@@ -103,7 +104,8 @@ export class PongRenderer {
 		playerCount: number,
 		gameName: string,
 		playerSide: Side,
-		usernames: Record<Side, string>
+		usernames: Record<Side, string>,
+		isLocal?:boolean
 	) {
 		// persist a few bits for other pages/debug
 		localStorage.setItem('playerCount', String(playerCount));
@@ -119,10 +121,11 @@ export class PongRenderer {
 		// minimal camera; real setup happens in world.setupCamera
 		let camera = new BABYLON.FreeCamera('MockCamera', new BABYLON.Vector3(0, 80, 0), scene);
 		camera.setTarget(BABYLON.Vector3.Zero());
-
+		if(!isLocal)
+			isLocal = false;
 		this.ctx = {
 			engine, scene, camera, glow,
-			playerCount, playerSide,gameName,
+			playerCount, playerSide,gameName,isLocal,
 			frontWalls: [], sideWalls: [],
 			paddles: [], paddleRoots: {},
 			ufos: [],

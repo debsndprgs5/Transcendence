@@ -55,6 +55,8 @@ export async function handleJoinTournament(player:Interfaces.playerInterface, da
 			player.tournamentID = data.tournamentID;
 			player.isTourOwner = data.isTourOwner;
 			updateTourPlayerList(player, data.tournamentID, false);
+			if(hasAliasForUser(player.username!) === true) removeAliasForUser(player.username!)
+			setAliasForUser(player.username!, data.alias);
 			Helpers.updatePlayerState(player, 'waitingTournament');	
 		}
 		catch{
@@ -65,7 +67,7 @@ export async function handleJoinTournament(player:Interfaces.playerInterface, da
 				});
 		}
 	const member = await getMembersByTourID(data.tournamentID);
-	if(member!.length < 2){
+	if(member!.length > 2){
 		await broadcastTourList();
 	}
 }
@@ -78,7 +80,7 @@ export async function updateTourPlayerList(joiner: Interfaces.playerInterface, t
 	// Construct full member list
 	const memberData = members.map(m => ({
 		userID: m.userID,
-		username: m.username,
+		username: getAliasForUser(m.username)!,
 	}));
 
 	for (const m of members) {
@@ -117,7 +119,7 @@ export async function handleLeaveTournament(player: Interfaces.playerInterface, 
 			Tournament.MappedTour.delete(tour.tourID);
 		}
 	}
-
+	removeAliasForUser(player.username!);
 	return;
 }
 	// User clicked "Leave Tournament" button manually
@@ -142,7 +144,7 @@ export async function handleLeaveTournament(player: Interfaces.playerInterface, 
 	player.tournamentID = undefined;
 	// 4. Get remaining members
 	const members = await getMembersByTourID(leftTourID!);
-	
+	removeAliasForUser(player.username!);
 	Helpers.updatePlayerState(player, 'init');
 	// 5. If no player remains, clean
 	if (members!.length < 1) {
@@ -154,7 +156,7 @@ export async function handleLeaveTournament(player: Interfaces.playerInterface, 
 	for (const m of members!) {
 		m.typedSocket.send('updateTourPlayerList', {
 			tournamentID: leftTourID,
-			members: members!.map(p => ({ userID: p.userID, username: p.username }))
+			members: members!.map(p => ({ userID: p.userID, username: getAliasForUser(p.username!) }))
 		});
 	}
 

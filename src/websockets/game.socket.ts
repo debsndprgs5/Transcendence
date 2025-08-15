@@ -164,7 +164,7 @@ export function getPlayerState(userID:number): string | undefined{
   if(!player || player.state === 'offline')
     return('offline')
   if(player.state !== 'init')
-    return('in-game')
+    return('busy')
   if(player.state === 'init')
     return ('online')
   return ('error')

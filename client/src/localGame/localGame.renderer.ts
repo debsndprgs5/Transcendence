@@ -40,7 +40,8 @@ export class LocalGameRenderer
 			2,
 			'Local Match',
 			'left',
-			usernames
+			usernames,
+			true
 		);
 		this.gameEngine = new LocalGameEngine(
 			config,

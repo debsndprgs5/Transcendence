@@ -17,6 +17,28 @@ import { getJwtSecret } from '../vault/vaultPlugin';
 
 const MappedClients = new Map<number, WebSocket>();
 
+const PRESENCE_TTL_MS = 30000;
+const DisconnectTimers = new Map<number, NodeJS.Timeout>();
+
+// Helper: do we currently have a chat socket for this user?
+function isChatConnected(userID: number): boolean {
+  const s = MappedClients.get(userID);
+  return !!s && s.readyState === WebSocket.OPEN;
+}
+
+// Compute *presence* for UI (authoritative on the chat side)
+// - If chat connected: "playing" if the game says so, else "online"
+// - If chat not connected: "busy" if grace timer is running, else "offline"
+function computePresence(userID: number, hint?: string): 'online'|'busy'|'offline'|'playing' {
+  if (isChatConnected(userID)) {
+    const raw = getPlayerState(userID);
+    if (hint === 'playing' || raw === 'playing') return 'playing';
+    return 'online';
+  }
+  return DisconnectTimers.has(userID) ? 'busy' : 'offline';
+}
+
+
 async function getRightSockets(authorID: number): Promise<Map<number, WebSocket>> {
 	const filtered = new Map<number, WebSocket>();
 
@@ -159,10 +181,85 @@ async function handleConnection(ws: WebSocket, request: any) {
 
 	// Set the new socket as the only one
 	MappedClients.set(userId, ws);
+	const t = DisconnectTimers.get(userId);
+	if (t) { clearTimeout(t); DisconnectTimers.delete(userId); }
+
+	// Broadcast immediate presence to friends: "online" or "playing" if game says so
+	try {
+	  const relatedFriends = await chatManagement.getAllUsersWhoHaveMeAsFriend(userId) ?? [];
+	  const now = computePresence(userId); // chat-connected => online/playing
+	  for (const fid of relatedFriends) {
+	    const friendSocket = MappedClients.get(fid);
+	    if (friendSocket && friendSocket.readyState === WebSocket.OPEN) {
+	      friendSocket.send(JSON.stringify({
+	        type: 'friendStatus',
+	        action: 'updateStatus',
+	        targetID: fid,
+	        friendID: userId,
+	        status: now
+	      }));
+	    }
+	  }
+	} catch (e) {
+	  console.error('Failed to broadcast online on connect:', e);
+	}
 	
-	
-		ws.on('close', () => handleDisconnect(userId, fullUser.username, ws));
-	
+		ws.on('close', async () => {
+		  const userID = fullUser.our_index;
+		  try {
+		    if (!userID) return;
+
+		    // 1) Start/refresh the 30s grace period timer
+		    if (DisconnectTimers.has(userID)) {
+		      clearTimeout(DisconnectTimers.get(userID)!);
+		    }
+		    const timer = setTimeout(async () => {
+		      try {
+		        // If still not reconnected after TTL => broadcast "offline"
+		        if (!isChatConnected(userID)) {
+		          const friendIDs: number[] = await chatManagement.getAllUsersWhoHaveMeAsFriend(userID) ?? [];
+		          for (const fid of friendIDs) {
+		            const friendSocket = MappedClients.get(fid);
+		            if (friendSocket && friendSocket.readyState === WebSocket.OPEN) {
+		              friendSocket.send(JSON.stringify({
+		                type: 'friendStatus',
+		                action: 'updateStatus',
+		                targetID: fid,
+		                friendID: userID,
+		                status: 'offline'
+		              }));
+		            }
+		          }
+		        }
+		      } catch (e) {
+		        console.error('Failed to broadcast offline after TTL:', e);
+		      } finally {
+		        DisconnectTimers.delete(userID);
+		      }
+		    }, PRESENCE_TTL_MS);
+		    DisconnectTimers.set(userID, timer);
+
+		    // 2) Broadcast immediate "busy" (grace period)
+		    const friendIDs: number[] = await chatManagement.getAllUsersWhoHaveMeAsFriend(userID) ?? [];
+		    for (const fid of friendIDs) {
+		      const friendSocket = MappedClients.get(fid);
+		      if (friendSocket && friendSocket.readyState === WebSocket.OPEN) {
+		        friendSocket.send(JSON.stringify({
+		          type: 'friendStatus',
+		          action: 'updateStatus',
+		          targetID: fid,
+		          friendID: userID,
+		          status: 'busy'
+		        }));
+		      }
+		    }
+		  } catch (err) {
+		    console.error('Failed to broadcast busy on close:', err);
+		  } finally {
+		    // Remove mapping once done
+		    handleDisconnect(userId, fullUser.username, ws);
+		  }
+		});
 		ws.on('message', async (data: RawData) => {
 			let parsed: any;
 			try {
@@ -274,64 +371,63 @@ async function  handleFriendStatus(parsed:any, ws:WebSocket){
 	const {action, userID, friendList} = parsed;
 	switch(parsed.action){
 		//Front is asking for the full list
-	case 'request': {
-		if (!Array.isArray(friendList)) {
-			ws.send(JSON.stringify({ error: 'Invalid friend list' }));
-			return;
+		case 'request': {
+		  if (!Array.isArray(friendList)) {
+		    ws.send(JSON.stringify({ error: 'Invalid friend list' }));
+		    return;
+		  }
+		  const updatedStatus = friendList.map(({ friendID }) => ({
+		    friendID,
+		    status: computePresence(friendID) // authoritative presence
+		  }));
+		  ws.send(JSON.stringify({ type: 'friendStatus', action: 'response', list: updatedStatus }));
+		  break;
 		}
-		const updatedStatus = friendList.map(friend => {
-		const status = getPlayerState(friend.friendID);
-		return {
-			friendID: friend.friendID,
-			status
-		};
-		});
-		ws.send(JSON.stringify({
-			type: 'friendStatus',
-			action: 'response',
-			list: updatedStatus
-		}));
-		break;
-	}	
 		//from front A send update
 		//Back send live update to any one friends with A, A has B for friends, B join the app, A is "notify"
-	case 'update': {
+		case 'update': {
 
-		try {
-			// 1) Get all user-IDs who have 'userID' as a friend
-			const relatedFriends = await chatManagement.getAllUsersWhoHaveMeAsFriend(userID) ?? [];
+			try {
+				// 1) Get all user-IDs who have 'userID' as a friend
+				const relatedFriends = await chatManagement.getAllUsersWhoHaveMeAsFriend(userID) ?? [];
 
-			// 2) For each friend, if they have a connected socket, send them the update
-			for (const friendID of relatedFriends) {
-				const friendSocket = MappedClients.get(friendID);
-				if (friendSocket) {
-					friendSocket.send(JSON.stringify({
-					type: 'friendStatus',
-					action: 'updateStatus',
-					targetID: friendID,  // the friend receiving the update
-					friendID: userID,    // the user whose status changed
-					status:cleanState(parsed.state)
-					}));
+				// 2) For each friend, if they have a connected socket, send them the update
+				for (const friendID of relatedFriends) {
+				  const friendSocket = MappedClients.get(friendID);
+				  if (friendSocket) {
+				    const presence =
+				      parsed.state === 'playing' ? 'playing' : computePresence(userID);
+
+				    friendSocket.send(JSON.stringify({
+				      type: 'friendStatus',
+				      action: 'updateStatus',
+				      targetID: friendID,  // the friend receiving the update
+				      friendID: userID,    // the user whose status changed
+				      status: presence
+				    }));
+				  }
 				}
+			} catch (err) {
+				console.error('Failed to update friend status:', err);
+				ws.send(JSON.stringify({ error: 'Failed to update friend status' }));
 			}
-		} catch (err) {
-			console.error('Failed to update friend status:', err);
-			ws.send(JSON.stringify({ error: 'Failed to update friend status' }));
-		}
 
 		break;
 	}
 	}
 }
 
-function cleanState(OgState:string):'online'|'offline'|'busy'{
-
-	if(!OgState || OgState === undefined || OgState === 'offline')
-		return('offline');
-	if(OgState === 'init' || OgState === 'online')
-		return ('online')
-	return ('busy')
-	
+function cleanState(
+  raw?: string
+): 'online' | 'offline' | 'busy' | 'playing' {
+  if (!raw || raw === 'offline' || raw === 'init') return 'offline';
+  if (raw === 'playing') return 'playing';
+  // Treat lobby/idle/menu/etc. as plain online
+  if (raw === 'waiting' || raw === 'idle' || raw === 'menu' || raw === 'ready' || raw === 'matching') {
+    return 'online';
+  }
+  // Anything else (e.g., 'busy') falls back to busy
+  return 'busy';
 }
 
 function handleDisconnect(userId: number, username: string, ws: WebSocket) {

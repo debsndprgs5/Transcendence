@@ -422,12 +422,12 @@ export async function handleWebSocketMessage(msg: WebSocketMsg): Promise<void> {
 					dot.style.marginRight = '0.3em';
 					dot.style.verticalAlign = 'middle';
 
-					if (status === 'online' || status === 'init') {
-						dot.style.background = '#22c55e';
+					if (status === 'online') {
+					  dot.style.background = '#22c55e';
 					} else if (status === 'busy' || status === 'playing') {
-						dot.style.background = '#facc15';
+					  dot.style.background = '#facc15';
 					} else {
-						dot.style.background = '#9ca3af';
+					  dot.style.background = '#6b7280';
 					}
 
 					const text = document.createElement('span');
@@ -467,11 +467,11 @@ export async function handleWebSocketMessage(msg: WebSocketMsg): Promise<void> {
 					dot.style.verticalAlign = 'middle';
 
 					if (msg.status === 'online') {
-						dot.style.background = '#22c55e';
-					} else if (msg.status === 'busy') {
-						dot.style.background = '#facc15';
+					  dot.style.background = '#22c55e';
+					} else if (msg.status === 'busy' || msg.status === 'playing') {
+					  dot.style.background = '#facc15';
 					} else {
-						dot.style.background = '#9ca3af';
+					  dot.style.background = '#6b7280';
 					}
 
 					const text = document.createElement('span');

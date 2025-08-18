@@ -1159,13 +1159,6 @@ export async function handleLogout(): Promise<void> {
 	} catch {}
   try {
 		if (state.socket?.readyState === WebSocket.OPEN) {
-			console.warn(`CLOSING CHAT socket`)
-			state.socket?.send(JSON.stringify({
-				type: 'friendStatus',
-				action: 'update',
-				state: 'waiting connection',
-				userID: state.userId,
-			}));
 			state.socket?.close();
 		}
   } catch {}

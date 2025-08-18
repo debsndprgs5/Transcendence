@@ -64,7 +64,8 @@ export async function authRoutes(fastify: FastifyInstance) {
 					}
 
 					const uid = await UserManagement.getIndexByUname(username);
-					if (getPlayerState(uid!) != 'offline') {
+					const status = getPlayerState(uid!);
+					if ( status !== 'offline' && status !==  undefined) {
 							return reply.code(401).send({ error: 'User already connected !' });
 					}
 					const token = jwt.sign(

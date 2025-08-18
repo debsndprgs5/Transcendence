@@ -356,14 +356,14 @@ export function setupWaitingUI(ctx: RendererCtx) {
   if (!ctx.ui) return; // ensure setupGUI ran
 
   const banner = new GUI.Rectangle("waitingBanner");
-  banner.width = "440px";
+  banner.width = "360px";
   banner.height = "72px";
   banner.thickness = 0;
   banner.cornerRadius = 14;
   banner.background = "rgba(0,0,0,0.70)";
   banner.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
   banner.verticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-  banner.zIndex = 880;
+  banner.zIndex = 900;
   banner.isVisible = false;
 
   const txt = new GUI.TextBlock();

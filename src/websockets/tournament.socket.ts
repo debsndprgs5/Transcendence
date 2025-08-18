@@ -34,6 +34,22 @@ export function hasAliasForUser(username: string): boolean {
   return Aliases.has(username);
 }
 
+export function hasUserForAlias(alias:string) : boolean {
+	for (const a of Aliases){
+		if(a[1] === alias)
+			return true;
+	}
+	return false;
+}
+
+export function getUserFromAlias(alias:string):string | undefined{
+	for(const a of Aliases){
+		if(a[1] === alias)
+			return a[0];
+	}
+	return undefined
+}
+
 export function removeAliasForUser(username: string): boolean {
   return Aliases.delete(username);
 }
@@ -44,10 +60,12 @@ export async function handleJoinTournament(player:Interfaces.playerInterface, da
 			await GameManagement.addMemberToTournament(data.tournamentID, data.userID);
 			Helpers.updatePlayerState(player, 'waitingTournament');
 			const tour = await GameManagement.getTournamentById(data.tournamentID);
+			if(hasAliasForUser(player.username!) === true) removeAliasForUser(player.username!)
+			setAliasForUser(player.username!, data.alias);
 			//Notify front
 			player.typedSocket.send('joinTournament',{
 					userID:data.userID,
-					username:player.username,
+					username: getAliasForUser(player.username!),
 					tournamentID:data.tournamentID,
 					tourName:tour?.name,
 					success:true
@@ -55,8 +73,7 @@ export async function handleJoinTournament(player:Interfaces.playerInterface, da
 			player.tournamentID = data.tournamentID;
 			player.isTourOwner = data.isTourOwner;
 			updateTourPlayerList(player, data.tournamentID, false);
-			if(hasAliasForUser(player.username!) === true) removeAliasForUser(player.username!)
-			setAliasForUser(player.username!, data.alias);
+
 			Helpers.updatePlayerState(player, 'waitingTournament');	
 		}
 		catch{

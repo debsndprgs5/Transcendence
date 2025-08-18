@@ -283,7 +283,7 @@ async function  handleFriendStatus(parsed:any, ws:WebSocket){
 		const status = getPlayerState(friend.friendID);
 		return {
 			friendID: friend.friendID,
-			status
+			status:status
 		};
 		});
 		ws.send(JSON.stringify({

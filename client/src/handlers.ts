@@ -1325,13 +1325,25 @@ export async function router(): Promise<void> {
 // Invite game handling
 
 export async function handleInviteButton(friendUsername: string): Promise<void> {
-		const friendUserId = await apiFetch<{ userId: number }>(
-					`/users/by-username/${encodeURIComponent(friendUsername)}`,
-					{ headers: { Authorization: `Bearer ${state.authToken}` } }
-				).then(data => data.userId);
-		state.playerInterface!.typedSocket.send('invite', {
-				action: 'send', 
-				userID: state.userId,
-				targetID: friendUserId
-		});
+  // if a previous invite is still pending, block new ones
+  if ((state as any).inviteLock) {
+    showNotification({ message: 'Invitation déjà en attente…', type: 'warning', duration: 2500 });
+    return;
+  }
+
+  const friendUserId = await apiFetch<{ userId: number }>(
+    `/users/by-username/${encodeURIComponent(friendUsername)}`,
+    { headers: { Authorization: `Bearer ${state.authToken}` } }
+  ).then(d => d.userId);
+
+  state.playerInterface!.typedSocket.send('invite', {
+    action: 'send',
+    userID: state.userId,
+    targetID: friendUserId,
+  });
+
+  // set local lock until we get a reply/timeout/cancel
+  (state as any).inviteLock = { targetId: friendUserId, since: Date.now() };
+
+  showNotification({ message: 'Invitation envoyée ⏳', type: 'info', duration: 2000 });
 }

@@ -31,23 +31,16 @@ export function updatePlayerState(
 //when user A send request to user B
 export async function processInviteSend(player: Interfaces.playerInterface, target: Interfaces.playerInterface) {
 
-  if (player.state !== 'init') {
+  if (target.state !== 'init') {
+    // notify the inviter that target is busy
     player.typedSocket.send('invite', {
       action: 'reply',
-      response: 'you are busy',
-      targetID: target.userID
+      response: 'busy',
+      targetID: target.userID,
     });
     return;
   }
 
-  if (target.state !== 'init') {
-    target.typedSocket.send('invite', {
-      action: 'reply',
-      response: 'busy',
-      targetID: target.userID
-    });
-    return;
-  }
 
   // Update states
   updatePlayerState(player, 'waiting');

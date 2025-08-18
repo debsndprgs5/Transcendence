@@ -237,21 +237,36 @@ export async function handleJoinGame(data:Interfaces.SocketMessageMap['joinGame'
 			showNotification({ message:`Game joined with success${data.gameID}` , type: 'success' });
 }
 
-export async function handleInvite(
-  data: Interfaces.SocketMessageMap['invite'],
-) {
-  // English: replies are just informational on the client for now
+export async function handleInvite(data: Interfaces.SocketMessageMap['invite']) {
+  // Replies sent to client (us = invitor)
   if (data.action === 'reply') {
-    if (data.response !== 'accept') {
-      console.log(`The user you tried to invite is ${data.response}`);
-    } else {
-      console.log('The user you invited just joined the GameRoom');
+    const resp = data.response;
+    // unlock on any non-accept outcome, or after accept (room starts)
+    if (resp && (state as any).inviteLock) {
+      (state as any).inviteLock = null;
+    }
+
+    // small UX feedbacks
+    if (resp === 'accept') {
+      showNotification({ message: 'Request accepted ✅', type: 'success', duration: 2000 });
+    } else if (resp === 'decline') {
+      showNotification({ message: 'Request declined ❌', type: 'error', duration: 2500 });
+    } else if (resp === 'timeout') {
+      showNotification({ message: 'Request expired ⏲️', type: 'warning', duration: 2500 });
+    } else if (resp === 'offline') {
+      showNotification({ message: 'This player is offline', type: 'warning', duration: 2500 });
+    } else if (resp === 'busy') {
+      showNotification({ message: 'This player is busy', type: 'warning', duration: 2500 });
+    } else if (resp === 'you cannot invite yourself') {
+      showNotification({ message: 'You can\'t invite yourself', type: 'warning', duration: 2500 });
+    } else if (resp === 'already_pending') {
+      showNotification({ message: 'Request still pending...', type: 'info', duration: 2500 });
     }
     return;
   }
 
+  // Receive a demand (us = invited)
   if (data.action === 'receive') {
-    // be resilient if backend uses another field name
     const inviterID = (data.userID ?? data.fromID ?? data.toID) as number | undefined;
     if (!inviterID || Number.isNaN(inviterID)) {
       console.warn('[INVITE] Missing inviterID in receive payload:', data);
@@ -260,23 +275,13 @@ export async function handleInvite(
 
     const username = await apiFetch(`/user/by-index/${inviterID}`);
     showNotification({
-      message: `${username} invited you to play. Join?`,
+      message: `${username} request you to play, accept ?`,
       type: 'confirm',
       onConfirm: async () => {
-        state.typedSocket.send('invite', {
-          action: 'reply',
-          response: 'accept',
-          fromID: state.userId, // invitee
-          toID: inviterID,      // inviter
-        });
+        state.typedSocket.send('invite', { action: 'reply', response: 'accept', fromID: state.userId, toID: inviterID });
       },
       onCancel: async () => {
-        state.typedSocket.send('invite', {
-          action: 'reply',
-          response: 'decline',
-          fromID: state.userId,
-          toID: inviterID,
-        });
+        state.typedSocket.send('invite', { action: 'reply', response: 'decline', fromID: state.userId, toID: inviterID });
       },
     });
   }

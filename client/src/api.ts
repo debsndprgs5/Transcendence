@@ -6,10 +6,11 @@ import { TypedSocket } from './shared/gameTypes';
 
 export interface AppState {
 	authToken: string | null;
+	inviteLock: null | { targetId: number; since: number }; // English: lock to prevent multiple concurrent invites
 	pendingToken: string | null;
 	socket: WebSocket | null;
-	gameSocket:WebSocket|null;
-	typedSocket:TypedSocket;
+	gameSocket: WebSocket | null;
+	typedSocket: TypedSocket;
 	userId?: number;
 	currentRoom: number;
 	availableRooms: { roomID: number; roomName: string }[];
@@ -23,9 +24,9 @@ export interface AppState {
 	friendsStatusList: { friendID: number }[];
 	loadRooms?: () => void;
 	selectRoom?: (roomId: number) => Promise<void>;
-	playerInterface?:Interfaces.playerInterface,
-	paddleInterface?:Interfaces.paddleInterface,
-	gameInterface?:Interfaces.gameRoomInterface;
+	playerInterface?: Interfaces.playerInterface;
+	paddleInterface?: Interfaces.paddleInterface;
+	gameInterface?: Interfaces.gameRoomInterface;
 	localGameConfig?: {
 		ballSpeed: number;
 		paddleSpeed: number;
@@ -35,10 +36,11 @@ export interface AppState {
 
 export const state: AppState = {
 	authToken: null,
+	inviteLock: null, // English: no invite pending at start
 	pendingToken: null,
 	socket: null,
-	gameSocket:null,
-	typedSocket:null,
+	gameSocket: null,
+	typedSocket: null,
 	currentRoom: 0,
 	availableRooms: [],
 	availableTournaments: [],
@@ -55,13 +57,14 @@ export const state: AppState = {
 	localGameConfig: undefined,
 };
 
-export function resetState(){
+export function resetState() {
 	Object.assign(state, {
 		authToken: null,
+		inviteLock: null, // English: clear invite lock on reset
 		pendingToken: null,
 		socket: null,
-		gameSocket:null,
-		typedSocket:null,
+		gameSocket: null,
+		typedSocket: null,
 		currentRoom: 0,
 		availableRooms: [],
 		availableTournaments: [],

@@ -1,4 +1,5 @@
 import { createDirectMessageWith, router, handleInviteButton } from './handlers';
+import { state } from './api';
 
 // ─── NOTIFICATIONS ────────────────────────────────────────────────────────────────
 
@@ -179,13 +180,17 @@ export function showUserActionsBubble(target: Element, username: string): void {
 
 	const bubble = document.createElement('div');
 	bubble.className = 'user-action-bubble';
+	const hasInviteLock = Boolean((state as any).inviteLock);
 	bubble.innerHTML = `
-		<svg class="user-action-bubble__arrow" viewBox="0 0 28 13" fill="none">
-			<path d="M14 13L0 0h28L14 13z" fill="#fff" stroke="#a5b4fc" stroke-width="1.5"/>
-		</svg>
-		<button data-action="profile">👤 <span>Profile</span></button>
-		<button data-action="dm">💬 <span>Direct Message</span></button>
-		<button data-action="invite">🎮 <span>Invite Game</span></button>
+	  <svg class="user-action-bubble__arrow" viewBox="0 0 28 13" fill="none">
+	    <path d="M14 13L0 0h28L14 13z" fill="#fff" stroke="#a5b4fc" stroke-width="1.5"/>
+	  </svg>
+	  <button data-action="profile">👤 <span>Profile</span></button>
+	  <button data-action="dm">💬 <span>Direct Message</span></button>
+	  ${hasInviteLock
+	    ? `<button disabled class="opacity-50 cursor-not-allowed">🎮 <span>Invite Game</span></button>`
+	    : `<button data-action="invite">🎮 <span>Invite Game</span></button>`
+	  }
 	`;
 
 	parent?.appendChild(bubble);

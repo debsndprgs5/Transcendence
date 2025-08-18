@@ -383,23 +383,6 @@ async function  handleFriendStatus(parsed:any, ws:WebSocket){
 		  ws.send(JSON.stringify({ type: 'friendStatus', action: 'response', list: updatedStatus }));
 		  break;
 		}
-<<<<<<< HEAD
-		const updatedStatus = friendList.map(friend => {
-		const status = getPlayerState(friend.friendID);
-		return {
-			friendID: friend.friendID,
-			status:status
-		};
-		});
-		ws.send(JSON.stringify({
-			type: 'friendStatus',
-			action: 'response',
-			list: updatedStatus
-		}));
-		break;
-	}	
-=======
->>>>>>> main
 		//from front A send update
 		//Back send live update to any one friends with A, A has B for friends, B join the app, A is "notify"
 		case 'update': {

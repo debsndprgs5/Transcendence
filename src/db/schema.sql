@@ -71,7 +71,6 @@ CREATE TABLE IF NOT EXISTS gameMembers(
 	gameID 						INTEGER,
 	tournamentID 				INTEGER,
 	userID 						INTEGER,
-	alias 						TEXT,
 	created_at 					DATETIME DEFAULT CURRENT_TIMESTAMP,
 	FOREIGN KEY(gameID) 		REFERENCES gameRooms(gameID) ON DELETE CASCADE,
 	FOREIGN KEY(userID)			REFERENCES users(our_index) ON DELETE CASCADE,

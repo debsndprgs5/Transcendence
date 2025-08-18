@@ -1,6 +1,13 @@
 import { isAuthenticated } from './api';
 import { fetchAccountStats, state } from './pong_socket';
-import { showBallPositionsHeatmap, showWallBouncesHeatmap, showPaddleBouncesHeatmap, showGoalsHeatmap } from './heatmaps';
+import { showWallBouncesHeatmap, showPaddleBouncesHeatmap, showGoalsHeatmap, convertBouncesToHeatmap2p, gameToHeatmap2p } from './heatmaps';
+
+// Store all three heatmap datasets returned by the server
+let goalsHeatmapData: {
+  wall: Array<{ x: number; y: number; value: number }>;
+  paddle: Array<{ x: number; y: number; value: number }>;
+  goal: Array<{ x: number; y: number; value: number }>;
+} = { wall: [], paddle: [], goal: [] };
 
 function updateStatsChart(stats: { win: number, lose: number, tie: number }) {
   const canvas = document.getElementById('stats-chart');
@@ -71,6 +78,31 @@ function updateStatsDisplay(data: any) {
     updateMatchHistory(data.matchHistory);
     calculateAdvancedStats(data.matchHistory);
   }
+    // store heatmap
+    const ConvertBounceHistory = (raw: any): Array<{ x: number; y: number; value: number }> => {
+      if (!Array.isArray(raw) || raw.length === 0) return [];
+      if ('position_x' in raw[0] || 'positionX' in raw[0]) return convertBouncesToHeatmap2p(raw as any);
+      if (!('x' in raw[0] && 'y' in raw[0])) return [];
+
+      const counts = (raw as any[]).reduce((m: Map<string, number>, r) => {
+        const { x, y, value } = r;
+        const mapped = gameToHeatmap2p(x, y);
+        const key = `${Math.round(mapped.x)},${Math.round(mapped.y)}`;
+        // const key = `${mapped.x.toFixed(1)},${mapped.y.toFixed(1)}`;
+        m.set(key, (m.get(key) ?? 0) + (value ?? 1));
+        return m;
+      }, new Map<string, number>());
+
+      return Array.from(counts.entries()).map(([k, v]) => {
+        const [sx, sy] = k.split(',').map(Number);
+        // const [sx, sy] = k.split(',').map(s => parseFloat(s));
+        return { x: sx, y: sy, value: v };
+      });
+    };
+
+    goalsHeatmapData.wall = ConvertBounceHistory(data.ballWallHistory);
+    goalsHeatmapData.paddle = ConvertBounceHistory(data.ballPaddleHistory);
+    goalsHeatmapData.goal = ConvertBounceHistory(data.ballGoalHistory);
 }
 
 function updateElementText(id: string, text: string) {
@@ -507,6 +539,10 @@ export function Verify2FAView(): string {
 
 export function AccountView(user: any, friends: any[] = []): string {
   if (user && user.userId) {
+    // if (window.location.hash === '#account' || document.body.getAttribute('data-current-view') === 'account') {
+    //   return '';
+    // }
+    fetchAccountStats(user.userId);
     document.body.setAttribute('data-current-view', 'account');
   }
 
@@ -522,10 +558,10 @@ export function AccountView(user: any, friends: any[] = []): string {
     `&radius=50`;
 
   const heatmaps = [
-    { id: 'heatmap-pos', label: 'Ball Positions', onClick: showBallPositionsHeatmap },
-    { id: 'heatmap-wall', label: 'Wall Bounces', onClick: showWallBouncesHeatmap },
-    { id: 'heatmap-paddle', label: 'Paddle Bounces', onClick: showPaddleBouncesHeatmap },
-    { id: 'heatmap-goal', label: 'Goals', onClick: () => showGoalsHeatmap([{ x: 1, y: 2, value: 3 }]) },
+    { id: 'heatmap-wall', label: 'Wall Bounces', onClick: () => showWallBouncesHeatmap(goalsHeatmapData.wall) },
+    { id: 'heatmap-paddle', label: 'Paddle Bounces', onClick: () => showPaddleBouncesHeatmap(goalsHeatmapData.paddle) },
+    { id: 'heatmap-goal', label: 'Goals', onClick: () => showGoalsHeatmap(goalsHeatmapData.goal) },
+    // #moooooore heatmaps
   ];
 
   // Branche les boutons + hydrate les avatars amis APRÈS montage effectif
@@ -533,7 +569,25 @@ export function AccountView(user: any, friends: any[] = []): string {
     // 1) boutons heatmap
     heatmaps.forEach(hm => {
       const btn = document.querySelector(`button[data-heatmap="${hm.id}"]`);
-      if (btn) btn.addEventListener('click', hm.onClick);
+      if (!btn) return;
+      btn.addEventListener('click', () => {
+        // deactivate all heatmap buttons
+        const all = document.querySelectorAll('.heatmap-btn');
+        all.forEach(el => {
+          el.classList.remove('bg-indigo-700', 'text-white', 'shadow');
+          el.classList.add('bg-indigo-100', 'text-indigo-700');
+        });
+        // activate clicked button
+        btn.classList.remove('bg-indigo-100', 'text-indigo-700');
+        btn.classList.add('bg-indigo-700', 'text-white', 'shadow');
+        // call the original handler
+        try {
+          hm.onClick();
+        } catch (e) {
+          // swallow errors from handlers to avoid breaking UI
+          console.error('heatmap handler error', e);
+        }
+      });
     });
 
     // 2) attendre que #friends-grid existe, puis hydrater

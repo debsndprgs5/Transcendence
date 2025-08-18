@@ -296,9 +296,11 @@ export const saveMatchStats = async (
   }
   if (fromFuzzer) return;
   for (const p of players) {
+	// console.log(`[saveMatchStats]1 Pushing stats to user ${p.userID}`);
 	try {
 	  const playerSocket = getPlayerByUserID(p.userID);
 	  if (playerSocket && playerSocket.typedSocket) {
+		// console.log(`[saveMatchStats]2 Pushing stats to user ${p.userID}`);
 		playerSocket.typedSocket.send('statsResult', await getStatsForUser(p.userID));
 	  }
 	} catch (err) {
@@ -349,32 +351,16 @@ export const setBackDefPref = async (userID: number) => {
 };
 
 export const getStatsForUser = async (userID: number) => {
-  const results = await getAll<{
-	matchID: number;
-	tourID: number | null;
-	rulesPaddleSpeed: number;
-	rulesBallSpeed: number;
-	rulesLimit: number;
-	rulesCondition: number;
-	started_at: string;
-	duration: number;
-	score: number;
-	result: number;
-  }>(
-	`SELECT
-	  mh.matchID, mh.tourID, mh.rulesPaddleSpeed, mh.rulesBallSpeed, mh.rulesLimit, mh.rulesCondition, mh.started_at, mh.duration,
-	  st.score, st.result
-	FROM scoreTable st
-	JOIN matchHistory mh ON st.matchID = mh.matchID
-	WHERE st.userID = ?`,
-	[userID]
-  );
-  if (!results || results.length === 0) {
-	  return { winPercentage: { win: 0, lose: 0, tie: 0 }, matchHistory: []};
-  }
-  const winPercentage = Stats.getWinPercentage(results);
-  // console.log(`[getStatsForUser] goals: ${goals.length}, goals: ${JSON.stringify(goals)}`);
-  return { winPercentage: winPercentage, matchHistory: results};
+	const results = await Stats.getMatchHistoryForUser(userID);
+	const winPercentage = await Stats.getWinPercentage(results);
+	const ball_wall = await Stats.getBallBounceHistory(userID, 0);
+	const ball_paddle = await Stats.getBallBounceHistory(userID, 1);
+	const ball_goal = await Stats.getBallBounceHistory(userID, 2);
+
+	// console.log(`[getStatsForUser] winPercentage: ${JSON.stringify(winPercentage)}`);
+	// console.log(`[getStatsForUser] matchHistory: ${results.length} matches`);
+	// console.log(`[getStatsForUser] ballBounceHistory: ${ball.length} bounces`);
+  return { winPercentage: winPercentage, matchHistory: results, ballWallHistory: ball_wall, ballPaddleHistory: ball_paddle, ballGoalHistory: ball_goal };
 };
 
 export async function startScoreTableFuzzer() {
@@ -448,8 +434,7 @@ export async function startScoreTableFuzzer() {
 	  }
 	//   console.log(`[Fuzzer] 2v2 Match: matchID=${matchID}, scores: Team1=${scoreTeam1} vs Team2=${scoreTeam2}, duration: ${duration}s`);
 	}
-
-	await saveMatchStats(matchID, null, paddleSpeed, ballSpeed, 15, 'score', players, duration, true);
+	await saveMatchStats(matchID, null, paddleSpeed, ballSpeed, 15, 'score', players, duration, false);
   }
   console.log(`Fuzzing terminé : ${TOTAL_MATCHES} matchs générés.`);
 }

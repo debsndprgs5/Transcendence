@@ -2,7 +2,7 @@
 import * as BABYLON from '@babylonjs/core';
 import { TerrainMaterial } from '@babylonjs/materials/terrain';
 import * as LIMIT from '../shared/gameTypes';
-import type { RendererCtx } from './NEW_pong_render';
+import type { RendererCtx } from './pong_render';
 
 export function setupLighting(scene: BABYLON.Scene) {
 	const hemi = new BABYLON.HemisphericLight('light', new BABYLON.Vector3(0, 1, 0), scene);
@@ -51,16 +51,29 @@ export function setupCamera(ctx: RendererCtx) {
 	const width = playerCount === 2 ? LIMIT.arenaWidth2p : LIMIT.arenaWidth4p;
 	const depth = playerCount === 2 ? LIMIT.arenaLength2p : LIMIT.arenaLength4p;
 
-	const dist = Math.max(width, depth) * 1.3;
-	const height = 50;
+	const dist = Math.max(width, depth) * 1.2;
+	const height = 40;
 
 	let pos = new BABYLON.Vector3(0, height, -dist);
+  let target = new BABYLON.Vector3(0,0,0);
 	console.warn(`[CAMERA] setting up side:${playerSide}`)
 	switch (playerSide) {
-		case 'left':	pos = new BABYLON.Vector3(-dist, height, 0); break;
-		case 'right':	pos = new BABYLON.Vector3(+dist, height, 0); break;
-		case 'top':		pos = new BABYLON.Vector3(0, height, +dist); break;
-		case 'bottom':	pos = new BABYLON.Vector3(0, height, -dist); break;
+		case 'left':
+      pos = new BABYLON.Vector3(-dist, height, 0);
+      target = new BABYLON.Vector3(-(dist/10), 0, 0);
+      break;
+		case 'right':
+      pos = new BABYLON.Vector3(+dist, height, 0);
+      target = new BABYLON.Vector3((dist/10), 0, 0);
+      break;
+		case 'top':
+      pos = new BABYLON.Vector3(0, height, +dist);
+      target = new BABYLON.Vector3(0, 0, (dist/10));
+      break;
+		case 'bottom':
+      pos = new BABYLON.Vector3(0, height, -dist);
+      target = new BABYLON.Vector3(0, 0, -(dist/10));
+      break;
 	}
 
 	let camera = new BABYLON.FreeCamera('camera', pos, scene);
@@ -68,8 +81,11 @@ export function setupCamera(ctx: RendererCtx) {
 	camera.maxZ = 5000;
 	camera.inertia = 0.7;
 	camera.speed = 0.75;
-	camera.setTarget(BABYLON.Vector3.Zero());
-	camera.attachControl(engine.getRenderingCanvas(), true);
+	camera.setTarget(target);
+//	camera.attachControl(engine.getRenderingCanvas(), true);
+
+  camera.fovMode = BABYLON.Camera.FOVMODE_VERTICAL_FIXED;
+  camera.fov = BABYLON.Tools.ToRadians(85); // or whatever you like
 
 	// clamp + face center
 	const margin = 25;
@@ -80,7 +96,6 @@ export function setupCamera(ctx: RendererCtx) {
 		p.x = Math.min(xMax, Math.max(xMin, p.x));
 		p.z = Math.min(zMax, Math.max(zMin, p.z));
 		p.y = BABYLON.Scalar.Clamp(p.y, 8, 120);
-		//camera.setTarget(BABYLON.Vector3.Zero());
 	});
 
 	return camera;

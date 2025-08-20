@@ -1,7 +1,7 @@
 // ui.ts
 import * as BABYLON from '@babylonjs/core';
 import * as GUI from '@babylonjs/gui';
-import type { RendererCtx, Side } from './NEW_pong_render';
+import type { RendererCtx, Side } from './pong_render';
 import { state } from '../api';
 import { showNotification } from '../notifications';
 import { handleLeaveTournament } from '../tournament_rooms';
@@ -155,14 +155,18 @@ function makeChip(side: Side, username: string) {
 export function setupGUI(ctx: RendererCtx) {
   const adt = GUI.AdvancedDynamicTexture.CreateFullscreenUI('UI', true, ctx.scene);
 
-  // Crisp GUI on HiDPI / hardware scaling
-  const dpr = window.devicePixelRatio || 1;
-  const hw  = ctx.scene.getEngine().getHardwareScalingLevel(); // often 1/dpr
-  adt.renderScale = Math.max(1, Math.round(dpr / hw));
+  // Lock GUI layout to a virtual canvas height.
+  adt.idealHeight = 720;
+  adt.renderAtIdealSize = true;
+  
+
 
   // Strips
   const top = makeStrip(adt, 'top');
   const bot = makeStrip(adt, 'bottom');
+
+  top.isHitTestVisible = false;
+  bot.isHitTestVisible = false;
 
   // TOP: [ LeftChip | spacer* | center* (GameName : Time) | RightChip | Leave(px) ]
   const topGrid = makeGrid([
@@ -236,9 +240,9 @@ export function setupGUI(ctx: RendererCtx) {
   center.addControl(timeTxt);
   topGrid.addControl(center, 0, 2);
 
-  // Leave button — same flow as old Escape handler
+  // Leave button
   const leave = GUI.Button.CreateSimpleButton('leave-btn', 'Leave');
-  leave.width = '80px';              // matches your topGrid's { px: 80 }
+  leave.width = '80px';              // matches topGrid { px: 80 }
   leave.height = '38px';
   leave.color = '#fff';
   leave.fontSize = 16;
@@ -246,16 +250,27 @@ export function setupGUI(ctx: RendererCtx) {
   leave.thickness = 0;
   leave.background = '#DC4646';
 
+  leave.isPointerBlocker = true;
+  leave.zIndex = 1000;           // above siblings in the strip
+  leave.hoverCursor = 'pointer'; // useful sanity check
+
+  //DEBUG
+  leave.onPointerEnterObservable.add(() => console.debug('[UI] leave: enter'));
+  leave.onPointerDownObservable.add(() => console.debug('[UI] leave: down'));
+  leave.onPointerUpObservable.add(() => console.debug('[UI] leave: up'));
+  
   leave.onPointerUpObservable.add(() => {
     const player = state.playerInterface;
-		
 		//Local game: no server player => tell the host to leave
 		if (ctx.isLocal === true) {
 			window.dispatchEvent(new CustomEvent('pong:local-leave'));
 			return;
 		}
 
-    if (ctx.isPaused) return;
+    if (ctx.isPaused){ 
+      console.warn('[PAUSE] cliked pause on a paused game');
+      return;
+    }
     ctx.isPaused = true;
 
     state.typedSocket.send('pause', {
@@ -292,9 +307,10 @@ export function setupGUI(ctx: RendererCtx) {
         ctx.isPaused = false;
       },
     });
+    
   });
-
   topGrid.addControl(leave, 0, 4);
+
 
   // Bottom center scoreboard (we’ll fill it from updateHUD)
   const scoreboard = label('', 16, '#E6F0FF');

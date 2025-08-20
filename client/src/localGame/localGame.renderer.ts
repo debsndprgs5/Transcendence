@@ -1,4 +1,4 @@
-import { PongRenderer } from '../render/NEW_pong_render';
+import { PongRenderer } from '../render/pong_render';
 import { LocalGameEngine, LocalGameState } from './localGame.engine';
 import { state } from '../api';
 import { showNotification } from '../notifications';

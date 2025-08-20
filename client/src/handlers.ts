@@ -325,7 +325,6 @@ export function resizePongCanvas(): void {
   const { width, height } = wrapper.getBoundingClientRect();
   canvas.width  = Math.round(width);
   canvas.height = Math.round(height);
-	console.log('Wrapper size:', wrapper.getBoundingClientRect());
 }
 
 // =======================

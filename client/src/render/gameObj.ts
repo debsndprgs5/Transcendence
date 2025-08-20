@@ -1,7 +1,7 @@
 // gameObj.ts
 import * as BABYLON from '@babylonjs/core';
 import * as LIMIT from '../shared/gameTypes';
-import type { RendererCtx, Side } from './NEW_pong_render';
+import type { RendererCtx, Side } from './pong_render';
 import { loadPrimaryMesh, loadModelAsContainer, loadPaddleTemplates } from './assets';
 
 export async function createWalls(ctx: RendererCtx) {

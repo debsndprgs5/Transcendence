@@ -82,7 +82,7 @@ export function setupCamera(ctx: RendererCtx) {
 	camera.inertia = 0.7;
 	camera.speed = 0.75;
 	camera.setTarget(target);
-//	camera.attachControl(engine.getRenderingCanvas(), true);
+	camera.attachControl(engine.getRenderingCanvas(), true);
 
   camera.fovMode = BABYLON.Camera.FOVMODE_VERTICAL_FIXED;
   camera.fov = BABYLON.Tools.ToRadians(85); // or whatever you like

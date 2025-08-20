@@ -70,7 +70,6 @@ export async function sendSystemMessage(chatRoomID:number, content:string){
 		if(!socket)continue;
 		socket.send(payload);
 	}
-		
 }
 
 export async function sendPrivateSystemMessage(chatID:number, userID:number, content:string){
@@ -350,7 +349,6 @@ async function handleConnection(ws: WebSocket, request: any) {
 						userID:userID,
 						newUser:newUser
 						}));	
-					//else {client is not connect should keep in notif ?}
 				}
 				catch{
 					ws.send(JSON.stringify({ type: 'system', message: 'Error while loading chat rooms.' }));
@@ -442,12 +440,9 @@ function handleDisconnect(userId: number, username: string, ws: WebSocket) {
 	
 
 export default fp(async fastify => {
-    // jwtSecret = fastify.vault.jwt;
-    // if (!jwtSecret) {
-    //     throw new Error("JWT_SECRET was not loaded from Vault. Chat socket cannot start.");
-    // }
+
     const wss = new WebSocketServer({ noServer: true });
-    wss.on('connection', handleConnection);
+   wss.on('connection', handleConnection);
 
 	fastify.server.on('upgrade', (request, socket, head) => {
 		const { url } = request;

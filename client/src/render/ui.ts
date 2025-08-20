@@ -156,8 +156,8 @@ export function setupGUI(ctx: RendererCtx) {
   const adt = GUI.AdvancedDynamicTexture.CreateFullscreenUI('UI', true, ctx.scene);
 
   // Lock GUI layout to a virtual canvas height.
-  adt.idealHeight = 720;
-  adt.renderAtIdealSize = true;
+  // adt.idealHeight = 720;
+  // adt.renderAtIdealSize = true;
   
 
 

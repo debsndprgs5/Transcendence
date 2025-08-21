@@ -7,6 +7,7 @@ import { playerMove } from '../services/pong'
 import { PongRoom } from '../services/PongRoom';
 import { tournamentRoutes } from '../routes/tournament.routes';
 import { Tournament } from '../services/tournament';
+import * as UserManagement from '../db/userManagement'
 
 //ALIAS MANAGMENT 
 // username -> alias
@@ -52,6 +53,15 @@ export function getUserFromAlias(alias:string):string | undefined{
 
 export function removeAliasForUser(username: string): boolean {
   return Aliases.delete(username);
+}
+
+
+export async function handleAlias(player:Interfaces.playerInterface, data:any){
+
+	if(hasUserForAlias(data.alias!) === true || await UserManagement.getUserByName(data.alias!) !== null)
+		player.typedSocket.send('aliasCheck', {userID:player.userID , action:'Reply', response:'failure'});
+	else 
+		player.typedSocket.send('aliasCheck', {userID:player.userID, action:'Reply', reponse:'sucess'});
 }
 
 export async function handleJoinTournament(player:Interfaces.playerInterface, data:any){

@@ -169,27 +169,6 @@ async function handleConnection(ws: WebSocket, request: any) {
 	MappedClients.set(userId, ws);
 	const t = DisconnectTimers.get(userId);
 	if (t) { clearTimeout(t); DisconnectTimers.delete(userId); }
-
-	// Broadcast immediate presence to friends: "online" or "playing" if game says so
-	//Back send status update anytime we change state so no need to send here ? 
-	// try {
-	//   const relatedFriends = await chatManagement.getAllUsersWhoHaveMeAsFriend(userId) ?? [];
-	//   const now = computePresence(userId); // chat-connected => online/playing
-	//   for (const fid of relatedFriends) {
-	//     const friendSocket = MappedClients.get(fid);
-	//     if (friendSocket && friendSocket.readyState === WebSocket.OPEN) {
-	//       friendSocket.send(JSON.stringify({
-	//         type: 'friendStatus',
-	//         action: 'updateStatus',
-	//         targetID: fid,
-	//         friendID: userId,
-	//         status: now
-	//       }));
-	//     }
-	//   }
-	// } catch (e) {
-	//   console.error('Failed to broadcast online on connect:', e);
-	// }
 	
 		ws.on('close', async () => {
 		  const userID = fullUser.our_index;
@@ -251,6 +230,7 @@ async function handleConnection(ws: WebSocket, request: any) {
 			let parsed: any;
 			try {
 				parsed = JSON.parse(data.toString());
+				console.log(`parsed`, parsed);
 			} catch {
 				return ws.send(JSON.stringify({ error: 'Invalid JSON' }));
 			}
@@ -304,12 +284,13 @@ async function handleConnection(ws: WebSocket, request: any) {
 								content: msg.content
 							});
 						}
-	
+						console.log('SENDING CHAT HISTORY ...');
 						ws.send(JSON.stringify({
 							type: 'chatHistory',
 							roomID: roomID,
 							messages:result
 						}));
+						console.log('CHAT HISTORY SENT');
 					} catch (err) {
 						console.error('Failed to load history:', err);
 						ws.send(JSON.stringify({ type: 'system', message: 'Erreur chargement historique.' }));
@@ -441,18 +422,3 @@ export default fp(async fastify => {
 	});
 	wss.on('connection', handleConnection);
 });
-
-// export default fp(async (fastify) => {
-//   const wss = new WebSocketServer({ noServer: true });
-
-//   fastify.server.on('upgrade', (request, socket, head) => {
-// 	const { url } = request;
-// 	if (url?.startsWith('/gameSocket')) {
-// 	  wss.handleUpgrade(request, socket, head, (ws) => {
-// 		wss.emit('connection', ws, request);
-// 	  });
-// 	}
-//   });
-
-//   wss.on('connection', initGameSocket);
-// });

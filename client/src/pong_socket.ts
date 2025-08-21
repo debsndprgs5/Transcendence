@@ -16,7 +16,6 @@ import { Side} from './render/pong_render'
 export const pongState = 
 {
 	pongRenderer: null as PongRenderer | null,
-	// settingsRenderer: null as settingsRenderer|null,
 	localMapRenderer: null as any | null
 };
 
@@ -212,6 +211,10 @@ async function handleEvents(
 	});
 	typedSocket.on('updateGameRooms',async(socket:WebSocket, data:Interfaces.SocketMessageMap['updateGameRooms'])=>{
 		await handleGameRooms(data);
+	});
+
+	typedSocket.on('aliasCheck',async(socket:WebSocket, data:Interfaces.SocketMessageMap['aliasCheck'])=>{
+		await Tournament.handleAlias(data);
 	});
 }
 

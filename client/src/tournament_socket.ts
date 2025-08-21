@@ -96,3 +96,12 @@ export function handleUpdateTourScore(data:Interfaces.SocketMessageMap['updateTo
 		state.canvasViewState = 'waitingTournamentRounds';
 		showPongMenu();
 }
+
+export function handleAlias(data:Interfaces.SocketMessageMap['aliasCheck']){
+
+	if(data.response === 'failure'){
+		showNotification();
+	}
+	else {}
+		//return to tournament logic here ? 
+}

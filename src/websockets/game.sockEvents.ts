@@ -99,6 +99,10 @@ export function handleAllEvents(typedSocket:TypedSocket, player:Interfaces.playe
     const pongRoom = PongRoom.rooms.get(data.gameID);
     pongRoom?.setClientReady(data.userID);
   })
+
+  typedSocket.on('aliasCheck', async(socket:WebSocket, data:Interfaces.SocketMessageMap['aliasCheck']) => {
+    Tournaments.handleAlias(player, data);
+  })
 }
 
 

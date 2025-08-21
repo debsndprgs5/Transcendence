@@ -1175,7 +1175,7 @@ export async function handleLogout(): Promise<void> {
           duringGame: Boolean(gameID), isTourOwner: isOwner,
         });
       }
-      if (gameID) {
+      else if (gameID) {
         ts.send('leaveGame', { userID: state.userId, gameID, islegit: false });
       }
       await new Promise(res => setTimeout(res, 40));

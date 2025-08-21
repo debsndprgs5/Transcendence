@@ -39,19 +39,6 @@ function computePresence(userID: number, hint?: string): 'online'|'busy'|'offlin
 }
 
 
-async function getRightSockets(authorID: number): Promise<Map<number, WebSocket>> {
-	const filtered = new Map<number, WebSocket>();
-
-	for (const [clientID, socket] of MappedClients.entries()) {
-		const blocked = await chatManagement.getBlockedUsers(clientID);
-		const hasBlocked = blocked.some(user => user.related_userID === authorID);
-
-		if (!hasBlocked) {
-			filtered.set(clientID, socket);
-		}
-	}
-	return filtered;
-}
 
 export async function sendSystemMessage(chatRoomID:number, content:string){
 	if(chatRoomID <= 0 || !chatRoomID){
@@ -184,24 +171,25 @@ async function handleConnection(ws: WebSocket, request: any) {
 	if (t) { clearTimeout(t); DisconnectTimers.delete(userId); }
 
 	// Broadcast immediate presence to friends: "online" or "playing" if game says so
-	try {
-	  const relatedFriends = await chatManagement.getAllUsersWhoHaveMeAsFriend(userId) ?? [];
-	  const now = computePresence(userId); // chat-connected => online/playing
-	  for (const fid of relatedFriends) {
-	    const friendSocket = MappedClients.get(fid);
-	    if (friendSocket && friendSocket.readyState === WebSocket.OPEN) {
-	      friendSocket.send(JSON.stringify({
-	        type: 'friendStatus',
-	        action: 'updateStatus',
-	        targetID: fid,
-	        friendID: userId,
-	        status: now
-	      }));
-	    }
-	  }
-	} catch (e) {
-	  console.error('Failed to broadcast online on connect:', e);
-	}
+	//Back send status update anytime we change state so no need to send here ? 
+	// try {
+	//   const relatedFriends = await chatManagement.getAllUsersWhoHaveMeAsFriend(userId) ?? [];
+	//   const now = computePresence(userId); // chat-connected => online/playing
+	//   for (const fid of relatedFriends) {
+	//     const friendSocket = MappedClients.get(fid);
+	//     if (friendSocket && friendSocket.readyState === WebSocket.OPEN) {
+	//       friendSocket.send(JSON.stringify({
+	//         type: 'friendStatus',
+	//         action: 'updateStatus',
+	//         targetID: fid,
+	//         friendID: userId,
+	//         status: now
+	//       }));
+	//     }
+	//   }
+	// } catch (e) {
+	//   console.error('Failed to broadcast online on connect:', e);
+	// }
 	
 		ws.on('close', async () => {
 		  const userID = fullUser.our_index;
@@ -442,7 +430,7 @@ function handleDisconnect(userId: number, username: string, ws: WebSocket) {
 export default fp(async fastify => {
 
     const wss = new WebSocketServer({ noServer: true });
-   wss.on('connection', handleConnection);
+   
 
 	fastify.server.on('upgrade', (request, socket, head) => {
 		const { url } = request;
@@ -451,4 +439,20 @@ export default fp(async fastify => {
 				wss.emit('connection', ws, request);
 			});
 	});
+	wss.on('connection', handleConnection);
 });
+
+// export default fp(async (fastify) => {
+//   const wss = new WebSocketServer({ noServer: true });
+
+//   fastify.server.on('upgrade', (request, socket, head) => {
+// 	const { url } = request;
+// 	if (url?.startsWith('/gameSocket')) {
+// 	  wss.handleUpgrade(request, socket, head, (ws) => {
+// 		wss.emit('connection', ws, request);
+// 	  });
+// 	}
+//   });
+
+//   wss.on('connection', initGameSocket);
+// });

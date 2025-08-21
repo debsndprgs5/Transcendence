@@ -98,6 +98,11 @@ export async function initGameSocket(): Promise<void> {
 
 		gameSocket.onclose = (ev) => {
 			try {
+				if(state.playerInterface && state.playerInterface.gameID)
+					state.playerInterface.typedSocket.send('pause', {
+					userID: state.userId,
+					gameID: state.playerInterface.gameID
+					});
 				console.warn(`[GAME] WebSocket closed — code=${ev.code}, reason="${ev.reason}"`);
 				if (state.gameSocket?.readyState === WebSocket.OPEN)
 					state.typedSocket?.send('disconnected', {});

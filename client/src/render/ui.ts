@@ -230,10 +230,10 @@ export function setupGUI(ctx: RendererCtx) {
   const sep      = label(':', 18, '#EAF2FF', '600');
   const timeTxt  = label("0:00's", 18, '#FFFFFF', 'normal');
 
-  [gameName, sep, timeTxt].forEach(t => {
-    t.width = 'auto';
-    t.resizeToFit = true;
-  });
+  // [gameName, sep, timeTxt].forEach(t => {
+  //   t.width = 'auto';
+  //   t.resizeToFit = true;
+  // });
 
   center.addControl(gameName);
   center.addControl(sep);

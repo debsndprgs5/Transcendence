@@ -7,6 +7,7 @@ import path from 'path';
 import * as UserManagement from '../db/userManagement';
 
 import jwt from 'jsonwebtoken';
+import { getUserFromAlias, hasUserForAlias } from '../websockets/tournament.socket';
 
 export default async function accountRoutes(fastify: FastifyInstance) {
 	fastify.register(fastifyMultipart);
@@ -50,9 +51,14 @@ export default async function accountRoutes(fastify: FastifyInstance) {
 			if (!username) {
 				return reply.code(400).send({ error: 'Username required'});
 			}
-			const obj = await UserManagement.getAvatarUrl(username);
-			if (!obj)
-				return reply.code(404).send({ error: 'No avatar found'});
+			let obj = await UserManagement.getAvatarUrl(username);
+			if (!obj){
+				//AfterFall back, check if username is an alias
+				if(hasUserForAlias(username) === true)
+					obj = await UserManagement.getAvatarUrl(getUserFromAlias(username)!);
+					if(!obj)
+						return reply.code(404).send({ error: 'No avatar found'});
+			}
 			return reply.send({
 				avatar_url: obj.avatar_url
 			});

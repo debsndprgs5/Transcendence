@@ -353,7 +353,6 @@ export async function  handleReconnect(parsed:any ,player: Interfaces.playerInte
 	if (player.gameID) {
 		const room = PongRoom.rooms.get(player.gameID);
 		if (room) {
-			//room.resume(player.userID);
 			resumed = true;
 		}
 	}
@@ -374,6 +373,7 @@ export async function  handleReconnect(parsed:any ,player: Interfaces.playerInte
     	hasStarted:hasStarted,
 		message: resumed ? 'Game will be resumed' : 'No game to resume',
 	});
+  Helpers.updatePlayerState(player, player.state);
 }
 
 export async function handleDisconnect(player: Interfaces.playerInterface) {
@@ -384,8 +384,8 @@ export async function handleDisconnect(player: Interfaces.playerInterface) {
 
   if (player.gameID) {
     const room = PongRoom.rooms.get(player.gameID);
-    if (room) room.pause(player.userID);
-
+    if (room)
+      room.pause(player.userID);
     player.disconnectTimeOut = setTimeout(() => {
       const r = PongRoom.rooms.get(player.gameID!);
       if (r) r.stop();

@@ -1,6 +1,6 @@
 import { showNotification, showUserActionsBubble, dismissNotification } from './notifications';
 import { isAuthenticated, apiFetch, state } from './api';
-import { PongRenderer } from './render/NEW_pong_render';
+import { PongRenderer } from './render/pong_render';
 // import {settingsRenderer} from './settings_render';
 import * as Interfaces from './shared/gameTypes';
 import {createTypedEventSocket} from './shared/gameEventWrapper';
@@ -11,7 +11,7 @@ import * as BABYLON from "@babylonjs/core";
 import * as Tournament from './tournament_socket'
 import { handleLogout } from './handlers'
 import { LocalGameView } from './localGame/localGame.view';
-import { Side} from './render/NEW_pong_render'
+import { Side} from './render/pong_render'
 
 export const pongState = 
 {
@@ -98,6 +98,11 @@ export async function initGameSocket(): Promise<void> {
 
 		gameSocket.onclose = (ev) => {
 			try {
+				if(state.playerInterface && state.playerInterface.gameID)
+					state.playerInterface.typedSocket.send('pause', {
+					userID: state.userId,
+					gameID: state.playerInterface.gameID
+					});
 				console.warn(`[GAME] WebSocket closed — code=${ev.code}, reason="${ev.reason}"`);
 				if (state.gameSocket?.readyState === WebSocket.OPEN)
 					state.typedSocket?.send('disconnected', {});
@@ -317,81 +322,140 @@ export async function handleInvite(data: Interfaces.SocketMessageMap['invite']) 
   }
 }
 
-async function showEndMatchOverlay(
-	scene: BABYLON.Scene,
-	winner: { username: string; score: number },
-	loser:  { username: string; score: number },
-	onNext: () => void
-) {
-	const ui = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI", true, scene);
+// async function showEndMatchOverlay(
+// 	scene: BABYLON.Scene,
+// 	winner: { username: string; score: number },
+// 	loser:  { username: string; score: number },
+// 	onNext: () => void
+// ) {
+// 	const ui = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI", true, scene);
 
-	// semi-transparent backdrop
-	const overlay = new GUI.Rectangle();
-	overlay.background          = "rgba(0,0,0,0.6)";
-	overlay.width               = "90%";
-	overlay.height              = "90%";
-	overlay.thickness           = 0;
-	overlay.verticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-	overlay.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-	overlay.isPointerBlocker    = true;
-	ui.addControl(overlay);
+// 	// semi-transparent backdrop
+// 	const overlay = new GUI.Rectangle();
+// 	overlay.background          = "rgba(0,0,0,0.6)";
+// 	overlay.width               = "90%";
+// 	overlay.height              = "90%";
+// 	overlay.thickness           = 0;
+// 	overlay.verticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+// 	overlay.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+// 	overlay.isPointerBlocker    = true;
+// 	ui.addControl(overlay);
 
-	// 3-column grid
-	const grid = new GUI.Grid();
-	grid.addColumnDefinition(0.35);
-	grid.addColumnDefinition(0.30);
-	grid.addColumnDefinition(0.35);
-	grid.width  = "100%";
-	grid.height = "100%";
-	overlay.addControl(grid);
+// 	// 3-column grid
+// 	const grid = new GUI.Grid();
+// 	grid.addColumnDefinition(0.35);
+// 	grid.addColumnDefinition(0.30);
+// 	grid.addColumnDefinition(0.35);
+// 	grid.width  = "100%";
+// 	grid.height = "100%";
+// 	overlay.addControl(grid);
 
-	// --- LEFT PANEL (WIN) ---
-	const winPanel = new GUI.Rectangle();
-	winPanel.background = "green";
-	winPanel.thickness  = 0;
-	grid.addControl(winPanel, 0, 0);
+// 	// --- LEFT PANEL (WIN) ---
+// 	const winPanel = new GUI.Rectangle();
+// 	winPanel.background = "green";
+// 	winPanel.thickness  = 0;
+// 	grid.addControl(winPanel, 0, 0);
 
-	// Synchronous “WIN” label
-	const winLabel = new GUI.TextBlock();
-	winLabel.text                    = "WIN";
-	winLabel.color                   = "white";
-	winLabel.fontSize                = 24;
-	winLabel.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-	winLabel.textVerticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_TOP;
-	winLabel.paddingTop              = "10px";
-	winPanel.addControl(winLabel);
+// 	// Synchronous “WIN” label
+// 	const winLabel = new GUI.TextBlock();
+// 	winLabel.text                    = "WIN";
+// 	winLabel.color                   = "white";
+// 	winLabel.fontSize                = 24;
+// 	winLabel.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+// 	winLabel.textVerticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_TOP;
+// 	winLabel.paddingTop              = "10px";
+// 	winPanel.addControl(winLabel);
 
-	// Avatar
-	addAvatarPanel(winPanel, { username: winner.username, label: "" });
+// 	// Avatar
+// 	addAvatarPanel(winPanel, { username: winner.username, label: "" });
 
-	// --- CENTER STATS ---
-	const stats = new GUI.TextBlock();
-	stats.text                    = `Score\n${winner.username}: ${winner.score}\n${loser.username}: ${loser.score}`;
-	stats.color                   = "white";
-	stats.fontSize                = 20;
-	stats.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-	stats.textVerticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-	grid.addControl(stats, 0, 1);
+// 	// --- CENTER STATS ---
+// 	const stats = new GUI.TextBlock();
+// 	stats.text                    = `Score\n${winner.username}: ${winner.score}\n${loser.username}: ${loser.score}`;
+// 	stats.color                   = "white";
+// 	stats.fontSize                = 20;
+// 	stats.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+// 	stats.textVerticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+// 	grid.addControl(stats, 0, 1);
 
-	// --- RIGHT PANEL (LOSE) ---
-	const losePanel = new GUI.Rectangle();
-	losePanel.background = "red";
-	losePanel.thickness  = 0;
-	grid.addControl(losePanel, 0, 2);
+// 	// --- RIGHT PANEL (LOSE) ---
+// 	const losePanel = new GUI.Rectangle();
+// 	losePanel.background = "red";
+// 	losePanel.thickness  = 0;
+// 	grid.addControl(losePanel, 0, 2);
 
-	// Synchronous “LOSE” label
-	const loseLabel = new GUI.TextBlock();
-	loseLabel.text                    = "LOSE";
-	loseLabel.color                   = "white";
-	loseLabel.fontSize                = 24;
-	loseLabel.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-	loseLabel.textVerticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_TOP;
-	loseLabel.paddingTop              = "10px";
-	losePanel.addControl(loseLabel);
+// 	// Synchronous “LOSE” label
+// 	const loseLabel = new GUI.TextBlock();
+// 	loseLabel.text                    = "LOSE";
+// 	loseLabel.color                   = "white";
+// 	loseLabel.fontSize                = 24;
+// 	loseLabel.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+// 	loseLabel.textVerticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_TOP;
+// 	loseLabel.paddingTop              = "10px";
+// 	losePanel.addControl(loseLabel);
 
-	// Avatar
-	addAvatarPanel(losePanel, { username: loser.username, label: "" });
+// 	// Avatar
+// 	addAvatarPanel(losePanel, { username: loser.username, label: "" });
 
+	// // --- Next Button ---
+	// const nextBtn = GUI.Button.CreateSimpleButton("next", "Next");
+	// nextBtn.width               = "80px";
+	// nextBtn.height              = "32px";
+	// nextBtn.cornerRadius        = 4;
+	// nextBtn.color               = "white";
+	// nextBtn.background          = "gray";
+	// nextBtn.isPointerBlocker    = true;
+	// nextBtn.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+	// nextBtn.verticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+	// nextBtn.paddingRight        = "20px";
+	// nextBtn.paddingBottom       = "20px";
+	// ui.addControl(nextBtn);
+	// nextBtn.onPointerUpObservable.add(() => {
+	// 	ui.dispose();
+	// 	onNext();
+	// });
+// }
+
+function showEndMatchOverlay(
+  scene: BABYLON.Scene,
+  winner: { username: string; score: number },
+  loser:  { username: string; score: number },
+  onNext?: () => void
+): Promise<void> {
+  return new Promise<void>(async (resolve) => {
+    const ui = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI:end", true, scene);
+
+    const overlay = new GUI.Rectangle();
+    overlay.background = "rgba(0,0,0,0.6)";
+    overlay.width = "90%";
+    overlay.height = "90%";
+    overlay.thickness = 0;
+    overlay.isPointerBlocker = true;
+    ui.addControl(overlay);
+
+    const grid = new GUI.Grid();
+    grid.addColumnDefinition(0.35);
+    grid.addColumnDefinition(0.30);
+    grid.addColumnDefinition(0.35);
+    grid.width = "100%";
+    grid.height = "100%";
+    overlay.addControl(grid);
+
+    const winPanel = new GUI.Rectangle(); winPanel.thickness = 0; winPanel.background = "green";
+    const losePanel = new GUI.Rectangle(); losePanel.thickness = 0; losePanel.background = "red";
+    grid.addControl(winPanel, 0, 0);
+    grid.addControl(losePanel, 0, 2);
+
+    // wait for avatars to be created *before* we ever dispose the engine
+    await Promise.all([
+      addAvatarPanel(winPanel,  { username: winner.username, label: "" }),
+      addAvatarPanel(losePanel, { username: loser.username,  label: "" }),
+    ]);
+
+    const stats = new GUI.TextBlock();
+    stats.text = `Score\n${winner.username}: ${winner.score}\n${loser.username}: ${loser.score}`;
+    stats.color = "white";
+    grid.addControl(stats, 0, 1);
 	// --- Next Button ---
 	const nextBtn = GUI.Button.CreateSimpleButton("next", "Next");
 	nextBtn.width               = "80px";
@@ -405,10 +469,14 @@ async function showEndMatchOverlay(
 	nextBtn.paddingRight        = "20px";
 	nextBtn.paddingBottom       = "20px";
 	ui.addControl(nextBtn);
-	nextBtn.onPointerUpObservable.add(() => {
-		ui.dispose();
-		onNext();
-	});
+	 nextBtn.onPointerUpObservable.add(() => {
+      try { ui.dispose(); } catch {}
+      try { onNext?.(); } catch {}
+      resolve();               // <-- unblock caller here
+    });
+
+   
+  });
 }
 
 export async function addAvatarPanel(
@@ -471,7 +539,7 @@ export async function handleStartGame(data: Interfaces.SocketMessageMap['startGa
 	const count = Object.keys(data.usernames).length
 	const side:Side = data.side;
 	pongState.pongRenderer = new PongRenderer(canvas, state.typedSocket,
-		count, data.gameName,side, data.usernames);
+		count, data.gameName,side, data.usernames, false, state.playerInterface!.tournamentID? true: false);
 	state.playerInterface.gameID = data.gameID;
 	showNotification({ message: 'Game is loading please wait', type: 'success' });
 	await pongState.pongRenderer.loadGame();
@@ -510,6 +578,9 @@ export async function handleEndMatch(
 		return;
 	}
 	const scene = renderer.getScene();
+	if(!scene){
+		console.warn(`[ENDMATCH], Render found but no scene for it`, renderer);
+	}
 
 	const entries = Object.entries(data.playerScores) as [string, number][];
 	if (entries.length < 2) {
@@ -520,8 +591,8 @@ export async function handleEndMatch(
 
 	const [winnerName, winnerScore] = entries[0];
 	const [loserName,  loserScore ] = entries[1];
-	renderer.dispose();
-	pongState.pongRenderer = null;
+	// renderer.dispose();
+	// pongState.pongRenderer = null;
 	if (state.playerInterface!.tournamentID) {
 				state.playerInterface!.a_ID = data.a_ID
 				state.playerInterface!.b_ID = data.b_ID
@@ -540,27 +611,32 @@ export async function handleEndMatch(
 				localStorage.setItem('pong_view','waitingTournamentRounds');
 				showPongMenu();
 	}
-	else
-		showEndMatchOverlay(
-			scene,
-			{ username: winnerName, score: winnerScore },
-			{ username: loserName,  score: loserScore  },
-			() => {
-				state.canvasViewState = 'mainMenu';
-				localStorage.setItem('pong_view','mainMenu');
-				showPongMenu();
-			}
+	else {
+		renderer.removeUI(); // <- free the in-game HUD layer
+		await showEndMatchOverlay(
+		scene,
+		{ username: winnerName, score: winnerScore },
+		{ username: loserName,  score: loserScore },
+		() => {
+			state.canvasViewState = 'mainMenu';
+			localStorage.setItem('pong_view','mainMenu');
+			showPongMenu();
+		}
 		);
+	}
 
+  // send leaveGame
 	if (state.playerInterface?.socket && state.playerInterface.gameID !== undefined) {
 		state.typedSocket.send('leaveGame', {
-			userID: state.playerInterface.userID,
-			gameID: state.playerInterface.gameID,
-			islegit: true
+		userID: state.playerInterface.userID,
+		gameID: state.playerInterface.gameID,
+		islegit: true
 		});
-	} else {
-		console.warn('[ENDMATCH] Could not send leaveGame, missing socket or gameID.');
 	}
+
+	// only now kill the engine
+	renderer.dispose();
+	pongState.pongRenderer = null;
 }
 
 

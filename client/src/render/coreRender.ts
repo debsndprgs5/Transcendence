@@ -1,7 +1,7 @@
 // coreRender.ts
 import * as BABYLON from '@babylonjs/core';
 import { state } from '../api';
-import type { RendererCtx, Side } from './NEW_pong_render';
+import type { RendererCtx, Side } from './pong_render';
 import { updateHUD } from './ui';
 import {TypedSocket } from '../shared/gameTypes'
 

@@ -150,6 +150,12 @@ export async function beginGame(gameID: number, players: Interfaces.playerInterf
     console.log('[USERNAME for render] :',sideToUsername[side])
     updatePlayerState(player, 'playing');
   });
+  const aliases = new Map<string, string>();
+  if(players[0].tournamentID){
+    players.forEach((player) => {
+    aliases.set(getAliasForUser(player.username!), player.username!)
+  });
+  }
   let gameName = await GameManagement.getNamePerGameID(gameID);
   if(!gameName!.name)
       gameName!.name = `WE COULD PUT "EASTER EGG" HERE`;
@@ -163,7 +169,8 @@ export async function beginGame(gameID: number, players: Interfaces.playerInterf
       win_condition: gameDesc.winCondition,
       limit: gameDesc.limit,
       usernames: sideToUsername,
-      side:player.playerSide!
+      side:player.playerSide!,
+     // alias : player.tournamentID ? getAliasForUser(player.username) : undefined
     };
     player.typedSocket.send('startGame', startMsg);
   });

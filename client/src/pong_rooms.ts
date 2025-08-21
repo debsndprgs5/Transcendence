@@ -8,7 +8,7 @@ import { drawCreateGameView,
 		drawEndTournamentView } from './pong_views';
 import { showNotification } from './notifications';
 import { pongState } from './pong_socket';
-import { PongRenderer } from './render/NEW_pong_render'
+import { PongRenderer } from './render/pong_render'
 import { TypedSocket } from './shared/gameTypes';
 import { resizePongCanvas } from './handlers';
 import { handleTournamentClick, 

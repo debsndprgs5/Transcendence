@@ -32,44 +32,64 @@ const fakeGoalsHeatmapData = [
     { x: 4, y: 8, value: 19 },
 ];
 
-export function showBallPositionsHeatmap() {
-  const holder = document.getElementById('heatmap-holder');
-  if (holder) holder.innerHTML = '<span class="text-indigo-600">[Ball Positions heatmap placeholder]</span>';
+export function showWallBouncesHeatmap(data?: Array<{ x: number; y: number; value: number }>) {
+  // If caller passes data use it, otherwise show empty placeholder
+  showHeatmap(data ?? [], 'wall');
 }
 
-export function showWallBouncesHeatmap() {
-  const holder = document.getElementById('heatmap-holder');
-  if (holder) holder.innerHTML = '<span class="text-indigo-600">[Wall Bounces heatmap placeholder]</span>';
+export function showPaddleBouncesHeatmap(data?: Array<{ x: number; y: number; value: number }>) {
+  showHeatmap(data ?? [], 'paddle');
 }
 
-export function showPaddleBouncesHeatmap() {
-  const holder = document.getElementById('heatmap-holder');
-  if (holder) holder.innerHTML = '<span class="text-indigo-600">[Paddle Bounces heatmap placeholder]</span>';
+export function showGoalsHeatmap(data?: Array<{ x: number, y: number, value: number }>) {
+  showHeatmap(data ?? [], 'goals');
 }
 
-export function showGoalsHeatmap(data: Array<{ x: number, y: number, value: number }>) {
+let _canvas: HTMLCanvasElement | null = null;
+let _heat: any = null;
+const FIELD_W = 32, FIELD_H = 18;
+const CANVAS_W = 480, CANVAS_H = 270;
+
+function ensureCanvas(): HTMLCanvasElement | null {
+  if (_canvas) return _canvas;
   const holder = document.getElementById('heatmap-holder');
-  if (!holder) return;
-  data = fakeGoalsHeatmapData;      // a changer
-  if (!Array.isArray(data) || data.length === 0) {
-    holder.innerHTML = '<span class="text-gray-400">No goal data available.</span>';
-    return;
-  }
-  const fieldW = 32, fieldH = 18;
-  const canvasW = 480, canvasH = 270;
+  if (!holder) return null;
   holder.innerHTML = '';
   const canvas = document.createElement('canvas');
-  canvas.width = canvasW;
-  canvas.height = canvasH;
+  canvas.width = CANVAS_W;
+  canvas.height = CANVAS_H;
   canvas.style.width = '100%';
   canvas.style.maxWidth = '600px';
   canvas.style.height = 'auto';
   canvas.className = 'rounded shadow border bg-gray-100';
   holder.appendChild(canvas);
+  _canvas = canvas;
+  try {
+    _heat = simpleheat(canvas as any);
+  } catch (e) {
+    // ignore; will recreate on render
+    _heat = null;
+  }
+  return _canvas;
+}
 
+export function showHeatmap(data: Array<{ x: number; y: number; value: number }>, type: string = 'generic') {
+  const canvas = ensureCanvas();
+  const holder = document.getElementById('heatmap-holder');
+  if (!holder || !canvas) return;
+
+  if (!Array.isArray(data) || data.length === 0) {
+    holder.innerHTML = '<span class="text-gray-400">No data available for this heatmap.</span>';
+    // keep canvas element removed so next non-empty call recreates it
+    _canvas = null;
+    _heat = null;
+    return;
+  }
+
+  // compute canvas points from field coords
   const toCanvas = (x: number, y: number) => [
-    (x / fieldW) * canvasW,
-    (y / fieldH) * canvasH
+    (x / FIELD_W) * CANVAS_W,
+    (y / FIELD_H) * CANVAS_H
   ];
 
   const points: [number, number, number][] = data.map(d => {
@@ -77,41 +97,102 @@ export function showGoalsHeatmap(data: Array<{ x: number, y: number, value: numb
     return [cx, cy, d.value] as [number, number, number];
   });
 
-  const heat = simpleheat(canvas);
-  heat.data(points);
-  heat.radius(18, 16); // rayon, blur
-  heat.max(Math.max(...data.map(d => d.value)));
-  heat.draw(0.7);
+  if (!_heat) {
+    try {
+      _heat = simpleheat(canvas as any);
+    } catch (e) {
+      console.error('simpleheat failed to initialize', e);
+      return;
+    }
+  }
 
+  _heat.data(points);
+  _heat.radius(13, 15);
+  _heat.max(Math.max(...data.map(d => d.value)));
+  _heat.draw(0.7);
+
+  // draw decorations over the heatmap (borders, paddles)
   const ctx = canvas.getContext('2d');
   if (ctx) {
     ctx.save();
-    ctx.globalAlpha = 0.6; // transparence du décor
+    ctx.globalAlpha = 0.6;
     ctx.strokeStyle = '#666';
     ctx.lineWidth = 2;
     ctx.strokeRect(
-      (0.1/fieldW)*canvasW,
-      (0.1/fieldH)*canvasH,
-      ((fieldW-0.2)/fieldW)*canvasW,
-      ((fieldH-0.2)/fieldH)*canvasH
+      (0.1 / FIELD_W) * CANVAS_W,
+      (0.1 / FIELD_H) * CANVAS_H,
+      ((FIELD_W - 0.2) / FIELD_W) * CANVAS_W,
+      ((FIELD_H - 0.2) / FIELD_H) * CANVAS_H
     );
-    // Paddles
     const paddleW = 1.5, paddleH = 4.2;
     ctx.fillStyle = '#666';
-    // Gauche
+    // left
     ctx.fillRect(
-      (1.2/fieldW)*canvasW,
-      ((fieldH/2-paddleH/2)/fieldH)*canvasH,
-      (paddleW/fieldW)*canvasW,
-      (paddleH/fieldH)*canvasH
+      (1.2 / FIELD_W) * CANVAS_W,
+      ((FIELD_H / 2 - paddleH / 2) / FIELD_H) * CANVAS_H,
+      (paddleW / FIELD_W) * CANVAS_W,
+      (paddleH / FIELD_H) * CANVAS_H
     );
-    // Droite
+    // right
     ctx.fillRect(
-      ((fieldW-1.2-paddleW)/fieldW)*canvasW,
-      ((fieldH/2-paddleH/2)/fieldH)*canvasH,
-      (paddleW/fieldW)*canvasW,
-      (paddleH/fieldH)*canvasH
+      ((FIELD_W - 1.2 - paddleW) / FIELD_W) * CANVAS_W,
+      ((FIELD_H / 2 - paddleH / 2) / FIELD_H) * CANVAS_H,
+      (paddleW / FIELD_W) * CANVAS_W,
+      (paddleH / FIELD_H) * CANVAS_H
     );
     ctx.restore();
   }
+}
+
+export function gameToHeatmap2p(
+  gameX: number,
+  gameZ: number,
+  fieldW = 32,
+  fieldH = 18
+): { x: number; y: number } {
+  const arenaW = 32;
+  const arenaL = 18;
+  const wallLength = 0.25; // side wall thickness along X
+  const wallDepth = 0.5;   // front/back wall thickness along Z
+
+  // interior bounds (space usable for ball centers)
+  const minX = -arenaW / 2 + wallLength; // -15.75
+  const maxX = arenaW / 2 - wallLength;  //  15.75
+  const minZ = -arenaL / 2 + wallDepth;  // -8.5
+  const maxZ = arenaL / 2 - wallDepth;   //  8.5
+
+  // clamp to interior
+  const cx = Math.max(minX, Math.min(maxX, gameX));
+  const cz = Math.max(minZ, Math.min(maxZ, gameZ));
+
+  // normalized [0..1]
+  const nx = (cx - minX) / (maxX - minX);
+  const nz = (cz - minZ) / (maxZ - minZ);
+
+  // map to heatmap field coordinates
+  const hx = nx * fieldW;
+  const hy = nz * fieldH;
+  return { x: hx, y: hy };
+}
+
+export function convertBouncesToHeatmap2p(
+  bounces: Array<{ position_x: number; position_y: number; value?: number }>,
+  fieldW = 32,
+  fieldH = 18
+): Array<{ x: number; y: number; value: number }> {
+  const counts = new Map<string, number>();
+  for (const b of bounces) {
+    const mapped = gameToHeatmap2p(b.position_x, b.position_y, fieldW, fieldH);
+    const rx = Math.round(mapped.x);
+    const ry = Math.round(mapped.y);
+    const key = `${rx},${ry}`;
+    const add = typeof b.value === 'number' ? b.value : 1;
+    counts.set(key, (counts.get(key) ?? 0) + add);
+  }
+  const out: Array<{ x: number; y: number; value: number }> = [];
+  for (const [k, v] of counts.entries()) {
+    const [sx, sy] = k.split(',').map(Number);
+    out.push({ x: sx, y: sy, value: v });
+  }
+  return out;
 }

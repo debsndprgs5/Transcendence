@@ -70,6 +70,7 @@ export interface RendererCtx {
 	gameName: string;
 	isPaused:boolean;
 	isLocal:boolean;
+	isTour:boolean;
 
 	// game objects
 	frontWalls: BABYLON.InstancedMesh[];
@@ -91,6 +92,7 @@ export interface RendererCtx {
 
 	// misc
 	playersInfo: Record<Side, string>;
+	Aliases?: Map<string, number>;
 	socket: TypedSocket;
 }
 
@@ -105,7 +107,9 @@ export class PongRenderer {
 		gameName: string,
 		playerSide: Side,
 		usernames: Record<Side, string>,
-		isLocal?:boolean
+		isLocal?:boolean,
+		isTour?:boolean,
+		Aliases?: Map<string, number>
 	) {
 		// persist a few bits for other pages/debug
 		localStorage.setItem('playerCount', String(playerCount));
@@ -113,7 +117,9 @@ export class PongRenderer {
 		localStorage.setItem('usernames', JSON.stringify(usernames));
 		if (gameName !== undefined) localStorage.setItem('gameName', gameName);
 
-		const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: false, stencil: true });
+		const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: false, stencil: true,
+			//adaptToDeviceRatio: true
+			});
 		const scene = new BABYLON.Scene(engine);
 		const glow = new BABYLON.GlowLayer('glow', scene, { blurKernelSize: 16 });
 		glow.intensity = 0.35;
@@ -121,11 +127,11 @@ export class PongRenderer {
 		// minimal camera; real setup happens in world.setupCamera
 		let camera = new BABYLON.FreeCamera('MockCamera', new BABYLON.Vector3(0, 80, 0), scene);
 		camera.setTarget(BABYLON.Vector3.Zero());
-		if(!isLocal)
-			isLocal = false;
+		if(!isLocal) isLocal = false;
+		if(!isTour) isTour = false;
 		this.ctx = {
 			engine, scene, camera, glow,
-			playerCount, playerSide,gameName,isLocal,
+			playerCount, playerSide,gameName,isLocal,isTour,
 			frontWalls: [], sideWalls: [],
 			paddles: [], paddleRoots: {},
 			ufos: [],
@@ -134,6 +140,7 @@ export class PongRenderer {
 			isPaused: false,
 			playersInfo: usernames,
 			socket: typedSocket,
+			Aliases
 		};
 	}
 
@@ -159,15 +166,16 @@ export class PongRenderer {
 
 		// Arena & game objects
 		await createWalls(ctx);
-		await createPaddles(ctx);   // sets ctx.paddles & ctx.paddleRoots
-		await createBall(ctx);      // sets ctx.ballObj
+		await createPaddles(ctx);
+		await createBall(ctx);
 
 		// UI 
-		setupGUI(ctx);            
+		setupGUI(ctx);           
 		setupPauseUI(ctx);
 		setupWaitingUI(ctx);
 		updatePauseUI(ctx);
-		updateWaitingUI(ctx, true);   
+		updateWaitingUI(ctx, true);
+		this.handleResize(); 
 		
 
 		// Input + loop + resize
@@ -186,7 +194,7 @@ export class PongRenderer {
 	}
 
 	public async setWaiting(waiting:boolean){
-		 updateWaitingUI(this.ctx, waiting);
+		updateWaitingUI(this.ctx, waiting);
 	}
 
 	public resumeRenderLoop() {
@@ -199,6 +207,13 @@ export class PongRenderer {
 	public getScene(): BABYLON.Scene {
 		return this.ctx.scene;
 	}
+	public removeUI() {
+		const ui = this.ctx.ui;
+		if (!ui) return;
+		try { ui.leaveBtn?.onPointerUpObservable.clear(); } catch {}
+		ui.adt.dispose();          // nukes all top/bottom bars, chips, etc.
+		this.ctx.ui = undefined;   // mark as gone
+	}
 	public handleResize() {
 		window.addEventListener("resize", () => {
 			this.ctx.engine.resize();
@@ -208,8 +223,7 @@ export class PongRenderer {
 		const { ctx } = this;
 		ctx.engine.stopRenderLoop();
 		if (ctx.ufoObserver) ctx.scene.onBeforeRenderObservable.remove(ctx.ufoObserver);
-		stopUfoLoop(ctx); // safety no-op if none
+		stopUfoLoop(ctx);
 		ctx.engine.dispose();
-		// input listeners are removed by registerInput's disposer (we tie to scene dispose implicitly here)
 	}
 }

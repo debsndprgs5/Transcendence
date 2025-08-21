@@ -165,6 +165,7 @@ export function initLocalGameConfig(
 			if (b.action === "startLocalGame")
 			{
 				onStart({ ...localGameFormData });
+				//state.typedSocket.send();
 				return;
 			}
 

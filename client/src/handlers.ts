@@ -325,7 +325,6 @@ export function resizePongCanvas(): void {
   const { width, height } = wrapper.getBoundingClientRect();
   canvas.width  = Math.round(width);
   canvas.height = Math.round(height);
-	console.log('Wrapper size:', wrapper.getBoundingClientRect());
 }
 
 // =======================
@@ -1154,26 +1153,29 @@ export async function handleLogout(): Promise<void> {
 	  const gameWS = state.playerInterface?.socket;
 	  if (ts && gameWS?.readyState === WebSocket.OPEN) {
 	    ts.send('disconnected', {});
-	    await new Promise(res => setTimeout(res, 30)); // tiny grace period
+	    //await new Promise(res => setTimeout(res, 30)); // tiny grace period
 	  }
 	} catch {}
-  try {
-		if (state.socket?.readyState === WebSocket.OPEN) {
-			state.socket?.close();
-		}
-  } catch {}
+
 
   try {
     const ts = state.playerInterface?.typedSocket;
     const gameWSOpen = state.playerInterface?.socket?.readyState === WebSocket.OPEN;
     if (ts && gameWSOpen) {
       if (tourID) {
+		const { chatID } = await apiFetch(`/api/tournaments/chat/${tourID}`);
+			state.socket?.send(JSON.stringify({
+			type:'systemMessage',
+			chatRoomID:chatID,
+			content: `${localStorage.getItem('username')} just left tournament !`
+		}));
+		await rmMemberFromRoom(chatID, state.userId!);
         ts.send('leaveTournament', {
           userID: state.userId, tournamentID: tourID, islegit: false,
           duringGame: Boolean(gameID), isTourOwner: isOwner,
         });
       }
-      if (gameID) {
+      else if (gameID) {
         ts.send('leaveGame', { userID: state.userId, gameID, islegit: false });
       }
       await new Promise(res => setTimeout(res, 40));

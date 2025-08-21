@@ -6,7 +6,7 @@ import { drawCreateGameView,
     drawWaitingTournamentView } from './pong_views';
 import { showNotification } from './notifications';
 import { pongState } from './pong_socket';
-import { PongRenderer } from './render/NEW_pong_render'
+import { PongRenderer } from './render/pong_render'
 import { TypedSocket } from './shared/gameTypes';
 import { resizePongCanvas } from './handlers';
 import { PongButton, showPongMenu } from './pong_rooms';
@@ -172,7 +172,8 @@ export async function handleCreateTournament(): Promise<void> {
 
 // Handles the "Join Tournament" button action
 export async function handleJoinTournament(tourID: number): Promise<void> {
-    
+  
+  const alias = `alias of ${state.playerInterface!.username}`//PUT alias input here
 	if(state.playerInterface!.state !== 'init'){
 		showNotification({message:`You can't join tournament because you are ${state.playerInterface!.state}`, type:'error'})
 		return;
@@ -183,7 +184,7 @@ export async function handleJoinTournament(tourID: number): Promise<void> {
     userID:state.userId,
     tournamentID:tourID,
     isTourOwner:state.playerInterface!.isTourOwner,
-      alias:`alias of ${state.playerInterface!.username}`//PUT alias inpput here
+      alias:alias
   });
   //join linked chatRoom
   const { chatID } = await apiFetch(`/api/tournaments/chat/${tourID}`);
@@ -193,7 +194,7 @@ export async function handleJoinTournament(tourID: number): Promise<void> {
   state.socket?.send(JSON.stringify({
     type:'systemMessage',
     chatRoomID:chatID,
-    content: `${localStorage.getItem('username')} just join tournament !`
+    content: `${alias} just join tournament !`
   }));
 
 

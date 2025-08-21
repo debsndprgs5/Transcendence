@@ -1,4 +1,3 @@
-// coreRender.ts
 import * as BABYLON from '@babylonjs/core';
 import { state } from '../api';
 import type { RendererCtx, Side } from './pong_render';
@@ -46,13 +45,18 @@ export function registerInput(ctx: RendererCtx) {
 }
 
 function sendMove(dir: 'left'|'right'|'stop', socket:TypedSocket) {
-  if (state.playerInterface!.gameID !== undefined && state.userId !== undefined) {
+  if (state.playerInterface && state.playerInterface.gameID !== undefined && state.userId !== undefined) {
       socket.send('playerMove', {
-      gameID: state.playerInterface!.gameID,
+      gameID: state.playerInterface.gameID,
       userID: state.userId,
       direction: dir,
     });
   }
+}
+
+
+export function attachResize(ctx: RendererCtx) {
+  window.addEventListener('resize', () => ctx.engine.resize());
 }
 
 function processInput(ctx: RendererCtx) {
@@ -78,9 +82,6 @@ export function startRenderLoop(ctx: RendererCtx) {
   });
 }
 
-export function attachResize(ctx: RendererCtx) {
-  window.addEventListener('resize', () => ctx.engine.resize());
-}
 
 export function processNetworkUpdate(ctx: RendererCtx, update: UpdatePayload) {
   ctx.isPaused = update.isPaused;

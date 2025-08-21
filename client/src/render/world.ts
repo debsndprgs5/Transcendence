@@ -1,4 +1,3 @@
-// world.ts
 import * as BABYLON from '@babylonjs/core';
 import { TerrainMaterial } from '@babylonjs/materials/terrain';
 import * as LIMIT from '../shared/gameTypes';

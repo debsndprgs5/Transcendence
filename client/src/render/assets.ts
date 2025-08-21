@@ -1,4 +1,3 @@
-// shared/assets.ts
 import * as BABYLON from '@babylonjs/core';
 
 export async function loadModelAsContainer(

@@ -235,6 +235,8 @@ export async function handleInit(data:Interfaces.SocketMessageMap['init'], gameS
 }
 
 
+
+
 export async function handleJoinGame(data:Interfaces.SocketMessageMap['joinGame']){
 		if(data.success === false)
 			showNotification({ message:`Unable to join game because ${data.reason}` , type: 'error' });
@@ -242,45 +244,69 @@ export async function handleJoinGame(data:Interfaces.SocketMessageMap['joinGame'
 			showNotification({ message:`Game joined with success${data.gameID}` , type: 'success' });
 }
 
+
+function toUsername(val: any): string {
+  if (typeof val === 'string') return val.trim();
+
+  if (val && typeof val === 'object' && typeof val.username === 'string') {
+    return val.username.trim();
+  }
+  if (val && typeof val === 'object' && val.username && typeof val.username.username === 'string') {
+    return val.username.username.trim();
+  }
+  if (val && typeof val === 'object' && typeof val.name === 'string') {
+    return val.name.trim();
+  }
+  try { return String(val).trim(); } catch { return 'Unknown User'; }
+}
+
 export async function handleInvite(data: Interfaces.SocketMessageMap['invite']) {
-  // Replies to inviter
+  // Replies received by the inviter
   if (data.action === 'reply') {
+    // clear local lock if any
     if ((state as any).inviteLock) (state as any).inviteLock = null;
 
+    const anyData = data as any;
+    const waitKey =
+      anyData.targetID ??
+      ((data.toID === state.userId) ? data.fromID : data.toID) ??
+      (state as any).inviteLock?.targetId;
 
-    dismissNotification(`invite-wait-${data.fromID}`);
+    if (waitKey != null) {
+      dismissNotification(`invite-wait-${waitKey}`);
+    }
 
     const resp = data.response;
     if (resp === 'accept') {
-      showNotification({ message: 'Invitation acceptée ✅', type: 'success', duration: 2000 });
+      showNotification({ message: 'Invitation accepted ✅', type: 'success', duration: 2000 });
     } else if (resp === 'decline') {
-      showNotification({ message: 'Invitation refusée ❌', type: 'error', duration: 2500 });
+      showNotification({ message: 'Invitation declined ❌', type: 'error', duration: 2500 });
     } else if (resp === 'timeout') {
-      showNotification({ message: 'Invitation expirée ⏲️', type: 'warning', duration: 2500 });
+      showNotification({ message: 'Invitation timed out ⏲️', type: 'warning', duration: 2500 });
     } else if (resp === 'offline') {
-      showNotification({ message: 'Joueur hors ligne', type: 'warning', duration: 2500 });
+      showNotification({ message: 'Player is offline ⚠️', type: 'warning', duration: 2500 });
     } else if (resp === 'busy') {
-      showNotification({ message: 'Joueur occupé', type: 'warning', duration: 2500 });
+      showNotification({ message: 'Player is busy ⚠️', type: 'warning', duration: 2500 });
     } else if (resp === 'you cannot invite yourself') {
-      showNotification({ message: 'Tu ne peux pas t’inviter toi-même 😅', type: 'warning', duration: 2500 });
+      showNotification({ message: 'You cannot invite yourself ⚠️', type: 'warning', duration: 2500 });
     } else if (resp === 'already_pending') {
-      showNotification({ message: 'Invitation déjà en attente…', type: 'info', duration: 2500 });
+      showNotification({ message: 'Invitation already pending ⏲️', type: 'info', duration: 2500 });
     }
-    return;
+    return
   }
 
-  // Invitee receives prompt
+  // Invitee receives a prompt
   if (data.action === 'receive') {
-
     const inviterID = data.fromID;
     if (!inviterID || Number.isNaN(inviterID)) return;
 
     const promptId = `invite-prompt-from-${inviterID}`;
-    const username = await apiFetch(`/user/by-index/${inviterID}`);
+    const raw_user = await apiFetch(`/user/by-index/${inviterID}`); // likely returns a string
+    const uname = toUsername(raw_user);
 
     showNotification({
       id: promptId,
-      message: `${username} t’invite à jouer. Rejoindre ?`,
+      message: `${uname} invited you to play. Join?`,
       type: 'confirm',
       onConfirm: async () => {
         state.typedSocket.send('invite', { action: 'reply', response: 'accept', fromID: state.userId, toID: inviterID });
@@ -292,7 +318,7 @@ export async function handleInvite(data: Interfaces.SocketMessageMap['invite']) 
     return;
   }
 
-  // Invitation expired 
+  // Invitation expired
   if (data.action === 'expired') {
     const inviterID = data.inviterID;
     const targetID  = data.targetID;
@@ -303,10 +329,11 @@ export async function handleInvite(data: Interfaces.SocketMessageMap['invite']) 
     }
     if (inviterID) dismissNotification(`invite-prompt-from-${inviterID}`);
 
-    showNotification({ message: 'Invite request expired...', type: 'warning', duration: 2500 });
+    showNotification({ message: 'Invite request expired…', type: 'warning', duration: 2500 });
     return;
   }
 
+  // Invitation cancelled
   if (data.action === 'cancelled') {
     const inviterID = data.inviterID;
     const targetID  = data.targetID;
@@ -317,104 +344,11 @@ export async function handleInvite(data: Interfaces.SocketMessageMap['invite']) 
     }
     if (inviterID) dismissNotification(`invite-prompt-from-${inviterID}`);
 
-    showNotification({ message: 'Invite request cancelled !', type: 'info', duration: 2200 });
+    showNotification({ message: 'Invite request was cancelled', type: 'info', duration: 2200 });
     return;
   }
 }
 
-// async function showEndMatchOverlay(
-// 	scene: BABYLON.Scene,
-// 	winner: { username: string; score: number },
-// 	loser:  { username: string; score: number },
-// 	onNext: () => void
-// ) {
-// 	const ui = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI", true, scene);
-
-// 	// semi-transparent backdrop
-// 	const overlay = new GUI.Rectangle();
-// 	overlay.background          = "rgba(0,0,0,0.6)";
-// 	overlay.width               = "90%";
-// 	overlay.height              = "90%";
-// 	overlay.thickness           = 0;
-// 	overlay.verticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-// 	overlay.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-// 	overlay.isPointerBlocker    = true;
-// 	ui.addControl(overlay);
-
-// 	// 3-column grid
-// 	const grid = new GUI.Grid();
-// 	grid.addColumnDefinition(0.35);
-// 	grid.addColumnDefinition(0.30);
-// 	grid.addColumnDefinition(0.35);
-// 	grid.width  = "100%";
-// 	grid.height = "100%";
-// 	overlay.addControl(grid);
-
-// 	// --- LEFT PANEL (WIN) ---
-// 	const winPanel = new GUI.Rectangle();
-// 	winPanel.background = "green";
-// 	winPanel.thickness  = 0;
-// 	grid.addControl(winPanel, 0, 0);
-
-// 	// Synchronous “WIN” label
-// 	const winLabel = new GUI.TextBlock();
-// 	winLabel.text                    = "WIN";
-// 	winLabel.color                   = "white";
-// 	winLabel.fontSize                = 24;
-// 	winLabel.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-// 	winLabel.textVerticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_TOP;
-// 	winLabel.paddingTop              = "10px";
-// 	winPanel.addControl(winLabel);
-
-// 	// Avatar
-// 	addAvatarPanel(winPanel, { username: winner.username, label: "" });
-
-// 	// --- CENTER STATS ---
-// 	const stats = new GUI.TextBlock();
-// 	stats.text                    = `Score\n${winner.username}: ${winner.score}\n${loser.username}: ${loser.score}`;
-// 	stats.color                   = "white";
-// 	stats.fontSize                = 20;
-// 	stats.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-// 	stats.textVerticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-// 	grid.addControl(stats, 0, 1);
-
-// 	// --- RIGHT PANEL (LOSE) ---
-// 	const losePanel = new GUI.Rectangle();
-// 	losePanel.background = "red";
-// 	losePanel.thickness  = 0;
-// 	grid.addControl(losePanel, 0, 2);
-
-// 	// Synchronous “LOSE” label
-// 	const loseLabel = new GUI.TextBlock();
-// 	loseLabel.text                    = "LOSE";
-// 	loseLabel.color                   = "white";
-// 	loseLabel.fontSize                = 24;
-// 	loseLabel.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-// 	loseLabel.textVerticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_TOP;
-// 	loseLabel.paddingTop              = "10px";
-// 	losePanel.addControl(loseLabel);
-
-// 	// Avatar
-// 	addAvatarPanel(losePanel, { username: loser.username, label: "" });
-
-	// // --- Next Button ---
-	// const nextBtn = GUI.Button.CreateSimpleButton("next", "Next");
-	// nextBtn.width               = "80px";
-	// nextBtn.height              = "32px";
-	// nextBtn.cornerRadius        = 4;
-	// nextBtn.color               = "white";
-	// nextBtn.background          = "gray";
-	// nextBtn.isPointerBlocker    = true;
-	// nextBtn.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
-	// nextBtn.verticalAlignment   = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
-	// nextBtn.paddingRight        = "20px";
-	// nextBtn.paddingBottom       = "20px";
-	// ui.addControl(nextBtn);
-	// nextBtn.onPointerUpObservable.add(() => {
-	// 	ui.dispose();
-	// 	onNext();
-	// });
-// }
 
 function showEndMatchOverlay(
   scene: BABYLON.Scene,

@@ -35,6 +35,12 @@ export async function handleTournamentClick(canvas: HTMLCanvasElement, x: number
 		x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h
 	);
 	if (!clickedBtn) return;
+  if (state.playerInterface!.state !== 'init')
+  {
+    console.warn('No no no | ', state.playerInterface!.state);
+    state.canvasViewState = 'mainMenu'
+    return;
+  }
 
 	switch (clickedBtn.action) {
 		case 'editTournamentName':

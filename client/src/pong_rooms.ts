@@ -356,6 +356,12 @@ async function handleMainMenuClick(canvas: HTMLCanvasElement, x: number, y: numb
 		x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h
 	);
 	if (!btnMain) return;
+	if (state.playerInterface!.state !== 'init')
+	{
+		console.warn('No no no | ', state.playerInterface!.state);
+		state.canvasViewState = 'mainMenu'
+		return;
+	}
 
 	switch (btnMain.action) {
 		case 'Create Game':
@@ -390,6 +396,13 @@ async function handleCreateGameClick(canvas: HTMLCanvasElement, x: number, y: nu
 	const btnCreate = canvas._createGameButtons?.find((b: PongButton) =>
 		x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h
 	);
+
+	if (state.playerInterface!.state !== 'init')
+	{
+		console.warn('No no no | ', state.playerInterface!.state);
+		state.canvasViewState = 'mainMenu'
+		return;
+	}
 	if (btnCreate) {
 		await handleCreateGameButton(btnCreate.action);
 		showPongMenu();
@@ -435,6 +448,12 @@ async function handleJoinGameClick(canvas: HTMLCanvasElement, x: number, y: numb
 	const btns = (canvas as any)._joinGameButtons as PongButton[] | undefined;
 	if (!btns) return;
 
+	if (state.playerInterface!.state !== 'init')
+	{
+		console.warn('No no no | ', state.playerInterface!.state);
+		state.canvasViewState = 'mainMenu'
+		return;
+	}
 	const clickedBtn = btns.find((b: PongButton) =>
 		x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h
 	);
@@ -543,6 +562,12 @@ async function handleCreateGameButton(action: string): Promise<void> {
 			break;
 
 		case 'confirmGame':
+			if (state.playerInterface!.state !== 'init')
+			{
+				console.warn('No no no | ', state.playerInterface!.state);
+				state.canvasViewState = 'mainMenu'
+				break;
+			}
 			const reply = await apiFetch(`/api/pong/${state.userId}`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },

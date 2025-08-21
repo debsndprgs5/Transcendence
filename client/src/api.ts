@@ -33,6 +33,7 @@ export interface AppState {
 		paddleSpeed: number;
 		winningScore: number;
 	};
+	alias?:string;
 }
 
 export const state: AppState = {
@@ -57,6 +58,8 @@ export const state: AppState = {
 	paddleInterface: undefined,
 	gameInterface: undefined,
 	localGameConfig: undefined,
+	alias: undefined
+
 };
 
 export function resetState() {
@@ -154,7 +157,8 @@ export async function apiFetch<T = any>(
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────
-
+ //Sleep function 
+ export const sleep = (ms: number) => new Promise<void>(async r => setTimeout(r, ms));
 /**
  * Reads the `userId` cookie and returns it as a number.
  */
@@ -236,10 +240,12 @@ export async function initWebSocket(): Promise<void> {
 
 		state.socket = new WebSocket(wsUrl);
 
-		return new Promise<void>((resolve, reject) => {
-			state.socket!.onopen = () => {
+		return new Promise<void>(async (resolve, reject) => {
+			state.socket!.onopen = async () => {
 				console.log('[CHAT] WebSocket connected');
-				state.socket!.send(
+				await sleep(150);
+				
+				await state.socket!.send(
 					JSON.stringify({
 						type: 'chatHistory',
 						roomID: state.currentRoom,
@@ -252,6 +258,7 @@ export async function initWebSocket(): Promise<void> {
 					window.location.pathname === '/account' &&
 					state.friendsStatusList?.length
 				) {
+					console.log('[CHAT] User in account view , not sending chatHistory');
 					state.socket!.send(
 						JSON.stringify({
 							type: 'friendStatus',
@@ -260,6 +267,7 @@ export async function initWebSocket(): Promise<void> {
 						})
 					);
 				}
+				console.log(`[CHAT RESOLVED]`)
 				resolve(); // Resolve when ready to use
 			};
 

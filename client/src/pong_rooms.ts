@@ -388,10 +388,9 @@ async function handleMainMenuClick(canvas: HTMLCanvasElement, x: number, y: numb
 				type: 'prompt',
 				placeholder: 'XxX_D4RK_K1LL3R_XxX',
 				onConfirm: val => {
-					state.canvasViewState = 'tournament';
-					showPongMenu();
+					state.typedSocket.send('aliasCheck', {action: 'Post', alias: val});
 				},
-				onCancel: val => {
+				onCancel:() => {
 					showNotification({
 						message: 'You have to type an alias if you want to participate in a tournament.',
 						type: 'error',

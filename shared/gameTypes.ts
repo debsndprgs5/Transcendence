@@ -12,52 +12,6 @@ export interface tournamentInterface{
 }
 
 
-export type PreferencesRow = {
-	userID: number;
-	camera_mode: string;
-	camera_angle: number;
-	camera_focus: string;
-	camera_pos_x: number;
-	camera_pos_y: number;
-	camera_pos_z: number;
-	light_intensity: number;
-
-	paddle_color: string;
-	paddle_texture: string | null;
-	paddle_material: string;
-
-	op_paddle_color: string;
-	op_paddle_texture: string | null;
-	op_paddle_material: string;
-
-	ball_color: string;
-	ball_texture: string | null;
-	ball_material: string;
-	ball_trail_enabled: number;
-
-	wall_color: string;
-	wall_texture: string | null;
-	wall_material: string;
-
-	sound_wall_bounce: number;
-	sound_paddle_bounce: number;
-	sound_point_win: string;
-	sound_point_lose: string;
-
-	avatar_enabled: number;
-	avatar_follow_paddle: number;
-	avatar_offset: number;
-	avatar_size: number;
-	ui_font: string;
-	ui_font_size: number;
-	ui_font_color: string;
-	ui_scale: number;
-	ui_score_position: string;
-	ui_name_position: string;
-};
-
-
-
 export interface playerInterface<SocketType= any>{
 	userID:number,
 	username?:string,
@@ -330,6 +284,11 @@ export type SocketMessageMap = {
 							roomID:number;
 							roomName:string;
 						}[];
+	};
+	aliasCheck:{	type: 'aliasCheck';
+					action: 'Post'| 'Reply';
+					response?: 'sucess'| 'failure';
+					alias?: string;
 	};
 };
 

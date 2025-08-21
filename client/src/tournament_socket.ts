@@ -96,3 +96,31 @@ export function handleUpdateTourScore(data:Interfaces.SocketMessageMap['updateTo
 		state.canvasViewState = 'waitingTournamentRounds';
 		showPongMenu();
 }
+
+export function handleAlias(data:Interfaces.SocketMessageMap['aliasCheck']){
+
+	if(data.response === 'failure'){
+		showNotification({
+				message: 'Type a unique alias for tournament',
+				type: 'prompt',
+				placeholder: 'XxX_D4RK_K1LL3R_XxX',
+				onConfirm: val => {
+					state.typedSocket.send('aliasCheck', {action: 'Post', alias: val});
+				},
+				onCancel:() => {
+					showNotification({
+						message: 'You have to type an alias if you want to participate in a tournament.',
+						type: 'error',
+					});
+					state.canvasViewState = 'mainMenu';
+					showPongMenu();
+				}
+			});
+	}
+	else {
+		state.canvasViewState = 'tournament';
+		state.alias = data.alias!;
+		showPongMenu();
+	}
+		//return to tournament logic here ? 
+}

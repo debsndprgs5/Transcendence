@@ -7,6 +7,7 @@ import { playerMove } from '../services/pong'
 import { PongRoom } from '../services/PongRoom';
 import { tournamentRoutes } from '../routes/tournament.routes';
 import { Tournament } from '../services/tournament';
+import * as UserManagement from '../db/userManagement'
 
 //ALIAS MANAGMENT 
 // username -> alias
@@ -54,6 +55,15 @@ export function removeAliasForUser(username: string): boolean {
   return Aliases.delete(username);
 }
 
+
+export async function handleAlias(player:Interfaces.playerInterface, data:any){
+
+	if(hasUserForAlias(data.alias!) === true || await UserManagement.getUserByName(data.alias!) !== null)
+		player.typedSocket.send('aliasCheck', {userID:player.userID , action:'Reply', response:'failure'});
+	else 
+		player.typedSocket.send('aliasCheck', {userID:player.userID, action:'Reply', reponse:'sucess', alias: data.alias});
+}
+
 export async function handleJoinTournament(player:Interfaces.playerInterface, data:any){
 		//data.userID , data.tournamentID,
 		try{
@@ -63,12 +73,12 @@ export async function handleJoinTournament(player:Interfaces.playerInterface, da
 			if(hasAliasForUser(player.username!) === true) removeAliasForUser(player.username!)
 			setAliasForUser(player.username!, data.alias);
 			//Notify front
-			player.typedSocket.send('joinTournament',{
+			player.typedSocket.send('joinTournament', {
 					userID:data.userID,
 					username: getAliasForUser(player.username!),
 					tournamentID:data.tournamentID,
 					tourName:tour?.name,
-					success:true
+					success:true,
 			});
 			player.tournamentID = data.tournamentID;
 			player.isTourOwner = data.isTourOwner;

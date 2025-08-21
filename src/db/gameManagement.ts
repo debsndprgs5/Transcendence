@@ -2,7 +2,6 @@ import { randomInt } from 'crypto';
 import sqlite3 from 'sqlite3';
 import { user } from '../types/user';
 import * as chatType from '../types/chat';
-import { PreferencesRow } from '../shared/gameTypes'
 import { run, get, getAll } from './userManagement';
 import { getPlayerByUserID } from '../websockets/game.socket';
 import * as Stats from './Stats';
@@ -321,34 +320,6 @@ export const sendGameResultFour = (gameID: number, userID: [number, number, numb
 		[gameID, winner, userID[0], userID[1], userID[2], userID[3], score[0], score[1], score[2], score[3], start]
 	);
 
-export const createDefaultPref = async (userID: number) => {
-	await run(`INSERT INTO user_preferences (userID) VALUES (?)`, [userID]);
-};
-
-export const getAllPref = (userID: number): Promise<PreferencesRow | null> => {
-	return get<PreferencesRow>(
-		`SELECT * FROM user_preferences WHERE userID = ?`,
-		[userID]
-	)
-}
-
-export const setAllPref = async (userID: number, data: Partial<PreferencesRow>) => {
-	if (Object.keys(data).length === 0) return;
-
-	const fields = Object.keys(data);
-	const values = Object.values(data);
-	const setClause = fields.map((key) => `${key} = ?`).join(', ');
-
-	await run(
-		`UPDATE user_preferences SET ${setClause} WHERE userID = ?`,
-		[...values, userID]
-	)
-}
-
-export const setBackDefPref = async (userID: number) => {
-	await run(`DELETE FROM user_preferences WHERE userID = ?`, [userID]);
-	await run(`INSERT INTO user_preferences (userID) VALUES (?)`, [userID]);
-};
 
 export const getStatsForUser = async (userID: number) => {
 	const results = await Stats.getMatchHistoryForUser(userID);

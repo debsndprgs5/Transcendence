@@ -141,7 +141,7 @@ export async function handleCreateTournament(): Promise<void> {
           state.socket?.send(JSON.stringify({
       type:'systemMessage',
       chatRoomID:newRoom.roomID,
-      content: `${localStorage.getItem('username')} just created tournament !`//PUT alias here
+      content: `${state.alias!} just created tournament !`
     }));
     // POST to create tournament
    const reply =  await apiFetch(`/api/tournament/${state.userId}`, {
@@ -167,7 +167,7 @@ export async function handleCreateTournament(): Promise<void> {
     tournamentID:reply.tournament.tournamentID,
     chatID:newRoom.roomID,
     isTourOwner:state.playerInterface!.isTourOwner,
-     alias:`alias of ${state.playerInterface!.username}`//PUT user Alias Promt Here
+     alias: state.alias!
   });
   
   } catch (err) {
@@ -179,7 +179,7 @@ export async function handleCreateTournament(): Promise<void> {
 // Handles the "Join Tournament" button action
 export async function handleJoinTournament(tourID: number): Promise<void> {
   
-  const alias = `alias of ${state.playerInterface!.username}`//PUT alias input here
+  const alias = state.alias!
 	if(state.playerInterface!.state !== 'init'){
 		showNotification({message:`You can't join tournament because you are ${state.playerInterface!.state}`, type:'error'})
 		return;

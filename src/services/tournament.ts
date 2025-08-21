@@ -34,12 +34,14 @@ export class Tournament {
 	private hasStarted = false;
 	private matchReports = new Map<string, Set<number>>();
 	private readyPlayers = new Set<number>();
-
+	// Track bye usage
+	private byeCount = new Map<number, number>();
+	private lastByeRound = new Map<number, number>();
 	constructor(
 		players: playerInterface[],
 		tourID: number,
 		rules: string
-	) {
+	  ) {
 		const sameTour = Tournament.MappedTour.get(tourID);
 		
 		this.tourID = tourID;
@@ -53,13 +55,16 @@ export class Tournament {
 		}
 		
 		// points and opponents init
-		for (const p of players) {
-			this.points.set(p.userID, 0);
-			this.opponents.set(p.userID, new Set());
+			for (const p of players) {
+			  this.points.set(p.userID, 0);
+			  this.opponents.set(p.userID, new Set());
+			  // init bye tracking
+			  this.byeCount.set(p.userID, 0);
+			  this.lastByeRound.set(p.userID, -1);
+			}
+			Tournament.MappedTour.set(tourID, this);
 		}
 
-		Tournament.MappedTour.set(tourID, this);
-	}
 	public start() {
 		if (this.hasStarted) return;
 		this.hasStarted = true;
@@ -234,42 +239,42 @@ public async onMatchFinished(
   // Retrieve the tournament instance
   const tour = Tournament.MappedTour.get(tourID);
   if (!tour) {
-    console.warn(`[MATCH FINISH] No tournament found for tourID=${tourID}`);
-    return;
+	console.warn(`[MATCH FINISH] No tournament found for tourID=${tourID}`);
+	return;
   }
 
   // Validate reporter is one of the players
   if (userID !== playerA && userID !== playerB) {
-    console.warn(`[MATCH FINISH] Invalid reporter userID=${userID} not in match (${playerA} vs ${playerB})`);
-    return;
+	console.warn(`[MATCH FINISH] Invalid reporter userID=${userID} not in match (${playerA} vs ${playerB})`);
+	return;
   }
 
   // Ensure both players still in the tournament
   if (!tour.players.find(p => p.userID === playerA) || !tour.players.find(p => p.userID === playerB)) {
-    console.warn(`[MATCH FINISH] One of the players has left the tournament: playerA=${playerA}, playerB=${playerB}`);
-    return;
+	console.warn(`[MATCH FINISH] One of the players has left the tournament: playerA=${playerA}, playerB=${playerB}`);
+	return;
   }
 
   // Initialize matchReports map if needed
   if (!tour.matchReports) {
-    tour.matchReports = new Map<string, Set<number>>();
+	tour.matchReports = new Map<string, Set<number>>();
   }
   const matchKey = [playerA, playerB].sort((a, b) => a - b).join("-");
 
   // Track reports from each player
   if (!tour.matchReports.has(matchKey)) {
-    tour.matchReports.set(matchKey, new Set());
+	tour.matchReports.set(matchKey, new Set());
   }
   const reporters = tour.matchReports.get(matchKey)!;
   if (reporters.has(userID)) {
-    console.warn(`[MATCH FINISH] Duplicate report from userID=${userID} for match=${matchKey}`);
-    return;
+	console.warn(`[MATCH FINISH] Duplicate report from userID=${userID} for match=${matchKey}`);
+	return;
   }
   reporters.add(userID);
 
   // Wait for both players to report
   if (reporters.size < 2) 
-    return;
+	return;
   
 
   // Both reports received → determine outcome
@@ -277,22 +282,22 @@ public async onMatchFinished(
   let msgA: string, msgB: string;
 
   if (scoreA > scoreB) {
-    // Player A wins
-    tour.points.set(playerA, (tour.points.get(playerA) ?? 0) + WIN_POINTS);
-    tour.points.set(playerB, (tour.points.get(playerB) ?? 0) + LOSS_POINTS);
-    msgA = `You won, congrats!`;
-    msgB = `You lost, better luck next time.`;
+	// Player A wins
+	tour.points.set(playerA, (tour.points.get(playerA) ?? 0) + WIN_POINTS);
+	tour.points.set(playerB, (tour.points.get(playerB) ?? 0) + LOSS_POINTS);
+	msgA = `You won, congrats!`;
+	msgB = `You lost, better luck next time.`;
   } else if (scoreB > scoreA) {
-    // Player B wins
-    tour.points.set(playerB, (tour.points.get(playerB) ?? 0) + WIN_POINTS);
-    tour.points.set(playerA, (tour.points.get(playerA) ?? 0) + LOSS_POINTS);
-    msgA = `You lost, better luck next time.`;
-    msgB = `You won, congrats!`;
+	// Player B wins
+	tour.points.set(playerB, (tour.points.get(playerB) ?? 0) + WIN_POINTS);
+	tour.points.set(playerA, (tour.points.get(playerA) ?? 0) + LOSS_POINTS);
+	msgA = `You lost, better luck next time.`;
+	msgB = `You won, congrats!`;
   } else {
-    // Draw
-    tour.points.set(playerA, (tour.points.get(playerA) ?? 0) + DRAW_POINTS);
-    tour.points.set(playerB, (tour.points.get(playerB) ?? 0) + DRAW_POINTS);
-    msgA = msgB = `Draw! Well played both.`;
+	// Draw
+	tour.points.set(playerA, (tour.points.get(playerA) ?? 0) + DRAW_POINTS);
+	tour.points.set(playerB, (tour.points.get(playerB) ?? 0) + DRAW_POINTS);
+	msgA = msgB = `Draw! Well played both.`;
   }
 
   // Notify both players of result
@@ -308,13 +313,13 @@ public async onMatchFinished(
 
   // Move this match from playingPairs to waitingPairs
   const idx = tour.playingPairs.findIndex(
-    ([a, b]) =>
-      (a.userID === playerA && b.userID === playerB) ||
-      (a.userID === playerB && b.userID === playerA)
+	([a, b]) =>
+	  (a.userID === playerA && b.userID === playerB) ||
+	  (a.userID === playerB && b.userID === playerA)
   );
   if (idx !== -1) {
-    tour.waitingPairs.push(tour.playingPairs[idx]);
-    tour.playingPairs.splice(idx, 1);
+	tour.waitingPairs.push(tour.playingPairs[idx]);
+	tour.playingPairs.splice(idx, 1);
   }
 	const score = await tour.extractScore();
 	for(const[a,b] of tour.waitingPairs){
@@ -389,161 +394,155 @@ private async endTournament() {
 
 }
 
-public async giveBye(member: Member) {
-	const userID = member.userID;
-	const player = member.player;
+  public getByeCount(userID: number): number {
+    return this.byeCount.get(userID) ?? 0;
+  }
+  public getLastByeRound(userID: number): number {
+    return this.lastByeRound.get(userID) ?? -1;
+  }
 
-	// 1. Award points for the bye (half a win ? full win ? )
-	const BYE_POINTS = 5;
-	Tournament.MappedTour.get(player.tournamentID!)?.points.set(userID,
-		Tournament.MappedTour.get(player.tournamentID!)?.points.get(userID)! + BYE_POINTS
-	);
+  public async giveBye(member: Member) {
+    const userID = member.userID;
+    const player = member.player;
 
-	// 2. Mark the player as having “played” this round by pushing to waitingPairs
-	const tour = Tournament.MappedTour.get(player.tournamentID!)!;
-	tour.waitingPairs.push([player, player]); // or some sentinel value if needed
+    // 1) Award points for the bye
+    const BYE_POINTS = 5;
+    const tour = Tournament.MappedTour.get(player.tournamentID!)!;
+    tour.points.set(userID, (tour.points.get(userID) ?? 0) + BYE_POINTS);
 
-	const scoreUpdates = await tour.extractScore();
-	// 3. Send socket event to inform the player
-	player.typedSocket.send('updateTourScore', {
-		tourID: tour.tourID,
-		score: scoreUpdates!,
-	});
-	sendPrivateSystemMessage(this.chatID, userID, 'You received a bye this round');
+    // 2) Mark as "played" this round
+    tour.waitingPairs.push([player, player]);
+
+    // 3) Update bye tracking
+    tour.byeCount.set(userID, tour.getByeCount(userID) + 1);
+    tour.lastByeRound.set(userID, tour.current_round);
+
+    // 4) Notify (optional)
+    const scoreUpdates = await tour.extractScore();
+    player.typedSocket.send('updateTourScore', {
+      tourID: tour.tourID,
+      score: scoreUpdates!,
+    });
+    sendPrivateSystemMessage(this.chatID, userID, 'You received a bye this round');
+  }
 }
 
-}
 
 function generateSwissPairings(
-	round: number,
-	members: Member[]
+  round: number,
+  members: Member[]
 ): { playerA: number, playerB: number }[] {
 
-	if (round === 1) {
-		members = shuffle(members);
-	} else {
-		computeMedianBuchholz(members);
-	}
+  if (round === 1) {
+    members = shuffle(members);
+  } else {
+    computeMedianBuchholz(members);
+  }
 
-	members.sort((a, b) => {
-		if (b.points !== a.points) return b.points - a.points;
-		const mbA = (a as any).buchholz as number;
-		const mbB = (b as any).buchholz as number;
-		return mbB - mbA;
-	});
+  members.sort((a, b) => {
+    if (b.points !== a.points) return b.points - a.points;
+    const mbA = (a as any).buchholz as number;
+    const mbB = (b as any).buchholz as number;
+    return mbB - mbA;
+  });
 
-	// Determine if we should allow rematches
-	let allowRematch = false;
-	const totalPossiblePairs = (members.length * (members.length - 1)) / 2;
-	let playedPairs = new Set<string>();
+  let allowRematch = false;
+  const totalPossiblePairs = (members.length * (members.length - 1)) / 2;
+  const playedPairs = new Set<string>();
+  for (const m of members) {
+    for (const opp of m.opponents) {
+      playedPairs.add([m.userID, opp].sort().join("-"));
+    }
+  }
 
-	for (const m of members) {
-		for (const opp of m.opponents) {
-			const key = [m.userID, opp].sort().join("-");
-			playedPairs.add(key);
-		}
-	}
+  const tour = Tournament.MappedTour.get(members[0].player.tournamentID!)!;
+  if (playedPairs.size >= totalPossiblePairs && round <= tour.max_round) {
+    allowRematch = true;
+    console.warn(`[Pairing] All unique matchups exhausted — allowing rematches`);
+  }
 
-	const tour = Tournament.MappedTour.get(members[0].player.tournamentID!)!;
-	if (playedPairs.size >= totalPossiblePairs && round <= tour.max_round) {
-		allowRematch = true;
-		console.warn(`[Pairing] All unique matchups exhausted — allowing rematches`);
-	}
+  const groups = groupBy(members, m => m.points);
+  const pairs: { playerA: number, playerB: number }[] = [];
+  const floaters: typeof members = [];
 
-	const groups = groupBy(members, m => m.points);
-	const pairs: { playerA: number, playerB: number }[] = [];
-	const floaters: typeof members = [];
+  // iterate with index to access the *next group*
+  for (let gi = 0; gi < groups.length; gi++) {
+    const group = groups[gi];
+    const nextGroup = groups[gi + 1] ?? [];
+    let pool = [...group];
 
-	for (const group of groups) {
-		let pool = [...group];
+    if (pool.length % 2 === 1) {
+      let floater: Member | null = null;
 
-		if (pool.length % 2 === 1) {
-			let floater: Member | null = null;
+      if (!allowRematch) {
+        floater = selectFloater(pool, nextGroup);
+      } else {
+        // If rematches allowed, float only if truly no pairing exists
+        for (const candidate of pool) {
+          const others = pool.filter(p => p !== candidate);
+          const canBePaired = others.some(other => !candidate.opponents.includes(other.userID));
+          if (!canBePaired) { floater = candidate; break; }
+        }
+      }
 
-			if (!allowRematch) {
-				floater = selectFloater(pool, []);
-			} else {
-				// If rematches are allowed, float only if no one can be paired
-				for (const candidate of pool) {
-					const others = pool.filter(p => p !== candidate);
-					const canBePaired = others.some(
-						other => !candidate.opponents.includes(other.userID)
-					);
-					if (!canBePaired) {
-						floater = candidate;
-						break;
-					}
-				}
-			}
+      if (floater) {
+        floater.originalGroup = group;
+        floaters.push(floater);
+        pool = pool.filter(p => p !== floater);
+      }
+    }
 
-			if (floater) {
-				floater.originalGroup = group;
-				floaters.push(floater);
-				pool = pool.filter(p => p !== floater);
-			}
-		}
+    const half = pool.length / 2;
+    const top = pool.slice(0, half);
+    let bottom = pool.slice(half);
 
-		const half = pool.length / 2;
-		const top = pool.slice(0, half);
-		let bottom = pool.slice(half);
+    for (let i = 0; i < top.length; i++) {
+      const a = top[i];
+      let paired = false;
 
-		for (let i = 0; i < top.length; i++) {
-			const a = top[i];
-			let paired = false;
+      for (let j = 0; j < bottom.length; j++) {
+        const b = bottom[j];
+        if (allowRematch || !a.opponents.includes(b.userID)) {
+          pairs.push({ playerA: a.userID, playerB: b.userID });
+          bottom.splice(j, 1);
+          paired = true;
+          break;
+        }
+      }
+      if (!paired && bottom.length > 0) {
+        // fallback: force a pair (may be rematch) to keep the round feasible
+        const b = bottom.shift()!;
+        pairs.push({ playerA: a.userID, playerB: b.userID });
+      }
+    }
+  }
 
-			for (let j = 0; j < bottom.length; j++) {
-				const b = bottom[j];
-				if (allowRematch || !a.opponents.includes(b.userID)) {
-					pairs.push({ playerA: a.userID, playerB: b.userID });
-					bottom.splice(j, 1);
-					paired = true;
-					break;
-				}
-			}
+  const pairedFloaterIds = new Set<number>();
 
-			if (!paired && bottom.length > 0) {
-				const b = bottom.shift()!;
-				pairs.push({ playerA: a.userID, playerB: b.userID });
-			}
-		}
-	}
+  for (const floater of floaters) {
+    if (pairedFloaterIds.has(floater.userID)) continue;
 
-	const pairedFloaterIds = new Set<number>();
+    let placed = false;
 
-	for (const floater of floaters) {
-		// Skip if this floater was used as an opponent earlier
-		if (pairedFloaterIds.has(floater.userID)) continue;
+    for (let i = groups.indexOf(floater.originalGroup!) + 1; i < groups.length && !placed; i++) {
+      const targetGroup = groups[i];
+      if (targetGroup.length % 2 === 1) {
+        const opponent = selectOpponentForFloater(floater, targetGroup);
+        pairs.push({ playerA: floater.userID, playerB: opponent.userID });
+        targetGroup.splice(targetGroup.indexOf(opponent), 1);
 
-		let placed = false;
+        pairedFloaterIds.add(floater.userID);
+        pairedFloaterIds.add(opponent.userID);
+        placed = true;
+      }
+    }
 
-		// Essayez de l’insérer dans les groupes suivants
-		for (let i = groups.indexOf(floater.originalGroup!) + 1;
-				 i < groups.length && !placed; i++) {
-
-			const targetGroup = groups[i];
-
-			if (targetGroup.length % 2 === 1) {
-				const opponent = selectOpponentForFloater(floater, targetGroup);
-
-				pairs.push({ playerA: floater.userID, playerB: opponent.userID });
-
-				// Remove opponent from its group
-				targetGroup.splice(targetGroup.indexOf(opponent), 1);
-
-				// Mark both players as already paired
-				pairedFloaterIds.add(floater.userID);
-				pairedFloaterIds.add(opponent.userID);
-
-				placed = true;
-			}
-		}
-
-		if (!placed) {
-			console.warn(`GIVING BYE to ${floater.player.userID}`);
-			tour.giveBye(floater);
-		}
-	}
-	return pairs;
+    if (!placed) {
+      console.warn(`GIVING BYE to ${floater.player.userID}`);
+      tour.giveBye(floater);
+    }
+  }
+  return pairs;
 }
 
 
@@ -582,26 +581,36 @@ function groupBy<T, K extends string | number>(
 
 
 // Select a floater in a odd group
-function selectFloater(
-	group: Member[], 
-	nextGroup: Member[]
-): Member {
-	// sort group by tie-break low to high (so weakest first)
-	group.sort((a, b) => a.buchholz! - b.buchholz!);
-	for (const candidate of group) {
-		// 2. check if candidate can play someone new in nextGroup to avoid rematch
-		const hasAvailable = nextGroup.some(opp =>
-			!candidate.opponents.includes(opp.userID)
-		);
-		if (hasAvailable) {
-			// remove from this group and return as floater
-			group.splice(group.indexOf(candidate), 1);
-			return candidate;
-		}
-	}
-	// If none fit, pick the weakest
-	const fallback = group.shift()!;
-	return fallback;
+function selectFloater(group: Member[], nextGroup: Member[]): Member {
+  const tour = Tournament.MappedTour.get(group[0].player.tournamentID!)!;
+
+  // 1) Sort by fairness first: byeCount ASC, then lastByeRound ASC (older bye first),
+  //    then Buchholz ASC (weaker first).
+  group.sort((a, b) => {
+    const aByes = tour.getByeCount(a.userID);
+    const bByes = tour.getByeCount(b.userID);
+    if (aByes !== bByes) return aByes - bByes;
+
+    const aLast = tour.getLastByeRound(a.userID);
+    const bLast = tour.getLastByeRound(b.userID);
+    if (aLast !== bLast) return aLast - bLast;
+
+    const aMb = (a as any).buchholz ?? 0;
+    const bMb = (b as any).buchholz ?? 0;
+    return aMb - bMb;
+  });
+
+  // 2) Prefer a floater who *can* meet someone new in nextGroup (if any)
+  for (const candidate of group) {
+    const hasAvailable = nextGroup.some(opp => !candidate.opponents.includes(opp.userID));
+    if (hasAvailable) {
+      group.splice(group.indexOf(candidate), 1);
+      return candidate;
+    }
+  }
+
+  // 3) Fallback: take the first after sorting by fairness
+  return group.shift()!;
 }
 
 

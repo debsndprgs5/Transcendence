@@ -1,4 +1,4 @@
-// ui.ts
+
 import * as BABYLON from '@babylonjs/core';
 import * as GUI from '@babylonjs/gui';
 import type { RendererCtx, Side } from './pong_render';
@@ -155,7 +155,7 @@ function makeChip(side: Side, username: string) {
 export function setupGUI(ctx: RendererCtx) {
   const adt = GUI.AdvancedDynamicTexture.CreateFullscreenUI('UI', true, ctx.scene);
 
-  // Lock GUI layout to a virtual canvas height.
+  // // Lock GUI layout to a virtual canvas height.
   // adt.idealHeight = 720;
   // adt.renderAtIdealSize = true;
   
@@ -228,12 +228,12 @@ export function setupGUI(ctx: RendererCtx) {
 
   const gameName = label(ctx.gameName ?? 'Match', 18, '#EAF2FF', '600');
   const sep      = label(':', 18, '#EAF2FF', '600');
-  const timeTxt  = label("0:00's", 18, '#FFFFFF', 'normal');
+  const timeTxt  = label("0:00's", 18, '#EAF2FF', 'normal');
 
-  // [gameName, sep, timeTxt].forEach(t => {
-  //   t.width = 'auto';
-  //   t.resizeToFit = true;
-  // });
+  [gameName, sep, timeTxt].forEach(t => {
+    t.width = 'auto';
+    t.resizeToFit = true;
+  });
 
   center.addControl(gameName);
   center.addControl(sep);

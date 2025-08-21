@@ -4,6 +4,8 @@ import { apiFetch, state } from './api';
 import { showPongMenu } from './pong_rooms';
 import { TypedSocket } from './shared/gameTypes';
 import { showNotification, showUserActionsBubble } from './notifications';
+import { fetchOpenTournaments } from './tournament_rooms'
+
 
 export function handleJoinTournament(data: Interfaces.SocketMessageMap['joinTournament']) {
 	if (!data.success) {
@@ -101,7 +103,7 @@ export function handleAlias(data:Interfaces.SocketMessageMap['aliasCheck']){
 
 	if(data.response === 'failure'){
 		showNotification({
-				message: 'Type a unique alias for tournament',
+				message: 'NAME is being used , please choose a New one',
 				type: 'prompt',
 				placeholder: 'XxX_D4RK_K1LL3R_XxX',
 				onConfirm: val => {
@@ -120,6 +122,7 @@ export function handleAlias(data:Interfaces.SocketMessageMap['aliasCheck']){
 	else {
 		state.canvasViewState = 'tournament';
 		state.alias = data.alias!;
+		fetchOpenTournaments()
 		showPongMenu();
 	}
 		//return to tournament logic here ? 

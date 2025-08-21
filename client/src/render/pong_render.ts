@@ -117,9 +117,7 @@ export class PongRenderer {
 		localStorage.setItem('usernames', JSON.stringify(usernames));
 		if (gameName !== undefined) localStorage.setItem('gameName', gameName);
 
-		const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: false, stencil: true,
-			//adaptToDeviceRatio: true
-			});
+		const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: false, stencil: true});
 		const scene = new BABYLON.Scene(engine);
 		const glow = new BABYLON.GlowLayer('glow', scene, { blurKernelSize: 16 });
 		glow.intensity = 0.35;

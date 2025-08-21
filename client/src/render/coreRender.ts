@@ -1,4 +1,4 @@
-// coreRender.ts
+
 import * as BABYLON from '@babylonjs/core';
 import { state } from '../api';
 import type { RendererCtx, Side } from './pong_render';
@@ -16,12 +16,16 @@ export function registerInput(ctx: RendererCtx) {
   const { scene, inputState } = ctx;
 
   const keydown = (e: KeyboardEvent) => {
+  	e.preventDefault();
+		e.stopPropagation();
     const k = e.key.toLowerCase();
     if (k === 'a') inputState.left  = true;
     if (k === 'd') inputState.right = true;
     
   };
   const keyup = (e: KeyboardEvent) => {
+  	e.preventDefault();
+		e.stopPropagation();
     const k = e.key.toLowerCase();
     if (k === 'a') inputState.left  = false;
     if (k === 'd') inputState.right = false;
@@ -46,7 +50,7 @@ export function registerInput(ctx: RendererCtx) {
 }
 
 function sendMove(dir: 'left'|'right'|'stop', socket:TypedSocket) {
-  if (state.playerInterface!.gameID !== undefined && state.userId !== undefined) {
+  if (state.playerInterface && state.playerInterface.gameID !== undefined && state.userId !== undefined) {
       socket.send('playerMove', {
       gameID: state.playerInterface!.gameID,
       userID: state.userId,

@@ -38,7 +38,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 				const id = `${Date.now()}-${Math.floor(Math.random()*1000)}`
 			//Create the user in the database
 				const userID  = await UserManagement.createUser(id, username, passwordHash);
-				await  GameManagement.createDefaultPref(userID);
+				
 
 			//Success feedback
 		return reply.code(201).send({ message: 'Registered successfully', userId: id })

@@ -33,6 +33,7 @@ export interface AppState {
 		paddleSpeed: number;
 		winningScore: number;
 	};
+	alias?:string;
 }
 
 export const state: AppState = {
@@ -57,6 +58,8 @@ export const state: AppState = {
 	paddleInterface: undefined,
 	gameInterface: undefined,
 	localGameConfig: undefined,
+	alias: undefined
+
 };
 
 export function resetState() {

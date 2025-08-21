@@ -9,7 +9,7 @@ import { PongRoom } from '../services/PongRoom';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import { getJwtSecret } from '../vault/vaultPlugin';
 import { Tournament }  from '../services/tournament';
-
+import { updatePlayerState } from './game.sockHelpers'
 
 const jwtSecret = getJwtSecret();
 
@@ -182,6 +182,7 @@ export async function handleInvite(
   }
 
   if (data.action === 'send') {
+    updatePlayerState(player, 'pendinginvite');
     const inviterID = data.userID!;
     const targetID  = data.targetID!;
 
@@ -205,10 +206,11 @@ export async function handleInvite(
         response: 'offline',
         targetID,
       });
+      updatePlayerState(player, 'init');
       return;
     }
 
-    // (optional) dedup — avoid stacking multiple invites to same target
+    // dedup — avoid stacking multiple invites to same target
     const existing = PendingInvites.get(targetID);
     if (existing && existing.inviterID === inviterID) {
       // already pending from same inviter -> refresh timer (drop old one)

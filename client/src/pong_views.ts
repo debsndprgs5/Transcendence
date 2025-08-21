@@ -415,7 +415,7 @@ export function drawTournamentView(
 	ctx.fillStyle = 'black';
 	ctx.font      = `${Math.floor(height / 25)}px Orbitron`;
 	ctx.textAlign = 'center';
-	ctx.fillText('Create Tournament', createX + createW/2, createY + createH * 0.65);
+	ctx.fillText('Create', createX + createW/2, createY + createH * 0.65);
 
 	// Open Tournaments on right
 	const listX     = width * 0.60;

@@ -383,9 +383,24 @@ async function handleMainMenuClick(canvas: HTMLCanvasElement, x: number, y: numb
 			break;
 
 		case 'Tournament':
+			showNotification({
+				message: 'Type a unique alias for tournament',
+				type: 'prompt',
+				placeholder: 'XxX_D4RK_K1LL3R_XxX',
+				onConfirm: val => {
+					state.canvasViewState = 'tournament';
+					showPongMenu();
+				},
+				onCancel: val => {
+					showNotification({
+						message: 'You have to type an alias if you want to participate in a tournament.',
+						type: 'error',
+					});
+					state.canvasViewState = 'mainMenu';
+					showPongMenu();
+				}
+			});
 			state.availableTournaments = await fetchOpenTournaments();
-			state.canvasViewState = 'tournament';
-			showPongMenu();
 			break;
 		default:
 			alert(`Clicked: ${btnMain.action}`);

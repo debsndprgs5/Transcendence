@@ -224,8 +224,9 @@ export async function handleInvite(
         const inviterPlayer = getPlayerByUserID(inviterID);
         const tgtPlayer     = getPlayerByUserID(targetID);
 
-        inviterPlayer?.typedSocket.send('invite', { action: 'reply' as const, response: 'timeout', targetID });
-        tgtPlayer?.typedSocket.send('invite',     { action: 'reply' as const, response: 'timeout', targetID });
+        // tell both clients to close their UIs and consider it expired
+        inviterPlayer?.typedSocket.send('invite', { action: 'expired', inviterID, targetID });
+        tgtPlayer?.typedSocket.send('invite',     { action: 'expired', inviterID, targetID });
 
         if (inviterPlayer) Helpers.updatePlayerState(inviterPlayer, 'init');
         if (tgtPlayer)     Helpers.updatePlayerState(tgtPlayer,     'init');
@@ -243,27 +244,65 @@ export async function handleInvite(
   }
 
   if (data.action === 'reply') {
-    // by convention:
-    // - fromID = invitee (who is replying)
-    // - toID   = inviter (sender)
+
     const inviteeID = data.fromID!;
     const inviterID = data.toID!;
+    const resp = data.response!;
 
-    // clear both pending maps
-    const pendingT = PendingInvites.get(inviteeID);
-    if (pendingT && pendingT.inviterID === inviterID) {
-      clearTimeout(pendingT.timeout);
-      PendingInvites.delete(inviteeID);
+    // must still be pending (both maps agree)
+    const stillPending =
+      PendingInvites.get(inviteeID)?.inviterID === inviterID &&
+      PendingByInviter.get(inviterID)?.targetID === inviteeID;
+
+    if (!stillPending) {
+      // it's already expired or cancelled → tell both to close UI
+      const inviterPlayer = getPlayerByUserID(inviterID);
+      const inviteePlayer = getPlayerByUserID(inviteeID);
+
+      inviterPlayer?.typedSocket.send('invite', { action: 'expired', inviterID, targetID: inviteeID });
+      inviteePlayer?.typedSocket.send('invite', { action: 'expired', inviterID, targetID: inviteeID });
+
+      if (inviterPlayer) Helpers.updatePlayerState(inviterPlayer, 'init');
+      if (inviteePlayer) Helpers.updatePlayerState(inviteePlayer, 'init');
+      return;
     }
+
+    // clear both pending entries
+    const pendingT = PendingInvites.get(inviteeID);
+    if (pendingT) { clearTimeout(pendingT.timeout); PendingInvites.delete(inviteeID); }
     const pendingI = PendingByInviter.get(inviterID);
-    if (pendingI && pendingI.targetID === inviteeID) {
-      clearTimeout(pendingI.timeout);
+    if (pendingI) { clearTimeout(pendingI.timeout); PendingByInviter.delete(inviterID); }
+
+    const invitee = getPlayerByUserID(inviteeID)!;
+    const inviter = getPlayerByUserID(inviterID)!;
+
+    await Helpers.processInviteReply(inviter, invitee, resp);
+    return;
+  }
+  if (data.action === 'cancel') {
+    const inviterID = data.fromID!;
+    const targetID  = data.toID!;
+
+    const entryT = PendingInvites.get(targetID);
+    const entryI = PendingByInviter.get(inviterID);
+
+    if (entryT && entryT.inviterID === inviterID) {
+      clearTimeout(entryT.timeout);
+      PendingInvites.delete(targetID);
+    }
+    if (entryI && entryI.targetID === targetID) {
+      clearTimeout(entryI.timeout);
       PendingByInviter.delete(inviterID);
     }
 
-    const invitee = getPlayerByUserID(inviteeID);
-    const inviter = getPlayerByUserID(inviterID);
-    await Helpers.processInviteReply(inviter!, invitee!, data.response!);
+    const inviterPlayer = getPlayerByUserID(inviterID);
+    const tgtPlayer     = getPlayerByUserID(targetID);
+
+    inviterPlayer?.typedSocket.send('invite', { action: 'cancelled', inviterID, targetID });
+    tgtPlayer?.typedSocket.send('invite',     { action: 'cancelled', inviterID, targetID });
+
+    if (inviterPlayer) Helpers.updatePlayerState(inviterPlayer, 'init');
+    if (tgtPlayer)     Helpers.updatePlayerState(tgtPlayer,     'init');
     return;
   }
 }

@@ -15,155 +15,209 @@ export function getNotificationContainer(): HTMLDivElement {
 }
 
 interface NotificationOptions {
-	message?: string;
-	type?: 'success' | 'error' | 'info' | 'warning' | 'prompt' | 'confirm';
-	duration?: number;
-	placeholder?: string;
-	onConfirm?: ((value?: string) => void) | null;
-	onCancel?: (() => void) | null;
+  id?: string;
+  message?: string;
+  type?: 'success' | 'error' | 'info' | 'warning' | 'prompt' | 'confirm' | 'wait';
+  duration?: number;
+  placeholder?: string;
+  onConfirm?: ((value?: string) => void) | null;
+  onCancel?: (() => void) | null;
+}
+
+// Exported helper to dismiss a specific notification by id
+export function dismissNotification(id: string): void {
+  // overlays
+  const overlay = document.querySelector(`[data-notif-id="${id}"]`);
+  if (overlay && overlay.parentElement) {
+    overlay.parentElement.removeChild(overlay);
+  }
+  // toasts
+  const toast = document.querySelector(`[data-notif-id="${id}"]`);
+  if (toast && toast.parentElement) {
+    toast.parentElement.removeChild(toast);
+  }
 }
 
 export function showNotification({
-	message = '',
-	type = 'info',
-	duration = 3000,
-	placeholder = '',
+  id,
+  message = '',
+  type = 'info',
+  duration = 3000,
+  placeholder = '',
   onConfirm = null as ((value?: string) => void) | null,
   onCancel  = null as (() => void) | null,
 }: NotificationOptions): void {
-	if (type === 'prompt') {
-		// Prompt modal
-		const overlay = document.createElement('div');
-		overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]';
 
-		const modal = document.createElement('div');
-		modal.className = 'bg-white rounded-lg p-6 max-w-sm w-full shadow-lg flex flex-col space-y-4';
+  // --- PROMPT (input) ---
+  if (type === 'prompt') {
+    //  modal with input + OK/Cancel
+    const overlay = document.createElement('div');
+    overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]';
+    if (id) overlay.setAttribute('data-notif-id', id);
 
-		const msg = document.createElement('p');
-		msg.className = 'text-gray-800 text-lg';
-		msg.textContent = message;
+    const modal = document.createElement('div');
+    modal.className = 'bg-white rounded-lg p-6 max-w-sm w-full shadow-lg flex flex-col space-y-4';
 
-		const input = document.createElement('input');
-		input.type = 'text';
-		input.placeholder = placeholder;
-		input.className =
-			'border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500';
+    const msg = document.createElement('p');
+    msg.className = 'text-gray-800 text-lg';
+    msg.textContent = message;
 
-		const buttons = document.createElement('div');
-		buttons.className = 'flex justify-end space-x-3';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = placeholder;
+    input.className = 'border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500';
 
-		const btnCancel = document.createElement('button');
-		btnCancel.textContent = 'Cancel';
-		btnCancel.className = 'px-4 py-2 rounded bg-gray-300 hover:bg-gray-400 text-gray-800';
-		btnCancel.onclick = () => {
-			document.body.removeChild(overlay);
-			if (onCancel) onCancel();
-		};
+    const buttons = document.createElement('div');
+    buttons.className = 'flex justify-end space-x-3';
 
-		const btnOk = document.createElement('button');
-		btnOk.textContent = 'Confirm';
-		btnOk.className = 'px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700 text-white';
-		btnOk.onclick = () => {
-			const val = input.value;
-			document.body.removeChild(overlay);
-			if (onConfirm) onConfirm(val);
-		};
+    const btnCancel = document.createElement('button');
+    btnCancel.textContent = 'Cancel';
+    btnCancel.className = 'px-4 py-2 rounded bg-gray-300 hover:bg-gray-400 text-gray-800';
+    btnCancel.onclick = () => {
+      document.body.removeChild(overlay);
+      if (onCancel) onCancel();
+    };
 
-		buttons.appendChild(btnCancel);
-		buttons.appendChild(btnOk);
+    const btnOk = document.createElement('button');
+    btnOk.textContent = 'Confirm';
+    btnOk.className = 'px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700 text-white';
+    btnOk.onclick = () => {
+      const val = input.value;
+      document.body.removeChild(overlay);
+      if (onConfirm) onConfirm(val);
+    };
 
-		modal.appendChild(msg);
-		modal.appendChild(input);
-		modal.appendChild(buttons);
-		overlay.appendChild(modal);
-		document.body.appendChild(overlay);
+    buttons.appendChild(btnCancel);
+    buttons.appendChild(btnOk);
 
-		input.focus();
-		return; // prompt does not create normal notification
-	}
+    modal.appendChild(msg);
+    modal.appendChild(input);
+    modal.appendChild(buttons);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
 
-	if (type === 'confirm') {
-		// Confirmation modal
-		const overlay = document.createElement('div');
-		overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]';
+    input.focus();
+    return;
+  }
 
-		const modal = document.createElement('div');
-		modal.className = 'bg-white rounded-lg p-6 max-w-sm w-full shadow-lg flex flex-col space-y-4';
+  // --- CONFIRM (OK/Cancel) ---
+  if (type === 'confirm') {
+    // modal with OK/Cancel
+    const overlay = document.createElement('div');
+    overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]';
+    if (id) overlay.setAttribute('data-notif-id', id);
 
-		const msg = document.createElement('p');
-		msg.className = 'text-gray-800 text-lg';
-		msg.textContent = message;
+    const modal = document.createElement('div');
+    modal.className = 'bg-white rounded-lg p-6 max-w-sm w-full shadow-lg flex flex-col space-y-4';
 
-		const buttons = document.createElement('div');
-		buttons.className = 'flex justify-end space-x-3';
+    const msg = document.createElement('p');
+    msg.className = 'text-gray-800 text-lg';
+    msg.textContent = message;
 
-		const btnCancel = document.createElement('button');
-		btnCancel.textContent = 'Cancel';
-		btnCancel.className = 'px-4 py-2 rounded bg-gray-300 hover:bg-gray-400 text-gray-800';
-		btnCancel.onclick = () => {
-			document.body.removeChild(overlay);
-			if (onCancel) onCancel();
-		};
+    const buttons = document.createElement('div');
+    buttons.className = 'flex justify-end space-x-3';
 
-		const btnOk = document.createElement('button');
-		btnOk.textContent = 'Confirm';
-		btnOk.className = 'px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700 text-white';
-		btnOk.onclick = () => {
-			document.body.removeChild(overlay);
-			if (onConfirm) onConfirm();
-		};
+    const btnCancel = document.createElement('button');
+    btnCancel.textContent = 'Cancel';
+    btnCancel.className = 'px-4 py-2 rounded bg-gray-300 hover:bg-gray-400 text-gray-800';
+    btnCancel.onclick = () => {
+      document.body.removeChild(overlay);
+      if (onCancel) onCancel();
+    };
 
-		buttons.appendChild(btnCancel);
-		buttons.appendChild(btnOk);
+    const btnOk = document.createElement('button');
+    btnOk.textContent = 'Confirm';
+    btnOk.className = 'px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700 text-white';
+    btnOk.onclick = () => {
+      document.body.removeChild(overlay);
+      if (onConfirm) onConfirm();
+    };
 
-		modal.appendChild(msg);
-		modal.appendChild(buttons);
-		overlay.appendChild(modal);
-		document.body.appendChild(overlay);
+    buttons.appendChild(btnCancel);
+    buttons.appendChild(btnOk);
 
-		return; // confirm does not create normal notification
-	}
+    modal.appendChild(msg);
+    modal.appendChild(buttons);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    return;
+  }
 
-	// Normal notification
-	const container = getNotificationContainer();
+  // --- WAIT (single Cancel) ---
+  if (type === 'wait') {
+    // modal with only Cancel, used while waiting for remote action
+    const overlay = document.createElement('div');
+    overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]';
+    if (id) overlay.setAttribute('data-notif-id', id);
 
-	const colors: Record<string, string> = {
-		success: 'bg-green-500',
-		error: 'bg-red-500',
-		info: 'bg-blue-500',
-		warning: 'bg-yellow-400 text-black',
-	};
+    const modal = document.createElement('div');
+    modal.className = 'bg-white rounded-lg p-6 max-w-sm w-full shadow-lg flex flex-col space-y-4';
 
-	const notif = document.createElement('div');
-	notif.className = `
-		max-w-xs w-full text-white px-4 py-3 rounded shadow-lg flex items-center space-x-3 cursor-pointer
-		${colors[type] || colors.info}
-		transform transition duration-300 ease-in-out
-		hover:brightness-90
-	`;
-	notif.textContent = message;
+    const msgEl = document.createElement('p');
+    msgEl.className = 'text-gray-800 text-lg';
+    msgEl.textContent = message;
 
-	notif.addEventListener('click', () => {
-		notif.remove();
-	});
+    const buttons = document.createElement('div');
+    buttons.className = 'flex justify-end space-x-3';
 
-	container.appendChild(notif);
+    const btnCancel = document.createElement('button');
+    btnCancel.textContent = 'Cancel';
+    btnCancel.className = 'px-4 py-2 rounded bg-gray-300 hover:bg-gray-400 text-gray-800';
+    btnCancel.onclick = () => {
+      document.body.removeChild(overlay);
+      if (onCancel) onCancel();
+    };
 
-	notif.style.opacity = '0';
-	notif.style.transform = 'translateX(100%)';
-	setTimeout(() => {
-		notif.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-		notif.style.opacity = '1';
-		notif.style.transform = 'translateX(0)';
-	}, 10);
+    buttons.appendChild(btnCancel);
 
-	setTimeout(() => {
-		notif.style.opacity = '0';
-		notif.style.transform = 'translateX(100%)';
-		setTimeout(() => {
-			notif.remove();
-		}, 300);
-	}, duration);
+    modal.appendChild(msgEl);
+    modal.appendChild(buttons);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    return;
+  }
+
+  // --- Normal toast ---
+  const container = getNotificationContainer();
+
+  const colors: Record<string, string> = {
+    success: 'bg-green-500',
+    error: 'bg-red-500',
+    info: 'bg-blue-500',
+    warning: 'bg-yellow-400 text-black',
+  };
+
+  const notif = document.createElement('div');
+  notif.className = `
+    max-w-xs w-full text-white px-4 py-3 rounded shadow-lg flex items-center space-x-3 cursor-pointer
+    ${colors[type] || colors.info}
+    transform transition duration-300 ease-in-out
+    hover:brightness-90
+  `;
+  if (id) notif.setAttribute('data-notif-id', id);
+  notif.textContent = message;
+
+  notif.addEventListener('click', () => {
+    notif.remove();
+  });
+
+  container.appendChild(notif);
+
+  notif.style.opacity = '0';
+  notif.style.transform = 'translateX(100%)';
+  setTimeout(() => {
+    notif.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+    notif.style.opacity = '1';
+    notif.style.transform = 'translateX(0)';
+  }, 10);
+
+  setTimeout(() => {
+    notif.style.opacity = '0';
+    notif.style.transform = 'translateX(100%)';
+    setTimeout(() => {
+      notif.remove();
+    }, 300);
+  }, duration);
 }
 
 // Show a floating action bubble below the clicked username

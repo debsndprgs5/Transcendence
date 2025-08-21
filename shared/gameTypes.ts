@@ -108,6 +108,52 @@ export interface gameRoomInterface{
 	created_at?:string
 }
 
+export type InviteMessage =
+  | {
+      type: 'invite';
+      action: 'send';
+      userID: number;      // inviter
+      targetID: number;    // invitee
+    }
+  | {
+      type: 'invite';
+      action: 'receive';
+      fromID: number;      // inviter
+    }
+  | {
+      type: 'invite';
+      action: 'reply';
+      fromID: number;      // invitee (who replies)
+      toID: number;        // inviter (original sender)
+      response:
+        | 'accept'
+        | 'decline'
+        | 'busy'
+        | 'offline'
+        | 'timeout'
+        | 'you cannot invite yourself'
+        | 'already_pending';
+    }
+  | {
+      type: 'invite';
+      action: 'expired';   // server timeout
+      inviterID: number;
+      targetID: number;
+    }
+  | {
+      type: 'invite';
+      action: 'cancelled'; // inviter cancelled
+      inviterID: number;
+      targetID: number;
+    }
+  | {
+      type: 'invite';
+      action: 'cancel';
+      fromID: number;       // inviter
+      toID: number;         // invitee (target)
+    };
+
+
 export type SocketMessageMap = {
 	init: {	type: 'init';
 			success?: boolean;
@@ -121,14 +167,7 @@ export type SocketMessageMap = {
 				gameName?:string;
 				userID?:number
 		};
-	invite: {	type: 'invite'; 
-				action: 'reply' | 'receive' | 'send'; 
-				response?: string; 
-				userID?: number;
-				targetID?: number;
-				fromID?: number;
-				toID?: number;
-		};
+	invite: InviteMessage;
 	startGame:{	type:'startGame';
 				userID:number;
 				gameID:number;

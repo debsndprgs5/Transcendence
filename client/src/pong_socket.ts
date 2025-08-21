@@ -1,4 +1,4 @@
-import { showNotification, showUserActionsBubble } from './notifications';
+import { showNotification, showUserActionsBubble, dismissNotification } from './notifications';
 import { isAuthenticated, apiFetch, state } from './api';
 import { PongRenderer } from './render/NEW_pong_render';
 // import {settingsRenderer} from './settings_render';
@@ -238,44 +238,44 @@ export async function handleJoinGame(data:Interfaces.SocketMessageMap['joinGame'
 }
 
 export async function handleInvite(data: Interfaces.SocketMessageMap['invite']) {
-  // Replies sent to client (us = invitor)
+  // Replies to inviter
   if (data.action === 'reply') {
-    const resp = data.response;
-    // unlock on any non-accept outcome, or after accept (room starts)
-    if (resp && (state as any).inviteLock) {
-      (state as any).inviteLock = null;
-    }
+    if ((state as any).inviteLock) (state as any).inviteLock = null;
 
-    // small UX feedbacks
+
+    dismissNotification(`invite-wait-${data.fromID}`);
+
+    const resp = data.response;
     if (resp === 'accept') {
-      showNotification({ message: 'Request accepted ✅', type: 'success', duration: 2000 });
+      showNotification({ message: 'Invitation acceptée ✅', type: 'success', duration: 2000 });
     } else if (resp === 'decline') {
-      showNotification({ message: 'Request declined ❌', type: 'error', duration: 2500 });
+      showNotification({ message: 'Invitation refusée ❌', type: 'error', duration: 2500 });
     } else if (resp === 'timeout') {
-      showNotification({ message: 'Request expired ⏲️', type: 'warning', duration: 2500 });
+      showNotification({ message: 'Invitation expirée ⏲️', type: 'warning', duration: 2500 });
     } else if (resp === 'offline') {
-      showNotification({ message: 'This player is offline', type: 'warning', duration: 2500 });
+      showNotification({ message: 'Joueur hors ligne', type: 'warning', duration: 2500 });
     } else if (resp === 'busy') {
-      showNotification({ message: 'This player is busy', type: 'warning', duration: 2500 });
+      showNotification({ message: 'Joueur occupé', type: 'warning', duration: 2500 });
     } else if (resp === 'you cannot invite yourself') {
-      showNotification({ message: 'You can\'t invite yourself', type: 'warning', duration: 2500 });
+      showNotification({ message: 'Tu ne peux pas t’inviter toi-même 😅', type: 'warning', duration: 2500 });
     } else if (resp === 'already_pending') {
-      showNotification({ message: 'Request still pending...', type: 'info', duration: 2500 });
+      showNotification({ message: 'Invitation déjà en attente…', type: 'info', duration: 2500 });
     }
     return;
   }
 
-  // Receive a demand (us = invited)
+  // Invitee receives prompt
   if (data.action === 'receive') {
-    const inviterID = (data.userID ?? data.fromID ?? data.toID) as number | undefined;
-    if (!inviterID || Number.isNaN(inviterID)) {
-      console.warn('[INVITE] Missing inviterID in receive payload:', data);
-      return;
-    }
 
+    const inviterID = data.fromID;
+    if (!inviterID || Number.isNaN(inviterID)) return;
+
+    const promptId = `invite-prompt-from-${inviterID}`;
     const username = await apiFetch(`/user/by-index/${inviterID}`);
+
     showNotification({
-      message: `${username} request you to play, accept ?`,
+      id: promptId,
+      message: `${username} t’invite à jouer. Rejoindre ?`,
       type: 'confirm',
       onConfirm: async () => {
         state.typedSocket.send('invite', { action: 'reply', response: 'accept', fromID: state.userId, toID: inviterID });
@@ -284,6 +284,36 @@ export async function handleInvite(data: Interfaces.SocketMessageMap['invite']) 
         state.typedSocket.send('invite', { action: 'reply', response: 'decline', fromID: state.userId, toID: inviterID });
       },
     });
+    return;
+  }
+
+  // Invitation expired 
+  if (data.action === 'expired') {
+    const inviterID = data.inviterID;
+    const targetID  = data.targetID;
+
+    if (targetID) {
+      if ((state as any).inviteLock) (state as any).inviteLock = null;
+      dismissNotification(`invite-wait-${targetID}`);
+    }
+    if (inviterID) dismissNotification(`invite-prompt-from-${inviterID}`);
+
+    showNotification({ message: 'Invite request expired...', type: 'warning', duration: 2500 });
+    return;
+  }
+
+  if (data.action === 'cancelled') {
+    const inviterID = data.inviterID;
+    const targetID  = data.targetID;
+
+    if (targetID) {
+      if ((state as any).inviteLock) (state as any).inviteLock = null;
+      dismissNotification(`invite-wait-${targetID}`);
+    }
+    if (inviterID) dismissNotification(`invite-prompt-from-${inviterID}`);
+
+    showNotification({ message: 'Invite request cancelled !', type: 'info', duration: 2200 });
+    return;
   }
 }
 

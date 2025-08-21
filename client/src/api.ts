@@ -6,6 +6,7 @@ import { TypedSocket } from './shared/gameTypes';
 
 export interface AppState {
 	authToken: string | null;
+	friendStatusById?: Record<number, 'online'|'busy'|'offline'|'playing'>;
 	inviteLock: null | { targetId: number; since: number }; // English: lock to prevent multiple concurrent invites
 	pendingToken: string | null;
 	socket: WebSocket | null;
@@ -36,6 +37,7 @@ export interface AppState {
 
 export const state: AppState = {
 	authToken: null,
+	friendStatusById: {},
 	inviteLock: null, // English: no invite pending at start
 	pendingToken: null,
 	socket: null,
@@ -60,6 +62,7 @@ export const state: AppState = {
 export function resetState() {
 	Object.assign(state, {
 		authToken: null,
+		friendStatusById: {},
 		inviteLock: null, // English: clear invite lock on reset
 		pendingToken: null,
 		socket: null,
@@ -180,6 +183,26 @@ export function getUserIdFromCookie(): number | null {
 /**
  * Initializes the WebSocket connection once authenticated.
  */
+
+
+function handleChatInbound(ev: MessageEvent) {
+  try {
+    const msg = JSON.parse(ev.data);
+
+    if (msg?.type === 'friendStatus') {
+      if (msg.action === 'response' && Array.isArray(msg.list)) {
+        for (const it of msg.list) {
+          (state as any).friendStatusById[it.friendID] = it.status; // 'online'|'busy'|'offline'|'playing'
+        }
+      } else if (msg.action === 'updateStatus' && typeof msg.friendID === 'number') {
+        (state as any).friendStatusById[msg.friendID] = msg.status;
+      }
+    }
+  } catch {
+    // ignore non-JSON payloads
+  }
+}
+
 export async function initWebSocket(): Promise<void> {
 	if (!isAuthenticated()) {
 		console.warn("WebSocket: no auth token");
@@ -242,6 +265,7 @@ export async function initWebSocket(): Promise<void> {
 
 			state.socket!.onmessage = async (event: MessageEvent) => {
 				console.log('Raw msg from websocket : ', event.data);
+				handleChatInbound(event);
 				try {
 					const parsed = JSON.parse(event.data);
 					console.log('Parsed WS message:', parsed);

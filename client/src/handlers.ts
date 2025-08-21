@@ -1321,29 +1321,96 @@ export async function router(): Promise<void> {
 	}
 }
 
+// get presence status for a specified userid
+async function getPresenceFor(userId: number): Promise<'online'|'busy'|'offline'|'playing'|'unknown'> {
+  const cache = (state as any).friendStatusById as Record<number, string>;
+  if (cache && cache[userId]) return cache[userId] as any;
+
+  const ws = state.socket;
+  if (!ws || ws.readyState !== WebSocket.OPEN) return 'unknown';
+
+  return new Promise((resolve) => {
+    const handler = (ev: MessageEvent) => {
+      try {
+        const m = JSON.parse(ev.data);
+        if (m?.type === 'friendStatus' && m.action === 'response' && Array.isArray(m.list)) {
+          for (const it of m.list) {
+            (state as any).friendStatusById[it.friendID] = it.status;
+            if (it.friendID === userId) {
+              ws.removeEventListener('message', handler);
+              resolve(it.status);
+            }
+          }
+        }
+        if (m?.type === 'friendStatus' && m.action === 'updateStatus' && m.friendID === userId) {
+          (state as any).friendStatusById[userId] = m.status;
+          ws.removeEventListener('message', handler);
+          resolve(m.status);
+        }
+      } catch {}
+    };
+    ws.addEventListener('message', handler);
+
+    ws.send(JSON.stringify({
+      type: 'friendStatus',
+      action: 'request',
+      friendList: [{ friendID: userId }],
+    }));
+
+    setTimeout(() => {
+      ws.removeEventListener('message', handler);
+      resolve('unknown');
+    }, 600);
+  });
+}
 
 // Invite game handling
 
 export async function handleInviteButton(friendUsername: string): Promise<void> {
-  // if a previous invite is still pending, block new ones
   if ((state as any).inviteLock) {
     showNotification({ message: 'Invitation déjà en attente…', type: 'warning', duration: 2500 });
     return;
   }
 
-  const friendUserId = await apiFetch<{ userId: number }>(
-    `/users/by-username/${encodeURIComponent(friendUsername)}`,
-    { headers: { Authorization: `Bearer ${state.authToken}` } }
-  ).then(d => d.userId);
+	const friendUserId = await apiFetch<{ userId: number }>(
+	  `/users/by-username/${encodeURIComponent(friendUsername)}`,
+	  { headers: { Authorization: `Bearer ${state.authToken}` } }
+	).then(d => d.userId);
+
+	// deny invitation if not "online" on chat presence
+	const presence = await getPresenceFor(friendUserId);
+	if (presence !== 'online') {
+	  const pretty =
+	    presence === 'playing' ? 'en partie' :
+	    presence === 'busy'    ? 'occupé'    :
+	    presence === 'offline' ? 'hors ligne' : 'indisponible';
+	  showNotification({ message: `Joueur ${pretty} — invitation impossible`, type: 'warning', duration: 3000 });
+	  return;
+	}
+
+  // Lock front
+  (state as any).inviteLock = { targetId: friendUserId, since: Date.now() };
+
+  // Wait modal with Cancel
+  const waitId = `invite-wait-${friendUserId}`;
+  showNotification({
+    id: waitId,
+    type: 'wait',
+    message: 'Waiting for the player to accept/decline…',
+    onCancel: () => {
+      // user cancels -> notify server and unlock UI
+      state.playerInterface!.typedSocket.send('invite', {
+        action: 'cancel',
+        fromID: state.userId,
+        toID: friendUserId,
+      });
+      (state as any).inviteLock = null;
+    },
+  });
 
   state.playerInterface!.typedSocket.send('invite', {
     action: 'send',
     userID: state.userId,
     targetID: friendUserId,
   });
-
-  // set local lock until we get a reply/timeout/cancel
-  (state as any).inviteLock = { targetId: friendUserId, since: Date.now() };
-
-  showNotification({ message: 'Invitation envoyée ⏳', type: 'info', duration: 2000 });
 }

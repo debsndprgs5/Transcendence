@@ -433,7 +433,7 @@ export async function setupHomeHandlers(): Promise<void> {
 			           transition
 			           ${
 			             state.currentRoom === r.roomID
-			               ? 'bg-blue-200/50'  /* English comment: highlight selected room */
+			               ? 'bg-blue-200/50'
 			               : ''
 			           }
 			         "
@@ -655,9 +655,9 @@ export async function setupHomeHandlers(): Promise<void> {
 					if (dot) dot.remove();
 				}
 				if (Number(li.dataset.id) === roomId) {
-					li.classList.add('bg-indigo-100');
+					li.classList.add('bg-indigo-400');
 				} else {
-					li.classList.remove('bg-indigo-100');
+					li.classList.remove('bg-indigo-400');
 				}
 			});
 		} catch (err) {

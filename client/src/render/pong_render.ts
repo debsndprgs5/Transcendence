@@ -26,9 +26,13 @@ import {
 import {
 	registerInput,
 	startRenderLoop,
-	attachResize,
 	processNetworkUpdate,
-	type UpdatePayload } from './coreRender';
+	type UpdatePayload,
+	attachResize } from './coreRender';
+
+import {
+	sleep
+} from '../api';
 
 export type Side = 'left' | 'right' | 'top' | 'bottom';
 
@@ -172,14 +176,15 @@ export class PongRenderer {
 		setupPauseUI(ctx);
 		setupWaitingUI(ctx);
 		updatePauseUI(ctx);
-		updateWaitingUI(ctx, true);
-		this.handleResize(); 
-		
+		updateWaitingUI(ctx, true); 
 
 		// Input + loop + resize
 		registerInput(ctx);
 		startRenderLoop(ctx);
 		attachResize(ctx);
+		ctx.scene.onAfterRenderObservable.addOnce(() => {
+		  ctx.engine.resize(); // forces ADT to recompute with final canvas size/DPR
+		});
 	}
 
   // Public: server pushes state here

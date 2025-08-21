@@ -567,6 +567,7 @@ export function drawEndTournamentView(
 	wrapper.querySelectorAll('.menubtn_button').forEach(el => el.remove());
 	ctx.clearRect(0, 0, width, height);
 
+	ctx.fillStyle = 'white';
 	ctx.font = `${Math.floor(height / 15)}px Orbitron`;
 	ctx.fillText(tournamentName, width / 2, height * 0.12);
 

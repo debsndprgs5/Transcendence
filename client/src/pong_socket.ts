@@ -244,7 +244,7 @@ export async function handleJoinGame(data:Interfaces.SocketMessageMap['joinGame'
 }
 
 
-function toUsername(val: any): string {
+export function toUsername(val: any): string {
   if (typeof val === 'string') return val.trim();
 
   if (val && typeof val === 'object' && typeof val.username === 'string') {

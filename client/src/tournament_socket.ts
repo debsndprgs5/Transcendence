@@ -4,7 +4,8 @@ import { apiFetch, state } from './api';
 import { showPongMenu } from './pong_rooms';
 import { TypedSocket } from './shared/gameTypes';
 import { showNotification, showUserActionsBubble } from './notifications';
-import { fetchOpenTournaments } from './tournament_rooms'
+import { fetchOpenTournaments } from './tournament_rooms';
+import { toUsername } from './pong_socket'
 
 
 export function handleJoinTournament(data: Interfaces.SocketMessageMap['joinTournament']) {
@@ -105,7 +106,7 @@ export function handleAlias(data:Interfaces.SocketMessageMap['aliasCheck']){
 		showNotification({
 				message: 'the alias is being used \n please choose a new one',
 				type: 'prompt',
-				placeholder: `${state.playerInterface!.username}`,
+				placeholder: `${toUsername(state.playerInterface!.username)}`,
 				onConfirm: val => {
 					state.typedSocket.send('aliasCheck', {action: 'Post', alias: val});
 				},

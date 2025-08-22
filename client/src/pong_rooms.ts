@@ -20,6 +20,7 @@ import { handleTournamentClick,
 		handleTournamentRoundsClick } from './tournament_rooms';
 import { drawLocalGameConfig, initLocalGameConfig, startLocalMatch, isLocalGameInitialized, cleanupLocalGameConfig } from './localGame/localGame.manager';
 import { LocalGameView } from './localGame/localGame.view';
+import { toUsername } from './pong_socket'
 
 export interface PongButton {
 	x: number;
@@ -385,8 +386,8 @@ async function handleMainMenuClick(canvas: HTMLCanvasElement, x: number, y: numb
 			showNotification({
 				message: 'Type a unique alias for tournament',
 				type: 'prompt',
-				placeholder: `${state.playerInterface!.username}`,
-				onConfirm: val => {
+				placeholder: `${toUsername(state.playerInterface!.username)}`,
+				onConfirm: val => {			
 					state.typedSocket.send('aliasCheck', {action: 'Post', alias: val});
 				},
 				onCancel:() => {

@@ -15,7 +15,7 @@ export function registerInput(ctx: RendererCtx) {
   const { scene, inputState } = ctx;
 
   const keydown = (e: KeyboardEvent) => {
-  	e.preventDefault();
+  	//e.preventDefault();
 		e.stopPropagation();
     const k = e.key.toLowerCase();
     if (k === 'a') inputState.left  = true;
@@ -23,7 +23,7 @@ export function registerInput(ctx: RendererCtx) {
     
   };
   const keyup = (e: KeyboardEvent) => {
-  	e.preventDefault();
+  	//e.preventDefault();
 		e.stopPropagation();
     const k = e.key.toLowerCase();
     if (k === 'a') inputState.left  = false;

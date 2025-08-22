@@ -56,15 +56,59 @@ export function removeAliasForUser(username: string): boolean {
 }
 
 
-export async function handleAlias(player:Interfaces.playerInterface, data:any){
-	
-	const user = await UserManagement.getUserByName(data.alias!)
-	if(user?.username === data.alias)
-		player.typedSocket.send('aliasCheck', {userID:player.userID, action:'Reply', reponse:'sucess', alias: data.alias});
-	else if(hasUserForAlias(data.alias!) === true || user !== null)
-		player.typedSocket.send('aliasCheck', {userID:player.userID , action:'Reply', response:'failure'});
-	else 
-		player.typedSocket.send('aliasCheck', {userID:player.userID, action:'Reply', reponse:'sucess', alias: data.alias});
+// export async function handleAlias(player:Interfaces.playerInterface, data:any){
+// 	console.log(`ALIAS REQUESTED : `, data.alias);
+// 	if(data.alias === null || data.alias === undefined)
+// 		player.typedSocket.send('aliasCheck', {userID:player.userID, action:'Reply', reponse:'failure', alias: data.alias});
+// 	const user = await UserManagement.getUserByName(data.alias!)
+// 	if(user?.username === data.alias)
+// 		player.typedSocket.send('aliasCheck', {userID:player.userID, action:'Reply', reponse:'sucess', alias: data.alias});
+// 	else if(hasUserForAlias(data.alias!) === true || user !== null)
+// 		player.typedSocket.send('aliasCheck', {userID:player.userID , action:'Reply', response:'failure'});
+// 	else 
+// 		player.typedSocket.send('aliasCheck', {userID:player.userID, action:'Reply', reponse:'sucess', alias: data.alias});
+// }
+
+export async function handleAlias(
+  player: Interfaces.playerInterface,
+  data: { alias?: unknown }
+) {
+  // Normalize + validate input
+  const raw = typeof data?.alias === 'string' ? data.alias : '';
+  const alias = raw.trim();
+
+  // Reject empty / whitespace-only
+  if (!alias) {
+    return player.typedSocket.send('aliasCheck', {
+      userID: player.userID,
+      action: 'Reply',
+      response: 'failure',
+      reason: 'empty',
+    });
+  }
+
+  // Check availability
+  const [user, aliasTaken] = await Promise.all([
+    UserManagement.getUserByName(alias),     // returns user or null/undefined
+    hasUserForAlias(alias),                  // boolean: is alias already mapped?
+  ]);
+
+  //Accept 
+  if (user && (user.username !== player.username) || aliasTaken) {
+    return player.typedSocket.send('aliasCheck', {
+      userID: player.userID,
+      action: 'Reply',
+      response: 'failure',
+    });
+  }
+
+  // All good
+  return player.typedSocket.send('aliasCheck', {
+    userID: player.userID,
+    action: 'Reply',
+    response: 'success',
+    alias,
+  });
 }
 
 export async function handleJoinTournament(player:Interfaces.playerInterface, data:any){

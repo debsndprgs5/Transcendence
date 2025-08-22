@@ -50,8 +50,8 @@ export function setupCamera(ctx: RendererCtx) {
 	const width = playerCount === 2 ? LIMIT.arenaWidth2p : LIMIT.arenaWidth4p;
 	const depth = playerCount === 2 ? LIMIT.arenaLength2p : LIMIT.arenaLength4p;
 
-	const dist = Math.max(width, depth) * 1.2;
-	const height = 40;
+	const dist = Math.max(width, depth) * 0.8;
+	const height = 30;
 
 	let pos = new BABYLON.Vector3(0, height, -dist);
   let target = new BABYLON.Vector3(0,0,0);
@@ -84,7 +84,7 @@ export function setupCamera(ctx: RendererCtx) {
 	camera.attachControl(engine.getRenderingCanvas(), true);
 
   camera.fovMode = BABYLON.Camera.FOVMODE_VERTICAL_FIXED;
-  camera.fov = BABYLON.Tools.ToRadians(85); // or whatever you like
+  camera.fov = BABYLON.Tools.ToRadians(80);
 
 	// clamp + face center
 	const margin = 25;

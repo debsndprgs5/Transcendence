@@ -91,7 +91,7 @@ export function showPongMenu(): void {
 		window.addEventListener('mouseup', handlePongMenuMouseUp);
 		const savedGameId = localStorage.getItem('pong_game_id');
 		if (savedGameId) {
-		  if (!state.playerInterface) state.playerInterface = {} as any; // English: lightweight ensure
+		  if (!state.playerInterface) state.playerInterface = {} as any; // lightweight ensure
 		  state.playerInterface!.gameID = Number(savedGameId);
 		}
 		resizePongCanvas();

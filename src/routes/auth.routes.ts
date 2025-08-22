@@ -12,37 +12,107 @@ dotenv.config({
 	path: path.resolve(process.cwd(), '.env'),
 });
 
+
+// ---------- policy constants ----------
+const USERNAME_MIN = 5;
+const USERNAME_MAX = 24;
+const PASSWORD_MIN = 8;
+const PASSWORD_MAX = 72;
+
+const COMMON_PASSWORDS = new Set([
+  'password', 'motdepasse', '12345678', 'azertyui', 'qwertyui', 'letmein',
+  'adminadmin', 'iloveyou', '00000000', '123456789', 'aaaaaaaa'
+]);
+
+// ---------- helpers ----------
+
+function validateUsername(u: string): string | null {
+  if (u.length < USERNAME_MIN || u.length > USERNAME_MAX)
+    return `Username must be between ${USERNAME_MIN} and ${USERNAME_MAX} characters.`;
+
+  // Start with letter OR digit; allowed chars remain letters/digits ._- 
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(u))
+    return "Username must start with a letter or digit and contain only letters, digits, '.', '-', '_'.";
+
+  // No consecutive separators like '..', '__', '--'
+  if (/(?:\.\.|__|--)/.test(u))
+    return "Username must not contain consecutive separators like '..', '__', '--'.";
+
+  return null;
+}
+
+function validatePassword(pw: string, username: string): string | null {
+  if (pw.length < PASSWORD_MIN || pw.length > PASSWORD_MAX)
+    return `Password must be between ${PASSWORD_MIN} and ${PASSWORD_MAX} characters.`;
+
+  if (/\s/.test(pw))
+    return 'Password must not contain spaces.';
+
+  const hasLower = /[a-z]/.test(pw);
+  const hasUpper = /[A-Z]/.test(pw);
+  const hasDigit = /\d/.test(pw);
+  const hasSymbol = /[^A-Za-z0-9]/.test(pw);
+  const categories = [hasLower, hasUpper, hasDigit, hasSymbol].filter(Boolean).length;
+
+  if (categories < 3)
+    return 'Password must include at least 3 of the following: lowercase, uppercase, digit, symbol.';
+
+  if (pw.toLowerCase().includes(username.toLowerCase()))
+    return "Password must not contain the username.";
+
+  if (/(.)\1\1/.test(pw))
+    return 'Password must not contain a character repeated 3 or more times in a row.';
+
+  if (COMMON_PASSWORDS.has(pw.toLowerCase()))
+    return 'Password is too common. Please choose another one.';
+
+  return null;
+}
+
+
 // Big function called by main.ts to mount auth routes
 export async function authRoutes(fastify: FastifyInstance) {
 	// 1) Route POST /api/auth/register ------------------------------------ REGISTER
-	fastify.post('/auth/register', async (request, reply) => {
-		// a) Read Json body as request.body
-		const { username, password } = request.body as { username: string, password: string }
+	fastify.post('/auth/register', {
+	schema: {
+	  body: {
+	    type: 'object',
+	    required: ['username', 'password'],
+	    additionalProperties: false,
+	    properties: {
+	      username: { type: 'string', minLength: USERNAME_MIN, maxLength: USERNAME_MAX },
+	      password: { type: 'string', minLength: PASSWORD_MIN, maxLength: PASSWORD_MAX }
+	    }
+	  }
+	}
+	}, async (request, reply) => {
+	const { username, password } = request.body as { username: string; password: string };
 
-		// b) Micro verif if password & username are set
-		if (!username || !password) {
-			return reply.code(400).send({ error: 'Incomplete Username or Password' })
-		}
-
-		// a) Look for user in db
-		const newUser = await UserManagement.getUserByName(username);
-		if(newUser != null){
-		return reply.code(400).send({error : 'Name already in use'})
+	if (!username || !password) {
+	  return reply.code(400).send({ error: 'Incomplete username or password' });
 	}
 
-	//b) No user in bd with same name, we create a new user 	
-			// Password hashing using bcrypt
-				const passwordHash = await bcrypt.hash(password, 12)
+	const uErr = validateUsername(username);
+	if (uErr) return reply.code(400).send({ error: uErr });
 
-			//Create simple ID (with timestamp + random)
-				const id = `${Date.now()}-${Math.floor(Math.random()*1000)}`
-			//Create the user in the database
-				const userID  = await UserManagement.createUser(id, username, passwordHash);
-				
+	const pErr = validatePassword(password, username);
+	if (pErr) return reply.code(400).send({ error: pErr });
 
-			//Success feedback
-		return reply.code(201).send({ message: 'Registered successfully', userId: id })
-	})
+	const existing = await UserManagement.getUserByName(username);
+	if (existing != null) {
+	  return reply.code(400).send({ error: 'Name already in use' });
+	}
+
+	const passwordHash = await bcrypt.hash(password, 12);
+	const id = `${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+	const userID = await UserManagement.createUser(id, username, passwordHash);
+	if (!userID) {
+	  return reply.code(500).send({ error: 'Failed to create user' });
+	}
+
+	return reply.code(201).send({ message: 'Registered successfully', userId: id });
+	});
 
 	// 2) Route POST /api/auth/login ------------------------------------------ LOGIN
 	fastify.post('/auth/login', async (request, reply) => {
@@ -173,9 +243,9 @@ export async function authRoutes(fastify: FastifyInstance) {
 			encoding: 'base32',
 			token: code
 		})
-		// if (!ok) { // #nomore2fa
-		// 	return reply.code(400).send({ error: 'Invalid 2fa code' })
-		// }
+		if (!ok) { // #nomore2fa
+			return reply.code(400).send({ error: 'Invalid 2fa code' })
+		}
 
 		// If it was initial setup, set final totp, reset pending one
 		if (user.totp_pending) {

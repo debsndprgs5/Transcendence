@@ -46,7 +46,7 @@ export class PongRoom {
 		game: G.gameRoomInterface & { ballSpeed: number; paddleSpeed: number },
 		players: G.playerInterface[]
 	) {
-		console.warn(`[PONGROOM][CONSTRUCTOR]GameID:${game.gameID}`);
+		
 		this.game    = game
 		this.gameID  = game.gameID
 		this.players = players
@@ -368,10 +368,6 @@ private  handleWallScore(sideHit: 'left'|'right'|'top'|'bottom', ball: ballClass
 					scorer.userID,
 					(this.scoreMap.get(scorer.userID) || 0) + 1)
 			}
-			else{
-				//SHOULD NEVER HAPPENDS WITH PROPER BOUNCE ?
-				console.log(`ERROR ${scorer.username} mark in his cage: ${sideHit}, ballvector:${ball.vector}`);
-			}
 		}
 		this.resetBallPosition(sideHit, ball);
 	}
@@ -435,7 +431,6 @@ private  handleWallScore(sideHit: 'left'|'right'|'top'|'bottom', ball: ballClass
 		}
 
 		const duration = Math.floor((Date.now() - this.clock - this.totalPausedTime) / 1000);
-		 console.log(`[STATS] duration: ${duration}s, ${this.players[0].gameID}`);
 		await saveMatchStats(
 			this.gameID,
 			this.players[0].tournamentID || null,

@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-
-=======
->>>>>>> 6a292efe47ced3c6da1a65d6fd057b3e91dbf44e
 import * as BABYLON from '@babylonjs/core';
 
 export async function loadModelAsContainer(

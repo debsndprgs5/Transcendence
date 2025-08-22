@@ -232,7 +232,6 @@ export async function authRoutes(fastify: FastifyInstance) {
 
 				// Get user from database using payload.sub
 				const user = await UserManagement.getUserByRand(String(payload.sub));
-				console.log('token payload:', payload, 'user:', user);
 				if (!user) {
 						return reply.code(404).send({ error: 'User not found' });
 				}

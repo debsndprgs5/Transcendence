@@ -57,8 +57,11 @@ export function removeAliasForUser(username: string): boolean {
 
 
 export async function handleAlias(player:Interfaces.playerInterface, data:any){
-
-	if(hasUserForAlias(data.alias!) === true || await UserManagement.getUserByName(data.alias!) !== null)
+	
+	const user = await UserManagement.getUserByName(data.alias!)
+	if(user?.username === data.alias)
+		player.typedSocket.send('aliasCheck', {userID:player.userID, action:'Reply', reponse:'sucess', alias: data.alias});
+	else if(hasUserForAlias(data.alias!) === true || user !== null)
 		player.typedSocket.send('aliasCheck', {userID:player.userID , action:'Reply', response:'failure'});
 	else 
 		player.typedSocket.send('aliasCheck', {userID:player.userID, action:'Reply', reponse:'sucess', alias: data.alias});
@@ -94,9 +97,9 @@ export async function handleJoinTournament(player:Interfaces.playerInterface, da
 				});
 		}
 	const member = await getMembersByTourID(data.tournamentID);
-	if(member!.length > 2){
+	//if(member!.length > 2){
 		await broadcastTourList();
-	}
+	//}
 }
 
 

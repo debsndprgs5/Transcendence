@@ -217,7 +217,6 @@ export async function reconfigure2FA(): Promise<void> {
 					duration: 5000
 				});
 			} else {
-				console.log('[DEBUG reconfigure2FA] data:', data);
 				showNotification({
 					message: data.error || 'Failed to reconfigure 2FA',
 					type: 'error',
@@ -737,7 +736,6 @@ export async function rmMemberFromRoom(roomID: number, userID: number) {
 			Authorization: `Bearer ${state.authToken}` // if needed
 		}
 	});
-	console.log(`[rmFromChat].user[${userID}]chat[${roomID}]`);
 	selectRoom(0);
 	await loadRooms();
 }
@@ -799,11 +797,9 @@ export function setupLoginHandlers(): void {
 
 			if (res.ok) {
 				if (json.need2FASetup) {
-					console.log('2FA setup needed, token received:', json.token);
 					state.pendingToken = json.token;
 					await doSetup2FA(state.pendingToken!);
 				} else if (json.need2FAVerify) {
-					console.log('2FA verification needed');
 					state.pendingToken = json.token;
 					render(Verify2FAView());
 					setupVerify2FAHandlers();
@@ -839,7 +835,7 @@ export async function doSetup2FA(token: string): Promise<void> {
 	}
 
 	try {
-		console.log('Sending 2FA setup request with token:', token);
+		
 		const res = await fetch('/api/auth/2fa/setup', {
 			method: 'POST',
 			headers: {
@@ -855,7 +851,6 @@ export async function doSetup2FA(token: string): Promise<void> {
 		}
 
 		const json = await res.json() as any;
-		console.log('2FA setup response:', json);
 
 		if (!json.otpauth_url || !json.base32) {
 			throw new Error('Invalid server response: missing required 2FA data');
@@ -1370,7 +1365,7 @@ async function getPresenceFor(userId: number): Promise<'online'|'busy'|'offline'
 
 export async function handleInviteButton(friendUsername: string): Promise<void> {
   if ((state as any).inviteLock) {
-    showNotification({ message: 'Invitation déjà en attente…', type: 'warning', duration: 2500 });
+    showNotification({ message: 'Invite already pending …', type: 'warning', duration: 2500 });
     return;
   }
 

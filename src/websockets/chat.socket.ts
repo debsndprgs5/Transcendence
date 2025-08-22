@@ -230,7 +230,7 @@ async function handleConnection(ws: WebSocket, request: any) {
 			let parsed: any;
 			try {
 				parsed = JSON.parse(data.toString());
-				console.log(`parsed`, parsed);
+			
 			} catch {
 				return ws.send(JSON.stringify({ error: 'Invalid JSON' }));
 			}
@@ -284,13 +284,11 @@ async function handleConnection(ws: WebSocket, request: any) {
 								content: msg.content
 							});
 						}
-						console.log('SENDING CHAT HISTORY ...');
 						ws.send(JSON.stringify({
 							type: 'chatHistory',
 							roomID: roomID,
 							messages:result
 						}));
-						console.log('CHAT HISTORY SENT');
 					} catch (err) {
 						console.error('Failed to load history:', err);
 						ws.send(JSON.stringify({ type: 'system', message: 'Erreur chargement historique.' }));

@@ -151,7 +151,7 @@ export class Tournament {
 public async matchGaveUp(tourID: number, quitterID: number) {
 	const tour = Tournament.MappedTour.get(tourID);
 	if (!tour) {
-		console.warn(`[GAVE UP] No tournament found for tourID=${tourID}`);
+
 		return;
 	}
 
@@ -538,7 +538,6 @@ function generateSwissPairings(
     }
 
     if (!placed) {
-      console.warn(`GIVING BYE to ${floater.player.userID}`);
       tour.giveBye(floater);
     }
   }

@@ -26,7 +26,6 @@ export async function initGameSocket(): Promise<void> {
 
 	// CLEANUP before reinitializing
 	if (state.typedSocket) {
-		console.log('[GAME] Cleaning up previous typed socket...');
 		state.typedSocket.cleanup?.();
 		state.typedSocket.removeAllListeners?.();
 	}
@@ -60,7 +59,6 @@ export async function initGameSocket(): Promise<void> {
 
 			// Send reconnect or init
 			if (oldID) {
-				console.log('[GAME] WebSocket connected — attempting reconnected as', userID);
 				typedSocket.send('reconnected', { userID });
 
 				showNotification({
@@ -68,7 +66,6 @@ export async function initGameSocket(): Promise<void> {
 					type: 'success',
 				});
 			} else {
-				console.log('[GAME] WebSocket connected — sending init for new user', userID);
 				typedSocket.send('init', { userID });
 				localStorage.setItem('userID', userID.toString());
 			}
@@ -102,7 +99,7 @@ export async function initGameSocket(): Promise<void> {
 					userID: state.userId,
 					gameID: state.playerInterface.gameID
 					});
-				console.warn(`[GAME] WebSocket closed — code=${ev.code}, reason="${ev.reason}"`);
+				//console.warn(`[GAME] WebSocket closed — code=${ev.code}, reason="${ev.reason}"`);
 				if (state.gameSocket?.readyState === WebSocket.OPEN)
 					state.typedSocket?.send('disconnected', {});
 				if (ev.code === 1008) {
@@ -192,7 +189,6 @@ async function handleEvents(
 	typedSocket.on('reconnected', async(socket:WebSocket, data:Interfaces.SocketMessageMap['reconnected'])=>{
 	  // If it's not you, ignore it
 	  if (data.userID !== state.userId) {
-	    console.log(`[GAMESOCKET] Ignoring reconnection of user ${data.userID}`);
 	    return;
 	  }
 	  await handleReconnection(socket, typedSocket, data);
@@ -472,7 +468,6 @@ export async function handleStartGame(data: Interfaces.SocketMessageMap['startGa
 	}
 	state.canvasViewState = 'playingGame';
 	localStorage.setItem('pong_view', 'playingGame');
-	console.log(`USERSTATE:${state.playerInterface.state}| Uname: ${state.playerInterface.username}`)
 	const count = Object.keys(data.usernames).length
 	const side:Side = data.side;
 	pongState.pongRenderer = new PongRenderer(canvas, state.typedSocket,
@@ -610,8 +605,7 @@ export async function handleReconnection(
   socket: WebSocket,
   typedSocket: TypedSocket,
   data: Interfaces.SocketMessageMap['reconnected']
-) {
-  console.log(`[FRONT][GAMESOCKET] Reconnected as user ${data.userID} with state: ${data.state}`);
+){
 
   // Recreate client-side interface from server data
   state.gameSocket = socket;
@@ -690,7 +684,6 @@ export async function handleReconnection(
 
   // ── CASE 3: Tournament reconnection while not playing a match
   if (data.tournamentID) {
-    console.log('[RECONNECT] No active match but active tournament');
     if (data.hasStarted === true) {
       state.playerInterface!.typedSocket.send('reloadTourRound', {
         tournamentID: state.playerInterface!.tournamentID!,
@@ -723,7 +716,6 @@ export async function handleReconnection(
   }
 
   // ── DEFAULT: Not in any game nor tournament → back to main menu
-  console.log('[RECONNECT] No active game. Returning to main menu.');
   state.canvasViewState = 'mainMenu';
   localStorage.setItem('pong_view', 'mainMenu');
   showPongMenu();

@@ -62,7 +62,6 @@ function updateStatsChart(stats: { win: number, lose: number, tie: number }) {
 (window as any).updateStatsDisplay = updateStatsDisplay;
 
 function updateStatsDisplay(data: any) {
-  console.log('[updateStatsDisplay] Received data:', data);
   if (data.winPercentage) {
     updateStatsChart(data.winPercentage);
     const totalWins = Math.round((data.winPercentage.win / 100) * getTotalGames(data));

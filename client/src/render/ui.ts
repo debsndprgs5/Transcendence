@@ -267,7 +267,7 @@ export function setupGUI(ctx: RendererCtx) {
 		}
 
     if (ctx.isPaused){ 
-      console.warn('[PAUSE] cliked pause on a paused game');
+    
       return;
     }
     ctx.isPaused = true;

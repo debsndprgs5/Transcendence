@@ -87,7 +87,7 @@ export function handleEndTournament(data:Interfaces.SocketMessageMap['endTournam
 
 
 export function handleStartNextRound(data:Interfaces.SocketMessageMap['startNextRound']){
-	console.warn('[TOUR][STARTNEXTROUND]gamename =', data.gameName);
+
 	state.currentGameName = data.gameName;
 	state.canvasViewState = 'waitingTournamentRounds';
 	state.typedSocket.send('joinGame', {userID:state.userId, gameID:data.gameID, gameName:data.gameName});
@@ -103,9 +103,9 @@ export function handleAlias(data:Interfaces.SocketMessageMap['aliasCheck']){
 
 	if(data.response === 'failure'){
 		showNotification({
-				message: 'NAME is being used , please choose a New one',
+				message: 'the alias is being used \n please choose a new one',
 				type: 'prompt',
-				placeholder: 'XxX_D4RK_K1LL3R_XxX',
+				placeholder: `${state.playerInterface!.username}`,
 				onConfirm: val => {
 					state.typedSocket.send('aliasCheck', {action: 'Post', alias: val});
 				},
@@ -122,8 +122,8 @@ export function handleAlias(data:Interfaces.SocketMessageMap['aliasCheck']){
 	else {
 		state.canvasViewState = 'tournament';
 		state.alias = data.alias!;
-		fetchOpenTournaments()
+		//fetchOpenTournaments()
 		showPongMenu();
 	}
-		//return to tournament logic here ? 
+
 }

@@ -163,7 +163,7 @@ export function getPlayerState(userID:number): string | undefined{
   const player = getPlayerByUserID(userID);
   if(!player)
     return undefined;
-  console.warn(`STATE: ${player!.state}`)
+
   if(!player || player.state === 'offline')
     return('offline')
   if(player.state !== 'init')

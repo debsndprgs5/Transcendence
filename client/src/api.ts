@@ -135,7 +135,7 @@ export async function apiFetch<T = any>(
 
 		//const data = await response.json();
 		const rawText = await response.text();
-		console.log('Raw API response:', rawText);
+		//console.log('Raw API response:', rawText);
 
 		let data;
 		try {
@@ -168,7 +168,7 @@ export function getUserIdFromCookie(): number | null {
 		for (const cookie of cookies) {
 			const [name, value] = cookie.trim().split('=');
 			if (name === 'userId') {
-				console.log('Found userId cookie:', value);
+				//console.log('Found userId cookie:', value);
 				const userId = Number(value);
 				if (!isNaN(userId)) {
 					return userId;
@@ -258,7 +258,7 @@ export async function initWebSocket(): Promise<void> {
 					window.location.pathname === '/account' &&
 					state.friendsStatusList?.length
 				) {
-					console.log('[CHAT] User in account view , not sending chatHistory');
+					//console.log('[CHAT] User in account view , not sending chatHistory');
 					state.socket!.send(
 						JSON.stringify({
 							type: 'friendStatus',
@@ -267,16 +267,13 @@ export async function initWebSocket(): Promise<void> {
 						})
 					);
 				}
-				console.log(`[CHAT RESOLVED]`)
 				resolve(); // Resolve when ready to use
 			};
 
 			state.socket!.onmessage = async (event: MessageEvent) => {
-				console.log('Raw msg from websocket : ', event.data);
 				handleChatInbound(event);
 				try {
 					const parsed = JSON.parse(event.data);
-					console.log('Parsed WS message:', parsed);
 					await handleWebSocketMessage(parsed);
 				} catch (e) {
 					console.error('WebSocket message parsing error:', e);
@@ -313,7 +310,6 @@ export async function handleWebSocketMessage(msg: WebSocketMsg): Promise<void> {
 	
 	switch (msg.type) {
 		case 'system': {
-			console.log(`{MSG : ${{msg}}}`);
 			const chatDiv = document.getElementById('chat');
 			if (chatDiv) {
 				const systemMsg = document.createElement('p');
@@ -388,18 +384,13 @@ export async function handleWebSocketMessage(msg: WebSocketMsg): Promise<void> {
 		}
 
 		case 'roomDeleted': {
-			const wasInDeletedRoom = state.currentRoom === msg.roomID;
-			// console.log(`[CHAT] currentRoom: ${state.currentRoom}, msg.roomID: ${msg.roomID}`);
+			const wasInDeletedRoom = state.currentRoom === msg.roomID;;
 			if (state.loadRooms) {
 				await state.loadRooms();
 			}
 			if (wasInDeletedRoom && state.selectRoom) {
-			// if (state.selectRoom) {
-				console.log(`[CHAT] Room ${msg.roomID} deleted, switching to general chat.`);
 				await state.selectRoom(0);
 				showNotification({ message: 'The room you were in was deleted. Moved to general chat.', type: 'info' });
-			} else {
-				console.log(`[CHAT] Room ${msg.roomID} deleted, but not in it.`);
 			}
 			break;
 		}
@@ -433,7 +424,7 @@ export async function handleWebSocketMessage(msg: WebSocketMsg): Promise<void> {
 		}
 
 		case 'friendStatus': {
-			console.log('[FRIEND] WebSocket friendStatus received:', msg);
+		
 			if (msg.action === 'response' && Array.isArray(msg.list)) {
 				msg.list.forEach(({ friendID, status }: any) => {
 					const statusSpan = document.querySelector<HTMLElement>(

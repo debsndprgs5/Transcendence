@@ -358,7 +358,6 @@ async function handleMainMenuClick(canvas: HTMLCanvasElement, x: number, y: numb
 	if (!btnMain) return;
 	if (state.playerInterface!.state !== 'init')
 	{
-		console.warn('No no no | ', state.playerInterface!.state);
 		state.canvasViewState = 'mainMenu'
 		return;
 	}
@@ -386,7 +385,7 @@ async function handleMainMenuClick(canvas: HTMLCanvasElement, x: number, y: numb
 			showNotification({
 				message: 'Type a unique alias for tournament',
 				type: 'prompt',
-				placeholder: 'XxX_D4RK_K1LL3R_XxX',
+				placeholder: `${state.playerInterface!.username}`,
 				onConfirm: val => {
 					state.typedSocket.send('aliasCheck', {action: 'Post', alias: val});
 				},
@@ -464,7 +463,6 @@ async function handleJoinGameClick(canvas: HTMLCanvasElement, x: number, y: numb
 
 	if (state.playerInterface!.state !== 'init')
 	{
-		console.warn('No no no | ', state.playerInterface!.state);
 		state.canvasViewState = 'mainMenu'
 		return;
 	}
@@ -597,7 +595,6 @@ async function handleCreateGameButton(action: string): Promise<void> {
 			});
 			const { gameID, gameName } = reply.room;
 			if(!state.playerInterface?.socket){
-				console.log('NO SOCKET FOR GAME');
 				return;
 			}
 			state.typedSocket.send('joinGame', {
@@ -717,12 +714,12 @@ async function handleLeaveGame(): Promise<void> {
   // ---- Network best-effort ----
   try {
     if (!Number.isFinite(gID)) throw new Error('no gameID');
-    await waitForGameSocketOpen(800);   // English: short wait for socket
+    await waitForGameSocketOpen(800);   //short wait for socket
     if (!state.typedSocket) throw new Error('no typedSocket');
     state.typedSocket.send('leaveGame', { userID: uID!, gameID: gID, islegit: false });
   } catch (err) {
     console.warn('[LEAVE] deferred:', err);
-    // English: queue a deferred leave to send on next connect (optional)
+    // queue a deferred leave to send on next connect (optional)
     localStorage.setItem('pending_leave', '1');
     if (Number.isFinite(gID)) localStorage.setItem('pending_leave_gid', String(gID));
   }

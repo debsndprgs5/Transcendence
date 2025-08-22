@@ -147,7 +147,7 @@ export async function beginGame(gameID: number, players: Interfaces.playerInterf
     const side = sides[index];
     player.playerSide = side;
     sideToUsername[side] = player.tournamentID? getAliasForUser(player.username!) :player.username!;
-    console.log('[USERNAME for render] :',sideToUsername[side])
+
     updatePlayerState(player, 'playing');
   });
   const aliases = new Map<string, string>();
@@ -220,7 +220,6 @@ export async function tryStartGameIfReady(gameID: number) {
   }
 
   if (playersInGameRoom.length === maxPlayers) {
-    console.log(`Starting game : Players length:${playersInGameRoom.length} | Max players: ${maxPlayers}`)
     const playerObjs = playersInGameRoom
       .map(p => getPlayerByUserID(p.userID))
       .filter((p): p is Interfaces.playerInterface => !!p);
@@ -293,7 +292,7 @@ export async function kickFromGameRoom(
 
   // No reason: kick only the triggeringPlayer
   if (!triggeringPlayer) {
-    console.warn('[kickFromGameRoom] No triggeringPlayer and no reason provided - nothing to do');
+   // console.warn('[kickFromGameRoom] No triggeringPlayer and no reason provided - nothing to do');
     return;
   }
 
@@ -317,18 +316,12 @@ export async function updateRoom(gameID:number) {
   for(const p of players){
     list.push(p.username);
   }
-  console.log(`updateRoom:${list}`);
-  console.log(`players`, players);
-  if(players.length === 0 )
-    console.log(`NO PLAYERS DUDE WTF ?`)
-  if(!players )
-    console.log(`NO PLAYERS DUDE WTF ?`)
+
+  if(!players || players.length === 0 )
+    return;
   if(players.length > 0){
     for(const p of players){
       let pObj = getPlayerByUserID(p.userID);
-      // (add a one-line structured log):
-      console.log('[WS->] updateGameList',
-        { to:pObj!.userID, gameID, listLen: list.length, sample:list[0] });
       pObj!.typedSocket.send('updateGameList', {
         userID: pObj!.userID,
         gameID,

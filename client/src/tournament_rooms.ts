@@ -37,7 +37,7 @@ export async function handleTournamentClick(canvas: HTMLCanvasElement, x: number
 	if (!clickedBtn) return;
   if (state.playerInterface!.state !== 'init')
   {
-    console.warn('No no no | ', state.playerInterface!.state);
+ 
     state.canvasViewState = 'mainMenu'
     return;
   }
@@ -208,8 +208,7 @@ export async function handleJoinTournament(tourID: number): Promise<void> {
 
 // Handles the "Leave Tournament" button action
 export async function handleLeaveTournament(islegit:boolean, duringGame?:boolean|undefined): Promise<void> {
-  if(islegit === true)
-    console.warn(`[TOURNAMENT][EXIT CLICKED]`);
+
   if(duringGame === undefined)
     duringGame = false;
   const tourID = state.playerInterface!.tournamentID!;

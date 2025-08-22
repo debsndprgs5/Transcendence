@@ -55,7 +55,7 @@ export function setupCamera(ctx: RendererCtx) {
 
 	let pos = new BABYLON.Vector3(0, height, -dist);
   let target = new BABYLON.Vector3(0,0,0);
-	console.warn(`[CAMERA] setting up side:${playerSide}`)
+
 	switch (playerSide) {
 		case 'left':
       pos = new BABYLON.Vector3(-dist, height, 0);

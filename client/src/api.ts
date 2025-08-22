@@ -7,7 +7,7 @@ import { TypedSocket } from './shared/gameTypes';
 export interface AppState {
 	authToken: string | null;
 	friendStatusById?: Record<number, 'online'|'busy'|'offline'|'playing'>;
-	inviteLock: null | { targetId: number; since: number }; // English: lock to prevent multiple concurrent invites
+	inviteLock: null | { targetId: number; since: number }; // lock to prevent multiple concurrent invites
 	pendingToken: string | null;
 	socket: WebSocket | null;
 	gameSocket: WebSocket | null;
@@ -39,7 +39,7 @@ export interface AppState {
 export const state: AppState = {
 	authToken: null,
 	friendStatusById: {},
-	inviteLock: null, // English: no invite pending at start
+	inviteLock: null, // no invite pending at start
 	pendingToken: null,
 	socket: null,
 	gameSocket: null,
@@ -66,7 +66,7 @@ export function resetState() {
 	Object.assign(state, {
 		authToken: null,
 		friendStatusById: {},
-		inviteLock: null, // English: clear invite lock on reset
+		inviteLock: null, // clear invite lock on reset
 		pendingToken: null,
 		socket: null,
 		gameSocket: null,

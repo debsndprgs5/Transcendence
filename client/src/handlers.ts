@@ -744,34 +744,151 @@ export async function rmMemberFromRoom(roomID: number, userID: number) {
 // REGISTER HANDLERS
 // =======================
 
-export function setupRegisterHandlers(): void {
-	const form = document.getElementById('registerForm') as HTMLFormElement | null;
-	if (!form) return;
+// Mirror of server-side policy (keep in sync!)
+const USERNAME_MIN = 5;
+const USERNAME_MAX = 24;
+const PASSWORD_MIN = 8;
+const PASSWORD_MAX = 72;
 
-	form.onsubmit = async (e: Event) => {
-		e.preventDefault();
-		const data = Object.fromEntries(new FormData(form).entries());
-		try {
-			const res = await fetch('/api/auth/register', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(data)
-			});
-			const json = await res.json();
-			if (res.ok) {
-				history.pushState(null, '', '/login');
-				router();
-			} else {
-				const err = document.getElementById('register-error') as HTMLElement;
-				err.textContent = json.error;
-				err.classList.remove('hidden');
-			}
-		} catch {
-			const err = document.getElementById('register-error') as HTMLElement;
-			err.textContent = 'Register Error';
-			err.classList.remove('hidden');
-		}
-	};
+const COMMON_PASSWORDS = new Set([
+  'password', 'motdepasse', '12345678', 'azertyui', 'qwertyui', 'letmein',
+  'adminadmin', 'iloveyou', '00000000', '123456789', 'aaaaaaaa'
+]);
+
+// ---------- client-side validators (same rules as server) ----------
+function validateUsername(u: string): string | null {
+  if (u.length < USERNAME_MIN || u.length > USERNAME_MAX)
+    return `Username must be between ${USERNAME_MIN} and ${USERNAME_MAX} characters.`;
+
+  if (!/^[A-Za-z][A-Za-z0-9._-]*$/.test(u))
+    return "Username must start with a letter and contain only letters, digits, '.', '-', '_'.";
+  
+  if (/(?:\.\.|__|--)/.test(u))
+    return "Username must not contain consecutive separators like '..', '__', '--'.";
+
+  if (/^\d+$/.test(u))
+    return "Username cannot be digits only.";
+
+  return null;
+}
+
+function validatePassword(pw: string, username: string): string | null {
+  if (pw.length < PASSWORD_MIN || pw.length > PASSWORD_MAX)
+    return `Password must be between ${PASSWORD_MIN} and ${PASSWORD_MAX} characters.`;
+
+  if (/\s/.test(pw))
+    return 'Password must not contain spaces.';
+
+  const hasLower = /[a-z]/.test(pw);
+  const hasUpper = /[A-Z]/.test(pw);
+  const hasDigit = /\d/.test(pw);
+  const hasSymbol = /[^A-Za-z0-9]/.test(pw);
+  const categories = [hasLower, hasUpper, hasDigit, hasSymbol].filter(Boolean).length;
+
+  if (categories < 3)
+    return 'Password must include at least 3 of the following: lowercase, uppercase, digit, symbol.';
+
+  if (pw.toLowerCase().includes(username.toLowerCase()))
+    return "Password must not contain the username.";
+
+  if (/(.)\1\1/.test(pw))
+    return 'Password must not contain a character repeated 3 or more times in a row.';
+
+  if (COMMON_PASSWORDS.has(pw.toLowerCase()))
+    return 'Password is too common. Please choose another one.';
+
+  return null;
+}
+
+// ---------- UI helpers ----------
+function showError(msg: string) {
+  const err = document.getElementById('register-error') as HTMLElement | null;
+  if (!err) return;
+  err.textContent = msg || 'Register Error';
+  err.classList.remove('hidden');
+}
+
+function clearError() {
+  const err = document.getElementById('register-error') as HTMLElement | null;
+  if (!err) return;
+  err.textContent = '';
+  err.classList.add('hidden');
+}
+
+export function setupRegisterHandlers(): void {
+  const form = document.getElementById('registerForm') as HTMLFormElement | null;
+  if (!form) return;
+
+  const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+
+  form.onsubmit = async (e: Event) => {
+    e.preventDefault();
+    clearError();
+
+    // Extract only expected fields
+    const fd = new FormData(form);
+    const username = (fd.get('username') ?? '').toString().trim();
+    const password = (fd.get('password') ?? '').toString();
+
+    // Client-side validation to avoid round-trip
+    const uErr = validateUsername(username);
+    if (uErr) {
+      showError(uErr);
+      return;
+    }
+    const pErr = validatePassword(password, username);
+    if (pErr) {
+      showError(pErr);
+      return;
+    }
+
+    // Disable submit while processing
+    if (submitBtn) submitBtn.disabled = true;
+
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        // Send only the expected payload keys
+        body: JSON.stringify({ username, password })
+      });
+
+      // Try to parse JSON either way
+      let json: any = {};
+      try { json = await res.json(); } catch { /* ignore parse errors */ }
+
+      if (res.ok) {
+        // On success, follow your existing navigation flow
+        history.pushState(null, '', '/login');
+        router();
+      } else {
+        // Show server-provided error or a fallback message
+        showError(json?.error || 'Registration failed.');
+      }
+    } catch {
+      showError('Network or server error during registration.');
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  };
+
+  const usernameInput = form.querySelector('input[name="username"]') as HTMLInputElement | null;
+  const passwordInput = form.querySelector('input[name="password"]') as HTMLInputElement | null;
+
+  if (usernameInput) {
+    usernameInput.addEventListener('blur', () => {
+      const v = usernameInput.value.trim();
+      const err = validateUsername(v);
+      if (err) showError(err); else clearError();
+    });
+  }
+  if (passwordInput) {
+    passwordInput.addEventListener('blur', () => {
+      const u = (usernameInput?.value ?? '').trim();
+      const err = validatePassword(passwordInput.value, u);
+      if (err) showError(err); else clearError();
+    });
+  }
 }
 
 // =======================

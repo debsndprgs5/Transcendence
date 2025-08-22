@@ -760,14 +760,12 @@ function validateUsername(u: string): string | null {
   if (u.length < USERNAME_MIN || u.length > USERNAME_MAX)
     return `Username must be between ${USERNAME_MIN} and ${USERNAME_MAX} characters.`;
 
-  if (!/^[A-Za-z][A-Za-z0-9._-]*$/.test(u))
-    return "Username must start with a letter and contain only letters, digits, '.', '-', '_'.";
-  
+  // Start with letter OR digit; allow digits-only usernames
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(u))
+    return "Username must start with a letter or digit and contain only letters, digits, '.', '-', '_'.";
+
   if (/(?:\.\.|__|--)/.test(u))
     return "Username must not contain consecutive separators like '..', '__', '--'.";
-
-  if (/^\d+$/.test(u))
-    return "Username cannot be digits only.";
 
   return null;
 }

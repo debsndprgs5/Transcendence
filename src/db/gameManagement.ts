@@ -336,77 +336,154 @@ export const getStatsForUser = async (userID: number) => {
 
 export async function startScoreTableFuzzer() {
   await new Promise(resolve => setTimeout(resolve, 1500));
-  let matchID = 1;
-  const TOTAL_MATCHES = 5000;
-  for (; matchID <= TOTAL_MATCHES; matchID++) {
-	let duration = randomInt(5, 1000);
-	let paddleSpeed = randomInt(1, 100);
-	let ballSpeed = randomInt(1, 100);
-	let gameMode = randomInt(0, 2); // 0=1v1, 1=2v2
-	let players;
+  const TOTAL_MATCHES = 500;
+  const BATCH_SIZE = 100;
+  console.log(`Début du fuzzing pour ${TOTAL_MATCHES} matchs...`);
 
-	if (gameMode === 0) {
-	  let result = randomInt(0, 3); // 0=lose, 1=win, 2=tie
-	  let scoreA, scoreB;
-	  if (result === 2) {
-		scoreA = scoreB = randomInt(5, 100);
-		players = [
-		  { userID: 1, score: scoreA, result: 2 },
-		  { userID: 2, score: scoreB, result: 2 }
-		];
-	  } else if (result === 1) {
-		scoreA = randomInt(5, 100);
-		scoreB = randomInt(0, scoreA);
-		players = [
-		  { userID: 1, score: scoreA, result: 1 },
-		  { userID: 2, score: scoreB, result: 0 }
-		];
-	  } else {
-		scoreB = randomInt(5, 100);
-		scoreA = randomInt(0, scoreB);
-		players = [
-		  { userID: 1, score: scoreA, result: 0 },
-		  { userID: 2, score: scoreB, result: 1 }
-		];
-	  }
-	// console.log(`[Fuzzer] 1v1 Match: matchID=${matchID}, scores: [${players[0].score}, ${players[1].score}], duration: ${duration}s`);
-	} else {
-	  let result = randomInt(0, 3); // 0=team2 wins, 1=team1 wins, 2=tie
-	  let scoreTeam1, scoreTeam2;
-	  if (result === 2) {
-		// Égalité
-		scoreTeam1 = scoreTeam2 = randomInt(5, 100);
-		players = [
-		  { userID: 1, score: scoreTeam1, result: 2 }, // Team 1 Player 1
-		  { userID: 3, score: scoreTeam1, result: 2 }, // Team 1 Player 2
-		  { userID: 2, score: scoreTeam2, result: 2 }, // Team 2 Player 1
-		  { userID: 4, score: scoreTeam2, result: 2 }  // Team 2 Player 2
-		];
-	  } else if (result === 1) {
-		// Team 1 gagne
-		scoreTeam1 = randomInt(5, 100);
-		scoreTeam2 = randomInt(0, scoreTeam1);
-		players = [
-		  { userID: 1, score: scoreTeam1, result: 1 }, // Team 1 Player 1 (win)
-		  { userID: 3, score: scoreTeam1, result: 1 }, // Team 1 Player 2 (win)
-		  { userID: 2, score: scoreTeam2, result: 0 }, // Team 2 Player 1 (lose)
-		  { userID: 4, score: scoreTeam2, result: 0 }  // Team 2 Player 2 (lose)
-		];
-	  } else {
-		// Team 2 gagne
-		scoreTeam2 = randomInt(5, 100);
-		scoreTeam1 = randomInt(0, scoreTeam2);
-		players = [
-		  { userID: 1, score: scoreTeam1, result: 0 }, // Team 1 Player 1 (lose)
-		  { userID: 3, score: scoreTeam1, result: 0 }, // Team 1 Player 2 (lose)
-		  { userID: 2, score: scoreTeam2, result: 1 }, // Team 2 Player 1 (win)
-		  { userID: 4, score: scoreTeam2, result: 1 }  // Team 2 Player 2 (win)
-		];
-	  }
-	//   console.log(`[Fuzzer] 2v2 Match: matchID=${matchID}, scores: Team1=${scoreTeam1} vs Team2=${scoreTeam2}, duration: ${duration}s`);
+  try {
+    for (let i = 0; i < TOTAL_MATCHES; i += BATCH_SIZE) {
+      const batchLimit = Math.min(i + BATCH_SIZE, TOTAL_MATCHES);
+      const currentBatchSize = batchLimit - i;
+      const matchHistoryValues: any[] = [];
+      const scoreTableValues: any[] = [];
+      for (let matchID = i + 1; matchID <= batchLimit; matchID++) {
+        const duration = randomInt(5, 1000);
+        const paddleSpeed = randomInt(1, 100);
+        const ballSpeed = randomInt(1, 100);
+        const gameMode = randomInt(0, 2); // 0=1v1, 1=2v2
+        let players;
+
+        if (gameMode === 0) {
+          const result = randomInt(0, 3); // 0=lose, 1=win, 2=tie
+          let scoreA, scoreB;
+          if (result === 2) {
+            scoreA = scoreB = randomInt(5, 100);
+            players = [
+              { userID: 1, score: scoreA, result: 2 },
+              { userID: 2, score: scoreB, result: 2 }
+            ];
+          } else if (result === 1) {
+            scoreA = randomInt(5, 100);
+            scoreB = randomInt(0, scoreA);
+            players = [
+              { userID: 1, score: scoreA, result: 1 },
+              { userID: 2, score: scoreB, result: 0 }
+            ];
+          } else {
+            scoreB = randomInt(5, 100);
+            scoreA = randomInt(0, scoreB);
+            players = [
+              { userID: 1, score: scoreA, result: 0 },
+              { userID: 2, score: scoreB, result: 1 }
+            ];
+          }
+        } else {
+          const result = randomInt(0, 3); // 0=team2 wins, 1=team1 wins, 2=tie
+          let scoreTeam1, scoreTeam2;
+          if (result === 2) {
+            scoreTeam1 = scoreTeam2 = randomInt(5, 100);
+            players = [
+              { userID: 1, score: scoreTeam1, result: 2 }, { userID: 3, score: scoreTeam1, result: 2 },
+              { userID: 2, score: scoreTeam2, result: 2 }, { userID: 4, score: scoreTeam2, result: 2 }
+            ];
+          } else if (result === 1) {
+            scoreTeam1 = randomInt(5, 100);
+            scoreTeam2 = randomInt(0, scoreTeam1);
+            players = [
+              { userID: 1, score: scoreTeam1, result: 1 }, { userID: 3, score: scoreTeam1, result: 1 },
+              { userID: 2, score: scoreTeam2, result: 0 }, { userID: 4, score: scoreTeam2, result: 0 }
+            ];
+          } else {
+            scoreTeam2 = randomInt(5, 100);
+            scoreTeam1 = randomInt(0, scoreTeam2);
+            players = [
+              { userID: 1, score: scoreTeam1, result: 0 }, { userID: 3, score: scoreTeam1, result: 0 },
+              { userID: 2, score: scoreTeam2, result: 1 }, { userID: 4, score: scoreTeam2, result: 1 }
+            ];
+          }
+        }
+        matchHistoryValues.push(matchID, null, paddleSpeed, ballSpeed, 15, 1, duration);
+        players.forEach(p => {
+          scoreTableValues.push(matchID, p.userID, p.score, p.result);
+        });
+      }
+      await run('BEGIN TRANSACTION');
+      try {
+        const matchHistoryPlaceholders = Array(currentBatchSize).fill('(?, ?, ?, ?, ?, ?, ?)').join(',');
+        await run(
+          `INSERT INTO matchHistory (matchID, tourID, rulesPaddleSpeed, rulesBallSpeed, rulesLimit, rulesCondition, duration) VALUES ${matchHistoryPlaceholders};`,
+          matchHistoryValues
+        );
+        const scoreTablePlaceholders = Array(scoreTableValues.length / 4).fill('(?, ?, ?, ?)').join(',');
+        await run(
+          `INSERT INTO scoreTable (matchID, userID, score, result) VALUES ${scoreTablePlaceholders};`,
+          scoreTableValues
+        );
+        await run('COMMIT');
+        // console.log(`[Fuzzer] Lot de ${currentBatchSize} matchs inséré. (${batchLimit}/${TOTAL_MATCHES})`);
+		} catch (err) {
+			await run('ROLLBACK');
+			console.error('[Fuzzer] La transaction du lot a échoué, annulation.', err);
+			throw err;
+		}
 	}
-	await saveMatchStats(matchID, null, paddleSpeed, ballSpeed, 15, 'score', players, duration, false);
+	console.log(`Fuzzing terminé : ${TOTAL_MATCHES} matchs générés.`);
+  } catch (err) {
+	console.error('[Fuzzer] Une erreur a arrêté le processus de fuzzing.', err);
   }
-  console.log(`Fuzzing terminé : ${TOTAL_MATCHES} matchs générés.`);
+  startBallBounceHistoryFuzzer();
 }
-// startScoreTableFuzzer();
+
+export async function startBallBounceHistoryFuzzer() {
+	await new Promise(resolve => setTimeout(resolve, 1500));
+	const TOTAL_BOUNCES = 2000; // 2000 rebonds
+	const TOTAL_MATCHES = 500; // Doit correspondre au fuzzer de scoreTable
+	const BATCH_SIZE = 500; // 500 rebonds à la fois
+	console.log(`Début du fuzzing pour ${TOTAL_BOUNCES} rebonds de balle...`);
+
+	try {
+		for (let i = 0; i < TOTAL_BOUNCES; i += BATCH_SIZE) {
+			const batchLimit = Math.min(i + BATCH_SIZE, TOTAL_BOUNCES);
+			const currentBatchSize = batchLimit - i;
+			const values: any[] = [];
+			for (let j = 0; j < currentBatchSize; j++) {
+				const matchID = randomInt(1, TOTAL_MATCHES + 1);
+				const last_userID_touch = randomInt(1, 3); // 1 or 2
+				const typeof_bounce = randomInt(0, 3); // 0=wall, 1=paddle, 2=goal
+				const ball_speed = Math.random() * 99 + 1; // Vitesse entre 1 et 100
+				const position_x = Math.random() * 60 - 30; // -30 à 30
+				const position_y = Math.random() * 34 - 17;  // -17 à 17
+				const angle = Math.random() * 2 * Math.PI;
+				const bounce_at_ms = randomInt(1000, 600000); // Entre 1s et 10min
+				values.push(
+					matchID,
+					last_userID_touch,
+					typeof_bounce,
+					ball_speed,
+					position_x,
+					position_y,
+					angle,
+					bounce_at_ms
+				);
+			}
+			await run('BEGIN TRANSACTION');
+			try {
+				const placeholders = Array(currentBatchSize).fill('(?, ?, ?, ?, ?, ?, ?, ?)').join(',');
+				await run(
+					`INSERT INTO ball_bounce_history (matchID, last_userID_touch, typeof_bounce, ball_speed, position_x, position_y, angle, bounce_at_ms) VALUES ${placeholders};`,
+					values
+				);
+				await run('COMMIT');
+				// console.log(`[Fuzzer] Lot de ${currentBatchSize} rebonds inséré. (${batchLimit}/${TOTAL_BOUNCES})`);
+			} catch (err) {
+				await run('ROLLBACK');
+				console.error('[Fuzzer] La transaction du lot a échoué, annulation.', err);
+				throw err;
+			}
+		}
+		console.log(`Fuzzing de ball_bounce_history terminé : ${TOTAL_BOUNCES} rebonds générés.`);
+	} catch (err) {
+		console.error('[Fuzzer] Une erreur a arrêté le processus de fuzzing de ball_bounce_history.', err);
+	}
+}
+startScoreTableFuzzer();

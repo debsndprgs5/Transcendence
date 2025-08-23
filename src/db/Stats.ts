@@ -38,12 +38,21 @@ export const getBallBounceHistory = async (userID: number, heatmap_type: number)
        COUNT(*) AS value
      FROM ball_bounce_history b
      WHERE b.typeof_bounce = ?
+       AND b.last_userID_touch = ?
        AND b.matchID IN (
-         SELECT DISTINCT st.matchID FROM scoreTable st WHERE st.userID = ?
+         SELECT st.matchID
+         FROM scoreTable st
+         GROUP BY st.matchID
+         HAVING COUNT(st.userID) = 2
        )
      GROUP BY x, y`,
     [heatmap_type, userID]
   );
+
+  //  AND b.matchID IN (
+  //    SELECT DISTINCT st.matchID FROM scoreTable st WHERE st.userID = ?
+  //  )
+
   // console.log(`[getBallBounceHistory] Found ${results.length}, ${JSON.stringify(results, null, 1)}`);
   return results || [];
 };

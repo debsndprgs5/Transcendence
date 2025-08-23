@@ -29,11 +29,14 @@ WORKDIR /app
 
 # 1) install dependencies for server
 COPY package*.json ./
-RUN apk add --no-cache python3 make g++ \
- && ln -sf python3 /usr/bin/python \
-#  && npm install \
- && npm install --prefer-offline --no-audit --progress=false \
- && apk del python3 make g++
+# RUN apk add --no-cache python3 make g++ \
+#  && ln -sf python3 /usr/bin/python \
+#  && npm install --prefer-offline --no-audit --progress=false \
+#  && apk del python3 make g++
+RUN apk add --no-cache python3 make g++
+RUN ln -sf python3 /usr/bin/python
+RUN npm install --prefer-offline --no-audit --progress=false
+RUN apk del python3 make g++
 
 # 2) copy backend TS + dist client from builder-front
 COPY --from=builder-front /app/client ./client

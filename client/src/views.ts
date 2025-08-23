@@ -1,6 +1,6 @@
 import { isAuthenticated } from './api';
 import { fetchAccountStats, state } from './pong_socket';
-import { showWallBouncesHeatmap, showPaddleBouncesHeatmap, showGoalsHeatmap, convertBouncesToHeatmap2p, gameToHeatmap2p } from './heatmaps';
+import { showWallBouncesHeatmap, showPaddleBouncesHeatmap, showGoalsHeatmap, gameToHeatmap2p } from './heatmaps';
 
 // Store all three heatmap datasets returned by the server
 let goalsHeatmapData: {
@@ -79,17 +79,21 @@ function updateStatsDisplay(data: any) {
     calculateAdvancedStats(data.matchHistory);
   }
     // store heatmap
-    const ConvertBounceHistory = (raw: any): Array<{ x: number; y: number; value: number }> => {
+    const ConvertBounceHistory = (
+      raw: any,
+      mode: 'none' | 'abs' | 'neg' = 'none'
+    ): Array<{ x: number; y: number; value: number }> => {
       if (!Array.isArray(raw) || raw.length === 0) return [];
-      if ('position_x' in raw[0] || 'positionX' in raw[0]) return convertBouncesToHeatmap2p(raw as any);
-      if (!('x' in raw[0] && 'y' in raw[0])) return [];
 
       const counts = (raw as any[]).reduce((m: Map<string, number>, r) => {
-        const { x, y, value } = r;
-        const mapped = gameToHeatmap2p(x, y);
+        const rxNum = Number(r.x);
+        const rx = mode === 'abs' ? Math.abs(rxNum)
+                 : mode === 'neg' ? -Math.abs(rxNum)
+                 : rxNum;
+        const ry = Number(r.y);
+        const mapped = gameToHeatmap2p(rx, ry);
         const key = `${Math.round(mapped.x)},${Math.round(mapped.y)}`;
-        // const key = `${mapped.x.toFixed(1)},${mapped.y.toFixed(1)}`;
-        m.set(key, (m.get(key) ?? 0) + (value ?? 1));
+        m.set(key, (m.get(key) ?? 0) + (typeof r.value === 'number' ? r.value : 1));
         return m;
       }, new Map<string, number>());
 
@@ -100,9 +104,9 @@ function updateStatsDisplay(data: any) {
       });
     };
 
-    goalsHeatmapData.wall = ConvertBounceHistory(data.ballWallHistory);
-    goalsHeatmapData.paddle = ConvertBounceHistory(data.ballPaddleHistory);
-    goalsHeatmapData.goal = ConvertBounceHistory(data.ballGoalHistory);
+  goalsHeatmapData.wall = ConvertBounceHistory(data.ballWallHistory, 'none');
+  goalsHeatmapData.paddle = ConvertBounceHistory(data.ballPaddleHistory, 'neg');
+  goalsHeatmapData.goal = ConvertBounceHistory(data.ballGoalHistory, 'abs');
 }
 
 function updateElementText(id: string, text: string) {
@@ -558,15 +562,14 @@ export function AccountView(user: any, friends: any[] = []): string {
     `&radius=50`;
 
   const heatmaps = [
-    { id: 'heatmap-wall', label: 'Wall Bounces', onClick: () => showWallBouncesHeatmap(goalsHeatmapData.wall) },
-    { id: 'heatmap-paddle', label: 'Paddle Bounces', onClick: () => showPaddleBouncesHeatmap(goalsHeatmapData.paddle) },
-    { id: 'heatmap-goal', label: 'Goals', onClick: () => showGoalsHeatmap(goalsHeatmapData.goal) },
+    { id: 'heatmap-wall', label: 'Wall Bounces', onClick: () => showWallBouncesHeatmap(goalsHeatmapData.wall), legend: 'Shows where the ball has bounced off the walls.' },
+    { id: 'heatmap-paddle', label: 'Paddle Bounces', onClick: () => showPaddleBouncesHeatmap(goalsHeatmapData.paddle), legend: 'Shows where the ball has hit your paddle.' },
+    { id: 'heatmap-goal', label: 'Goals', onClick: () => showGoalsHeatmap(goalsHeatmapData.goal), legend: 'Shows where you have scored goals.' },
     // #moooooore heatmaps
   ];
 
-  // Branche les boutons + hydrate les avatars amis APRÈS montage effectif
   setTimeout(() => {
-    // 1) boutons heatmap
+    const legendEl = document.getElementById('heatmap-legend');
     heatmaps.forEach(hm => {
       const btn = document.querySelector(`button[data-heatmap="${hm.id}"]`);
       if (!btn) return;
@@ -580,11 +583,12 @@ export function AccountView(user: any, friends: any[] = []): string {
         // activate clicked button
         btn.classList.remove('bg-indigo-100', 'text-indigo-700');
         btn.classList.add('bg-indigo-700', 'text-white', 'shadow');
-        // call the original handler
         try {
           hm.onClick();
+          if (legendEl) {
+            legendEl.textContent = hm.legend;
+          }
         } catch (e) {
-          // swallow errors from handlers to avoid breaking UI
           console.error('heatmap handler error', e);
         }
       });
@@ -763,6 +767,7 @@ export function AccountView(user: any, friends: any[] = []): string {
                class="w-full min-h-[320px] flex items-center justify-center bg-gray-900 border border-gray-700 rounded-lg">
             <span class="text-gray-500">Select a heatmap to display ball stats.</span>
           </div>
+          <p id="heatmap-legend" class="text-sm text-gray-400 mt-2 h-5 text-center"></p>
         </div>
 
         <!-- Match history -->

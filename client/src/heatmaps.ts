@@ -107,7 +107,7 @@ export function showHeatmap(data: Array<{ x: number; y: number; value: number }>
   }
 
   _heat.data(points);
-  _heat.radius(13, 15);
+  _heat.radius(16, 15);
   _heat.max(Math.max(...data.map(d => d.value)));
   _heat.draw(0.7);
 
@@ -175,24 +175,3 @@ export function gameToHeatmap2p(
   return { x: hx, y: hy };
 }
 
-export function convertBouncesToHeatmap2p(
-  bounces: Array<{ position_x: number; position_y: number; value?: number }>,
-  fieldW = 32,
-  fieldH = 18
-): Array<{ x: number; y: number; value: number }> {
-  const counts = new Map<string, number>();
-  for (const b of bounces) {
-    const mapped = gameToHeatmap2p(b.position_x, b.position_y, fieldW, fieldH);
-    const rx = Math.round(mapped.x);
-    const ry = Math.round(mapped.y);
-    const key = `${rx},${ry}`;
-    const add = typeof b.value === 'number' ? b.value : 1;
-    counts.set(key, (counts.get(key) ?? 0) + add);
-  }
-  const out: Array<{ x: number; y: number; value: number }> = [];
-  for (const [k, v] of counts.entries()) {
-    const [sx, sy] = k.split(',').map(Number);
-    out.push({ x: sx, y: sy, value: v });
-  }
-  return out;
-}

@@ -54,7 +54,7 @@ export interface CreateGameFormData {
 
 export const createGameFormData: CreateGameFormData = {
   roomName:     null,
-  ballSpeed:    50,
+  ballSpeed:    500, // #achanger
   paddleSpeed:  50,
   mode:         'duo',
   winCondition: 'time',

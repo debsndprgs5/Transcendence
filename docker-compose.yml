@@ -90,7 +90,11 @@ services:
       - vault_secrets:/vault/data
     working_dir: /vault/scripts
     entrypoint: /bin/sh
-    command: -c "apk add --no-cache bash netcat-openbsd jq && ./init.sh && ./init-value.sh"
+    # command: -c "apk add --no-cache bash netcat-openbsd jq && ./init.sh && ./init-value.sh"
+    command: -c "apk add --no-cache bash netcat-openbsd jq dos2unix \
+      && dos2unix init.sh init-value.sh \
+      && chmod +x init.sh init-value.sh \
+      && bash ./init.sh && bash ./init-value.sh" # commente tout ca et remet l'ancien 
     networks:
       - transcendence_net
     environment:

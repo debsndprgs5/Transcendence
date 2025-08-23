@@ -184,7 +184,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 		}
 
 		// Final JWT generation
-		const token = jwt.sign({ sub: user.rand_id }, fastify.vault.jwt, { expiresIn: '1h' })
+		const token = jwt.sign({ sub: user.rand_id }, fastify.vault.jwt, { expiresIn: '100h' }) // #nomoreexpiration
 
 		return reply
 			.setCookie('token', token, {

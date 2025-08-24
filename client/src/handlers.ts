@@ -11,7 +11,7 @@ import {
 import { isAuthenticated, apiFetch, initWebSocket, state, resetState } from './api';
 import { showNotification, showUserActionsBubble } from './notifications';
 import { showPongMenu } from './pong_rooms';
-import { initGameSocket, fetchAccountStats } from './pong_socket';
+import { initGameSocket, fetchAccountStats , pongState} from './pong_socket';
 import { handleLeaveTournament } from './tournament_rooms';
 //import { WebSocket } from 'ws';
 
@@ -88,6 +88,36 @@ export function updateNav(): void {
 	  });
   }
 }
+
+function navigate(path: string, opts: { replace?: boolean } = {}): void {
+  if (opts.replace) history.replaceState(null, '', path);
+  else history.pushState(null, '', path);
+  router();
+}
+
+
+// return to last page handling
+let _popBusy = false;
+window.addEventListener('popstate', () => {
+  if (_popBusy) return;
+  _popBusy = true;
+  setTimeout(() => (_popBusy = false), 120);
+
+  if (isAuthenticated()) {
+    if (location.pathname !== '/') {
+      history.replaceState(null, '', '/');
+    }
+  }
+
+  router();
+});
+
+window.addEventListener('pageshow', (e: PageTransitionEvent) => {
+  if (e.persisted && isAuthenticated()) {
+    void bootSocketsOnce();
+  }
+  router();
+});
 
 // =======================
 // EXPORTABLE HELPERS
@@ -921,8 +951,7 @@ export function setupLoginHandlers(): void {
 				} else {
 					localStorage.setItem('token', json.token);
 					state.authToken = json.token;
-					history.pushState(null, '', '/');
-					router();
+					navigate('/', { replace: true });
 				}
 			} else {
 				console.error('Login failed:', json.error);
@@ -1008,7 +1037,7 @@ export function setupSetup2FAHandlers(): void {
 			if (res.ok) {
 				localStorage.setItem('token', json.token);
 				state.authToken = json.token;
-				window.location.href = '/';
+				navigate('/', { replace: true });
 			} else {
 				const err = document.getElementById('setup2fa-error') as HTMLElement;
 				err.textContent = json.error;
@@ -1064,7 +1093,7 @@ export function setupVerify2FAHandlers(): void {
       if (res.ok) {
         localStorage.setItem('token', json.token);
         state.authToken = json.token;
-        window.location.href = '/';
+        navigate('/', { replace: true });
       } else {
         const errEl = document.getElementById('verify-error') as HTMLElement;
         errEl.textContent = json.error;
@@ -1326,6 +1355,23 @@ function setupProfileHandlers(): void {
 }
 
 
+let _wsBooting = false;
+async function bootSocketsOnce(): Promise<void> {
+  if (_wsBooting) return;
+  _wsBooting = true;
+  try {
+    if (!state.socket || state.socket.readyState !== WebSocket.OPEN) {
+      await initWebSocket();
+    }
+    const gws = state.playerInterface?.socket;
+    if (!gws || gws.readyState !== WebSocket.OPEN) {
+      await initGameSocket();
+    }
+  } finally {
+    _wsBooting = false;
+  }
+}
+
 
 // =======================
 // ROUTER
@@ -1335,8 +1381,22 @@ function setupProfileHandlers(): void {
  * Main SPA router: renders views based on current path.
  */
 export async function router(): Promise<void> {
-	const path = window.location.pathname;
-	updateNav();
+  const path = window.location.pathname;
+  updateNav();
+
+  // ── Auth-aware guards to neutralize stale history entries ──────────────────
+  const authed = isAuthenticated();
+
+  // If authenticated, never show /login or /register; normalize to home
+  if (authed && (path === '/login' || path === '/register')) {
+    history.replaceState(null, '', '/');
+    // do not return; continue into default branch to render HomeView + sockets
+  }
+
+  // If NOT authenticated and user lands on /account, force /login
+  if (!authed && path === '/account') {
+    history.replaceState(null, '', '/login');
+  }
 
 	// Profile view
 	if (path.startsWith('/profile/')) {
@@ -1389,7 +1449,7 @@ export async function router(): Promise<void> {
 		    render(LoginView());
 		    setupLoginHandlers();
 		  } else {
-		    try {
+		    try {		    		
 		      const user = await apiFetch('/api/users/me', { headers: { Authorization: `Bearer ${state.authToken}` } });
 		      const friends = await apiFetch('/api/friends', { headers: { Authorization: `Bearer ${state.authToken}` } });
 

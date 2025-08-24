@@ -61,51 +61,93 @@ function updateStatsChart(stats: { win: number, lose: number, tie: number }) {
 
 (window as any).updateStatsDisplay = updateStatsDisplay;
 
-function updateStatsDisplay(data: any) {
-  if (data.winPercentage) {
-    updateStatsChart(data.winPercentage);
-    const totalWins = Math.round((data.winPercentage.win / 100) * getTotalGames(data));
-    const totalLosses = Math.round((data.winPercentage.lose / 100) * getTotalGames(data));
-    const totalTies = Math.round((data.winPercentage.tie / 100) * getTotalGames(data));
-    updateElementText('wins-count', totalWins.toString());
-    updateElementText('losses-count', totalLosses.toString());
-    updateElementText('ties-count', totalTies.toString());
-    updateElementText('total-games', getTotalGames(data).toString());
-    updateElementText('win-rate', `${data.winPercentage.win}%`);
+function updateStatsDisplay(raw?: any) {
+  // Guard: accept undefined/null and sanitize shape
+  const data = (raw && typeof raw === 'object') ? raw : {};
+  const matchHistory = Array.isArray(data.matchHistory) ? data.matchHistory : [];
+
+  // Inline helpers (scoped to this function to avoid polluting global scope)
+  const resetUI = () => {
+    updateElementText('wins-count',   '-');
+    updateElementText('losses-count', '-');
+    updateElementText('ties-count',   '-');
+    updateElementText('total-games',  '-');
+    updateElementText('win-rate',     '-%');
+
+    const canvas = document.getElementById('stats-chart') as HTMLCanvasElement | null;
+    const legendEl = document.getElementById('stats-legend');
+    if (canvas?.getContext) {
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#6B7280';
+        ctx.font = '16px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('No data available', canvas.width / 2, canvas.height / 2);
+      }
+    }
+    if (legendEl) legendEl.innerHTML = '<span class="text-gray-500">No data available</span>';
+  };
+
+  const computePctFromHistory = () => {
+    if (matchHistory.length === 0) return null;
+    const total = matchHistory.length;
+    const win  = matchHistory.filter(m => m.result === 1).length;
+    const lose = matchHistory.filter(m => m.result === 0).length;
+    const tie  = total - win - lose;
+    const pct = (n: number) => Math.round((n / total) * 100);
+    return { win: pct(win), lose: pct(lose), tie: pct(tie) };
+  };
+
+  // Prefer backend-provided percentages, else compute from matchHistory
+  const winPct = data.winPercentage || computePctFromHistory();
+
+  if (winPct) {
+    updateStatsChart(winPct);
+
+    const totalGames = matchHistory.length;
+    const totalWins   = Math.round(((winPct.win  || 0) / 100) * totalGames);
+    const totalLosses = Math.round(((winPct.lose || 0) / 100) * totalGames);
+    const totalTies   = Math.round(((winPct.tie  || 0) / 100) * totalGames);
+
+    updateElementText('wins-count',   String(totalWins));
+    updateElementText('losses-count', String(totalLosses));
+    updateElementText('ties-count',   String(totalTies));
+    updateElementText('total-games',  String(totalGames));
+    updateElementText('win-rate',     `${winPct.win ?? 0}%`);
+  } else {
+    resetUI();
   }
-  if (data.matchHistory) {
-    updateMatchHistory(data.matchHistory);
-    calculateAdvancedStats(data.matchHistory);
+
+  if (matchHistory.length > 0) {
+    updateMatchHistory(matchHistory);
+    calculateAdvancedStats(matchHistory);
   }
-    // store heatmap
-    const ConvertBounceHistory = (
-      raw: any,
-      mode: 'none' | 'abs' | 'neg' = 'none'
-    ): Array<{ x: number; y: number; value: number }> => {
-      if (!Array.isArray(raw) || raw.length === 0) return [];
 
-      const counts = (raw as any[]).reduce((m: Map<string, number>, r) => {
-        const rxNum = Number(r.x);
-        const rx = mode === 'abs' ? Math.abs(rxNum)
-                 : mode === 'neg' ? -Math.abs(rxNum)
-                 : rxNum;
-        const ry = Number(r.y);
-        const mapped = gameToHeatmap2p(rx, ry);
-        const key = `${Math.round(mapped.x)},${Math.round(mapped.y)}`;
-        m.set(key, (m.get(key) ?? 0) + (typeof r.value === 'number' ? r.value : 1));
-        return m;
-      }, new Map<string, number>());
+  // Heatmaps: tolerate missing arrays
+  const ConvertBounceHistory = (
+    raw: any,
+    mode: 'none' | 'abs' | 'neg' = 'none'
+  ): Array<{ x: number; y: number; value: number }> => {
+    if (!Array.isArray(raw) || raw.length === 0) return [];
+    const counts = (raw as any[]).reduce((m: Map<string, number>, r) => {
+      const rxNum = Number(r.x);
+      const rx = mode === 'abs' ? Math.abs(rxNum) : mode === 'neg' ? -Math.abs(rxNum) : rxNum;
+      const ry = Number(r.y);
+      const mapped = gameToHeatmap2p(rx, ry);
+      const key = `${Math.round(mapped.x)},${Math.round(mapped.y)}`;
+      m.set(key, (m.get(key) ?? 0) + (typeof r.value === 'number' ? r.value : 1));
+      return m;
+    }, new Map<string, number>());
+    return Array.from(counts.entries()).map(([k, v]) => {
+      const [sx, sy] = k.split(',').map(Number);
+      return { x: sx, y: sy, value: v };
+    });
+  };
 
-      return Array.from(counts.entries()).map(([k, v]) => {
-        const [sx, sy] = k.split(',').map(Number);
-        // const [sx, sy] = k.split(',').map(s => parseFloat(s));
-        return { x: sx, y: sy, value: v };
-      });
-    };
-
-  goalsHeatmapData.wall = ConvertBounceHistory(data.ballWallHistory, 'none');
+  goalsHeatmapData.wall   = ConvertBounceHistory(data.ballWallHistory,   'none');
   goalsHeatmapData.paddle = ConvertBounceHistory(data.ballPaddleHistory, 'neg');
-  goalsHeatmapData.goal = ConvertBounceHistory(data.ballGoalHistory, 'abs');
+  goalsHeatmapData.goal   = ConvertBounceHistory(data.ballGoalHistory,   'abs');
 }
 
 function updateElementText(id: string, text: string) {
@@ -218,10 +260,6 @@ function formatDuration(seconds: number): string {
   const remainingSeconds = seconds % 60;
   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 }
-
-
-
-
 
 
 
@@ -868,20 +906,17 @@ export function ProfileView(profileUser: any): string {
       `&radius=50`;
 
   /* After mount: fetch the profile's stats and paint the UI */
-  setTimeout(async () => {
+  setTimeout(() => {
     try {
-      // If your fetch signature differs (e.g. needs a token), adapt this call.
-      const stats = await fetchAccountStats(profileUser.userId);
-      updateStatsDisplay(stats);
+      fetchAccountStats(profileUser.userId);
+      updateStatsDisplay(undefined);
     } catch (err) {
       console.error('[ProfileView] Failed to load stats for profile:', err);
+      updateStatsDisplay(undefined);
     }
 
-    // Optional: simple back button behavior
     const backBtn = document.getElementById('backBtnProfile');
-    if (backBtn) {
-      backBtn.addEventListener('click', () => history.back());
-    }
+    if (backBtn) backBtn.addEventListener('click', () => history.back());
   }, 0);
 
   return `

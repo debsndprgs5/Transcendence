@@ -88,6 +88,9 @@ export function resetState() {
 	});
 }
 
+let chatConnectPromise: Promise<void> | null = null;
+
+
 // ─── AUTHENTICATION ──────────────────────────────────────────────────────
 
 /**
@@ -95,10 +98,11 @@ export function resetState() {
  */
 
 export function isAuthenticated(): boolean {
-	state.authToken = localStorage.getItem('token');
-	if (state.playerInterface)
-		state.playerInterface!.typedSocket.send('healthcheck', { token: state.authToken });
-	return !!state.authToken;
+  state.authToken = localStorage.getItem('token');
+  try {
+    state.playerInterface?.typedSocket?.send('healthcheck', { token: state.authToken });
+  } catch {}
+  return !!state.authToken;
 }
 
 
@@ -208,90 +212,105 @@ function handleChatInbound(ev: MessageEvent) {
 }
 
 export async function initWebSocket(): Promise<void> {
-	if (!isAuthenticated()) {
-		console.warn("WebSocket: no auth token");
-		return;
-	}
+  if (!isAuthenticated()) {
+    console.warn('WebSocket: no auth token');
+    return;
+  }
 
-	try {
-		const resp = await fetch('/api/auth/me', {
-			headers: {
-				'Authorization': `Bearer ${state.authToken}`,
-			},
-		});
+  try {
+    const resp = await fetch('/api/auth/me', {
+      headers: { 'Authorization': `Bearer ${state.authToken}` },
+    });
+    if (!resp.ok) throw new Error('Failed to get userId');
+    const result = await resp.json();
+    state.userId = result.userId;
+    if (!state.userId) {
+      console.warn('WebSocket: userId not obtained');
+      return;
+    }
 
-		if (!resp.ok) {
-			throw new Error('Failed to get userId');
-		}
+    const wsUrl = `wss://${location.host}/chat/ws?token=${encodeURIComponent(state.authToken!)}`;
 
-		const result = await resp.json();
-		state.userId = result.userId;
+    // If already OPEN, do nothing; if CONNECTING, reuse in-flight promise.
+    if (state.socket) {
+      if (state.socket.readyState === WebSocket.OPEN) return;
+      if (state.socket.readyState === WebSocket.CONNECTING && chatConnectPromise) {
+        return chatConnectPromise;
+      }
+      try { state.socket.close(); } catch {}
+    }
 
-		if (!state.userId) {
-			console.warn('WebSocket: userId not obtained');
-			return;
-		}
+    // Create a fresh socket and capture it locally to avoid races
+    const ws = new WebSocket(wsUrl);
+    state.socket = ws;
 
-		const wsUrl = `wss://${location.host}/chat/ws?token=${encodeURIComponent(state.authToken!)}`;
+    chatConnectPromise = new Promise<void>((resolve, reject) => {
+      ws.onopen = () => {
+        console.log('[CHAT] WebSocket connected');
 
-		if (state.socket && state.socket.readyState === WebSocket.OPEN) {
-			state.socket.close();
-		}
+        // Send initial payload only if this is still the current socket and it is OPEN
+        if (state.socket !== ws || ws.readyState !== WebSocket.OPEN) {
+          try { ws.close(); } catch {}
+          chatConnectPromise = null;
+          return resolve();
+        }
 
-		state.socket = new WebSocket(wsUrl);
+        try {
+          ws.send(JSON.stringify({
+            type: 'chatHistory',
+            roomID: state.currentRoom,
+            userID: state.userId,
+            limit: 50,
+          }));
 
-		return new Promise<void>(async (resolve, reject) => {
-			state.socket!.onopen = async () => {
-				console.log('[CHAT] WebSocket connected');
-				await sleep(150);
-				
-				await state.socket!.send(
-					JSON.stringify({
-						type: 'chatHistory',
-						roomID: state.currentRoom,
-						userID: state.userId,
-						limit: 50,
-					})
-				);
+          if (window.location.pathname === '/account' && state.friendsStatusList?.length) {
+            ws.send(JSON.stringify({
+              type: 'friendStatus',
+              action: 'request',
+              friendList: state.friendsStatusList,
+            }));
+          }
+        } catch (err) {
+          console.warn('[CHAT] initial send failed:', err);
+          // Do not reject here: socket is open; just continue
+        }
 
-				if (
-					window.location.pathname === '/account' &&
-					state.friendsStatusList?.length
-				) {
-					//console.log('[CHAT] User in account view , not sending chatHistory');
-					state.socket!.send(
-						JSON.stringify({
-							type: 'friendStatus',
-							action: 'request',
-							friendList: state.friendsStatusList,
-						})
-					);
-				}
-				resolve(); // Resolve when ready to use
-			};
+        chatConnectPromise = null;
+        resolve();
+      };
 
-			state.socket!.onmessage = async (event: MessageEvent) => {
-				handleChatInbound(event);
-				try {
-					const parsed = JSON.parse(event.data);
-					await handleWebSocketMessage(parsed);
-				} catch (e) {
-					console.error('WebSocket message parsing error:', e);
-				}
-			};
+      ws.onmessage = async (event: MessageEvent) => {
+        handleChatInbound(event);
+        try {
+          const parsed = JSON.parse(event.data);
+          await handleWebSocketMessage(parsed);
+        } catch (e) {
+          console.error('WebSocket message parsing error:', e);
+        }
+      };
 
-			state.socket!.onclose = (event: CloseEvent) => {
-				console.log('WebSocket disconnected:', event.code, event.reason);
-			};
+      ws.onclose = (event: CloseEvent) => {
+        if (state.socket === ws) {
+          console.log('WebSocket disconnected:', event.code, event.reason);
+        }
+      };
 
-			state.socket!.onerror = (error: Event) => {
-				console.error('WebSocket Error:', error);
-				reject(error); // Reject if connection fails
-			};
-		});
-	} catch (error) {
-		console.error('Error during WebSocket init:', error);
-	}
+      ws.onerror = (error: Event) => {
+        if (state.socket === ws) {
+          console.error('WebSocket Error:', error);
+          chatConnectPromise = null;
+          reject(error);
+        } else {
+          // stale socket error — ignore
+          resolve();
+        }
+      };
+    });
+
+    return chatConnectPromise;
+  } catch (error) {
+    console.error('Error during WebSocket init:', error);
+  }
 }
 
 

@@ -1427,6 +1427,13 @@ export async function router(): Promise<void> {
 			return router();
 		}
 		try {
+		  // Ensure chat + game sockets are ready (important for fetchAccountStats)
+		  if (!state.socket || state.socket.readyState !== WebSocket.OPEN) {
+		    await initWebSocket();
+		  }
+		  if (!state.playerInterface?.socket || state.playerInterface.socket.readyState !== WebSocket.OPEN) {
+		    await initGameSocket();
+		  }
 			const profileUser = await apiFetch(
 				`/api/users/username/${encodeURIComponent(username)}`,
 				{ headers: { Authorization: `Bearer ${state.authToken}` } }

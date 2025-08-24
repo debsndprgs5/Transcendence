@@ -22,7 +22,9 @@ interface User {
 }
 
 
-
+function isInGame(): boolean {
+  return Boolean(pongState?.pongRenderer || pongState?.localMapRenderer);
+}
 
 // =======================
 // TOKEN VALIDATION
@@ -103,11 +105,14 @@ window.addEventListener('popstate', () => {
   _popBusy = true;
   setTimeout(() => (_popBusy = false), 120);
 
-  if (isAuthenticated()) {
-    if (location.pathname !== '/') {
-      history.replaceState(null, '', '/');
-    }
-  }
+	if (isAuthenticated()) {
+	  if (isInGame() && ( location.pathname === '/account' || location.pathname === '/profile')) {
+	    history.replaceState(null, '', '/');
+	  }
+	  if (location.pathname !== '/') {
+	    history.replaceState(null, '', '/');
+	  }
+	}
 
   router();
 });
@@ -117,6 +122,18 @@ window.addEventListener('pageshow', (e: PageTransitionEvent) => {
     void bootSocketsOnce();
   }
   router();
+});
+
+document.addEventListener('click', (e) => {
+  const a = (e.target as HTMLElement)?.closest('a[data-link]');
+  if (!a) return;
+
+  // stop navigation to /account if a game is active
+  if (isInGame() && (a.getAttribute('href') === '/account') || (a.getAttribute('href') === '/profile')) {
+    e.preventDefault();
+    showNotification({ message: 'Focus on your game !', type: 'warning', duration: 2500 });
+    return;
+  }
 });
 
 // =======================
@@ -1383,7 +1400,6 @@ async function bootSocketsOnce(): Promise<void> {
 export async function router(): Promise<void> {
   const path = window.location.pathname;
   updateNav();
-
   // ── Auth-aware guards to neutralize stale history entries ──────────────────
   const authed = isAuthenticated();
 
@@ -1449,6 +1465,8 @@ export async function router(): Promise<void> {
 		    render(LoginView());
 		    setupLoginHandlers();
 		  } else {
+		  	if (isInGame())
+		  		break;
 		    try {		    		
 		      const user = await apiFetch('/api/users/me', { headers: { Authorization: `Bearer ${state.authToken}` } });
 		      const friends = await apiFetch('/api/friends', { headers: { Authorization: `Bearer ${state.authToken}` } });

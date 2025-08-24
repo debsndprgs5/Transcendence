@@ -1416,6 +1416,11 @@ export async function router(): Promise<void> {
 
 	// Profile view
 	if (path.startsWith('/profile/')) {
+		if (isInGame())
+	 	{
+	 		showNotification({ message: 'Focus on your game !', type: 'warning'})
+	 		return;
+	 	}
 		const username = decodeURIComponent(path.split('/')[2] || '');
 		if (!username) {
 			history.pushState(null, '', '/');

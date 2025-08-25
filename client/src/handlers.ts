@@ -875,17 +875,18 @@ export function setupRegisterHandlers(): void {
     const username = (fd.get('username') ?? '').toString().trim();
     const password = (fd.get('password') ?? '').toString();
 
+	//#Nosecurity
     // Client-side validation to avoid round-trip
-    const uErr = validateUsername(username);
-    if (uErr) {
-      showError(uErr);
-      return;
-    }
-    const pErr = validatePassword(password, username);
-    if (pErr) {
-      showError(pErr);
-      return;
-    }
+    // const uErr = validateUsername(username);
+    // if (uErr) {
+    //   showError(uErr);
+    //   return;
+    // }
+    // const pErr = validatePassword(password, username);
+    // if (pErr) {
+    //   showError(pErr);
+    //   return;
+    // }
 
     // Disable submit while processing
     if (submitBtn) submitBtn.disabled = true;
@@ -920,20 +921,21 @@ export function setupRegisterHandlers(): void {
   const usernameInput = form.querySelector('input[name="username"]') as HTMLInputElement | null;
   const passwordInput = form.querySelector('input[name="password"]') as HTMLInputElement | null;
 
-  if (usernameInput) {
-    usernameInput.addEventListener('blur', () => {
-      const v = usernameInput.value.trim();
-      const err = validateUsername(v);
-      if (err) showError(err); else clearError();
-    });
-  }
-  if (passwordInput) {
-    passwordInput.addEventListener('blur', () => {
-      const u = (usernameInput?.value ?? '').trim();
-      const err = validatePassword(passwordInput.value, u);
-      if (err) showError(err); else clearError();
-    });
-  }
+  //#Nosecurity
+//   if (usernameInput) {
+//     usernameInput.addEventListener('blur', () => {
+//       const v = usernameInput.value.trim();
+//       const err = validateUsername(v);
+//       if (err) showError(err); else clearError();
+//     });
+//   }
+//   if (passwordInput) {
+//     passwordInput.addEventListener('blur', () => {
+//       const u = (usernameInput?.value ?? '').trim();
+//       const err = validatePassword(passwordInput.value, u);
+//       if (err) showError(err); else clearError();
+//     });
+//   }
 }
 
 // =======================

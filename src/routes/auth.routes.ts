@@ -78,11 +78,11 @@ export async function authRoutes(fastify: FastifyInstance) {
 	  body: {
 	    type: 'object',
 	    required: ['username', 'password'],
-	    additionalProperties: false,
-	    properties: {
-	      username: { type: 'string', minLength: USERNAME_MIN, maxLength: USERNAME_MAX },
-	      password: { type: 'string', minLength: PASSWORD_MIN, maxLength: PASSWORD_MAX }
-	    }
+	    // additionalProperties: false,
+	    // properties: {
+	    //   username: { type: 'string', minLength: USERNAME_MIN, maxLength: USERNAME_MAX },
+	    //   password: { type: 'string', minLength: PASSWORD_MIN, maxLength: PASSWORD_MAX }
+	    // }
 	  }
 	}
 	}, async (request, reply) => {
@@ -92,11 +92,12 @@ export async function authRoutes(fastify: FastifyInstance) {
 	  return reply.code(400).send({ error: 'Incomplete username or password' });
 	}
 
-	const uErr = validateUsername(username);
-	if (uErr) return reply.code(400).send({ error: uErr });
+	//#noSecurity
+	// const uErr = validateUsername(username);
+	// if (uErr) return reply.code(400).send({ error: uErr });
 
-	const pErr = validatePassword(password, username);
-	if (pErr) return reply.code(400).send({ error: pErr });
+	// const pErr = validatePassword(password, username);
+	// if (pErr) return reply.code(400).send({ error: pErr });
 
 	const existing = await UserManagement.getUserByName(username);
 	if (existing != null) {
@@ -244,7 +245,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 			token: code
 		})
 		if (!ok) { // #nomore2fa
-			return reply.code(400).send({ error: 'Invalid 2fa code' })
+			//return reply.code(400).send({ error: 'Invalid 2fa code' })
 		}
 
 		// If it was initial setup, set final totp, reset pending one

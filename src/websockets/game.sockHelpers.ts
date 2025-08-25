@@ -1,7 +1,7 @@
 import * as Interfaces from '../shared/gameTypes'
 import * as GameManagement from '../db/gameManagement'
 import {createTypedEventSocket} from '../shared/gameEventWrapper'
-import {getPlayerBySocket, getPlayerByUserID, getAllMembersFromGameID, getAllInitPlayers} from './game.socket'
+import {getPlayerBySocket, getPlayerByUserID, getAllMembersFromGameID, getAllInitPlayers, MappedPlayers} from './game.socket'
 // import{stopMockGameLoop, startMockGameLoop} from '../services/pong'
 import { PongRoom } from '../services/PongRoom'
 import { Tournament } from '../services/tournament'
@@ -9,6 +9,21 @@ import { getAliasForUser } from './tournament.socket'
 
 
 //ALL STUFF THAT CAN HAPPENDS ANYWHERE
+
+
+export async function isPlayerPlaying(playerID:number): Promise<boolean>{
+
+  for(const p of MappedPlayers){
+    if(p[0] === playerID){
+      if(p[1].gameID){
+        const room =  PongRoom.rooms.get(p[1].gameID);
+        if(room) return true;
+      }
+    }
+  }
+  return false;
+}
+
 export function updatePlayerState(
   player: Interfaces.playerInterface,
   newState: Interfaces.playerInterface['state']
@@ -229,6 +244,13 @@ export async function tryStartGameIfReady(gameID: number) {
         updatePlayerState(p, 'playing');  // Event-driven status update
       });
       // start the game (send first render and start game loop)
+      for(const p of playerObjs){
+        if(await isPlayerPlaying(p.userID) === true){
+          console.warn(`SERVER DETECTED REQUEST FOR STACKED GAMES, aborting request`);
+          await kickFromGameRoom(gameID, p, 'someone is already playing');
+          return;
+        }
+      }
       beginGame(gameID, playerObjs);
     }
   }

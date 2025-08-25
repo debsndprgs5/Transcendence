@@ -92,8 +92,9 @@ function updateStatsDisplay(raw?: any) {
   const computePctFromHistory = () => {
     if (matchHistory.length === 0) return null;
     const total = matchHistory.length;
-    const win  = matchHistory.filter(m => m.result === 1).length;
-    const lose = matchHistory.filter(m => m.result === 0).length;
+    //QUICK FIX : added -> (m: { result: number }) instead of m => ... 
+    const win  = matchHistory.filter((m: { result: number }) => m.result === 1).length;
+    const lose = matchHistory.filter((m : { result: number })=> m.result === 0).length;
     const tie  = total - win - lose;
     const pct = (n: number) => Math.round((n / total) * 100);
     return { win: pct(win), lose: pct(lose), tie: pct(tie) };

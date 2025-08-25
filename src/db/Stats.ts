@@ -26,6 +26,25 @@ export async function insertBallBounceHistory(
     );
 }
 
+export const getBallBounceHistoryWithMatchID = async (userID: number) => {
+  const result = await getAll<{
+    x: number;
+    y: number;
+    matchID: number;
+    typeof_bounce: number; // 0 = wall, 1 = paddle, 2 = goal
+  }>(
+    `SELECT
+       CAST(ROUND(b.position_x) AS INTEGER) AS x,
+       CAST(ROUND(b.position_y) AS INTEGER) AS y,
+       b.matchID,
+       b.typeof_bounce
+     FROM ball_bounce_history b
+     WHERE b.last_userID_touch = ?`,
+    [userID]
+  );
+  return result || [];
+};
+
 export const getBallBounceHistory = async (userID: number, heatmap_type: number) => {
   const results = await getAll<{
     x: number;

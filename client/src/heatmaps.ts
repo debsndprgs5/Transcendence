@@ -51,9 +51,17 @@ const FIELD_W = 32, FIELD_H = 18;
 const CANVAS_W = 480, CANVAS_H = 270;
 
 function ensureCanvas(): HTMLCanvasElement | null {
-  if (_canvas) return _canvas;
+  // if (_canvas)
+  // {
+  //   console.log('Reusing existing canvas element');
+  //   return _canvas;
+  // }
   const holder = document.getElementById('heatmap-holder');
-  if (!holder) return null;
+  if (!holder)
+  {
+    console.error('No heatmap-holder element found in DOM');
+    return null;
+  }
   holder.innerHTML = '';
   const canvas = document.createElement('canvas');
   canvas.width = CANVAS_W;
@@ -68,6 +76,7 @@ function ensureCanvas(): HTMLCanvasElement | null {
     _heat = simpleheat(canvas as any);
   } catch (e) {
     // ignore; will recreate on render
+    console.log('simpleheat failed to initialize', e);
     _heat = null;
   }
   return _canvas;
@@ -76,7 +85,11 @@ function ensureCanvas(): HTMLCanvasElement | null {
 export function showHeatmap(data: Array<{ x: number; y: number; value: number }>, type: string = 'generic') {
   const canvas = ensureCanvas();
   const holder = document.getElementById('heatmap-holder');
-  if (!holder || !canvas) return;
+  if (!holder || !canvas)
+  {
+    console.error('No heatmap-holder element found in DOM');
+    return;
+  }
 
   if (!Array.isArray(data) || data.length === 0) {
     holder.innerHTML = '<span class="text-gray-400">No data available for this heatmap.</span>';

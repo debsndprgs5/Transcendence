@@ -327,17 +327,19 @@ export const getStatsForUser = async (userID: number) => {
 	const ball_wall = await Stats.getBallBounceHistory(userID, 0);
 	const ball_paddle = await Stats.getBallBounceHistory(userID, 1);
 	const ball_goal = await Stats.getBallBounceHistory(userID, 2);
+	const ball_withMatchID = await Stats.getBallBounceHistoryWithMatchID(userID);
 
 	// console.log(`[getStatsForUser] winPercentage: ${JSON.stringify(winPercentage)}`);
 	// console.log(`[getStatsForUser] matchHistory: ${results.length} matches`);
 	// console.log(`[getStatsForUser] ballBounceHistory: ${ball.length} bounces`);
-  return { winPercentage: winPercentage, matchHistory: results, ballWallHistory: ball_wall, ballPaddleHistory: ball_paddle, ballGoalHistory: ball_goal };
+	// console.log(`[getStatsForUser] ball_withMatchID: ${ball_withMatchID.length} bounces with matchID`);
+  return { winPercentage: winPercentage, matchHistory: results, ballWallHistory: ball_wall, ballPaddleHistory: ball_paddle, ballGoalHistory: ball_goal, allBounces: ball_withMatchID };
 };
 
 export async function startScoreTableFuzzer() {
   await new Promise(resolve => setTimeout(resolve, 1500));
-  const TOTAL_MATCHES = 500;
-  const BATCH_SIZE = 100;
+  const TOTAL_MATCHES = 5;
+  const BATCH_SIZE = 1;
   console.log(`Début du fuzzing pour ${TOTAL_MATCHES} matchs...`);
 
   try {
@@ -436,9 +438,9 @@ export async function startScoreTableFuzzer() {
 
 export async function startBallBounceHistoryFuzzer() {
 	await new Promise(resolve => setTimeout(resolve, 1500));
-	const TOTAL_BOUNCES = 2000; // 2000 rebonds
-	const TOTAL_MATCHES = 500; // Doit correspondre au fuzzer de scoreTable
-	const BATCH_SIZE = 500; // 500 rebonds à la fois
+	const TOTAL_BOUNCES = 200000000; // 2000 rebonds
+	const TOTAL_MATCHES = 5; // Doit correspondre au fuzzer de scoreTable
+	const BATCH_SIZE = 1; // 500 rebonds à la fois
 	console.log(`Début du fuzzing pour ${TOTAL_BOUNCES} rebonds de balle...`);
 
 	try {

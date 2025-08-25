@@ -9,6 +9,28 @@ let goalsHeatmapData: {
   goal: Array<{ x: number; y: number; value: number }>;
 } = { wall: [], paddle: [], goal: [] };
 
+let allBouncesCache: Array<{ x: number; y: number; matchID: number; typeof_bounce: number }> = [];
+
+const ConvertBounceHistory = (
+  raw: any,
+  mode: 'none' | 'abs' | 'neg' = 'none'
+): Array<{ x: number; y: number; value: number }> => {
+  if (!Array.isArray(raw) || raw.length === 0) return [];
+  const counts = (raw as any[]).reduce((m: Map<string, number>, r) => {
+    const rxNum = Number(r.x);
+    const rx = mode === 'abs' ? Math.abs(rxNum) : mode === 'neg' ? -Math.abs(rxNum) : rxNum;
+    const ry = Number(r.y);
+    const mapped = gameToHeatmap2p(rx, ry);
+    const key = `${Math.round(mapped.x)},${Math.round(mapped.y)}`;
+    m.set(key, (m.get(key) ?? 0) + (typeof r.value === 'number' ? r.value : 1));
+    return m;
+  }, new Map<string, number>());
+  return Array.from(counts.entries()).map(([k, v]) => {
+    const [sx, sy] = k.split(',').map(Number);
+    return { x: sx, y: sy, value: v };
+  });
+};
+
 function updateStatsChart(stats: { win: number, lose: number, tie: number }) {
   const canvas = document.getElementById('stats-chart');
   const legendEl = document.getElementById('stats-legend');
@@ -53,7 +75,7 @@ function updateStatsChart(stats: { win: number, lose: number, tie: number }) {
     legendEl.innerHTML = filteredData.map(item => 
       `<span class="inline-block mr-4">
         <span class="inline-block w-3 h-3 rounded-full mr-1" style="background-color: ${item.color}"></span>
-        ${item.label}: ${item.value}%
+        ${item.label}: ${item.value}%'
       </span>`
     ).join('');
   }
@@ -125,27 +147,12 @@ function updateStatsDisplay(raw?: any) {
     calculateAdvancedStats(matchHistory);
   }
 
-  // Heatmaps: tolerate missing arrays
-  const ConvertBounceHistory = (
-    raw: any,
-    mode: 'none' | 'abs' | 'neg' = 'none'
-  ): Array<{ x: number; y: number; value: number }> => {
-    if (!Array.isArray(raw) || raw.length === 0) return [];
-    const counts = (raw as any[]).reduce((m: Map<string, number>, r) => {
-      const rxNum = Number(r.x);
-      const rx = mode === 'abs' ? Math.abs(rxNum) : mode === 'neg' ? -Math.abs(rxNum) : rxNum;
-      const ry = Number(r.y);
-      const mapped = gameToHeatmap2p(rx, ry);
-      const key = `${Math.round(mapped.x)},${Math.round(mapped.y)}`;
-      m.set(key, (m.get(key) ?? 0) + (typeof r.value === 'number' ? r.value : 1));
-      return m;
-    }, new Map<string, number>());
-    return Array.from(counts.entries()).map(([k, v]) => {
-      const [sx, sy] = k.split(',').map(Number);
-      return { x: sx, y: sy, value: v };
-    });
-  };
+  // Cache all bounce history data that includes matchID
+  if (data.allBounces && Array.isArray(data.allBounces)) {
+    allBouncesCache = data.allBounces;
+  }
 
+  // console.log('raw goal histories:', data.ballGoalHistory);
   goalsHeatmapData.wall   = ConvertBounceHistory(data.ballWallHistory,   'none');
   goalsHeatmapData.paddle = ConvertBounceHistory(data.ballPaddleHistory, 'neg');
   goalsHeatmapData.goal   = ConvertBounceHistory(data.ballGoalHistory,   'abs');
@@ -176,13 +183,15 @@ function updateMatchHistory(matchHistory: any[]) {
   // affiche que les x premiers matchs
   const toDisplay = matchHistory.slice(0, matchHistoryDisplayCount);
   tableBody.innerHTML = toDisplay.map(match => {
-    const resultClass = match.result === 1 ? 'text-green-600 font-semibold' : match.result === 0 ? 'text-red-600 font-semibold' : 'text-yellow-600 font-semibold';
-    const resultText = match.result === 1 ? 'Win' : match.result === 0 ? 'Loss' : 'Tie';
     const date = match.started_at ? new Date(match.started_at).toLocaleDateString() : 'N/A';
     const duration = match.duration ? formatDuration(match.duration) : 'N/A';
     const mode = match.rulesCondition === 1 ? 'Score' : 'Time';
+    const resultText = match.result === 1 ? 'Win' : match.result === 0 ? 'Loss' : 'Tie';
+    const resultClass = match.result === 1 ? 'text-green-500' : match.result === 0 ? 'text-red-500' : 'text-yellow-500';
+    const matchDataString = encodeURIComponent(JSON.stringify(match));
+
     return `
-      <tr class="hover:bg-gray-50">
+      <tr class="hover:bg-gray-600 cursor-pointer" onclick="showMatchDetails('${matchDataString}')">
         <td class="px-4 py-3 text-sm text-gray-700">${date}</td>
         <td class="px-4 py-3 text-sm text-gray-700">${match.score || 0}</td>
         <td class="px-4 py-3 text-sm ${resultClass}">${resultText}</td>
@@ -262,12 +271,42 @@ function formatDuration(seconds: number): string {
   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 }
 
+export function showMatchDetails(encodedMatchData: string) {
+  try {
+    const matchData = decodeURIComponent(encodedMatchData);
+    const match = JSON.parse(matchData);
+    const matchId = JSON.parse(matchData).matchID;
+    if (!allBouncesCache || allBouncesCache.length === 0) {
+      console.log('Bounce data is not available.');
+      return;
+    }
+    const matchBounces = allBouncesCache.filter(b => b.matchID === matchId);
+    const wallBounces = matchBounces.filter(b => b.typeof_bounce === 0);
+    const paddleBounces = matchBounces.filter(b => b.typeof_bounce === 1);
+    const goalBounces = matchBounces.filter(b => b.typeof_bounce === 2);
+    const all = [
+      ...ConvertBounceHistory(wallBounces, 'none'),
+      ...ConvertBounceHistory(paddleBounces, 'neg'),
+      ...ConvertBounceHistory(goalBounces, 'abs'),
+    ];
 
+    // console.log(`heatmaps for match ${matchId}`, {
+    //   wall: wallBounces,
+    //   paddle: paddleBounces,
+    //   goal: goalBounces,
+    // });
 
-
-
-
-
+    showGoalsHeatmap(all);
+    const legendEl = document.getElementById('heatmap-legend');
+    if (legendEl) {
+      const date = match.started_at ? new Date(match.started_at).toLocaleDateString() : 'a past';
+      legendEl.textContent = `On the left: bounces on your paddle. On the right: goals you scored. Top/bottom: wall bounces.`;
+    }
+  } catch (error) {
+    console.error('Failed to parse match data or show heatmap:', error);
+  }
+}
+(window as any).showMatchDetails = showMatchDetails;
 
 /**
  * Renders the given HTML string into the #app element.
@@ -585,7 +624,7 @@ export function AccountView(user: any, friends: any[] = []): string {
     //   return '';
     // }
     fetchAccountStats(user.userId);
-    document.body.setAttribute('data-current-view', 'account');
+    // document.body.setAttribute('data-current-view', 'account');
   }
 
   const username = user.username || '';

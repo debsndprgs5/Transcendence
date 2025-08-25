@@ -616,9 +616,9 @@ export async function setupHomeHandlers(): Promise<void> {
 			});
 
 			// Load current room history
-			if (rooms.length > 0) {
-				selectRoom(state.currentRoom);
-			}
+			const targetRoom = Number(localStorage.getItem('currentRoom') || '0');
+			state.currentRoom = Number.isFinite(targetRoom) ? targetRoom : 0;
+			await selectRoom(state.currentRoom);
 		} catch (error) {
 			console.error('Error loading rooms:', error);
 			const ul = document.getElementById('room-list');
@@ -1381,13 +1381,14 @@ async function bootSocketsOnce(): Promise<void> {
   try {
     if (!state.socket || state.socket.readyState !== WebSocket.OPEN) {
       await initWebSocket();
-    }
+      }
     const gws = state.playerInterface?.socket;
     if (!gws || gws.readyState !== WebSocket.OPEN) {
       await initGameSocket();
     }
   } finally {
     _wsBooting = false;
+
   }
 }
 

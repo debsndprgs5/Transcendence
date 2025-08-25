@@ -25,7 +25,7 @@ export class PongRoom {
 
 	private readonly game: G.gameRoomInterface & { ballSpeed: number; paddleSpeed: number }
 	private readonly gameID: number
-	private readonly players: G.playerInterface[]
+	public readonly players: G.playerInterface[]
 	private readonly paddles = new Map<number, paddleClass>()
 	private readonly balls: ballClass[] = []
 	private readonly scoreMap = new Map<number, number>()

@@ -397,11 +397,11 @@ export async function handleDisconnect(player: Interfaces.playerInterface) {
       if (r) r.stop();
       Helpers.kickFromGameRoom(player.gameID!, player, `${player.username} timed out`);
       delPlayer(player.userID);
-    }, 15000);
+    }, 5000);
     return;
   }
 
   player.disconnectTimeOut = setTimeout(() => {
     delPlayer(player.userID);
-  }, 30000);
+  }, 5000);
 }

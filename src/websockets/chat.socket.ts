@@ -17,7 +17,7 @@ import { getJwtSecret } from '../vault/vaultPlugin';
 
 const MappedClients = new Map<number, WebSocket>();
 
-const PRESENCE_TTL_MS = 30000;
+const PRESENCE_TTL_MS = 5000;
 const DisconnectTimers = new Map<number, NodeJS.Timeout>();
 
 // Helper: do we currently have a chat socket for this user?
@@ -175,7 +175,7 @@ async function handleConnection(ws: WebSocket, request: any) {
 		  try {
 		    if (!userID) return;
 
-		    // 1) Start/refresh the 30s grace period timer
+		    // 1) Start/refresh the 5s grace period timer
 		    if (DisconnectTimers.has(userID)) {
 		      clearTimeout(DisconnectTimers.get(userID)!);
 		    }

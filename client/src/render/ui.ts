@@ -1,9 +1,10 @@
 import * as BABYLON from '@babylonjs/core';
 import * as GUI from '@babylonjs/gui';
 import type { RendererCtx, Side } from './pong_render';
-import { state } from '../api';
+import { sleep, state } from '../api';
 import { showNotification } from '../notifications';
 import { handleLeaveTournament } from '../tournament_rooms';
+import { showPongMenu } from '../pong_rooms';
 
 // ---------- layout constants ----------
 const STRIP_HEIGHT = 72;   // px
@@ -253,10 +254,6 @@ export function setupGUI(ctx: RendererCtx) {
   leave.zIndex = 1000;           // above siblings in the strip
   leave.hoverCursor = 'pointer'; // useful sanity check
 
-  //DEBUG
-  leave.onPointerEnterObservable.add(() => console.debug('[UI] leave: enter'));
-  leave.onPointerDownObservable.add(() => console.debug('[UI] leave: down'));
-  leave.onPointerUpObservable.add(() => console.debug('[UI] leave: up'));
   
   leave.onPointerUpObservable.add(() => {
     const player = state.playerInterface;
@@ -266,8 +263,7 @@ export function setupGUI(ctx: RendererCtx) {
 			return;
 		}
 
-    if (ctx.isPaused){ 
-    
+    if (ctx.isPaused){     
       return;
     }
     ctx.isPaused = true;

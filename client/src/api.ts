@@ -245,7 +245,8 @@ export async function initWebSocket(): Promise<void> {
     state.socket = ws;
 
     chatConnectPromise = new Promise<void>((resolve, reject) => {
-      ws.onopen = () => {
+      ws.onopen = async () => {
+		await sleep(150);
         console.log('[CHAT] WebSocket connected');
 
         // Send initial payload only if this is still the current socket and it is OPEN

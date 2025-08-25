@@ -178,7 +178,10 @@ export function showPongMenu(): void {
 					const r = babylonCanvas.getBoundingClientRect();
 					babylonCanvas.width  = Math.floor(r.width);
 					babylonCanvas.height = Math.floor(r.height);
-
+					// if(pongState.localMapRenderer){
+					// 	pongState.localMapRenderer.dispose();
+					// 	pongState.localMapRenderer = null;
+					// }
 					if (!state.playerInterface?.typedSocket) {
 						console.error('No socket for PongRenderer');
 						return;

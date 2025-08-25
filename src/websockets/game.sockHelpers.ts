@@ -15,10 +15,16 @@ export async function isPlayerPlaying(playerID:number): Promise<boolean>{
 
   for(const p of MappedPlayers){
     if(p[0] === playerID){
-      if(p[1].gameID){
-        const room =  PongRoom.rooms.get(p[1].gameID);
-        if(room) return true;
-      }
+      console.warn(`[STACKED GAMES] found a player witch matched ID`)
+        const allRooms = PongRoom.rooms
+        for(const room of allRooms){
+          for(const p of room[1].players){
+            if(p.userID === playerID){
+              room[1].stop();
+              return true;
+            }
+          }
+        }
     }
   }
   return false;
@@ -238,19 +244,19 @@ export async function tryStartGameIfReady(gameID: number) {
     const playerObjs = playersInGameRoom
       .map(p => getPlayerByUserID(p.userID))
       .filter((p): p is Interfaces.playerInterface => !!p);
-
-    if (playerObjs.length === maxPlayers) {
-      playerObjs.forEach(p => {
-        updatePlayerState(p, 'playing');  // Event-driven status update
-      });
-      // start the game (send first render and start game loop)
-      for(const p of playerObjs){
+     for(const p of playerObjs){
         if(await isPlayerPlaying(p.userID) === true){
           console.warn(`SERVER DETECTED REQUEST FOR STACKED GAMES, aborting request`);
           await kickFromGameRoom(gameID, p, 'someone is already playing');
           return;
         }
       }
+    if (playerObjs.length === maxPlayers) {
+      playerObjs.forEach(p => {
+        updatePlayerState(p, 'playing');  // Event-driven status update
+      });
+      // start the game (send first render and start game loop)
+ 
       beginGame(gameID, playerObjs);
     }
   }
@@ -308,7 +314,10 @@ export async function kickFromGameRoom(
     await GameManagement.deleteGameRoom(gameID);
     const room = PongRoom.rooms.get(gameID);
     if(!room) await updateList();
-    if (room) room.stop();
+    if (room){
+      console.log(`[ROOM IS STOPPED]`);
+      room.stop();
+    }
     return;
   }
 

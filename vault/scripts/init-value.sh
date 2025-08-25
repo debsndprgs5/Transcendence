@@ -14,8 +14,8 @@ fi
 echo "Writing secrets to 'kv/transcendence'..."
 
 vault kv put kv/transcendence \
-    JWT_SECRET='JnDy&cdiQ*O&NV0vUb*Yve%5#qW3^wPMXWdxQI!P4bC*L6de34' \
-    COOKIE_SECRET='&hotzBs@bziCO$oy2xTY0pq7QiBJ9Jz4Clgb$@od0MWzuU*ybL'
+  JWT_SECRET='JnDy&cdiQ*O&NV0vUb*Yve%5#qW3^wPMXWdxQI!P4bC*L6de34' \
+  COOKIE_SECRET='&hotzBs@bziCO$oy2xTY0pq7QiBJ9Jz4Clgb$@od0MWzuU*ybL' >/dev/null 2>&1
 
-echo "Secrets written. Verifying..."
-vault kv get kv/transcendence
+echo "Secrets written."
+vault kv get kv/transcendence >/dev/null 2>&1

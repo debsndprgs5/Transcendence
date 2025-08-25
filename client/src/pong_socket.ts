@@ -457,6 +457,11 @@ export async function addAvatarPanel(
 
 
 export async function handleStartGame(data: Interfaces.SocketMessageMap['startGame']) {
+
+	if(pongState.localMapRenderer){
+		pongState.localMapRenderer.dispose();
+		pongState.localMapRenderer = null;
+	}
 	if (!pongState.pongRenderer) {
 	const canvas = document.getElementById('babylon-canvas');
 	if (!canvas || !(canvas instanceof HTMLCanvasElement)) {

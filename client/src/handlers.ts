@@ -1419,9 +1419,9 @@ export async function router(): Promise<void> {
 
 	// Profile view
 	if (path.startsWith('/profile/')) {
-		if (isInGame())
+		if (isInGame() || state.canvasViewState !== 'mainMenu')
 	 	{
-	 		showNotification({ message: 'Focus on your game !', type: 'warning'})
+	 		showNotification({ message: 'You can only see your account on the main menu', type: 'warning'})
 	 		return;
 	 	}
 		const username = decodeURIComponent(path.split('/')[2] || '');
@@ -1480,7 +1480,7 @@ export async function router(): Promise<void> {
 		    render(LoginView());
 		    setupLoginHandlers();
 		  } else {
-		  	if (isInGame())
+		  	if (isInGame() || state.canvasViewState !== 'mainMenu')
 		  		break;
 		    try {		    		
 		      const user = await apiFetch('/api/users/me', { headers: { Authorization: `Bearer ${state.authToken}` } });
@@ -1577,6 +1577,11 @@ export async function handleInviteButton(friendUsername: string): Promise<void> 
     return;
   }
 
+  	if (state.canvasViewState !== 'mainMenu')
+  	{
+  		showNotification({ message: 'You have to be on the main menu to invite someone !', type: 'warning', duration: 2500});
+  		return;
+  	}
 	const friendUserId = await apiFetch<{ userId: number }>(
 	  `/users/by-username/${encodeURIComponent(friendUsername)}`,
 	  { headers: { Authorization: `Bearer ${state.authToken}` } }

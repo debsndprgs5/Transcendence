@@ -296,6 +296,11 @@ export async function handleInvite(data: Interfaces.SocketMessageMap['invite']) 
 
   // Invitee receives a prompt
   if (data.action === 'receive') {
+  	if (state.canvasViewState !== 'mainMenu')
+	{
+    	state.typedSocket.send('invite', { action: 'reply', response: 'decline', fromID: state.userId, toID: inviterID });
+  		return;
+    }
     const inviterID = data.fromID;
     if (!inviterID || Number.isNaN(inviterID)) return;
 

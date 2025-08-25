@@ -486,4 +486,4 @@ export async function startBallBounceHistoryFuzzer() {
 		console.error('[Fuzzer] Une erreur a arrêté le processus de fuzzing de ball_bounce_history.', err);
 	}
 }
-startScoreTableFuzzer();
+// startScoreTableFuzzer();

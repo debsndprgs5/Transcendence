@@ -315,7 +315,6 @@ export async function kickFromGameRoom(
     const room = PongRoom.rooms.get(gameID);
     if(!room) await updateList();
     if (room){
-      console.log(`[ROOM IS STOPPED]`);
       room.stop();
     }
     return;

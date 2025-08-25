@@ -416,7 +416,6 @@ async function handleCreateGameClick(canvas: HTMLCanvasElement, x: number, y: nu
 
 	if (state.playerInterface!.state !== 'init')
 	{
-		console.warn('No no no | ', state.playerInterface!.state);
 		state.canvasViewState = 'mainMenu'
 		return;
 	}

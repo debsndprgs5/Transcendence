@@ -89,7 +89,7 @@ export function createTypedEventSocket<
   }
 
   function clearAllEvents() {
-    console.log('[SOCKET WRAPPER] Clearing all registered event handlers.');
+    //console.log('[SOCKET WRAPPER] Clearing all registered event handlers.');
     for (const key in eventHandlers) {
       delete eventHandlers[key as keyof typeof eventHandlers];
     }

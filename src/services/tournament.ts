@@ -50,7 +50,7 @@ export class Tournament {
 		this.max_round = 5;
 		this.rules=rules;
 		if(sameTour){
-			console.warn(`[TOURNAMENT][TOURID called twice]`)
+		
 			return;
 		}
 		
@@ -191,7 +191,6 @@ public async matchGaveUp(tourID: number, quitterID: number) {
 public removeMemberFromTourID(userID: number): boolean {
 	const tour = Tournament.MappedTour.get(this.tourID);
 	if (!tour) {
-		console.warn(`[REMOVE] No tournament found for tourID=${this.tourID}`);
 		return false;
 	}
 
